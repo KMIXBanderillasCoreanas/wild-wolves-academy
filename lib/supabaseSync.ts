@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { StudentProfile, BasketballMetrics, AttendanceSession, FinancialRecord } from './types';
+import { StudentProfile, BasketballMetrics, AttendanceRecord, FinancialRecord } from './types';
 
 /**
  * Servicio de sincronización bidireccional entre HoopPerformance OS y Supabase PostgreSQL
@@ -96,7 +96,7 @@ export const SupabaseSync = {
               paymentMethod: 'Efectivo',
             };
 
-        const attendanceHistory: AttendanceSession[] = attList.map((a: any) => ({
+        const attendanceHistory: AttendanceRecord[] = attList.map((a: any) => ({
           id: a.id,
           date: a.session_date,
           dayName: a.day_name,

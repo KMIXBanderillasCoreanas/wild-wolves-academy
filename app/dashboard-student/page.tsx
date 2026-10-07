@@ -16,7 +16,8 @@ import {
   CheckCircle2, 
   AlertCircle, 
   CalendarCheck,
-  BadgeDollarSign
+  BadgeDollarSign,
+  MessageCircle
 } from 'lucide-react';
 
 function StudentDashboardContent() {
