@@ -2,85 +2,85 @@
 
 import React, { useState } from 'react';
 import { StudentProfile } from '@/lib/types';
-import { MessageCircle, Check, Share2, Copy } from 'lucide-react';
+import { MessageCircle, Check, Copy } from 'lucide-react';
 
 interface WhatsAppReportButtonProps {
   student: StudentProfile;
-  phoneNumber?: string; // e.g. Coach phone or Parent phone
   label?: string;
   className?: string;
 }
 
 export function WhatsAppReportButton({
   student,
-  phoneNumber = '5215500000000',
-  label = 'Compartir Reporte por WhatsApp',
+  label = 'Reporte WhatsApp',
   className = '',
 }: WhatsAppReportButtonProps) {
   const [copied, setCopied] = useState(false);
 
-  const overallRating = Math.round(
-    Object.values(student.currentMetrics).reduce((a, b) => a + b, 0) / 6
-  );
-
-  const completedRope = student.trainingPlan.ropeTracker.filter((r) => r.completed).length;
-  const totalRopeJumps = student.trainingPlan.ropeTracker
-    .filter((r) => r.completed)
-    .reduce((acc, curr) => acc + curr.targetJumps, 0);
-
-  const completedEnduranceMin = student.trainingPlan.enduranceCalendar
-    .filter((e) => e.completed)
-    .reduce((acc, curr) => acc + curr.minutesEstimated, 0);
+  // WhatsApp oficial: 01 55 2242 7769 -> 525522427769
+  const defaultAcademyWhatsApp = '525522427769';
+  const targetPhone = (student.parentPhone || student.phone || defaultAcademyWhatsApp).replace(/[^0-9]/g, '');
 
   const latestEval = student.evaluations[0];
+  const cur = student.metricsCurrent;
+  const prev = student.metricsPrevious;
 
-  const buildReportMessage = (): string => {
-    return `🏀 *REPORTE DE RENDIMIENTO - HOOPPERFORMANCE OS v0.3*
-🐺 *Wild Wolves Basketball Academy*
+  const currentAvg = Math.round(
+    (cur.freeThrow + cur.midRange + cur.threePoint + cur.verticalJump + cur.sprint100m + cur.agilityTTest) / 6
+  );
+
+  const buildMessage = (): string => {
+    return `🏀 *REPORTE DE RENDIMIENTO & ASISTENCIA - WILD WOLVES CDMX*
+🐺 *HoopPerformance OS v0.3.0*
 ━━━━━━━━━━━━━━━━━━━━
-👤 *Atleta:* #${student.jerseyNumber} ${student.name}
-📍 *Posición:* ${student.position} | *Categoría:* ${student.category}
-📏 *Físico:* ${student.height} | ${student.weight} | ${student.age} años
+👤 *Atleta:* ${student.fullName}
+📍 *Posición:* ${student.position} | *Género:* ${student.gender === 'M' ? 'Varonil' : 'Femenil'} | *Edad:* ${student.age} años
 
-📊 *ÍNDICE GENERAL BIOMÉTRICO (OAR):* ${overallRating}/100 pts
-• 🎯 Tiro Perimetral & Libres: ${student.currentMetrics.shooting}/100
-• 🏀 Manejo & Drible: ${student.currentMetrics.ballHandling}/100
-• ⚡ Salto Vertical Explosivo: ${student.currentMetrics.verticalJump}/100 (${latestEval?.rawStats.verticalJumpInches ?? 30}" pulgadas)
-• 🏃 Agilidad & Sprint: ${student.currentMetrics.agilitySpeed}/100 (${latestEval?.rawStats.laneAgilitySeconds ?? 10.5}s)
-• 🛡️ Defensa & IQ: ${student.currentMetrics.defensiveIQ}/100
-• 🫀 Resistencia Cardiovascular: ${student.currentMetrics.staminaFitness}/100
+📅 *CONTROL DE ASISTENCIA:*
+• 🏆 *Total de Días Entrenados:* ${student.totalDaysTrained} sesiones completadas
+• 📆 *Días de Entrenamiento:* ${(student.trainingDays || ['Lunes', 'Miércoles', 'Viernes']).join(', ')}
 
-📈 *PLAN DE SOBRECARGA & CARDIO:*
-• 🪢 Salto de Cuerda: ${completedRope}/30 días (${totalRopeJumps.toLocaleString()} saltos acumulados)
-• ⏱️ Resistencia Aeróbica: ${completedEnduranceMin} min acumulados (Progresión 30s ➔ 60m)
+💵 *ESTADO DE CUENTA ($50 PESOS / CLASE):*
+• 💳 Modalidad: ${student.finances.frequency === 'al_dia' ? 'Al Día ($50 MXN)' : student.finances.frequency === 'semanal' ? 'Semanal ($150 MXN)' : 'Mensual ($600 MXN)'}
+• 📌 Estado: ${student.finances.status === 'al_corriente' ? '✅ Al Corriente ($0 adeudo)' : `⚠️ Adeudo Pendiente de $${student.finances.balanceDue} MXN`}
 
-📝 *Feedback del Coach:*
-"${latestEval?.coachNotes || 'Entrenamiento regular completado satisfactoriamente.'}"
+📊 *EVALUACIÓN DE COMBINE (Mes Actual vs Anterior):*
+• 🎯 Tiros Libres (20T): ${cur.freeThrow}% (ant: ${prev.freeThrow}%)
+• 🏹 Media Distancia: ${cur.midRange}% (ant: ${prev.midRange}%)
+• 🔥 Tiro de 3 Puntos: ${cur.threePoint}% (ant: ${prev.threePoint}%)
+• ⚡ Salto Vertical: ${cur.verticalJump}/100 (ant: ${prev.verticalJump}/100)
+• 🏃 Velocidad 100m: ${cur.sprint100m}/100 (ant: ${prev.sprint100m}/100)
+• 🛡️ Agilidad T-Test: ${cur.agilityTTest}/100 (ant: ${prev.agilityTTest}/100)
+👉 *Promedio General de Rendimiento:* ${currentAvg}/100 pts
+
+📝 *Observaciones del Entrenador:*
+"${latestEval?.coachNotes || 'Entrenamiento regular completado con disciplina técnica.'}"
 ━━━━━━━━━━━━━━━━━━━━
-🔗 _Generado por HoopPerformance OS v0.3.0_`;
+🐺 _Wild Wolves Basketball Academy CDMX_
+📲 WhatsApp Directo: 01 55 2242 7769`;
   };
 
   const handleOpenWhatsApp = () => {
-    const text = buildReportMessage();
+    const text = buildMessage();
     const encoded = encodeURIComponent(text);
-    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
-    const url = `https://wa.me/${cleanPhone}?text=${encoded}`;
+    const url = `https://wa.me/${targetPhone}?text=${encoded}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const text = buildReportMessage();
+    const text = buildMessage();
     navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <button
         onClick={handleOpenWhatsApp}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all active:scale-95 cursor-pointer ${className}`}
+        className={`flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs transition-all active:scale-95 cursor-pointer ${className}`}
+        title={`Enviar WhatsApp a: ${targetPhone}`}
       >
         <MessageCircle className="w-4 h-4" />
         <span>{label}</span>
@@ -88,8 +88,8 @@ export function WhatsAppReportButton({
 
       <button
         onClick={handleCopy}
-        className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
-        title="Copiar texto formateado"
+        className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition-colors cursor-pointer"
+        title="Copiar reporte al portapapeles"
       >
         {copied ? (
           <Check className="w-4 h-4 text-emerald-400" />

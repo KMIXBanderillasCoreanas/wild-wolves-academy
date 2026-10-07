@@ -7,16 +7,13 @@ import { HoopStore } from '@/lib/store';
 import { User } from '@/lib/types';
 import { 
   Flame, 
-  ShieldCheck, 
-  UserCheck, 
   KeyRound, 
   LogOut, 
   Instagram, 
   Youtube, 
   Facebook, 
-  MessageCircle,
-  ExternalLink,
-  ChevronRight
+  MessageCircle, 
+  ArrowRightLeft
 } from 'lucide-react';
 
 export function Navbar() {
@@ -35,179 +32,217 @@ export function Navbar() {
     return () => window.removeEventListener('auth_changed', handleAuthChange);
   }, []);
 
+  const handleQuickToggleRole = () => {
+    if (!currentUser || currentUser.role === 'coach') {
+      const studentUser = HoopStore.loginAsStudent('student_01');
+      setCurrentUser(studentUser);
+      router.push('/dashboard-student');
+    } else if (currentUser.role === 'student') {
+      const parentUser = HoopStore.loginAsParent('student_01');
+      setCurrentUser(parentUser);
+      router.push('/dashboard-student');
+    } else {
+      const coachUser = HoopStore.loginAsCoach();
+      setCurrentUser(coachUser);
+      router.push('/dashboard-coach');
+    }
+  };
+
   const handleLogout = () => {
     HoopStore.logout();
     setCurrentUser(null);
     router.push('/login');
   };
 
+  const isCoach = currentUser?.role === 'coach';
+
   return (
-    <nav className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
-      {/* 1. Top Mini Social Bar */}
-      <div className="bg-slate-900 border-b border-slate-800/80 px-4 py-1.5 text-xs">
+    <nav className="bg-[#0a0e17] border-b border-[#27272a] sticky top-0 z-50 font-sans">
+      {/* 1. Barra de Canales Oficiales y Redes Sociales */}
+      <div className="bg-[#18181b] border-b border-[#27272a] px-4 py-1.5 text-xs font-mono">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-slate-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-semibold text-slate-300">Wild Wolves Official Channels:</span>
-            <span className="text-[11px] text-slate-500 hidden sm:inline">Comunidad de Alto Rendimiento</span>
+          <div className="flex items-center gap-2 text-zinc-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-semibold text-zinc-300">WILD WOLVES CDMX:</span>
+            <span className="text-[10px] text-zinc-500 hidden sm:inline">Academia Oficial de Baloncesto</span>
           </div>
 
+          {/* Enlaces Oficiales a Redes Sociales */}
           <div className="flex items-center gap-3">
+            {/* WhatsApp Oficial: 01 55 2242 7769 */}
             <a
-              href="https://wa.me/5215500000000?text=Hola%20Coach%2C%20solicito%20informaci%C3%B3n%20sobre%20HoopPerformance%20OS"
+              href="https://wa.me/525522427769?text=Hola%20Coach%2C%20solicito%20informaci%C3%B3n%20sobre%20las%20clases%20de%20baloncesto%20Wild%20Wolves"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors font-semibold"
-              title="WhatsApp Directo con Coach"
+              className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors font-bold"
+              title="WhatsApp: 01 55 2242 7769"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span>WhatsApp Directo</span>
+              <span>WhatsApp (55 2242 7769)</span>
             </a>
-            <span className="text-slate-700">|</span>
+            <span className="text-zinc-700">|</span>
+            {/* Instagram: https://www.instagram.com/wild_wolves_cdmx/ */}
             <a
-              href="https://instagram.com/wildwolvesbasketball"
+              href="https://www.instagram.com/wild_wolves_cdmx/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-pink-400 hover:text-pink-300 transition-colors"
-              title="Instagram Oficial"
+              title="@wild_wolves_cdmx"
             >
               <Instagram className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Instagram</span>
+              <span>@wild_wolves_cdmx</span>
             </a>
-            <span className="text-slate-700">|</span>
+            <span className="text-zinc-700">|</span>
+            {/* TikTok: https://www.tiktok.com/@wild_wolves_cdmx */}
             <a
-              href="https://tiktok.com/@wildwolveshoops"
+              href="https://www.tiktok.com/@wild_wolves_cdmx"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors"
-              title="TikTok Academy"
+              title="TikTok Oficial"
             >
-              <span className="font-bold text-[10px]">TikTok</span>
+              <svg width="14" height="14" style={{ minWidth: 14, minHeight: 14 }} className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.37a6.34 6.34 0 0 0-1-.08 6.34 6.34 0 0 0-6.33 6.34 6.34 0 0 0 6.33 6.37 6.34 6.34 0 0 0 6.33-6.37V9.75a8.16 8.16 0 0 0 5.08 1.75V8.05a4.83 4.83 0 0 1-1.15-1.36z" />
+              </svg>
+              <span>TikTok</span>
             </a>
-            <span className="text-slate-700">|</span>
+            <span className="text-zinc-700">|</span>
+            {/* Facebook Oficial */}
             <a
-              href="https://youtube.com/@wildwolvesacademy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors"
-              title="YouTube Film Room"
-            >
-              <Youtube className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">YouTube</span>
-            </a>
-            <span className="text-slate-700">|</span>
-            <a
-              href="https://facebook.com/wildwolvesacademy"
+              href="https://www.facebook.com/profile.php?id=61590139041471"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
-              title="Facebook"
+              title="Facebook Wild Wolves"
             >
               <Facebook className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Facebook</span>
+            </a>
+            <span className="text-zinc-700">|</span>
+            {/* YouTube Oficial: @WildWolvesCDMX */}
+            <a
+              href="https://www.youtube.com/@WildWolvesCDMX"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-red-500 hover:text-red-400 transition-colors font-medium"
+              title="Canal Oficial de YouTube @WildWolvesCDMX"
+            >
+              <Youtube className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">YouTube</span>
             </a>
           </div>
         </div>
       </div>
 
-      {/* 2. Main Navigation Bar */}
+      {/* 2. Barra de Navegación Principal */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand / Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-600/30 group-hover:scale-105 transition-transform">
-            <Flame className="w-6 h-6 text-white" />
+        {/* Logotipo */}
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black shadow-md">
+            <Flame className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg font-black tracking-tight text-white uppercase">
-                HOOPPERFORMANCE
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-black tracking-tight text-white uppercase font-sans">
+                WILD WOLVES CDMX
               </span>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                v0.3.0
+              <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                OS v0.3.0
               </span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 -mt-1 font-medium">
-              Wild Wolves Basketball Academy
+            <p className="text-[10px] font-mono text-zinc-400 -mt-1">
+              Basketball High-Performance OS • $50/Clase
             </p>
           </div>
         </Link>
 
-        {/* Links */}
-        <div className="hidden md:flex items-center gap-1">
+        {/* Enlaces de Navegación */}
+        <div className="hidden md:flex items-center gap-1.5 font-mono text-xs">
           <Link
             href="/"
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
               pathname === '/'
-                ? 'bg-slate-800 text-white'
-                : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                ? 'bg-[#18181b] text-white border border-[#27272a]'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
             }`}
           >
             Inicio &amp; Registro
           </Link>
           <Link
             href="/dashboard-student"
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
               pathname.startsWith('/dashboard-student')
-                ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
-                : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                ? 'bg-blue-500/10 text-blue-300 border border-blue-500/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
             }`}
           >
-            Portal Alumno (Solo Lectura)
+            Portal Alumno (Lectura)
           </Link>
           <Link
             href="/dashboard-coach"
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
               pathname.startsWith('/dashboard-coach')
-                ? 'bg-orange-600/20 text-orange-300 border border-orange-500/30'
-                : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                ? 'bg-orange-500/10 text-orange-300 border border-orange-500/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
             }`}
           >
-            Panel Coach (Admin CRUD)
+            Panel Coach (Admin)
           </Link>
         </div>
 
-        {/* Right Session / Auth Switcher */}
+        {/* Conmutador Rápido de Sesión */}
         <div className="flex items-center gap-2">
           {currentUser ? (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800">
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-6 h-6 rounded-full object-cover border border-slate-700"
-                />
-                <div className="text-left">
-                  <div className="text-xs font-bold text-white leading-tight truncate max-w-[120px]">
-                    {currentUser.name}
-                  </div>
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-orange-400">
-                    {currentUser.role === 'coach' ? 'Coach (CRUD)' : 'Alumno (Read-Only)'}
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                href="/login"
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors"
-                title="Cambiar de Rol"
+              <button
+                onClick={handleQuickToggleRole}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#18181b] hover:bg-zinc-800 border border-[#27272a] text-zinc-200 text-xs font-mono font-bold transition-all cursor-pointer"
+                title="Cambiar instantáneamente entre Coach Ricardo, Alumno y Tutor"
               >
-                Cambiar Rol
-              </Link>
+                <ArrowRightLeft className="w-3.5 h-3.5 text-orange-400" />
+                <span className="hidden sm:inline">Cambiar a:</span>
+                <span className={
+                  currentUser.role === 'coach' ? 'text-blue-400' :
+                  currentUser.role === 'student' ? 'text-purple-400' : 'text-orange-400'
+                }>
+                  {currentUser.role === 'coach' ? 'Modo Alumno' :
+                   currentUser.role === 'student' ? 'Modo Tutor' : 'Coach Ricardo'}
+                </span>
+              </button>
+
+              <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#18181b] border border-[#27272a]">
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.fullName}
+                  className="w-5 h-5 rounded-md object-cover"
+                />
+                <span className="text-[10px] font-mono text-zinc-300 truncate max-w-[100px]">
+                  {currentUser.fullName.split(' ')[0]}
+                </span>
+                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                  currentUser.role === 'coach' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                  currentUser.role === 'parent' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                  'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                }`}>
+                  {currentUser.role === 'coach' ? 'COACH RICARDO' : currentUser.role === 'parent' ? 'TUTOR' : 'ALUMNO'}
+                </span>
+              </div>
 
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-xl bg-slate-900 hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-slate-800 hover:border-red-500/30 transition-colors"
+                className="p-1.5 rounded-lg bg-[#18181b] hover:bg-rose-500/10 text-zinc-400 hover:text-rose-400 border border-[#27272a] transition-colors cursor-pointer"
                 title="Cerrar sesión"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-lg shadow-orange-600/20 transition-all"
+              className="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-mono font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5" />
-              <span>Iniciar Sesión / Roles</span>
+              <span>Entrar / Roles</span>
             </Link>
           )}
         </div>

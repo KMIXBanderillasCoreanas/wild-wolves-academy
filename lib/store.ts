@@ -1,246 +1,361 @@
 'use client';
 
-import { User, StudentProfile, Evaluation, RopeSession, EnduranceSession, MedicalRecord, BasketballMetrics } from './types';
+import { 
+  StudentProfile, 
+  User, 
+  Evaluation, 
+  BasketballMetrics, 
+  ProgressiveTraining, 
+  TrainingDay,
+  AttendanceRecord,
+  FinancialRecord,
+  PaymentFrequency,
+  PaymentStatus,
+  Role,
+  Position
+} from './types';
+import { SupabaseSync } from './supabaseSync';
 
-// 1. Generate 30 Progressive Rope Overload Sessions (from 100 to 1000 jumps)
-export const generateRopeSessions = (): RopeSession[] => {
-  const sessions: RopeSession[] = [];
-  // Progressive step: roughly +30 jumps per day from 100 to 1000
-  for (let day = 1; day <= 30; day++) {
-    const target = Math.min(1000, Math.round(100 + (day - 1) * (900 / 29)));
-    // Mark first 6 days as completed by default for realistic demo
-    sessions.push({
-      day,
-      targetJumps: Math.round(target / 10) * 10,
-      completed: day <= 6,
-      completedAt: day <= 6 ? `2026-09-0${day}` : undefined,
+// Generador de cronograma de 30 días de sobrecarga
+export const generateSchedule = (completedDays: number = 7): TrainingDay[] => {
+  const schedule: TrainingDay[] = [];
+  for (let d = 1; d <= 30; d++) {
+    const rope = Math.min(1000, Math.round(100 + (d - 1) * (900 / 29)));
+    const minutes = Math.min(60, Math.round(10 + (d - 1) * (50 / 29)));
+    
+    let phase = 'Fase 1: Activación Aeróbica';
+    if (d > 7 && d <= 15) phase = 'Fase 2: Resistencia Base';
+    else if (d > 15 && d <= 23) phase = 'Fase 3: Ritmo de Juego';
+    else if (d > 23) phase = 'Fase 4: Élite Combine 4to Cuarto';
+
+    schedule.push({
+      day: d,
+      label: `Día ${d}: ${rope} saltos / ${minutes} min`,
+      completed: d <= completedDays,
+      ropeJumps: Math.round(rope / 10) * 10,
+      joggingMinutes: minutes,
+      phase,
     });
   }
-  return sessions;
+  return schedule;
 };
 
-// 2. Generate Progressive Endurance Calendar (from 30s trote to 60 min carrera continua)
-export const generateEnduranceSessions = (): EnduranceSession[] => {
-  const schedule = [
-    { day: 1, phase: 'Fase 1: Activación Aeróbica', duration: '30 seg trote x 4 series', minutes: 2, zone: 'Zona 2 (115-130 bpm)', completed: true },
-    { day: 2, phase: 'Fase 1: Activación Aeróbica', duration: '1 min trote x 3 series', minutes: 3, zone: 'Zona 2 (120-135 bpm)', completed: true },
-    { day: 3, phase: 'Fase 1: Activación Aeróbica', duration: '2 min trote continuo', minutes: 2, zone: 'Zona 2 (125-140 bpm)', completed: true },
-    { day: 4, phase: 'Fase 1: Activación Aeróbica', duration: '3 min trote continuo', minutes: 3, zone: 'Zona 2 (125-140 bpm)', completed: true },
-    { day: 5, phase: 'Fase 1: Activación Aeróbica', duration: '5 min trote continuo', minutes: 5, zone: 'Zona 2 (130-145 bpm)', completed: true },
-    { day: 6, phase: 'Fase 2: Resistencia Base', duration: '8 min trote continuo', minutes: 8, zone: 'Zona 2-3 (135-150 bpm)', completed: false },
-    { day: 7, phase: 'Fase 2: Resistencia Base', duration: '10 min ritmo sostenido', minutes: 10, zone: 'Zona 3 (140-155 bpm)', completed: false },
-    { day: 8, phase: 'Fase 2: Resistencia Base', duration: '12 min fartlek suave', minutes: 12, zone: 'Zona 3 (140-155 bpm)', completed: false },
-    { day: 9, phase: 'Fase 2: Resistencia Base', duration: '15 min ritmo constante', minutes: 15, zone: 'Zona 3 (145-160 bpm)', completed: false },
-    { day: 10, phase: 'Fase 2: Resistencia Base', duration: '18 min ritmo de partido', minutes: 18, zone: 'Zona 3 (145-160 bpm)', completed: false },
-    { day: 11, phase: 'Fase 2: Resistencia Base', duration: '20 min carrera continua', minutes: 20, zone: 'Zona 3 (150-165 bpm)', completed: false },
-    { day: 12, phase: 'Fase 3: Transición & Cancha Completa', duration: '25 min ritmo tempo', minutes: 25, zone: 'Zona 4 (155-170 bpm)', completed: false },
-    { day: 13, phase: 'Fase 3: Transición & Cancha Completa', duration: '30 min carrera aeróbica', minutes: 30, zone: 'Zona 3-4 (150-165 bpm)', completed: false },
-    { day: 14, phase: 'Fase 3: Transición & Cancha Completa', duration: '35 min ritmo medio', minutes: 35, zone: 'Zona 3-4 (150-165 bpm)', completed: false },
-    { day: 15, phase: 'Fase 3: Transición & Cancha Completa', duration: '40 min resistencia tempo', minutes: 40, zone: 'Zona 4 (155-170 bpm)', completed: false },
-    { day: 16, phase: 'Fase 4: Élite Combine 4to Cuarto', duration: '45 min fondo continuo', minutes: 45, zone: 'Zona 4 (160-175 bpm)', completed: false },
-    { day: 17, phase: 'Fase 4: Élite Combine 4to Cuarto', duration: '50 min carrera progresiva', minutes: 50, zone: 'Zona 4 (160-175 bpm)', completed: false },
-    { day: 18, phase: 'Fase 4: Élite Combine 4to Cuarto', duration: '55 min resistencia avanzada', minutes: 55, zone: 'Zona 4 (165-180 bpm)', completed: false },
-    { day: 19, phase: 'Fase 4: Élite Combine 4to Cuarto', duration: '60 min carrera continua pro', minutes: 60, zone: 'Zona 4 (165-180 bpm)', completed: false },
+// Generador de asistencias recientes
+const generateRecentAttendance = (trainedDays: string[], totalCount: number): AttendanceRecord[] => {
+  const dates = [
+    { date: '2026-10-05', dayName: 'Lunes', topic: 'Técnica de tiro en suspensión y lectura de pick & roll' },
+    { date: '2026-10-03', dayName: 'Sábado', topic: 'Pruebas combine de salto vertical y sprint 100m' },
+    { date: '2026-10-02', dayName: 'Viernes', topic: 'T-Test defensivo, desplazamientos y transiciones' },
+    { date: '2026-09-30', dayName: 'Miércoles', topic: 'Sobrecarga de cuerda y resistencia anaeróbica' },
+    { date: '2026-09-28', dayName: 'Lunes', topic: 'Manejo de balón bimanual y pase bajo presión' },
+    { date: '2026-09-25', dayName: 'Viernes', topic: 'Tiros libres bajo fatiga (serie 20 lanzamientos)' },
+    { date: '2026-09-23', dayName: 'Miércoles', topic: 'Defensa individual y ayudas defensivas' },
+    { date: '2026-09-21', dayName: 'Lunes', topic: 'Film room, juego rápido y contraataque' },
   ];
 
-  return schedule.map((s) => ({
-    day: s.day,
-    phase: s.phase,
-    targetDuration: s.duration,
-    minutesEstimated: s.minutes,
-    completed: s.completed,
-    heartRateZone: s.zone,
+  return dates.map((d, i) => ({
+    id: `att_${d.date}`,
+    date: d.date,
+    dayName: d.dayName,
+    present: i !== 3, // una falta controlada para demostración
+    topic: d.topic,
   }));
-};
-
-export const DEFAULT_MEDICAL_RECORD: MedicalRecord = {
-  bloodType: 'O Positivo (O+)',
-  allergies: ['Penicilina', 'Picadura de avispa'],
-  asthmaOrCardio: false,
-  injuriesHistory: 'Esguince grado 1 tobillo derecho (junio 2025 - 100% rehabilitado)',
-  emergencyContactName: 'Carmen Morales (Madre)',
-  emergencyContactRelation: 'Madre / Tutora Legal',
-  emergencyContactPhone: '+52 1 55 9876 5432',
-  insurancePolicyNumber: 'GNP-MED-883921-WW',
-  lastMedicalCheckup: '2026-08-15 (Apto para alto rendimiento)',
 };
 
 export const INITIAL_STUDENTS: StudentProfile[] = [
   {
     id: 'student_01',
-    name: 'Lucas "The Wolf" Morales',
+    fullName: 'Lucas "El Lobo" Morales',
     email: 'lucas.morales@wildwolves.academy',
-    jerseyNumber: 7,
-    position: 'Point Guard (PG)',
+    phone: '+52 1 55 4321 8765',
+    gender: 'M',
     age: 17,
-    height: "6'1\" (185 cm)",
-    weight: '172 lbs (78 kg)',
-    category: 'Sub-18',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
-    currentMetrics: {
-      shooting: 88,
-      ballHandling: 94,
-      verticalJump: 80,
-      agilitySpeed: 92,
-      defensiveIQ: 84,
-      staminaFitness: 89,
+    position: 'Base',
+    role: 'student',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+    parentPhone: '+52 1 55 9876 5432',
+    medicalNotes: {
+      allergies: 'Penicilina, Picadura de avispa',
+      bloodType: 'O Positivo (O+)',
+      emergencyContact: 'Carmen Morales (Madre)',
+      emergencyPhone: '+52 1 55 9876 5432',
+      medicalConditions: 'Apto para alto rendimiento. Sin asma ni cardiopatías.',
+      insurancePolicy: 'GNP-MED-883921-WW',
+      lastCheckup: '15/08/2026',
     },
-    benchmarkMetrics: {
-      shooting: 75,
-      ballHandling: 75,
-      verticalJump: 70,
-      agilitySpeed: 75,
-      defensiveIQ: 70,
-      staminaFitness: 75,
+    stripeStatus: 'active',
+    // ASISTENCIA: Total de días entrenados y días que entrena
+    trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+    totalDaysTrained: 24, // 24 días entrenados
+    attendanceHistory: generateRecentAttendance(['Lunes', 'Miércoles', 'Viernes'], 24),
+    // CONTROL FINANCIERO: Costo clase $50 pesos
+    finances: {
+      costPerClass: 50,
+      frequency: 'al_dia', // paga por clase
+      status: 'al_corriente',
+      balanceDue: 0,
+      lastPaymentDate: '2026-10-05',
+      lastPaymentAmount: 50,
+      paymentMethod: 'Efectivo',
     },
-    trainingPlan: {
-      ropeTracker: generateRopeSessions(),
-      enduranceCalendar: generateEnduranceSessions(),
+    metricsCurrent: {
+      freeThrow: 85,     // 17/20 tiros
+      midRange: 82,
+      threePoint: 90,
+      verticalJump: 78,  // 74 cm
+      sprint100m: 88,    // 11.6 seg
+      agilityTTest: 92,  // 9.2 seg
     },
-    medicalRecord: DEFAULT_MEDICAL_RECORD,
+    metricsPrevious: {
+      freeThrow: 80,
+      midRange: 75,
+      threePoint: 82,
+      verticalJump: 72,
+      sprint100m: 84,
+      agilityTTest: 86,
+    },
+    training: {
+      ropeJumpsToday: 550,
+      ropeTarget: 1000,
+      joggingMinutesToday: 30,
+      joggingTarget: 60,
+      schedule: generateSchedule(12),
+    },
     evaluations: [
       {
         id: 'eval_01',
         studentId: 'student_01',
-        date: '2026-09-18',
-        coachName: 'Coach Marcus Vance',
+        date: '18/09/2026',
+        coachName: 'Coach Ricardo',
         metrics: {
-          shooting: 88,
-          ballHandling: 94,
-          verticalJump: 80,
-          agilitySpeed: 92,
-          defensiveIQ: 84,
-          staminaFitness: 89,
+          freeThrow: 85,
+          midRange: 82,
+          threePoint: 90,
+          verticalJump: 78,
+          sprint100m: 88,
+          agilityTTest: 92,
         },
         rawStats: {
-          verticalJumpInches: 32.5,
-          threePointPct: 46.0,
-          freeThrowPct: 89.0,
-          laneAgilitySeconds: 10.3,
-          beepTestLevel: 13.5,
+          freeThrowMade: 17,
+          freeThrowTotal: 20,
+          midRangePct: 82,
+          threePointPct: 90,
+          verticalJumpCm: 74,
+          sprint100mSeconds: 11.6,
+          agilityTTestSeconds: 9.2,
         },
-        coachNotes: 'Excelente control de balón en pick and roll. Muy fluido en el step-back 3PT. Actitud defensiva sobresaliente.',
-        prAchieved: true,
-      },
-      {
-        id: 'eval_00',
-        studentId: 'student_01',
-        date: '2026-08-10',
-        coachName: 'Coach Marcus Vance',
-        metrics: {
-          shooting: 82,
-          ballHandling: 89,
-          verticalJump: 76,
-          agilitySpeed: 88,
-          defensiveIQ: 79,
-          staminaFitness: 83,
-        },
-        rawStats: {
-          verticalJumpInches: 30.0,
-          threePointPct: 39.5,
-          freeThrowPct: 82.0,
-          laneAgilitySeconds: 10.8,
-          beepTestLevel: 12.0,
-        },
-        coachNotes: 'Evaluación inicial de pretemporada. Gran visión de juego, velocidad natural.',
-        prAchieved: false,
+        coachNotes: 'Excelente control en pick & roll. Gran asistencia y puntualidad a los entrenamientos.',
       },
     ],
   },
   {
     id: 'student_02',
-    name: 'Mateo Silva',
-    email: 'mateo.silva@wildwolves.academy',
-    jerseyNumber: 23,
-    position: 'Small Forward (SF)',
-    age: 18,
-    height: "6'6\" (198 cm)",
-    weight: '210 lbs (95 kg)',
-    category: 'Senior / Pro Prep',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-    currentMetrics: {
-      shooting: 82,
-      ballHandling: 77,
-      verticalJump: 95,
-      agilitySpeed: 85,
-      defensiveIQ: 90,
-      staminaFitness: 91,
-    },
-    benchmarkMetrics: {
-      shooting: 75,
-      ballHandling: 75,
-      verticalJump: 70,
-      agilitySpeed: 75,
-      defensiveIQ: 70,
-      staminaFitness: 75,
-    },
-    trainingPlan: {
-      ropeTracker: generateRopeSessions(),
-      enduranceCalendar: generateEnduranceSessions(),
-    },
-    medicalRecord: {
+    fullName: 'Sofía Ramírez',
+    email: 'sofia.ramirez@wildwolves.academy',
+    phone: '+52 1 55 3344 5566',
+    gender: 'F',
+    age: 16,
+    position: 'Escolta',
+    role: 'student',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    parentPhone: '+52 1 55 5555 1234',
+    medicalNotes: {
+      allergies: 'Polen estacional',
       bloodType: 'A Positivo (A+)',
-      allergies: ['Polvo ambiental'],
-      asthmaOrCardio: false,
-      injuriesHistory: 'Sin cirugías previas ni lesiones osteoarticulares de consideración.',
-      emergencyContactName: 'Rodrigo Silva (Padre)',
-      emergencyContactRelation: 'Padre',
-      emergencyContactPhone: '+52 1 55 1234 5678',
-      insurancePolicyNumber: 'AXA-WW-99482',
-      lastMedicalCheckup: '2026-09-01',
+      emergencyContact: 'Roberto Ramírez (Padre)',
+      emergencyPhone: '+52 1 55 5555 1234',
+      medicalConditions: 'Sin lesiones previas.',
+      insurancePolicy: 'AXA-WW-77491',
+      lastCheckup: '01/09/2026',
+    },
+    stripeStatus: 'active',
+    // ASISTENCIA
+    trainingDays: ['Martes', 'Jueves', 'Sábado'],
+    totalDaysTrained: 31, // 31 días entrenados
+    attendanceHistory: generateRecentAttendance(['Martes', 'Jueves', 'Sábado'], 31),
+    // CONTROL FINANCIERO: Modalidad Mensual ($600 = 12 clases x $50)
+    finances: {
+      costPerClass: 50,
+      frequency: 'mensual',
+      status: 'al_corriente',
+      balanceDue: 0,
+      lastPaymentDate: '2026-10-01',
+      lastPaymentAmount: 600,
+      paymentMethod: 'Transferencia',
+    },
+    metricsCurrent: {
+      freeThrow: 95,     // 19/20 tiros
+      midRange: 88,
+      threePoint: 94,
+      verticalJump: 74,  // 68 cm
+      sprint100m: 85,    // 12.1 seg
+      agilityTTest: 89,  // 9.5 seg
+    },
+    metricsPrevious: {
+      freeThrow: 90,
+      midRange: 82,
+      threePoint: 88,
+      verticalJump: 70,
+      sprint100m: 80,
+      agilityTTest: 83,
+    },
+    training: {
+      ropeJumpsToday: 700,
+      ropeTarget: 1000,
+      joggingMinutesToday: 40,
+      joggingTarget: 60,
+      schedule: generateSchedule(18),
     },
     evaluations: [
       {
         id: 'eval_02',
         studentId: 'student_02',
-        date: '2026-09-21',
-        coachName: 'Coach Marcus Vance',
+        date: '22/09/2026',
+        coachName: 'Coach Ricardo',
         metrics: {
-          shooting: 82,
-          ballHandling: 77,
-          verticalJump: 95,
-          agilitySpeed: 85,
-          defensiveIQ: 90,
-          staminaFitness: 91,
+          freeThrow: 95,
+          midRange: 88,
+          threePoint: 94,
+          verticalJump: 74,
+          sprint100m: 85,
+          agilityTTest: 89,
         },
         rawStats: {
-          verticalJumpInches: 37.5,
-          threePointPct: 38.0,
-          freeThrowPct: 77.0,
-          laneAgilitySeconds: 11.1,
-          beepTestLevel: 14.2,
+          freeThrowMade: 19,
+          freeThrowTotal: 20,
+          midRangePct: 88,
+          threePointPct: 94,
+          verticalJumpCm: 68,
+          sprint100mSeconds: 12.1,
+          agilityTTestSeconds: 9.5,
         },
-        coachNotes: 'Físico imponente en penetración y rebote ofensivo. Explosividad vertical sobresaliente.',
-        prAchieved: true,
+        coachNotes: 'Mecánica de tiro impecable y 100% de asistencia en el último mes.',
+      },
+    ],
+  },
+  {
+    id: 'student_03',
+    fullName: 'Mateo Silva',
+    email: 'mateo.silva@wildwolves.academy',
+    phone: '+52 1 55 8899 0011',
+    gender: 'M',
+    age: 19,
+    position: 'Alero',
+    role: 'student',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    parentPhone: '+52 1 55 1234 5678',
+    medicalNotes: {
+      allergies: 'Ninguna conocida',
+      bloodType: 'B Positivo (B+)',
+      emergencyContact: 'Rodrigo Silva (Padre)',
+      emergencyPhone: '+52 1 55 1234 5678',
+      medicalConditions: 'Ligamento anterior rehabilitado.',
+      insurancePolicy: 'METLIFE-WW-2291',
+      lastCheckup: '28/08/2026',
+    },
+    stripeStatus: 'pending',
+    // ASISTENCIA
+    trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+    totalDaysTrained: 16, // 16 días entrenados
+    attendanceHistory: generateRecentAttendance(['Lunes', 'Miércoles', 'Viernes'], 16),
+    // CONTROL FINANCIERO: Modalidad Semanal ($150 = 3 clases x $50) con adeudo
+    finances: {
+      costPerClass: 50,
+      frequency: 'semanal',
+      status: 'pendiente', // TIENE ADEUDO
+      balanceDue: 150, // Debe $150 MXN (1 semana de 3 clases)
+      lastPaymentDate: '2026-09-25',
+      lastPaymentAmount: 150,
+      paymentMethod: 'Efectivo',
+    },
+    metricsCurrent: {
+      freeThrow: 75,
+      midRange: 78,
+      threePoint: 72,
+      verticalJump: 94,
+      sprint100m: 91,
+      agilityTTest: 82,
+    },
+    metricsPrevious: {
+      freeThrow: 70,
+      midRange: 72,
+      threePoint: 68,
+      verticalJump: 90,
+      sprint100m: 87,
+      agilityTTest: 78,
+    },
+    training: {
+      ropeJumpsToday: 400,
+      ropeTarget: 1000,
+      joggingMinutesToday: 25,
+      joggingTarget: 60,
+      schedule: generateSchedule(9),
+    },
+    evaluations: [
+      {
+        id: 'eval_03',
+        studentId: 'student_03',
+        date: '20/09/2026',
+        coachName: 'Coach Ricardo',
+        metrics: {
+          freeThrow: 75,
+          midRange: 78,
+          threePoint: 72,
+          verticalJump: 94,
+          sprint100m: 91,
+          agilityTTest: 82,
+        },
+        rawStats: {
+          freeThrowMade: 15,
+          freeThrowTotal: 20,
+          midRangePct: 78,
+          threePointPct: 72,
+          verticalJumpCm: 86,
+          sprint100mSeconds: 11.2,
+          agilityTTestSeconds: 9.8,
+        },
+        coachNotes: 'Físico imponente en penetración. Regularizar cuota semanal de $150 pesos.',
       },
     ],
   },
 ];
 
 export const INITIAL_COACH_USER: User = {
-  id: 'usr_coach',
-  name: 'Coach Marcus Vance',
-  email: 'm.vance@wildwolves.academy',
+  id: 'usr_coach_ricardo',
+  fullName: 'Coach Ricardo',
+  email: 'ricardo@wildwolves.academy',
   role: 'coach',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  provider: 'demo',
 };
 
 export const INITIAL_STUDENT_USER: User = {
   id: 'usr_student',
-  name: 'Lucas "The Wolf" Morales',
+  fullName: 'Lucas "El Lobo" Morales',
   email: 'lucas.morales@wildwolves.academy',
   role: 'student',
   studentId: 'student_01',
-  avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+  provider: 'demo',
 };
 
-// Storage Keys
+export const INITIAL_PARENT_USER: User = {
+  id: 'usr_parent_elena',
+  fullName: 'Elena Morales (Tutor)',
+  email: 'elena.morales@wildwolves.academy',
+  role: 'parent',
+  studentId: 'student_01',
+  parentOfStudentId: 'student_01',
+  phone: '+52 1 55 9988 7766',
+  avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+  provider: 'google',
+};
+
 const STORAGE_KEYS = {
-  STUDENTS: 'hoop_students_v3',
-  USER: 'hoop_active_user_v3',
+  STUDENTS: 'hoop_athletes_v7',
+  USER: 'hoop_session_user_v7',
 };
 
-// Helper to access LocalStorage safely
 export const HoopStore = {
   getStudents: (): StudentProfile[] => {
     if (typeof window === 'undefined') return INITIAL_STUDENTS;
@@ -266,34 +381,70 @@ export const HoopStore = {
     try {
       localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
     } catch (e) {
-      console.error('Error saving students to LocalStorage', e);
+      console.error('Error al guardar atletas', e);
     }
   },
 
-  registerStudent: (newStudent: Omit<StudentProfile, 'id' | 'trainingPlan' | 'currentMetrics' | 'benchmarkMetrics' | 'evaluations'>): StudentProfile => {
+  syncWithSupabase: async (): Promise<StudentProfile[]> => {
+    try {
+      const remote = await SupabaseSync.getStudentsFromSupabase();
+      if (remote && remote.length > 0) {
+        HoopStore.saveStudents(remote);
+        return remote;
+      }
+    } catch (e) {
+      console.warn('Sync fallback to local store:', e);
+    }
+    return HoopStore.getStudents();
+  },
+
+  registerStudent: (newStudent: Omit<StudentProfile, 'id' | 'training' | 'metricsCurrent' | 'metricsPrevious' | 'evaluations' | 'trainingDays' | 'totalDaysTrained' | 'attendanceHistory' | 'finances'>): StudentProfile => {
     const students = HoopStore.getStudents();
     const created: StudentProfile = {
       ...newStudent,
       id: `student_${Date.now()}`,
-      currentMetrics: {
-        shooting: 70,
-        ballHandling: 70,
-        verticalJump: 70,
-        agilitySpeed: 70,
-        defensiveIQ: 70,
-        staminaFitness: 70,
+      trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+      totalDaysTrained: 1,
+      attendanceHistory: [
+        {
+          id: `att_${Date.now()}`,
+          date: new Date().toISOString().split('T')[0],
+          dayName: 'Lunes',
+          present: true,
+          topic: 'Entrenamiento inicial de bienvenida y diagnósticos',
+        },
+      ],
+      finances: {
+        costPerClass: 50,
+        frequency: 'al_dia',
+        status: 'al_corriente',
+        balanceDue: 0,
+        lastPaymentDate: new Date().toLocaleDateString('es-MX'),
+        lastPaymentAmount: 50,
+        paymentMethod: 'Efectivo',
       },
-      benchmarkMetrics: {
-        shooting: 75,
-        ballHandling: 75,
+      metricsCurrent: {
+        freeThrow: 70,
+        midRange: 70,
+        threePoint: 70,
         verticalJump: 70,
-        agilitySpeed: 75,
-        defensiveIQ: 70,
-        staminaFitness: 75,
+        sprint100m: 70,
+        agilityTTest: 70,
       },
-      trainingPlan: {
-        ropeTracker: generateRopeSessions(),
-        enduranceCalendar: generateEnduranceSessions(),
+      metricsPrevious: {
+        freeThrow: 65,
+        midRange: 65,
+        threePoint: 65,
+        verticalJump: 65,
+        sprint100m: 65,
+        agilityTTest: 65,
+      },
+      training: {
+        ropeJumpsToday: 100,
+        ropeTarget: 1000,
+        joggingMinutesToday: 10,
+        joggingTarget: 60,
+        schedule: generateSchedule(1),
       },
       evaluations: [],
     };
@@ -302,40 +453,149 @@ export const HoopStore = {
     return created;
   },
 
-  updateStudentMetrics: (studentId: string, metrics: BasketballMetrics, evaluation: Evaluation) => {
+  // 1. CONTROL DE ASISTENCIA (Solo Coach marca, Alumno visualiza)
+  recordAttendance: (studentId: string, date: string, dayName: string, present: boolean, topic: string) => {
+    const students = HoopStore.getStudents();
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        const existingIdx = s.attendanceHistory.findIndex((a) => a.date === date);
+        let newHistory = [...s.attendanceHistory];
+
+        if (existingIdx >= 0) {
+          newHistory[existingIdx] = { ...newHistory[existingIdx], present, topic };
+        } else {
+          newHistory = [
+            {
+              id: `att_${Date.now()}`,
+              date,
+              dayName,
+              present,
+              topic,
+            },
+            ...newHistory,
+          ];
+        }
+
+        // Recalcular total de días entrenados
+        const totalPresent = newHistory.filter((a) => a.present).length;
+
+        // Si paga "al día" ($50) y asiste, si no ha pagado se agrega al adeudo
+        let newFinances = { ...s.finances };
+        if (s.finances.frequency === 'al_dia' && present && existingIdx < 0) {
+          newFinances.balanceDue += 50;
+          newFinances.status = 'pendiente' as PaymentStatus;
+        }
+
+        return {
+          ...s,
+          totalDaysTrained: totalPresent,
+          attendanceHistory: newHistory,
+          finances: newFinances,
+        };
+      }
+      return s;
+    });
+
+    HoopStore.saveStudents(updated);
+    // Persistencia en segundo plano en Supabase
+    SupabaseSync.recordAttendance(studentId, present, dayName, topic).catch((e) => console.warn('Supabase attendance sync:', e));
+    return updated.find((s) => s.id === studentId);
+  },
+
+  // 2. CONTROL FINANCIERO: Registrar Pago Recibido ($50 pesos / $150 / $600)
+  recordPayment: (studentId: string, amount: number, method: 'Efectivo' | 'Transferencia' | 'Stripe') => {
+    const students = HoopStore.getStudents();
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        const newBalance = Math.max(0, s.finances.balanceDue - amount);
+        return {
+          ...s,
+          stripeStatus: newBalance === 0 ? ('active' as const) : s.stripeStatus,
+          finances: {
+            ...s.finances,
+            balanceDue: newBalance,
+            status: newBalance === 0 ? ('al_corriente' as PaymentStatus) : ('pendiente' as PaymentStatus),
+            lastPaymentDate: new Date().toLocaleDateString('es-MX'),
+            lastPaymentAmount: amount,
+            paymentMethod: method,
+          },
+        };
+      }
+      return s;
+    });
+
+    HoopStore.saveStudents(updated);
+    // Persistencia en segundo plano en Supabase
+    SupabaseSync.recordPayment(studentId, amount, method).catch((e) => console.warn('Supabase payment sync:', e));
+    return updated.find((s) => s.id === studentId);
+  },
+
+  // 3. CAMBIAR MODALIDAD DE PAGO (Al día $50, Semanal $150, Mensual $600)
+  updatePaymentFrequency: (studentId: string, frequency: PaymentFrequency) => {
     const students = HoopStore.getStudents();
     const updated = students.map((s) => {
       if (s.id === studentId) {
         return {
           ...s,
-          currentMetrics: metrics,
+          finances: {
+            ...s.finances,
+            frequency,
+          },
+        };
+      }
+      return s;
+    });
+
+    HoopStore.saveStudents(updated);
+    return updated.find((s) => s.id === studentId);
+  },
+
+  // 4. ACTUALIZAR DÍAS QUE ENTRENA EL ATLETA
+  updateTrainingDays: (studentId: string, days: string[]) => {
+    const students = HoopStore.getStudents();
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        return {
+          ...s,
+          trainingDays: days,
+        };
+      }
+      return s;
+    });
+
+    HoopStore.saveStudents(updated);
+    return updated.find((s) => s.id === studentId);
+  },
+
+  updateStudentMetrics: (studentId: string, newMetrics: BasketballMetrics, evaluation: Evaluation) => {
+    const students = HoopStore.getStudents();
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        return {
+          ...s,
+          metricsPrevious: s.metricsCurrent,
+          metricsCurrent: newMetrics,
           evaluations: [evaluation, ...s.evaluations],
         };
       }
       return s;
     });
     HoopStore.saveStudents(updated);
+    return updated.find((s) => s.id === studentId);
   },
 
-  toggleRopeSession: (studentId: string, day: number) => {
+  updateTrainingTargets: (studentId: string, ropeTarget: number, joggingTarget: number, ropeToday: number, joggingToday: number) => {
     const students = HoopStore.getStudents();
     const updated = students.map((s) => {
       if (s.id === studentId) {
-        const ropeList = s.trainingPlan.ropeTracker.map((r) => {
-          if (r.day === day) {
-            return {
-              ...r,
-              completed: !r.completed,
-              completedAt: !r.completed ? new Date().toISOString().split('T')[0] : undefined,
-            };
-          }
-          return r;
-        });
         return {
           ...s,
-          trainingPlan: {
-            ...s.trainingPlan,
-            ropeTracker: ropeList,
+          training: {
+            ...s.training,
+            ropeTarget,
+            joggingTarget,
+            ropeJumpsToday: ropeToday,
+            joggingMinutesToday: joggingToday,
           },
         };
       }
@@ -345,24 +605,21 @@ export const HoopStore = {
     return updated.find((s) => s.id === studentId);
   },
 
-  toggleEnduranceSession: (studentId: string, day: number) => {
+  toggleScheduleDay: (studentId: string, dayNumber: number) => {
     const students = HoopStore.getStudents();
     const updated = students.map((s) => {
       if (s.id === studentId) {
-        const enduranceList = s.trainingPlan.enduranceCalendar.map((e) => {
-          if (e.day === day) {
-            return {
-              ...e,
-              completed: !e.completed,
-            };
+        const newSched = s.training.schedule.map((item) => {
+          if (item.day === dayNumber) {
+            return { ...item, completed: !item.completed };
           }
-          return e;
+          return item;
         });
         return {
           ...s,
-          trainingPlan: {
-            ...s.trainingPlan,
-            enduranceCalendar: enduranceList,
+          training: {
+            ...s.training,
+            schedule: newSched,
           },
         };
       }
@@ -391,11 +648,10 @@ export const HoopStore = {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-      // Sync cookie for Next.js Middleware route guarding
       document.cookie = `user_role=${user.role}; path=/; max-age=86400`;
       window.dispatchEvent(new Event('auth_changed'));
     } catch (e) {
-      console.error('Error saving user', e);
+      console.error('Error al guardar sesión', e);
     }
   },
 
@@ -408,14 +664,135 @@ export const HoopStore = {
     const student = HoopStore.getStudent(studentId);
     const user: User = {
       id: `usr_${student.id}`,
-      name: student.name,
+      fullName: student.fullName,
       email: student.email,
       role: 'student',
       studentId: student.id,
-      avatar: student.avatar,
+      avatarUrl: student.avatarUrl,
+      provider: 'demo',
     };
     HoopStore.setCurrentUser(user);
     return user;
+  },
+
+  loginAsParent: (studentId: string = 'student_01') => {
+    const student = HoopStore.getStudent(studentId);
+    const user: User = {
+      id: `usr_parent_${student.id}`,
+      fullName: student.medicalNotes.emergencyContact ? `${student.medicalNotes.emergencyContact}` : `Tutor de ${student.fullName.split(' ')[0]}`,
+      email: student.email.replace('@', '.tutor@'),
+      role: 'parent',
+      studentId: student.id,
+      parentOfStudentId: student.id,
+      phone: student.parentPhone || student.phone,
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+      provider: 'demo',
+    };
+    HoopStore.setCurrentUser(user);
+    return user;
+  },
+
+  signInWithGoogle: (role: Role = 'student', customEmail?: string, customName?: string) => {
+    if (role === 'coach') {
+      HoopStore.setCurrentUser(INITIAL_COACH_USER);
+      return INITIAL_COACH_USER;
+    }
+    const email = customEmail || (role === 'parent' ? 'tutor.wolves@gmail.com' : 'atleta.wolves@gmail.com');
+    const fullName = customName || (role === 'parent' ? 'Elena Morales (Tutor Google)' : 'Lucas "El Lobo" Morales');
+    const user: User = {
+      id: `usr_g_${Date.now()}`,
+      fullName,
+      email,
+      role,
+      studentId: 'student_01',
+      parentOfStudentId: role === 'parent' ? 'student_01' : undefined,
+      avatarUrl: role === 'parent'
+        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+      provider: 'google',
+    };
+    HoopStore.setCurrentUser(user);
+    return user;
+  },
+
+  signInWithApple: (role: Role = 'student', customName?: string) => {
+    if (role === 'coach') {
+      HoopStore.setCurrentUser(INITIAL_COACH_USER);
+      return INITIAL_COACH_USER;
+    }
+    const user: User = {
+      id: `usr_apple_${Date.now()}`,
+      fullName: customName || (role === 'parent' ? 'Tutor Apple ID' : 'Atleta Apple ID'),
+      email: role === 'parent' ? 'tutor.privaterelay@appleid.com' : 'atleta.privaterelay@appleid.com',
+      role,
+      studentId: 'student_01',
+      parentOfStudentId: role === 'parent' ? 'student_01' : undefined,
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      provider: 'apple',
+    };
+    HoopStore.setCurrentUser(user);
+    return user;
+  },
+
+  signInWithWhatsApp: (phone: string, fullName: string, role: Role = 'student') => {
+    const cleanPhone = phone.trim();
+    const user: User = {
+      id: `usr_wa_${Date.now()}`,
+      fullName: fullName.trim() || (role === 'parent' ? 'Tutor WhatsApp' : 'Atleta WhatsApp'),
+      email: `${cleanPhone.replace(/[^0-9]/g, '')}@whatsapp.wildwolves.academy`,
+      phone: cleanPhone,
+      role,
+      studentId: 'student_01',
+      parentOfStudentId: role === 'parent' ? 'student_01' : undefined,
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      provider: 'whatsapp',
+    };
+    HoopStore.setCurrentUser(user);
+    return user;
+  },
+
+  signInWithEmail: (email: string, fullName: string, role: Role = 'student') => {
+    if (email.toLowerCase().includes('ricardo') || email.toLowerCase() === 'coach@wildwolves.academy') {
+      HoopStore.setCurrentUser(INITIAL_COACH_USER);
+      return INITIAL_COACH_USER;
+    }
+    const user: User = {
+      id: `usr_mail_${Date.now()}`,
+      fullName: fullName.trim() || (role === 'parent' ? 'Tutor Registrado' : 'Atleta Registrado'),
+      email: email.trim(),
+      role,
+      studentId: 'student_01',
+      parentOfStudentId: role === 'parent' ? 'student_01' : undefined,
+      avatarUrl: role === 'parent'
+        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+      provider: 'email',
+    };
+    HoopStore.setCurrentUser(user);
+    return user;
+  },
+
+  payStripeTuition: (studentId: string) => {
+    const students = HoopStore.getStudents();
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        return { 
+          ...s, 
+          stripeStatus: 'active' as const,
+          finances: {
+            ...s.finances,
+            balanceDue: 0,
+            status: 'al_corriente' as PaymentStatus,
+            lastPaymentDate: new Date().toLocaleDateString('es-MX'),
+            lastPaymentAmount: s.finances.costPerClass,
+            paymentMethod: 'Stripe' as const,
+          }
+        };
+      }
+      return s;
+    });
+    HoopStore.saveStudents(updated);
+    return updated.find((s) => s.id === studentId);
   },
 
   logout: () => {

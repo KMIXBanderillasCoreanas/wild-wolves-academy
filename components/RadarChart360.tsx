@@ -14,175 +14,162 @@ import {
 import { BasketballMetrics } from '@/lib/types';
 import { 
   Target, 
-  Dribbble, 
   Zap, 
   Activity, 
   ShieldCheck, 
-  Award, 
   Layers, 
-  Info 
+  Info,
+  Flame,
+  TrendingUp
 } from 'lucide-react';
 
 interface RadarChart360Props {
-  metrics: BasketballMetrics;
-  benchmarkMetrics?: BasketballMetrics;
+  metricsCurrent: BasketballMetrics;
+  metricsPrevious: BasketballMetrics;
   athleteName: string;
 }
 
-export function RadarChart360({ metrics, benchmarkMetrics, athleteName }: RadarChart360Props) {
-  const [showBenchmark, setShowBenchmark] = useState(true);
-
-  const defaultBenchmark: BasketballMetrics = benchmarkMetrics || {
-    shooting: 75,
-    ballHandling: 75,
-    verticalJump: 70,
-    agilitySpeed: 75,
-    defensiveIQ: 70,
-    staminaFitness: 75,
-  };
+export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName }: RadarChart360Props) {
+  const [showPreviousMonth, setShowPreviousMonth] = useState(true);
 
   const radarData = [
     {
-      subject: 'Tiro (% Shooting)',
-      athlete: metrics.shooting,
-      benchmark: defaultBenchmark.shooting,
+      subject: 'Tiros Libres (20T)',
+      actual: metricsCurrent.freeThrow,
+      anterior: metricsPrevious.freeThrow,
       fullMark: 100,
       icon: Target,
-      desc: 'Eficacia perimetral 3PT, tiro de media y libres.',
+      desc: '% Efectividad en tiros libres sobre base de 20 lanzamientos reglamentarios.',
     },
     {
-      subject: 'Manejo de Balón',
-      athlete: metrics.ballHandling,
-      benchmark: defaultBenchmark.ballHandling,
+      subject: 'Media Distancia',
+      actual: metricsCurrent.midRange,
+      anterior: metricsPrevious.midRange,
       fullMark: 100,
-      icon: Dribbble,
-      desc: 'Control bimanual, drible con cambio de ritmo y retención.',
+      icon: Target,
+      desc: '% Efectividad en tiro tras bote y suspensión en media distancia.',
     },
     {
-      subject: 'Salto Vertical',
-      athlete: metrics.verticalJump,
-      benchmark: defaultBenchmark.verticalJump,
+      subject: 'Tiro de 3 / Larga',
+      actual: metricsCurrent.threePoint,
+      anterior: metricsPrevious.threePoint,
+      fullMark: 100,
+      icon: Target,
+      desc: '% Efectividad en lanzamientos de 3 puntos (spot-up y transición).',
+    },
+    {
+      subject: 'Salto Vertical (cm)',
+      actual: metricsCurrent.verticalJump,
+      anterior: metricsPrevious.verticalJump,
       fullMark: 100,
       icon: Zap,
-      desc: 'Potencia de despegue y explosividad en combine.',
+      desc: 'Salto vertical máximo medido y normalizado a escala combine.',
     },
     {
-      subject: 'Agilidad & Sprint',
-      athlete: metrics.agilitySpeed,
-      benchmark: defaultBenchmark.agilitySpeed,
+      subject: 'Velocidad 100m',
+      actual: metricsCurrent.sprint100m,
+      anterior: metricsPrevious.sprint100m,
       fullMark: 100,
       icon: Activity,
-      desc: 'Tiempo en Lane Agility Drill y transición defensiva.',
+      desc: 'Sprint en 100m planos convertido a escala de rendimiento explosivo.',
     },
     {
-      subject: 'Defensa & IQ',
-      athlete: metrics.defensiveIQ,
-      benchmark: defaultBenchmark.defensiveIQ,
+      subject: 'Agilidad T-Test',
+      actual: metricsCurrent.agilityTTest,
+      anterior: metricsPrevious.agilityTTest,
       fullMark: 100,
       icon: ShieldCheck,
-      desc: 'Desplazamiento lateral, lecturas y anticipación táctica.',
-    },
-    {
-      subject: 'Stamina / Resistencia',
-      athlete: metrics.staminaFitness,
-      benchmark: defaultBenchmark.staminaFitness,
-      fullMark: 100,
-      icon: Award,
-      desc: 'Capacidad aeróbica (Beep Test) e intensidad de 4to cuarto.',
+      desc: 'Agilidad y desplazamientos laterales en circuito T-Test defensivo.',
     },
   ];
 
-  const overallRating = Math.round(
-    Object.values(metrics).reduce((a, b) => a + b, 0) / 6
+  const currentAverage = Math.round(
+    Object.values(metricsCurrent).reduce((a, b) => a + b, 0) / 6
   );
-  const benchmarkRating = Math.round(
-    Object.values(defaultBenchmark).reduce((a, b) => a + b, 0) / 6
+  const previousAverage = Math.round(
+    Object.values(metricsPrevious).reduce((a, b) => a + b, 0) / 6
   );
-  const diff = overallRating - benchmarkRating;
+  const delta = currentAverage - previousAverage;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-      {/* Decorative gradient glow */}
-      <div className="absolute top-0 right-0 w-72 h-72 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-72 h-72 bg-sky-600/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-slate-800">
+    <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none relative overflow-hidden">
+      {/* Cabecera Técnica */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#27272a]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30">
-              Radar 360° Combine
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
+              RADAR 360° COMBINE
             </span>
-            <span className="text-xs text-slate-400">Escala Normalizada NCAA / FIBA</span>
+            <span className="text-zinc-400 text-xs font-mono">Comparativa Mensual</span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-black text-white">
-            Evaluación Biomecánica Integral
+          <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+            Rendimiento Biomecánico: Mes Actual vs. Mes Anterior
           </h3>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Perfil de <strong className="text-white">{athleteName}</strong> frente al estándar de la academia
+          <p className="text-xs text-zinc-400">
+            Evolución de los 6 ejes deportivos de <span className="text-white font-medium">{athleteName}</span>
           </p>
         </div>
 
-        {/* Global OAR Rating badge */}
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-slate-800/90 rounded-2xl border border-slate-700 text-center">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OAR General</div>
-            <div className="text-2xl font-black text-orange-400 flex items-center justify-center gap-1">
-              {overallRating}
-              <span className="text-xs font-bold text-emerald-400">
-                {diff >= 0 ? `+${diff}` : diff}
+        {/* Insignias de promedio numérico en tipografía monoespaciada */}
+        <div className="flex items-center gap-2.5">
+          <div className="px-3.5 py-1.5 bg-[#0a0e17] rounded-xl border border-[#27272a] text-center">
+            <div className="text-[10px] font-mono text-zinc-400 uppercase">Promedio Actual</div>
+            <div className="text-xl font-mono font-black text-orange-500 flex items-center justify-center gap-1">
+              {currentAverage}
+              <span className={`text-[11px] font-mono font-bold ${delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {delta >= 0 ? `+${delta}` : delta}
               </span>
             </div>
           </div>
 
           <button
-            onClick={() => setShowBenchmark(!showBenchmark)}
-            className={`px-3.5 py-2.5 rounded-2xl border text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              showBenchmark
-                ? 'bg-slate-800 border-slate-600 text-white shadow-sm'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+            onClick={() => setShowPreviousMonth(!showPreviousMonth)}
+            className={`px-3 py-2 rounded-xl border text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer ${
+              showPreviousMonth
+                ? 'bg-zinc-800 border-zinc-700 text-white'
+                : 'bg-[#0a0e17] border-[#27272a] text-zinc-400 hover:text-white'
             }`}
           >
-            <Layers className="w-4 h-4 text-orange-400" />
-            <span>{showBenchmark ? 'Ocultar Benchmark' : 'Ver Benchmark'}</span>
+            <Layers className="w-3.5 h-3.5 text-sky-400" />
+            <span>{showPreviousMonth ? 'Ocultar Mes Anterior' : 'Ver Mes Anterior'}</span>
           </button>
         </div>
       </div>
 
-      {/* Main Grid: Recharts Radar + Quick Tiles */}
+      {/* Gráfico y Métricas */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        {/* Radar Chart */}
-        <div className="lg:col-span-7 h-[360px] w-full flex items-center justify-center">
+        {/* Recharts Spider Chart */}
+        <div className="lg:col-span-7 h-[340px] w-full flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-              <PolarGrid stroke="#334155" strokeDasharray="3 3" />
+              <PolarGrid stroke="#27272a" />
               <PolarAngleAxis 
                 dataKey="subject" 
-                tick={{ fill: '#e2e8f0', fontSize: 11, fontWeight: 600 }} 
+                tick={{ fill: '#d4d4d8', fontSize: 11, fontFamily: 'monospace' }} 
               />
               <PolarRadiusAxis 
                 angle={30} 
                 domain={[0, 100]} 
-                tick={{ fill: '#64748b', fontSize: 10 }}
+                tick={{ fill: '#71717a', fontSize: 10, fontFamily: 'monospace' }}
                 axisLine={false}
               />
               <Radar
-                name={athleteName}
-                dataKey="athlete"
+                name="Mes Actual"
+                dataKey="actual"
                 stroke="#f97316"
                 fill="#f97316"
-                fillOpacity={0.45}
-                strokeWidth={2.5}
+                fillOpacity={0.4}
+                strokeWidth={2}
               />
-              {showBenchmark && (
+              {showPreviousMonth && (
                 <Radar
-                  name="Benchmark Academia (Top 10%)"
-                  dataKey="benchmark"
+                  name="Mes Anterior"
+                  dataKey="anterior"
                   stroke="#38bdf8"
                   fill="#38bdf8"
-                  fillOpacity={0.2}
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
+                  fillOpacity={0.15}
+                  strokeWidth={1.5}
+                  strokeDasharray="3 3"
                 />
               )}
               <Tooltip
@@ -190,17 +177,17 @@ export function RadarChart360({ metrics, benchmarkMetrics, athleteName }: RadarC
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl backdrop-blur-md">
-                        <p className="font-bold text-white text-xs mb-1">{data.subject}</p>
-                        <p className="text-xs text-orange-400 font-semibold">
-                          {athleteName}: <span className="text-white">{data.athlete}/100</span>
+                      <div className="bg-[#0a0e17] border border-[#27272a] p-3 rounded-xl font-mono text-xs shadow-xl">
+                        <p className="font-bold text-white mb-1">{data.subject}</p>
+                        <p className="text-orange-400 font-bold">
+                          Mes Actual: <span className="text-white">{data.actual}/100</span>
                         </p>
-                        {showBenchmark && (
-                          <p className="text-xs text-sky-400 font-semibold">
-                            Benchmark: <span className="text-white">{data.benchmark}/100</span>
+                        {showPreviousMonth && (
+                          <p className="text-sky-400">
+                            Mes Anterior: <span className="text-white">{data.anterior}/100</span>
                           </p>
                         )}
-                        <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">{data.desc}</p>
+                        <p className="text-[10px] text-zinc-400 mt-1 max-w-[220px] font-sans">{data.desc}</p>
                       </div>
                     );
                   }
@@ -208,45 +195,42 @@ export function RadarChart360({ metrics, benchmarkMetrics, athleteName }: RadarC
                 }}
               />
               <Legend 
-                wrapperStyle={{ paddingTop: '8px' }}
-                formatter={(val) => <span className="text-xs font-semibold text-slate-300">{val}</span>}
+                wrapperStyle={{ paddingTop: '8px', fontFamily: 'monospace', fontSize: '11px' }}
+                formatter={(val) => <span className="text-zinc-300">{val}</span>}
               />
             </RadarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* 6 Metric Breakdown Badges */}
-        <div className="lg:col-span-5 grid grid-cols-2 gap-3">
+        {/* Desglose de los 6 Ejes con Tipografía Monoespaciada y Badges Limpios */}
+        <div className="lg:col-span-5 grid grid-cols-2 gap-2.5">
           {radarData.map((item) => {
-            const Icon = item.icon;
-            const delta = item.athlete - item.benchmark;
+            const diffAxis = item.actual - item.anterior;
             return (
               <div 
                 key={item.subject}
-                className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-2xl p-3.5 transition-all"
+                className="bg-[#0a0e17] border border-[#27272a] rounded-xl p-3 flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    delta >= 0 
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[100px]">{item.subject}</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                    diffAxis >= 0 
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
                       : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                   }`}>
-                    {delta >= 0 ? `+${delta}` : delta}
+                    {diffAxis >= 0 ? `+${diffAxis}` : diffAxis}
                   </span>
                 </div>
-                <div className="text-xs font-semibold text-slate-200 truncate">{item.subject.split('(')[0]}</div>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-lg font-black text-white">{item.athlete}</span>
-                  <span className="text-[10px] text-slate-400">meta: {item.benchmark}</span>
+                
+                <div className="flex items-baseline justify-between">
+                  <span className="text-lg font-mono font-black text-white">{item.actual}</span>
+                  <span className="text-[10px] font-mono text-zinc-500">ant: {item.anterior}</span>
                 </div>
-                {/* Progress bar */}
-                <div className="w-full bg-slate-700/60 h-1 rounded-full mt-2 overflow-hidden">
+
+                <div className="w-full bg-zinc-800 h-1 rounded-full mt-2 overflow-hidden">
                   <div 
-                    className="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(item.athlete, 100)}%` }}
+                    className="bg-orange-500 h-full transition-all duration-500"
+                    style={{ width: `${Math.min(item.actual, 100)}%` }}
                   />
                 </div>
               </div>
@@ -255,12 +239,9 @@ export function RadarChart360({ metrics, benchmarkMetrics, athleteName }: RadarC
         </div>
       </div>
 
-      <div className="mt-5 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 text-orange-400" />
-          <span>Datos analizados bajo metodología HoopPerformance OS v0.3.0</span>
-        </div>
-        <span className="text-slate-500 hidden sm:inline">Wild Wolves Combine Analytics</span>
+      <div className="mt-4 pt-3 border-t border-[#27272a] text-[10px] font-mono text-zinc-500 flex items-center justify-between">
+        <span>Evaluaciones estandarizadas bajo métricas de combine HoopPerformance</span>
+        <span>Wild Wolves Analytics Engine</span>
       </div>
     </div>
   );

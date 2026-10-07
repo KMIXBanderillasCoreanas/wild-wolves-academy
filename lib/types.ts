@@ -1,32 +1,57 @@
-export type UserRole = 'coach' | 'student';
+export type Role = 'coach' | 'student' | 'parent';
 
-export interface MedicalRecord {
-  bloodType: string;
-  allergies: string[];
-  asthmaOrCardio: boolean;
-  injuriesHistory: string;
-  emergencyContactName: string;
-  emergencyContactRelation: string;
-  emergencyContactPhone: string;
-  insurancePolicyNumber?: string;
-  lastMedicalCheckup: string;
-}
+export type Position = 'Base' | 'Escolta' | 'Alero' | 'Ala-Pívot' | 'Pívot';
+
+export type PaymentFrequency = 'al_dia' | 'semanal' | 'mensual';
+
+export type PaymentStatus = 'al_corriente' | 'pendiente';
+
+export type AuthProvider = 'google' | 'email' | 'whatsapp' | 'apple' | 'demo';
 
 export interface BasketballMetrics {
-  shooting: number;       // 0 - 100 (% tiro exterior y libres)
-  ballHandling: number;   // 0 - 100 (control con ambas manos y drible)
-  verticalJump: number;   // 0 - 100 (explosividad en salto)
-  agilitySpeed: number;   // 0 - 100 (Lane Agility & sprint)
-  defensiveIQ: number;    // 0 - 100 (desplazamiento y lectura táctica)
-  staminaFitness: number; // 0 - 100 (capacidad aeróbica y resistencia)
+  freeThrow: number;    // % tiros libres (base 20 tiros) (0-100)
+  midRange: number;     // % tiro de media distancia (0-100)
+  threePoint: number;   // % tiros de tres / larga distancia (0-100)
+  verticalJump: number; // Salto vertical normalizado (cm) (0-100)
+  sprint100m: number;   // Velocidad 100m planos (segundos convertidos a escala de rendimiento) (0-100)
+  agilityTTest: number; // Agilidad en T-Test defensivo (0-100)
 }
 
-export interface RawAthleticRecord {
-  verticalJumpInches: number;
-  threePointPct: number;
-  freeThrowPct: number;
-  laneAgilitySeconds: number;
-  beepTestLevel: number;
+export interface TrainingDay {
+  day: number;
+  label: string;
+  completed: boolean;
+  ropeJumps: number;
+  joggingMinutes: number;
+  phase: string;
+}
+
+export interface ProgressiveTraining {
+  ropeJumpsToday: number;       // ej. 450
+  ropeTarget: number;           // meta final: 1000
+  joggingMinutesToday: number;   // ej. 25 min
+  joggingTarget: number;        // meta final: 60 min
+  schedule: TrainingDay[];      // Días completados vs. pendientes
+}
+
+export interface MedicalNotes {
+  allergies: string;
+  bloodType: string;
+  emergencyContact: string;
+  emergencyPhone: string;
+  medicalConditions?: string;
+  insurancePolicy?: string;
+  lastCheckup?: string;
+}
+
+export interface RawEvaluationStats {
+  freeThrowMade: number;        // ej. 17
+  freeThrowTotal: number;       // base 20 tiros
+  midRangePct: number;          // %
+  threePointPct: number;        // %
+  verticalJumpCm: number;       // cm reales (ej. 76 cm)
+  sprint100mSeconds: number;    // seg reales (ej. 11.8s)
+  agilityTTestSeconds: number;  // seg reales (ej. 9.4s)
 }
 
 export interface Evaluation {
@@ -35,55 +60,62 @@ export interface Evaluation {
   date: string;
   coachName: string;
   metrics: BasketballMetrics;
-  rawStats: RawAthleticRecord;
+  rawStats: RawEvaluationStats;
   coachNotes: string;
-  prAchieved: boolean;
 }
 
-export interface RopeSession {
-  day: number;
-  targetJumps: number; // Progressive from 100 to 1000 jumps
-  completed: boolean;
-  completedAt?: string;
+export interface AttendanceRecord {
+  id: string;
+  date: string;                 // YYYY-MM-DD o DD/MM/AAAA
+  dayName: string;             // Lunes, Martes, etc.
+  present: boolean;
+  topic?: string;               // Ej. Fundamentos de tiro y drible
 }
 
-export interface EnduranceSession {
-  day: number;
-  phase: string;
-  targetDuration: string; // e.g. "30 seg trote continuo", "5 min trote", "60 min carrera continua"
-  minutesEstimated: number;
-  completed: boolean;
-  heartRateZone: string; // e.g. "Zona 2 (120-140 bpm)"
-}
-
-export interface TrainingPlan {
-  ropeTracker: RopeSession[];
-  enduranceCalendar: EnduranceSession[];
+export interface FinancialRecord {
+  costPerClass: number;         // 50 pesos fijos
+  frequency: PaymentFrequency;  // 'al_dia' | 'semanal' | 'mensual'
+  status: PaymentStatus;        // 'al_corriente' | 'pendiente'
+  balanceDue: number;           // Monto pendiente en MXN (ej. 0 o 50 o 150)
+  lastPaymentDate?: string;
+  lastPaymentAmount?: number;
+  paymentMethod?: 'Efectivo' | 'Transferencia' | 'Stripe';
 }
 
 export interface StudentProfile {
   id: string;
-  name: string;
+  fullName: string;
   email: string;
-  jerseyNumber: number;
-  position: 'Point Guard (PG)' | 'Shooting Guard (SG)' | 'Small Forward (SF)' | 'Power Forward (PF)' | 'Center (C)';
+  phone: string;
+  gender: 'M' | 'F';
   age: number;
-  height: string;
-  weight: string;
-  category: 'Sub-15' | 'Sub-18' | 'Senior / Pro Prep' | 'Universitario';
-  avatar: string;
-  currentMetrics: BasketballMetrics;
-  benchmarkMetrics: BasketballMetrics;
+  position: Position;
+  role: Role;
+  avatarUrl: string;
+  parentPhone?: string;         // si es menor de edad
+  medicalNotes: MedicalNotes;   // alergias, tipo de sangre, contacto de emergencia
+  stripeStatus: 'active' | 'pending';
+  // Asistencia deportiva
+  trainingDays: string[];       // Días que entrena (ej. ['Lunes', 'Miércoles', 'Viernes'])
+  totalDaysTrained: number;     // Total de días que ha entrenado acumulados
+  attendanceHistory: AttendanceRecord[];
+  // Control financiero (Costo clase: $30 pesos)
+  finances: FinancialRecord;
+  // Métricas y entrenamiento
+  metricsCurrent: BasketballMetrics;
+  metricsPrevious: BasketballMetrics;
+  training: ProgressiveTraining;
   evaluations: Evaluation[];
-  trainingPlan: TrainingPlan;
-  medicalRecord: MedicalRecord;
 }
 
 export interface User {
   id: string;
-  name: string;
+  fullName: string;
   email: string;
-  role: UserRole;
-  avatar: string;
-  studentId?: string; // If student, links to student profile
+  role: Role;
+  avatarUrl: string;
+  studentId?: string;
+  parentOfStudentId?: string;
+  phone?: string;
+  provider?: AuthProvider;
 }

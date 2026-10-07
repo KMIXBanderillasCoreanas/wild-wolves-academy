@@ -2,33 +2,37 @@
 
 import React, { useEffect, useState } from 'react';
 import { HoopStore } from '@/lib/store';
-import { StudentProfile, User, Evaluation, BasketballMetrics, RawAthleticRecord } from '@/lib/types';
+import { 
+  StudentProfile, 
+  User, 
+  Evaluation, 
+  BasketballMetrics, 
+  RawEvaluationStats,
+  Position,
+  PaymentFrequency
+} from '@/lib/types';
 import { RadarChart360 } from '@/components/RadarChart360';
 import { RopeTracker } from '@/components/RopeTracker';
 import { EnduranceCalendar } from '@/components/EnduranceCalendar';
 import { MedicalModal } from '@/components/MedicalModal';
 import { WhatsAppReportButton } from '@/components/WhatsAppReportButton';
+import { AttendanceTracker } from '@/components/AttendanceTracker';
+import { FinanceManager } from '@/components/FinanceManager';
 import confetti from 'canvas-confetti';
 import { 
-  KeyRound, 
-  ShieldCheck, 
-  Heart, 
   PlusCircle, 
-  Sparkles, 
-  UserCheck, 
-  Ruler, 
-  Weight, 
-  Calendar, 
-  Flame, 
-  Zap, 
-  Target, 
-  Activity, 
-  Dribbble, 
-  Shield, 
-  Printer, 
+  Heart, 
+  Filter, 
+  Users, 
+  ShieldCheck, 
   Check, 
-  X,
-  FileSpreadsheet
+  X, 
+  Sparkles,
+  Zap,
+  Target,
+  Activity,
+  Layers,
+  ChevronDown
 } from 'lucide-react';
 
 export default function CoachDashboardPage() {
@@ -36,19 +40,23 @@ export default function CoachDashboardPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string>('student_01');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Modals state
-  const [isMedicalModalOpen, setIsMedicalModalOpen] = useState(false);
-  const [isNewEvalModalOpen, setIsNewEvalModalOpen] = useState(false);
+  // Filtros del Roster
+  const [filterGender, setFilterGender] = useState<'ALL' | 'M' | 'F'>('ALL');
+  const [filterAge, setFilterAge] = useState<'ALL' | 'SUB15' | 'SUB18' | 'SENIOR'>('ALL');
+  const [filterPosition, setFilterPosition] = useState<string>('ALL');
 
-  // New Eval Form state
-  const [verticalJumpInches, setVerticalJumpInches] = useState<number>(33.0);
-  const [threePointPct, setThreePointPct] = useState<number>(47.5);
-  const [freeThrowPct, setFreeThrowPct] = useState<number>(88.0);
-  const [laneAgilitySeconds, setLaneAgilitySeconds] = useState<number>(10.2);
-  const [ballHandlingScore, setBallHandlingScore] = useState<number>(92);
-  const [defensiveScore, setDefensiveScore] = useState<number>(86);
-  const [beepTestLevel, setBeepTestLevel] = useState<number>(13.8);
-  const [coachNotes, setCoachNotes] = useState<string>('Progreso biomecánico notable. Mejora del 6% en velocidad de salida tras drible.');
+  // Modales
+  const [isMedicalModalOpen, setIsMedicalModalOpen] = useState(false);
+  const [isEvalModalOpen, setIsEvalModalOpen] = useState(false);
+
+  // Formulario de Nueva Evaluación
+  const [freeThrowMade, setFreeThrowMade] = useState<number>(17);
+  const [midRangePct, setMidRangePct] = useState<number>(85);
+  const [threePointPct, setThreePointPct] = useState<number>(90);
+  const [verticalJumpCm, setVerticalJumpCm] = useState<number>(75);
+  const [sprint100mSeconds, setSprint100mSeconds] = useState<number>(11.5);
+  const [agilityTTestSeconds, setAgilityTTestSeconds] = useState<number>(9.3);
+  const [coachNotes, setCoachNotes] = useState<string>('Progreso consistente en tiros libres y velocidad de sprint en transición.');
 
   useEffect(() => {
     setCurrentUser(HoopStore.getCurrentUser());
@@ -57,284 +65,325 @@ export default function CoachDashboardPage() {
     if (list.length > 0) {
       setSelectedStudentId(list[0].id);
     }
+    // Sincronización en vivo con Supabase PostgreSQL
+    HoopStore.syncWithSupabase().then((remoteList) => {
+      if (remoteList && remoteList.length > 0) {
+        setStudents(remoteList);
+      }
+    });
   }, []);
+
+  // Filtrado de atletas en el roster
+  const filteredStudents = students.filter((s) => {
+    if (filterGender !== 'ALL' && s.gender !== filterGender) return false;
+    if (filterPosition !== 'ALL' && s.position !== filterPosition) return false;
+    if (filterAge === 'SUB15' && s.age >= 16) return false;
+    if (filterAge === 'SUB18' && (s.age < 16 || s.age > 18)) return false;
+    if (filterAge === 'SENIOR' && s.age <= 18) return false;
+    return true;
+  });
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0];
 
-  const handleToggleRope = (day: number) => {
+  // Actualizador del plan de cuerda
+  const handleUpdateRopeTargets = (ropeTarget: number, ropeToday: number) => {
     if (!selectedStudent) return;
-    const updated = HoopStore.toggleRopeSession(selectedStudent.id, day);
+    const updated = HoopStore.updateTrainingTargets(
+      selectedStudent.id,
+      ropeTarget,
+      selectedStudent.training.joggingTarget,
+      ropeToday,
+      selectedStudent.training.joggingMinutesToday
+    );
     if (updated) {
-      setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setStudents(HoopStore.getStudents());
     }
   };
 
-  const handleToggleEndurance = (day: number) => {
+  // Actualizador del plan de trote
+  const handleUpdateJoggingTargets = (joggingTarget: number, joggingToday: number) => {
     if (!selectedStudent) return;
-    const updated = HoopStore.toggleEnduranceSession(selectedStudent.id, day);
+    const updated = HoopStore.updateTrainingTargets(
+      selectedStudent.id,
+      selectedStudent.training.ropeTarget,
+      joggingTarget,
+      selectedStudent.training.ropeJumpsToday,
+      joggingToday
+    );
     if (updated) {
-      setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setStudents(HoopStore.getStudents());
     }
   };
 
-  const calculateDerivedMetrics = (): BasketballMetrics => {
-    const shooting = Math.min(100, Math.max(30, Math.round(threePointPct * 1.2 + freeThrowPct * 0.5)));
-    const verticalJump = Math.min(100, Math.max(20, Math.round((verticalJumpInches / 40) * 100)));
-    const agilitySpeed = Math.min(100, Math.max(30, Math.round(100 - (laneAgilitySeconds - 10) * 12.5)));
-    const staminaFitness = Math.min(100, Math.max(40, Math.round((beepTestLevel / 15) * 100)));
-
-    return {
-      shooting,
-      ballHandling: ballHandlingScore,
-      verticalJump,
-      agilitySpeed,
-      defensiveIQ: defensiveScore,
-      staminaFitness,
-    };
+  // Validador de días del cronograma
+  const handleToggleDay = (day: number) => {
+    if (!selectedStudent) return;
+    const updated = HoopStore.toggleScheduleDay(selectedStudent.id, day);
+    if (updated) {
+      setStudents(HoopStore.getStudents());
+    }
   };
 
-  const handleCreateEvaluation = (e: React.FormEvent) => {
+  // Control de Asistencia del Coach
+  const handleRecordAttendance = (studentId: string, date: string, dayName: string, present: boolean, topic: string) => {
+    HoopStore.recordAttendance(studentId, date, dayName, present, topic);
+    setStudents(HoopStore.getStudents());
+  };
+
+  // Control Financiero: Registrar Cobro ($50 pesos / clase)
+  const handleRecordPayment = (studentId: string, amount: number, method: 'Efectivo' | 'Transferencia' | 'Stripe') => {
+    HoopStore.recordPayment(studentId, amount, method);
+    setStudents(HoopStore.getStudents());
+  };
+
+  // Control Financiero: Actualizar Modalidad (al día $50, semanal $150, mensual $600)
+  const handleUpdateFrequency = (studentId: string, frequency: PaymentFrequency) => {
+    HoopStore.updatePaymentFrequency(studentId, frequency);
+    setStudents(HoopStore.getStudents());
+  };
+
+  // Guardado y recálculo automático de la evaluación mensual
+  const handleSaveEvaluation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent) return;
 
-    const newMetrics = calculateDerivedMetrics();
-    const rawStats: RawAthleticRecord = {
-      verticalJumpInches,
-      threePointPct,
-      freeThrowPct,
-      laneAgilitySeconds,
-      beepTestLevel,
+    // Normalización de métricas a escala 0 - 100
+    const freeThrowScore = Math.min(100, Math.max(0, Math.round((freeThrowMade / 20) * 100)));
+    const verticalScore = Math.min(100, Math.max(20, Math.round((verticalJumpCm / 90) * 100)));
+    // 100m: 10.5s = 100, 14.5s = 40
+    const sprintScore = Math.min(100, Math.max(20, Math.round(100 - (sprint100mSeconds - 10.5) * 15)));
+    // T-Test: 8.5s = 100, 12s = 40
+    const agilityScore = Math.min(100, Math.max(20, Math.round(100 - (agilityTTestSeconds - 8.5) * 17)));
+
+    const newMetrics: BasketballMetrics = {
+      freeThrow: freeThrowScore,
+      midRange: midRangePct,
+      threePoint: threePointPct,
+      verticalJump: verticalScore,
+      sprint100m: sprintScore,
+      agilityTTest: agilityScore,
     };
 
-    const isPR = verticalJumpInches > (selectedStudent.evaluations[0]?.rawStats.verticalJumpInches || 30);
+    const rawStats: RawEvaluationStats = {
+      freeThrowMade,
+      freeThrowTotal: 20,
+      midRangePct,
+      threePointPct,
+      verticalJumpCm,
+      sprint100mSeconds,
+      agilityTTestSeconds,
+    };
 
     const newEval: Evaluation = {
       id: `eval_${Date.now()}`,
       studentId: selectedStudent.id,
-      date: new Date().toISOString().split('T')[0],
-      coachName: currentUser?.name || 'Coach Marcus Vance',
+      date: new Date().toLocaleDateString('es-MX'),
+      coachName: currentUser?.fullName || 'Coach Ricardo',
       metrics: newMetrics,
       rawStats,
       coachNotes,
-      prAchieved: isPR,
     };
 
+    // Al guardar, se recalcula y actualiza automáticamente el radar mes actual vs mes anterior
     HoopStore.updateStudentMetrics(selectedStudent.id, newMetrics, newEval);
-    const refreshed = HoopStore.getStudents();
-    setStudents(refreshed);
+    setStudents(HoopStore.getStudents());
 
     try {
       confetti({
         particleCount: 100,
-        spread: 75,
+        spread: 70,
         origin: { y: 0.6 },
-        colors: ['#f97316', '#38bdf8', '#10b981', '#fbbf24'],
+        colors: ['#f97316', '#38bdf8', '#10b981'],
       });
     } catch {}
 
-    setIsNewEvalModalOpen(false);
+    setIsEvalModalOpen(false);
   };
 
   if (!selectedStudent) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center text-slate-400 text-sm">
-        Cargando consola de administración...
+      <div className="min-h-[70vh] flex items-center justify-center font-mono text-zinc-400 text-xs">
+        Cargando consola del entrenador...
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* 1. Header with Student Selector & Coach Powers */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          {/* Left: Selected Athlete info */}
-          <div className="flex items-center gap-5">
-            <div className="relative">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-orange-500 shadow-xl shadow-orange-500/20 bg-slate-800">
-                <img
-                  src={selectedStudent.avatar}
-                  alt={selectedStudent.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-2 -right-2 bg-orange-600 text-white font-black text-xs px-2.5 py-1 rounded-lg border-2 border-slate-900 shadow">
-                #{selectedStudent.jerseyNumber}
-              </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
+      {/* 1. Panel Superior de Control con Roster y Filtros Rápidos */}
+      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 pb-5 border-b border-[#27272a]">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
+                COACH ADMINISTRADOR: RICARDO • CONTROL TOTAL &amp; DIRECCIÓN TÉCNICA
+              </span>
+              <span className="text-zinc-400 text-xs font-mono">
+                {students.length} Atletas Registrados
+              </span>
             </div>
-
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                  {selectedStudent.position}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-                  {selectedStudent.category}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Coach CRUD Activo
-                </span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {selectedStudent.name}
-                </h1>
-
-                {/* Athlete Dropdown */}
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="bg-slate-800 text-slate-200 text-xs font-bold py-1.5 px-3 rounded-xl border border-slate-700 focus:outline-none focus:border-orange-500 cursor-pointer"
-                >
-                  {students.map((st) => (
-                    <option key={st.id} value={st.id} className="bg-slate-900 text-white">
-                      Plantel: #{st.jerseyNumber} {st.name} ({st.position.split(' ')[0]})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 mt-2">
-                <div className="flex items-center gap-1.5">
-                  <Ruler className="w-4 h-4 text-orange-400" />
-                  <span>Estatura: <strong className="text-slate-200">{selectedStudent.height}</strong></span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Weight className="w-4 h-4 text-orange-400" />
-                  <span>Peso: <strong className="text-slate-200">{selectedStudent.weight}</strong></span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-orange-400" />
-                  <span>Edad: <strong className="text-slate-200">{selectedStudent.age} años</strong></span>
-                </div>
-              </div>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Control Administrativo, Financiero &amp; Evaluación Deportiva
+            </h1>
           </div>
 
-          {/* Right: Coach Actions (Medical Modal + New Evaluation + WhatsApp) */}
+          {/* Acciones Rápidas */}
           <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
             <button
               onClick={() => setIsMedicalModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/50 text-red-300 border border-red-500/30 text-xs font-bold transition-all shadow-md cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
             >
-              <Heart className="w-4 h-4 text-red-400" />
-              <span>Ficha Médica (Privada)</span>
+              <Heart className="w-3.5 h-3.5 text-rose-400" />
+              <span>Ficha Médica ({selectedStudent.fullName.split(' ')[0]})</span>
             </button>
 
             <button
-              onClick={() => setIsNewEvalModalOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow-lg shadow-orange-600/30 transition-all cursor-pointer active:scale-95"
+              onClick={() => setIsEvalModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>Nueva Evaluación Combine</span>
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Cargar Evaluación Mensual</span>
             </button>
 
-            <WhatsAppReportButton student={selectedStudent} label="Reporte WhatsApp" />
+            <WhatsAppReportButton student={selectedStudent} label="WhatsApp Reporte" />
+          </div>
+        </div>
+
+        {/* Filtros Rápidos del Roster */}
+        <div className="pt-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2 text-zinc-400">
+              <Filter className="w-3.5 h-3.5 text-orange-400" />
+              <span>Filtros de Plantel:</span>
+            </div>
+
+            {/* Filtro Género */}
+            <div className="flex items-center bg-[#0a0e17] rounded-lg p-1 border border-[#27272a] gap-1">
+              {(['ALL', 'M', 'F'] as const).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setFilterGender(g)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors cursor-pointer ${
+                    filterGender === g ? 'bg-orange-600 text-white font-bold' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {g === 'ALL' ? 'Todos' : g === 'M' ? 'Varonil' : 'Femenil'}
+                </button>
+              ))}
+            </div>
+
+            {/* Filtro Rango de Edad */}
+            <div className="flex items-center bg-[#0a0e17] rounded-lg p-1 border border-[#27272a] gap-1">
+              {(['ALL', 'SUB15', 'SUB18', 'SENIOR'] as const).map((a) => (
+                <button
+                  key={a}
+                  onClick={() => setFilterAge(a)}
+                  className={`px-2 py-1 rounded text-[11px] font-mono transition-colors cursor-pointer ${
+                    filterAge === a ? 'bg-orange-600 text-white font-bold' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {a === 'ALL' ? 'Todas Edades' : a === 'SUB15' ? 'Sub-15' : a === 'SUB18' ? 'Sub-18' : 'Senior'}
+                </button>
+              ))}
+            </div>
+
+            {/* Filtro Posición */}
+            <select
+              value={filterPosition}
+              onChange={(e) => setFilterPosition(e.target.value)}
+              className="bg-[#0a0e17] border border-[#27272a] text-zinc-300 text-xs font-mono py-1.5 px-3 rounded-lg focus:outline-none focus:border-orange-500 cursor-pointer"
+            >
+              <option value="ALL">Todas las Posiciones</option>
+              <option value="Base">Base</option>
+              <option value="Escolta">Escolta</option>
+              <option value="Alero">Alero</option>
+              <option value="Ala-Pívot">Ala-Pívot</option>
+              <option value="Pívot">Pívot</option>
+            </select>
+          </div>
+
+          {/* Roster de Atletas (Selector con Tarjetas Rápidas) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            {filteredStudents.map((st) => {
+              const isSelected = st.id === selectedStudent.id;
+              return (
+                <div
+                  key={st.id}
+                  onClick={() => setSelectedStudentId(st.id)}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    isSelected
+                      ? 'bg-orange-500/10 border-orange-500 text-white shadow-sm'
+                      : 'bg-[#0a0e17] border-[#27272a] text-zinc-400 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={st.avatarUrl}
+                      alt={st.fullName}
+                      className="w-10 h-10 rounded-lg object-cover border border-zinc-700"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-white leading-tight">
+                        {st.fullName}
+                      </div>
+                      <div className="text-[10px] font-mono text-zinc-400">
+                        {st.position} • {st.gender === 'M' ? 'Varonil' : 'Femenil'} ({st.age}a)
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                    st.stripeStatus === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                  }`}>
+                    {st.stripeStatus === 'active' ? 'Al Día' : 'Pendiente'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* 2. Central Radar 360 */}
-      <RadarChart360
-        metrics={selectedStudent.currentMetrics}
-        benchmarkMetrics={selectedStudent.benchmarkMetrics}
-        athleteName={selectedStudent.name}
+      {/* 2. Control Financiero y Cobranza Exclusivo de Administración ($50 por clase) */}
+      <FinanceManager
+        students={students}
+        onRecordPayment={handleRecordPayment}
+        onUpdateFrequency={handleUpdateFrequency}
       />
 
-      {/* 3. Rope Tracker & Endurance Calendar (Editable by Coach) */}
+      {/* 3. Pase de Lista y Asistencia Oficial de Atletas */}
+      <AttendanceTracker
+        student={selectedStudent}
+        allStudents={students}
+        readOnly={false}
+        onRecordAttendance={handleRecordAttendance}
+      />
+
+      {/* 4. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
+      <RadarChart360
+        metricsCurrent={selectedStudent.metricsCurrent}
+        metricsPrevious={selectedStudent.metricsPrevious}
+        athleteName={selectedStudent.fullName}
+      />
+
+      {/* 5. Asignador y Calibrador del Plan de Cuerda y Resistencia (Totalmente Editable por el Coach) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RopeTracker
-          sessions={selectedStudent.trainingPlan.ropeTracker}
-          onToggleSession={handleToggleRope}
-          athleteName={selectedStudent.name}
+          training={selectedStudent.training}
           readOnly={false}
+          onToggleDay={handleToggleDay}
+          onUpdateTargets={handleUpdateRopeTargets}
         />
 
         <EnduranceCalendar
-          sessions={selectedStudent.trainingPlan.enduranceCalendar}
-          onToggleSession={handleToggleEndurance}
-          athleteName={selectedStudent.name}
+          training={selectedStudent.training}
           readOnly={false}
+          onToggleDay={handleToggleDay}
+          onUpdateTargets={handleUpdateJoggingTargets}
         />
       </div>
 
-      {/* 4. Historical Bitácora & Log */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                Consola de Evaluación
-              </span>
-              <span className="text-xs text-slate-400">Total: {selectedStudent.evaluations.length} Pruebas Asentadas</span>
-            </div>
-            <h3 className="text-xl font-black text-white mt-1">Bitácora Oficial de Pruebas Físicas</h3>
-          </div>
-
-          <button
-            onClick={() => setIsNewEvalModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
-          >
-            <PlusCircle className="w-4 h-4 text-orange-400" />
-            <span>Asentar Prueba</span>
-          </button>
-        </div>
-
-        <div className="space-y-3.5">
-          {selectedStudent.evaluations.map((ev, idx) => (
-            <div
-              key={ev.id}
-              className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 transition-all"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-bold text-sm">{ev.date}</span>
-                    {ev.prAchieved && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        <Flame className="w-3 h-3 text-amber-400" />
-                        PR REGISTRADO
-                      </span>
-                    )}
-                    {idx === 0 && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                        Vigente
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    Evaluador: <span className="text-slate-300 font-medium">{ev.coachName}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="px-3 py-1 bg-slate-900 rounded-xl border border-slate-700 text-center">
-                    <div className="text-[10px] text-slate-400 font-semibold uppercase">Salto</div>
-                    <div className="text-sm font-black text-orange-400">{ev.rawStats.verticalJumpInches}&quot;</div>
-                  </div>
-                  <div className="px-3 py-1 bg-slate-900 rounded-xl border border-slate-700 text-center">
-                    <div className="text-[10px] text-slate-400 font-semibold uppercase">3PT %</div>
-                    <div className="text-sm font-black text-emerald-400">{ev.rawStats.threePointPct}%</div>
-                  </div>
-                  <div className="px-3 py-1 bg-slate-900 rounded-xl border border-slate-700 text-center">
-                    <div className="text-[10px] text-slate-400 font-semibold uppercase">Agilidad</div>
-                    <div className="text-sm font-black text-sky-400">{ev.rawStats.laneAgilitySeconds}s</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
-                <span className="font-semibold text-orange-400 mr-1.5">Notas Técnicas:</span>
-                {ev.coachNotes}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 5. Medical Modal (Private Coach Access) */}
+      {/* 6. Modal de Ficha Médica y Contacto de Emergencia */}
       <MedicalModal
         isOpen={isMedicalModalOpen}
         onClose={() => setIsMedicalModalOpen(false)}
@@ -342,171 +391,153 @@ export default function CoachDashboardPage() {
         isCoach={true}
       />
 
-      {/* 6. New Evaluation Modal Form */}
-      {isNewEvalModalOpen && (
+      {/* 7. Modal de Carga de Evaluación Mensual */}
+      {isEvalModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl relative my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-6 sm:p-8 max-w-2xl w-full relative my-8 font-sans">
+            <div className="flex items-center justify-between pb-4 border-b border-[#27272a]">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                  Combine Entry Form
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
+                  EVALUACIÓN COMBINE MENSUAL
                 </span>
-                <h3 className="text-2xl font-black text-white mt-1">Registrar Nueva Prueba Combine</h3>
-                <p className="text-xs text-slate-400">Atleta: #{selectedStudent.jerseyNumber} {selectedStudent.name}</p>
+                <h3 className="text-xl font-bold text-white mt-1">Cargar Nueva Evaluación Técnica</h3>
+                <p className="text-xs font-mono text-zinc-400">Atleta: {selectedStudent.fullName}</p>
               </div>
               <button
-                onClick={() => setIsNewEvalModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800"
+                onClick={() => setIsEvalModalOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg bg-zinc-800 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateEvaluation} className="mt-6 space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Salto Vertical */}
-                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    <Zap className="w-4 h-4 text-orange-400" />
-                    Salto Vertical (Pulgadas)
+            <form onSubmit={handleSaveEvaluation} className="mt-5 space-y-4 font-mono text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Tiros Libres (base 20 tiros) */}
+                <div className="bg-[#0a0e17] p-3.5 rounded-xl border border-[#27272a]">
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                    Tiros Libres Anotados (Base 20 tiros)
                   </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="15"
-                    max="50"
-                    value={verticalJumpInches}
-                    onChange={(e) => setVerticalJumpInches(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-lg focus:outline-none focus:border-orange-500"
-                  />
-                  <div className="text-[11px] text-slate-400 mt-1">
-                    Equivalente: ~{Math.round(verticalJumpInches * 2.54)} cm
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={freeThrowMade}
+                      onChange={(e) => setFreeThrowMade(parseInt(e.target.value) || 0)}
+                      className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-white font-bold text-base"
+                    />
+                    <span className="text-zinc-400">/ 20 ({Math.round((freeThrowMade / 20) * 100)}%)</span>
                   </div>
                 </div>
 
-                {/* Lane Agility */}
-                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    <Activity className="w-4 h-4 text-sky-400" />
-                    Lane Agility Drill (Segundos)
+                {/* Media Distancia % */}
+                <div className="bg-[#0a0e17] p-3.5 rounded-xl border border-[#27272a]">
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                    Tiro de Media Distancia (% Eficacia)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={midRangePct}
+                    onChange={(e) => setMidRangePct(parseInt(e.target.value) || 0)}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-white font-bold text-base"
+                  />
+                </div>
+
+                {/* Tiro de 3 % */}
+                <div className="bg-[#0a0e17] p-3.5 rounded-xl border border-[#27272a]">
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                    Tiro de 3 / Larga Distancia (% 3PT)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={threePointPct}
+                    onChange={(e) => setThreePointPct(parseInt(e.target.value) || 0)}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-white font-bold text-base"
+                  />
+                </div>
+
+                {/* Salto Vertical (cm) */}
+                <div className="bg-[#0a0e17] p-3.5 rounded-xl border border-[#27272a]">
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                    Salto Vertical Real (Centímetros)
+                  </label>
+                  <input
+                    type="number"
+                    min="20"
+                    max="120"
+                    value={verticalJumpCm}
+                    onChange={(e) => setVerticalJumpCm(parseInt(e.target.value) || 0)}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-white font-bold text-base"
+                  />
+                </div>
+
+                {/* Sprint 100m (segundos) */}
+                <div className="bg-[#0a0e17] p-3.5 rounded-xl border border-[#27272a]">
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                    Sprint 100m Planos (Segundos)
                   </label>
                   <input
                     type="number"
                     step="0.1"
-                    min="8.0"
+                    min="9.0"
+                    max="20.0"
+                    value={sprint100mSeconds}
+                    onChange={(e) => setSprint100mSeconds(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-white font-bold text-base"
+                  />
+                </div>
+
+                {/* Agilidad T-Test (segundos) */}
+                <div className="bg-[#0a0e17] p-3.5 rounded-xl border border-[#27272a]">
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                    Agilidad en T-Test Defensivo (Segundos)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="7.0"
                     max="16.0"
-                    value={laneAgilitySeconds}
-                    onChange={(e) => setLaneAgilitySeconds(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-lg focus:outline-none focus:border-orange-500"
-                  />
-                  <div className="text-[11px] text-slate-400 mt-1">
-                    Meta Top D1: &lt; 10.5 segundos
-                  </div>
-                </div>
-
-                {/* 3PT % */}
-                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    <Target className="w-4 h-4 text-emerald-400" />
-                    Tiro de 3 Puntos (% 3PT)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="10"
-                    max="100"
-                    value={threePointPct}
-                    onChange={(e) => setThreePointPct(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-lg focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-
-                {/* Free Throw % */}
-                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    <Target className="w-4 h-4 text-amber-400" />
-                    Tiro Libre (% Free Throw)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="20"
-                    max="100"
-                    value={freeThrowPct}
-                    onChange={(e) => setFreeThrowPct(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-lg focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-
-                {/* Ball Handling Slider */}
-                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-                  <label className="flex items-center justify-between text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    <span className="flex items-center gap-1.5">
-                      <Dribbble className="w-4 h-4 text-purple-400" />
-                      Manejo de Balón
-                    </span>
-                    <span className="text-orange-400 font-bold">{ballHandlingScore}/100</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="40"
-                    max="100"
-                    value={ballHandlingScore}
-                    onChange={(e) => setBallHandlingScore(parseInt(e.target.value))}
-                    className="w-full accent-orange-500"
-                  />
-                </div>
-
-                {/* Defensive IQ Slider */}
-                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-                  <label className="flex items-center justify-between text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                    <span className="flex items-center gap-1.5">
-                      <Shield className="w-4 h-4 text-indigo-400" />
-                      Defensa &amp; IQ Táctico
-                    </span>
-                    <span className="text-orange-400 font-bold">{defensiveScore}/100</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="40"
-                    max="100"
-                    value={defensiveScore}
-                    onChange={(e) => setDefensiveScore(parseInt(e.target.value))}
-                    className="w-full accent-orange-500"
+                    value={agilityTTestSeconds}
+                    onChange={(e) => setAgilityTTestSeconds(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-white font-bold text-base"
                   />
                 </div>
               </div>
 
-              {/* Coach Observations */}
-              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Devolución Técnica del Coach
+              {/* Observaciones del Entrenador */}
+              <div className="bg-[#0a0e17] p-3.5 rounded-xl border border-[#27272a]">
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                  Observaciones Técnicas del Mes
                 </label>
                 <textarea
                   rows={3}
                   value={coachNotes}
                   onChange={(e) => setCoachNotes(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-orange-500"
-                  placeholder="Detallar fluidez de tiro, ritmo de aceleración, actitud táctica..."
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white text-xs font-sans focus:outline-none focus:border-orange-500"
+                  placeholder="Detalles sobre biomecánica, disciplina en las series y actitud competitiva..."
                 />
               </div>
 
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              {/* Botones */}
+              <div className="flex items-center justify-end gap-2.5 pt-3">
                 <button
                   type="button"
-                  onClick={() => setIsNewEvalModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs"
+                  onClick={() => setIsEvalModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
-
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-orange-600/30 transition-all active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Publicar Evaluación &amp; Actualizar Radar</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Guardar y Recalcular Radar</span>
                 </button>
               </div>
             </form>

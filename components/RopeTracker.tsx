@@ -1,190 +1,160 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RopeSession } from '@/lib/types';
+import { ProgressiveTraining } from '@/lib/types';
 import { 
   Zap, 
   CheckCircle2, 
   Circle, 
-  TrendingUp, 
-  Flame, 
-  Award,
-  Sparkles,
-  Lock
+  Lock, 
+  Settings2,
+  Check
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 interface RopeTrackerProps {
-  sessions: RopeSession[];
-  onToggleSession?: (day: number) => void;
+  training: ProgressiveTraining;
   readOnly?: boolean;
-  athleteName?: string;
+  onToggleDay?: (day: number) => void;
+  onUpdateTargets?: (ropeTarget: number, ropeToday: number) => void;
 }
 
 export function RopeTracker({
-  sessions,
-  onToggleSession,
+  training,
   readOnly = false,
-  athleteName,
+  onToggleDay,
+  onUpdateTargets,
 }: RopeTrackerProps) {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editToday, setEditToday] = useState(training.ropeJumpsToday);
+  const [editTarget, setEditTarget] = useState(training.ropeTarget);
 
-  const completedCount = sessions.filter((s) => s.completed).length;
-  const progressPct = Math.round((completedCount / sessions.length) * 100);
-  const totalJumpsCompleted = sessions
-    .filter((s) => s.completed)
-    .reduce((acc, curr) => acc + curr.targetJumps, 0);
+  const completedDays = training.schedule.filter((s) => s.completed).length;
+  const progressPct = Math.round((training.ropeJumpsToday / training.ropeTarget) * 100);
 
-  const handleToggle = (day: number, alreadyCompleted: boolean) => {
-    if (readOnly) return;
-    if (onToggleSession) {
-      onToggleSession(day);
-      if (!alreadyCompleted) {
-        try {
-          confetti({
-            particleCount: 50,
-            spread: 60,
-            origin: { y: 0.7 },
-            colors: ['#f97316', '#fbbf24', '#38bdf8'],
-          });
-        } catch {}
-      }
+  const handleSave = () => {
+    if (onUpdateTargets) {
+      onUpdateTargets(Number(editTarget), Number(editToday));
     }
+    setIsEditing(false);
   };
 
-  const filteredSessions = sessions.filter((s) => {
-    if (filter === 'completed') return s.completed;
-    if (filter === 'pending') return !s.completed;
-    return true;
-  });
-
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30">
-              Sobrecarga Progresiva
-            </span>
-            <span className="text-xs text-slate-400">Progreso 100 ➔ 1,000 Saltos</span>
+    <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-none">
+      {/* Encabezado */}
+      <div className="flex items-center justify-between pb-3 border-b border-[#27272a] mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
+            <Zap className="w-4 h-4" />
           </div>
-          <h3 className="text-xl sm:text-2xl font-black text-white mt-1 flex items-center gap-2">
-            <span>Rope Overload Tracker</span>
-            <Zap className="w-5 h-5 text-amber-400" />
-          </h3>
-          <p className="text-xs text-slate-400">
-            Acondicionamiento pliométrico y rapidez de pies para {athleteName || 'el Atleta'}
-          </p>
+          <div>
+            <h4 className="text-sm font-bold text-white tracking-tight">Monitor de Salto de Cuerda</h4>
+            <p className="text-[10px] font-mono text-zinc-400">Sobrecarga progresiva: meta final 1,000 saltos</p>
+          </div>
         </div>
 
-        {/* Stats Pill */}
-        <div className="flex items-center gap-3">
-          <div className="px-3.5 py-2 bg-slate-800/90 rounded-2xl border border-slate-700 text-center">
-            <div className="text-[10px] text-slate-400 uppercase font-semibold">Saltos Totales</div>
-            <div className="text-lg font-black text-amber-400">
-              {totalJumpsCompleted.toLocaleString()}
-            </div>
-          </div>
-          <div className="px-3.5 py-2 bg-slate-800/90 rounded-2xl border border-slate-700 text-center">
-            <div className="text-[10px] text-slate-400 uppercase font-semibold">Progreso</div>
-            <div className="text-lg font-black text-emerald-400">
-              {progressPct}%
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          {readOnly ? (
+            <span className="flex items-center gap-1 text-[10px] font-mono text-zinc-400 bg-[#0a0e17] px-2 py-1 rounded border border-[#27272a]">
+              <Lock className="w-3 h-3 text-orange-400" />
+              Lectura Estricta
+            </span>
+          ) : (
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono transition-colors"
+              title="Calibrar metas del atleta"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="mb-6">
-        <div className="flex justify-between text-xs text-slate-300 font-semibold mb-2">
-          <span className="flex items-center gap-1.5">
-            <Flame className="w-4 h-4 text-orange-400" />
-            <span>{completedCount} de {sessions.length} Días Completados</span>
-          </span>
-          <span className="text-orange-400 font-bold">{progressPct}% completado</span>
+      {/* Editor rápido para Coach */}
+      {!readOnly && isEditing && (
+        <div className="mb-4 p-3 bg-[#0a0e17] border border-orange-500/30 rounded-xl space-y-2.5">
+          <div className="text-[10px] font-mono font-bold text-orange-400 uppercase">
+            Ajustar Metas por el Entrenador:
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div>
+              <label className="text-[10px] text-zinc-400 block mb-1">Saltos de Hoy:</label>
+              <input
+                type="number"
+                value={editToday}
+                onChange={(e) => setEditToday(parseInt(e.target.value) || 0)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white text-xs font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-zinc-400 block mb-1">Meta Máxima:</label>
+              <input
+                type="number"
+                value={editTarget}
+                onChange={(e) => setEditTarget(parseInt(e.target.value) || 1000)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white text-xs font-mono"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleSave}
+            className="w-full py-1 bg-orange-600 hover:bg-orange-500 text-white rounded text-[11px] font-mono font-bold transition-colors flex items-center justify-center gap-1"
+          >
+            <Check className="w-3 h-3" />
+            <span>Guardar Ajuste</span>
+          </button>
         </div>
-        <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+      )}
+
+      {/* Indicador de Saltos de Hoy */}
+      <div className="bg-[#0a0e17] border border-[#27272a] rounded-xl p-3.5 mb-4">
+        <div className="flex items-baseline justify-between mb-2">
+          <span className="text-xs text-zinc-300">Saltos realizados hoy:</span>
+          <span className="text-xl font-mono font-black text-white">
+            <span className="text-orange-400">{training.ropeJumpsToday.toLocaleString()}</span>
+            <span className="text-xs text-zinc-500 font-normal"> / {training.ropeTarget.toLocaleString()} saltos</span>
+          </span>
+        </div>
+
+        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
           <div 
-            className="bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 h-full rounded-full transition-all duration-500"
-            style={{ width: `${progressPct}%` }}
+            className="bg-orange-500 h-full transition-all duration-500"
+            style={{ width: `${Math.min(100, progressPct)}%` }}
           />
         </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center bg-slate-800/80 p-1 rounded-xl text-xs font-semibold">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded-lg transition-all ${
-              filter === 'all' ? 'bg-orange-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Todos ({sessions.length})
-          </button>
-          <button
-            onClick={() => setFilter('pending')}
-            className={`px-3 py-1 rounded-lg transition-all ${
-              filter === 'pending' ? 'bg-orange-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Pendientes ({sessions.length - completedCount})
-          </button>
-          <button
-            onClick={() => setFilter('completed')}
-            className={`px-3 py-1 rounded-lg transition-all ${
-              filter === 'completed' ? 'bg-orange-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Logrados ({completedCount})
-          </button>
+        <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-1.5">
+          <span>{progressPct}% alcanzado hoy</span>
+          <span>Días validados: {completedDays} / 30</span>
         </div>
-
-        {readOnly && (
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg">
-            <Lock className="w-3 h-3 text-orange-400" />
-            <span>Modo Lectura</span>
-          </div>
-        )}
       </div>
 
-      {/* Sessions Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
-        {filteredSessions.map((session) => (
-          <div
-            key={session.day}
-            onClick={() => handleToggle(session.day, session.completed)}
-            className={`p-3 rounded-2xl border transition-all flex flex-col justify-between ${
-              session.completed
-                ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200'
-                : 'bg-slate-800/50 border-slate-700/60 text-slate-300 hover:border-slate-600'
-            } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:scale-[1.02]'}`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-black uppercase text-slate-400">
-                Día {session.day}
-              </span>
-              {session.completed ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <Circle className="w-4 h-4 text-slate-500" />
-              )}
+      {/* Calendario de días */}
+      <div>
+        <div className="text-[11px] font-mono text-zinc-400 mb-2">
+          Cronograma de sobrecarga (30 días):
+        </div>
+        <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 max-h-[160px] overflow-y-auto pr-1">
+          {training.schedule.map((item) => (
+            <div
+              key={item.day}
+              onClick={() => {
+                if (!readOnly && onToggleDay) onToggleDay(item.day);
+              }}
+              className={`p-1.5 rounded-lg border text-center transition-all ${
+                item.completed
+                  ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
+                  : 'bg-[#0a0e17] border-[#27272a] text-zinc-400'
+              } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-zinc-500'}`}
+              title={`Día ${item.day}: ${item.ropeJumps} saltos`}
+            >
+              <div className="text-[9px] font-mono uppercase text-zinc-500">D{item.day}</div>
+              <div className="text-[11px] font-mono font-bold">{item.ropeJumps}</div>
+              <div className="text-[9px] mt-0.5">
+                {item.completed ? '✓' : '—'}
+              </div>
             </div>
-
-            <div className="text-base font-black text-white">
-              {session.targetJumps} <span className="text-[10px] font-medium text-slate-400">saltos</span>
-            </div>
-
-            <div className="text-[10px] text-slate-400 mt-1">
-              {session.completed ? (
-                <span className="text-emerald-400 font-bold">✓ Completado</span>
-              ) : (
-                <span>Meta pendiente</span>
-              )}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
