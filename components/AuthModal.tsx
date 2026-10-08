@@ -1,105 +1,188 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { X, Mail, Lock, ShieldCheck, ArrowRight, CheckCircle2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import React, { useState } from "react";
+import { X, Mail, Lock, CheckCircle2, Calendar, Clock, AlertCircle, Eye, EyeOff, MapPin } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (role: string) => void;
+  targetRole?: "student" | "coach_pending";
+  onSuccess?: (role: string) => void;
 }
 
-export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [step, setStep] = useState<"auth" | "2fa">("auth");
+const DAYS_OF_WEEK = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+export default function AuthModal({
+  isOpen,
+  onClose,
+  targetRole = "student",
+  onSuccess,
+}: AuthModalProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState("");
-  const [feedbackMsg, setFeedbackMsg] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  // 8 dígitos individuales
-  const [code, setCode] = useState<string[]>(new Array(8).fill(""));
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // Estado del compromiso de entrenamiento (de lunes a sábado)
+  const [selectedDays, setSelectedDays] = useState<string[]>(["Lunes", "Miércoles", "Viernes"]);
+  const [shift, setShift] = useState<"matutino_9_11" | "vespertino_5_7">("vespertino_5_7");
 
   if (!isOpen) return null;
 
-  const trigger2FAGeneration = async (targetEmail: string) => {
-    setIsSending(true);
-    // Generar código de 8 dígitos numéricos
-    const random8 = Math.floor(10000000 + Math.random() * 90000000).toString();
-    setGeneratedCode(random8);
+  const toggleDay = (day: string) => {
+    if (selectedDays.includes(day)) {
+      if (selectedDays.length > 1) setSelectedDays(selectedDays.filter((d) => d !== day));
+    } else {
+      setSelectedDays([...selectedDays, day]);
+    }
+  };
+
+  // 1. REGISTRO / LOGIN CON GOOGLE REAL
+  const handleGoogleAuth = async () => {
+    setErrorMsg("");
+    setLoading(true);
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ww_target_role", targetRole);
+        if (fullName) localStorage.setItem("ww_target_name", fullName);
+      }
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            assigned_role: targetRole,
+          },
+        },
+      });
+      if (error) {
+        setErrorMsg(error.message);
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al conectar con Google");
+      setLoading(false);
+    }
+  };
+
+  // 2. REGISTRO / LOGIN CON EMAIL REAL
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+    setLoading(true);
 
     try {
-      await fetch("/api/send-2fa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: targetEmail, code: random8 }),
-      });
-      setFeedbackMsg(`Código de 8 dígitos generado para ${targetEmail}`);
-    } catch {
-      setFeedbackMsg("Código generado en modo offline para pruebas");
-    } finally {
-      setIsSending(false);
-      setStep("2fa");
-    }
-  };
+      if (isRegister) {
+        // Registro en Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName || "Atleta Wild Wolves",
+              assigned_role: targetRole,
+            },
+          },
+        });
 
-  const handleOAuthLogin = (provider: "google" | "facebook") => {
-    const mockEmail = provider === "google" ? "atleta.google@gmail.com" : "atleta.fb@facebook.com";
-    setEmail(mockEmail);
-    trigger2FAGeneration(mockEmail);
-  };
+        if (error) throw error;
 
-  const handleCredentialsSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    trigger2FAGeneration(email);
-  };
+        // Guardar compromiso de entrenamiento si es alumno
+        if (data.user && targetRole === "student") {
+          try {
+            await supabase.from("attendance_commitments").insert({
+              user_id: data.user.id,
+              days_selected: selectedDays,
+              shift: shift,
+              commitment_agreement: true,
+            });
+          } catch (commitmentErr) {
+            console.warn("Nota: No se pudo guardar compromiso directo:", commitmentErr);
+          }
 
-  const handleDigitChange = (index: number, val: string) => {
-    if (!/^[0-9]?$/.test(val)) return;
-    const nextCode = [...code];
-    nextCode[index] = val;
-    setCode(nextCode);
+          // Sincronizar estado local
+          if (typeof window !== "undefined") {
+            localStorage.setItem("ww_user_role", "student");
+            localStorage.setItem("ww_user_email", email);
+            if (fullName) localStorage.setItem("ww_student_name", fullName);
+            document.cookie = "user_role=student; path=/; max-age=86400; SameSite=Lax";
+            document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
+            window.dispatchEvent(new Event("auth_changed"));
+          }
+          HoopStore.loginAsStudent("student_" + Date.now(), fullName || "Atleta Wild Wolves", email);
+        }
 
-    if (val && index < 7) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
+        setSuccessMsg(
+          targetRole === "coach_pending"
+            ? "¡Solicitud de Coach enviada con éxito! Tu acceso está en revisión por el Super Administrador."
+            : "¡Registro exitoso en Wild Wolves CDMX! Revisa tu correo o inicia sesión para acceder a tu entrenamiento."
+        );
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
+        if (onSuccess) onSuccess(targetRole);
+      } else {
+        // Inicio de sesión
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-  const handleVerify2FA = (e: React.FormEvent) => {
-    e.preventDefault();
-    const enteredCode = code.join("");
-    // Valida contra el código generado de 8 dígitos
-    if (enteredCode === generatedCode || enteredCode.length === 8) {
-      const userEmail = email.trim() || "atleta@wildwolves.mx";
-      if (typeof window !== "undefined") {
-        localStorage.setItem("ww_user_role", "student");
-        localStorage.setItem("ww_user_email", userEmail);
-        document.cookie = "user_role=student; path=/; max-age=86400; SameSite=Lax";
-        document.cookie = `user_email=${encodeURIComponent(userEmail)}; path=/; max-age=86400; SameSite=Lax`;
-        window.dispatchEvent(new Event("auth_changed"));
+        if (error) throw error;
+
+        // Redirección según rol
+        let userRole: string = targetRole;
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role, status")
+            .eq("id", data.user.id)
+            .single();
+
+          if (profile?.role === "coach_pending" || profile?.status === "pending") {
+            setErrorMsg("Tu solicitud de Coach sigue en revisión por el Super Administrador.");
+            await supabase.auth.signOut();
+            setLoading(false);
+            return;
+          }
+
+          if (profile?.role) {
+            userRole = profile.role as any;
+          }
+        } catch (profileErr) {
+          console.warn("Perfil en Supabase:", profileErr);
+        }
+
+        // Sincronización de cookies y localStorage
+        if (typeof window !== "undefined") {
+          localStorage.setItem("ww_user_role", userRole);
+          localStorage.setItem("ww_user_email", email);
+          document.cookie = `user_role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
+          window.dispatchEvent(new Event("auth_changed"));
+        }
+
+        if (userRole === "coach" || userRole === "superadmin") {
+          window.location.href = "/dashboard-coach";
+        } else {
+          window.location.href = "/dashboard-student";
+        }
       }
-      HoopStore.loginAsStudent("student_01", "Atleta Wild Wolves", userEmail);
-      onSuccess("student");
-      onClose();
-    } else {
-      alert("Código incorrecto. Vuelve a intentarlo.");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error de autenticación con la base de datos.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-in fade-in duration-200 font-sans">
-      <div className="relative w-full max-w-lg bg-[#0f131c] border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(2,132,199,0.2)] text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-5 right-5 text-zinc-400 hover:text-white p-2 rounded-xl bg-[#161b26] transition cursor-pointer"
@@ -107,191 +190,232 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           <X className="w-5 h-5" />
         </button>
 
-        {step === "auth" ? (
+        <div className="text-center mb-6">
+          <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-[#ea580c]/20 text-[#f97316] border border-[#ea580c]/40 px-3.5 py-1 rounded-full">
+            {targetRole === "coach_pending"
+              ? "Postulación Staff Técnico"
+              : "Portal Oficial • Alumnos & Padres"}
+          </span>
+          <h2 className="text-2xl font-black uppercase mt-3 tracking-wide text-white">
+            {isRegister ? "Crear Cuenta Oficial" : "Iniciar Sesión"}
+          </h2>
+          <p className="text-xs text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-[#ea580c]" />
+            Canchas de Pavimento • Deportivo Carmen Serdán (CDMX)
+          </p>
+        </div>
+
+        {errorMsg && (
+          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* BOTÓN OFICIAL DE GOOGLE */}
+        <button
+          type="button"
+          onClick={handleGoogleAuth}
+          disabled={loading}
+          className="w-full py-3 px-4 rounded-xl bg-[#161b26] hover:bg-[#1f2636] border border-zinc-700 text-xs font-bold transition flex items-center justify-center gap-3 cursor-pointer mb-5 shadow-sm"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <path
+              fill="#EA4335"
+              d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
+            />
+            <path
+              fill="#4285F4"
+              d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.4 1.9 7.8l3.7-2.9z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"
+            />
+          </svg>
+          Continuar con Google
+        </button>
+
+        <div className="relative flex py-2 items-center mb-5">
+          <div className="flex-grow border-t border-zinc-800"></div>
+          <span className="flex-shrink mx-4 text-zinc-500 text-[11px] uppercase font-bold tracking-wider">
+            o mediante correo institucional
+          </span>
+          <div className="flex-grow border-t border-zinc-800"></div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isRegister && (
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">
+                {targetRole === "coach_pending"
+                  ? "Nombre Completo del Entrenador"
+                  : "Nombre Completo del Atleta o Tutor"}
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Nombre y Apellidos"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] rounded-xl py-2.5 px-3.5 text-sm text-white outline-none transition"
+              />
+            </div>
+          )}
+
           <div>
-            <div className="text-center mb-6">
-              <span className="text-[10px] font-bold tracking-widest uppercase bg-[#0284c7]/20 text-[#38bdf8] border border-[#0284c7]/40 px-3 py-1 rounded-full font-mono">
-                Acceso Oficial Atletas &amp; Familias
-              </span>
-              <h2 className="text-2xl font-black uppercase mt-3 tracking-wide">
-                {isRegister ? "Registro con Código al Correo" : "Iniciar Sesión"}
-              </h2>
-              <p className="text-xs text-zinc-400 mt-1">
-                Ingresa con redes sociales o escribe tu correo de Gmail/tutor.
-              </p>
+            <label className="block text-xs font-semibold text-zinc-400 mb-1">
+              Correo Electrónico
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="email"
+                required
+                placeholder="ejemplo@correo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white outline-none transition"
+              />
             </div>
+          </div>
 
-            {/* Accesos rápidos OAuth */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
+          <div>
+            <label className="block text-xs font-semibold text-zinc-400 mb-1">
+              Contraseña
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                placeholder="Mínimo 6 caracteres"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] rounded-xl py-2.5 pl-10 pr-11 text-sm text-white outline-none transition"
+              />
               <button
                 type="button"
-                onClick={() => handleOAuthLogin("google")}
-                disabled={isSending}
-                className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-[#161b26] hover:bg-[#1f2636] border border-zinc-700 text-xs font-bold transition shadow-sm cursor-pointer"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
-                  <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
-                  <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.4 1.9 7.8l3.7-2.9z"/>
-                  <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/>
-                </svg>
-                Gmail / Google
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOAuthLogin("facebook")}
-                disabled={isSending}
-                className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-[#161b26] hover:bg-[#1f2636] border border-zinc-700 text-xs font-bold transition text-[#1877F2] shadow-sm cursor-pointer"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                Facebook
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+          </div>
 
-            <div className="relative flex py-2 items-center mb-4">
-              <div className="flex-grow border-t border-zinc-800"></div>
-              <span className="flex-shrink mx-4 text-zinc-500 text-xs uppercase tracking-wider font-semibold font-mono">o escribe tu correo</span>
-              <div className="flex-grow border-t border-zinc-800"></div>
-            </div>
-
-            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1 font-mono uppercase">Correo Electrónico (Gmail u otro)</label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="ejemplo@gmail.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#090d16] border border-zinc-700 focus:border-[#0284c7] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white outline-none font-sans"
-                  />
+          {/* MÓDULO OBLIGATORIO: DÍAS DE ENTRENAMIENTO Y HORARIO (LUNES A SÁBADO) */}
+          {isRegister && targetRole === "student" && (
+            <div className="bg-[#121724] border border-zinc-800 p-4 rounded-2xl space-y-3 mt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#ea580c]">
+                  <Calendar className="w-4 h-4" /> Compromiso de Asistencia Semanal
                 </div>
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  {selectedDays.length} días seleccionados
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                Selecciona los días en que el atleta entrenará en las canchas de pavimento (Lunes a Sábado):
+              </p>
+
+              <div className="grid grid-cols-3 gap-2">
+                {DAYS_OF_WEEK.map((day) => {
+                  const active = selectedDays.includes(day);
+                  return (
+                    <button
+                      type="button"
+                      key={day}
+                      onClick={() => toggleDay(day)}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold transition border ${
+                        active
+                          ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
+                          : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1 font-mono uppercase">Contraseña</label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#090d16] border border-zinc-700 focus:border-[#0284c7] rounded-xl py-2.5 pl-10 pr-11 text-sm text-white outline-none font-sans"
-                  />
-                  {/* Botón de Visualización de Contraseña */}
+              <div className="pt-2 border-t border-zinc-800/80">
+                <span className="block text-[11px] font-semibold text-zinc-400 mb-2 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#f97316]" /> Turno de Entrenamiento:
+                </span>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition cursor-pointer"
-                    aria-label="Ver u ocultar contraseña"
+                    onClick={() => setShift("matutino_9_11")}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                      shift === "matutino_9_11"
+                        ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
+                        : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    }`}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    <div>Matutino</div>
+                    <div className="text-[10px] opacity-80 font-normal">09:00 a 11:00 hrs</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShift("vespertino_5_7")}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                      shift === "vespertino_5_7"
+                        ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
+                        : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <div>Vespertino</div>
+                    <div className="text-[10px] opacity-80 font-normal">17:00 a 19:00 hrs</div>
                   </button>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isSending}
-                className="w-full py-3 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold rounded-xl text-sm transition shadow-lg shadow-[#0284c7]/20 flex items-center justify-center gap-2 cursor-pointer hover:brightness-110 active:scale-95 disabled:opacity-50"
-              >
-                <span>{isSending ? "Generando y enviando código..." : "Enviar código de 8 dígitos al correo"}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-
-            <div className="mt-5 text-center">
-              <button
-                onClick={() => setIsRegister(!isRegister)}
-                className="text-xs text-zinc-400 hover:text-white underline transition cursor-pointer"
-              >
-                {isRegister ? "¿Ya tienes cuenta? Inicia sesión aquí" : "¿No tienes cuenta? Regístrate aquí"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Paso de Verificación 2FA con 8 dígitos */
-          <form onSubmit={handleVerify2FA} className="space-y-6">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-2xl bg-[#0284c7]/20 border border-[#0284c7]/40 flex items-center justify-center mx-auto mb-3 text-[#38bdf8]">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-black uppercase text-white">Código de Verificación 2FA</h3>
-              <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
-                Código de 8 dígitos enviado a <span className="text-[#38bdf8] font-bold">{email}</span>
-              </p>
-
-              {/* Notificación con el código generado para pruebas instantáneas */}
-              {generatedCode && (
-                <div className="mt-3 inline-flex items-center gap-2 bg-[#ea580c]/20 border border-[#ea580c]/50 text-[#f97316] px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold animate-pulse">
-                  <AlertCircle className="w-4 h-4" /> Código de prueba: {generatedCode.slice(0, 4)} - {generatedCode.slice(4)}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                {[0, 1, 2, 3].map((idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => { inputRefs.current[idx] = el; }}
-                    type="text"
-                    maxLength={1}
-                    value={code[idx]}
-                    onChange={(e) => handleDigitChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(idx, e)}
-                    className="w-10 h-12 sm:w-11 sm:h-14 text-center text-lg font-bold bg-[#090d16] border border-zinc-700 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] rounded-xl text-white outline-none font-mono"
-                  />
-                ))}
-                <span className="text-zinc-600 font-black text-lg mx-1">-</span>
-                {[4, 5, 6, 7].map((idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => { inputRefs.current[idx] = el; }}
-                    type="text"
-                    maxLength={1}
-                    value={code[idx]}
-                    onChange={(e) => handleDigitChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(idx, e)}
-                    className="w-10 h-12 sm:w-11 sm:h-14 text-center text-lg font-bold bg-[#090d16] border border-zinc-700 focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] rounded-xl text-white outline-none font-mono"
-                  />
-                ))}
+              <div className="text-[10px] text-zinc-500 bg-[#07090e] p-2.5 rounded-xl border border-zinc-800/80">
+                📍 Sede: Canchas de Pavimento • Deportivo Carmen Serdán. Asistencia requerida con ropa deportiva e hidratación.
               </div>
             </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={code.join("").length !== 8}
-              className="w-full py-3.5 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] disabled:opacity-40 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-[#0284c7]/20 flex items-center justify-center gap-2 cursor-pointer hover:brightness-110 active:scale-95"
-            >
-              <CheckCircle2 className="w-4 h-4" /> Validar Código y Entrar
-            </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white font-bold rounded-xl text-sm transition shadow-lg shadow-[#ea580c]/30 cursor-pointer hover:brightness-110 disabled:opacity-50"
+          >
+            {loading
+              ? "Procesando en Supabase..."
+              : isRegister
+              ? targetRole === "coach_pending"
+                ? "Enviar Solicitud de Coach"
+                : "Completar Registro Real"
+              : "Entrar a mi Cuenta"}
+          </button>
+        </form>
 
-            <div className="flex items-center justify-between text-xs text-zinc-500 font-mono">
-              <button
-                type="button"
-                onClick={() => trigger2FAGeneration(email)}
-                className="hover:text-zinc-300 underline cursor-pointer"
-              >
-                Reenviar código de 8 dígitos
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep("auth")}
-                className="hover:text-zinc-300 underline cursor-pointer"
-              >
-                Cambiar correo
-              </button>
-            </div>
-          </form>
-        )}
+        <div className="mt-5 text-center">
+          <button
+            type="button"
+            onClick={() => setIsRegister(!isRegister)}
+            className="text-xs text-zinc-400 hover:text-white underline cursor-pointer"
+          >
+            {isRegister
+              ? "¿Ya tienes cuenta? Inicia sesión aquí"
+              : targetRole === "coach_pending"
+              ? "¿Ya te postulaste? Inicia sesión aquí"
+              : "¿Eres nuevo atleta o padre? Regístrate aquí"}
+          </button>
+        </div>
       </div>
     </div>
   );
