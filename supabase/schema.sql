@@ -112,3 +112,44 @@ WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Actualización de compromisos por el propio usuario"
 ON public.attendance_commitments FOR UPDATE
 USING (auth.uid() = user_id);
+
+-- 7. TABLA DE ASISTENCIA DIARIA EN CANCHA (daily_attendance)
+CREATE TABLE IF NOT EXISTS public.daily_attendance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id TEXT NOT NULL,
+  session_date DATE NOT NULL,
+  shift TEXT NOT NULL CHECK (shift IN ('matutino_9_11', 'vespertino_5_7')),
+  status TEXT NOT NULL CHECK (status IN ('presente', 'falta', 'retardo')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(student_id, session_date, shift)
+);
+
+ALTER TABLE public.daily_attendance ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Lectura y registro de asistencia diaria para coaches y superadmin"
+ON public.daily_attendance FOR ALL
+USING (true)
+WITH CHECK (true);
+
+-- 8. TABLA DE CONTROL DE COBRANZA Y PAGOS (student_payments)
+CREATE TABLE IF NOT EXISTS public.student_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id TEXT NOT NULL,
+  student_name TEXT,
+  guardian_name TEXT,
+  amount NUMERIC NOT NULL,
+  payment_date DATE NOT NULL,
+  method TEXT NOT NULL CHECK (method IN ('Efectivo', 'Transferencia', 'Stripe')),
+  status TEXT NOT NULL CHECK (status IN ('Pagado', 'Adeudo')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.student_payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Lectura y registro de pagos para administradores y coaches"
+ON public.student_payments FOR ALL
+USING (true)
+WITH CHECK (true);
+

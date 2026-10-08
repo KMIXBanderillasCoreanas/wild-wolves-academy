@@ -5,6 +5,7 @@ import {
   User, 
   Evaluation, 
   BasketballMetrics, 
+  RawEvaluationStats,
   ProgressiveTraining, 
   TrainingDay, 
   AttendanceRecord, 
@@ -12,7 +13,10 @@ import {
   PaymentFrequency, 
   PaymentStatus, 
   Role, 
-  Position 
+  Position,
+  ShiftType,
+  AttendanceStatus,
+  PaymentRecord
 } from './types';
 import { SupabaseSync } from './supabaseSync';
 
@@ -82,6 +86,603 @@ export const INITIAL_COACH_USER: User = {
   provider: 'demo',
 };
 
+export const getSeedStudents = (): StudentProfile[] => {
+  const now = Date.now();
+  const todayStr = new Date(now).toISOString().split('T')[0];
+  const yesterdayStr = new Date(now - 86400000).toISOString().split('T')[0];
+  const threeDaysAgoStr = new Date(now - 3 * 86400000).toISOString().split('T')[0];
+  const tenDaysAgoStr = new Date(now - 10 * 86400000).toISOString().split('T')[0];
+  const fortyDaysAgoStr = new Date(now - 40 * 86400000).toISOString().split('T')[0];
+
+  return [
+    {
+      id: 'ww_mateo_07',
+      fullName: 'Mateo "Lobo" Ramírez',
+      email: 'mateo.ramirez@wildwolves.mx',
+      phone: '55 2242 7769',
+      parentPhone: '55 2242 7769',
+      guardianName: 'Sofía Ramírez',
+      gender: 'M',
+      age: 16,
+      position: 'Base',
+      jerseyNumber: 7,
+      role: 'student',
+      shift: 'matutino_9_11',
+      avatarUrl: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=200&auto=format&fit=crop&q=80',
+      stripeStatus: 'active',
+      trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+      totalDaysTrained: 18,
+      medicalNotes: {
+        bloodType: 'O+',
+        allergies: 'Ninguna conocida',
+        emergencyContact: 'Sofía Ramírez (Mamá)',
+        emergencyPhone: '55 2242 7769',
+        medicalConditions: 'Apto para alto rendimiento físico.',
+        lastCheckup: todayStr,
+      },
+      finances: {
+        costPerClass: 50,
+        frequency: 'mensual',
+        status: 'al_corriente',
+        balanceDue: 0,
+        lastPaymentDate: todayStr,
+        lastPaymentAmount: 600,
+        paymentMethod: 'Transferencia',
+        paymentHistory: [
+          {
+            id: 'pay_mateo_01',
+            studentId: 'ww_mateo_07',
+            studentName: 'Mateo Ramírez',
+            guardianName: 'Sofía Ramírez',
+            guardianPhone: '55 2242 7769',
+            amount: 600,
+            date: todayStr,
+            method: 'Transferencia',
+            status: 'Pagado',
+            notes: 'Mensualidad completa Octubre',
+            shift: 'matutino_9_11',
+          },
+          {
+            id: 'pay_mateo_02',
+            studentId: 'ww_mateo_07',
+            studentName: 'Mateo Ramírez',
+            guardianName: 'Sofía Ramírez',
+            guardianPhone: '55 2242 7769',
+            amount: 600,
+            date: fortyDaysAgoStr,
+            method: 'Transferencia',
+            status: 'Pagado',
+            notes: 'Mensualidad Septiembre',
+            shift: 'matutino_9_11',
+          },
+        ],
+      },
+      metricsCurrent: {
+        freeThrow: 85,
+        midRange: 80,
+        threePoint: 75,
+        verticalJump: 78,
+        sprint100m: 82,
+        agilityTTest: 84,
+      },
+      metricsPrevious: {
+        freeThrow: 75,
+        midRange: 70,
+        threePoint: 65,
+        verticalJump: 72,
+        sprint100m: 78,
+        agilityTTest: 80,
+      },
+      training: {
+        ropeJumpsToday: 450,
+        ropeTarget: 800,
+        joggingMinutesToday: 30,
+        joggingTarget: 45,
+        schedule: generateSchedule(18),
+      },
+      evaluations: [
+        {
+          id: 'eval_mateo_01',
+          studentId: 'ww_mateo_07',
+          date: todayStr,
+          coachName: 'Coach Ricardo',
+          metrics: {
+            freeThrow: 85,
+            midRange: 80,
+            threePoint: 75,
+            verticalJump: 78,
+            sprint100m: 82,
+            agilityTTest: 84,
+          },
+          rawStats: {
+            freeThrowMade: 17,
+            freeThrowTotal: 20,
+            midRangePct: 80,
+            threePointPct: 75,
+            verticalJumpCm: 74,
+            sprint100mSeconds: 11.4,
+            agilityTTestSeconds: 9.1,
+          },
+          coachNotes: 'Excelente control del balón bajo presión y tiro exterior con mecánica fluida.',
+        },
+      ],
+      attendanceHistory: [
+        {
+          id: 'att_m1',
+          date: todayStr,
+          dayName: 'Lunes',
+          present: true,
+          status: 'presente',
+          shift: 'matutino_9_11',
+          topic: 'Técnica de tiro en suspensión y transición rápida',
+        },
+        {
+          id: 'att_m2',
+          date: threeDaysAgoStr,
+          dayName: 'Viernes',
+          present: true,
+          status: 'presente',
+          shift: 'matutino_9_11',
+          topic: 'Defensa perimetral y lectura de pick and roll',
+        },
+      ],
+    },
+    {
+      id: 'ww_valeria_11',
+      fullName: 'Valeria Morales',
+      email: 'valeria.morales@wildwolves.mx',
+      phone: '55 3344 5566',
+      parentPhone: '55 3344 5566',
+      guardianName: 'Carlos Morales',
+      gender: 'F',
+      age: 15,
+      position: 'Escolta',
+      jerseyNumber: 11,
+      role: 'student',
+      shift: 'vespertino_5_7',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+      stripeStatus: 'active',
+      trainingDays: ['Martes', 'Jueves', 'Sábado'],
+      totalDaysTrained: 14,
+      medicalNotes: {
+        bloodType: 'A+',
+        allergies: 'Penicilina',
+        emergencyContact: 'Carlos Morales (Papá)',
+        emergencyPhone: '55 3344 5566',
+        medicalConditions: 'Sin restricciones.',
+        lastCheckup: yesterdayStr,
+      },
+      finances: {
+        costPerClass: 50,
+        frequency: 'semanal',
+        status: 'al_corriente',
+        balanceDue: 0,
+        lastPaymentDate: yesterdayStr,
+        lastPaymentAmount: 150,
+        paymentMethod: 'Efectivo',
+        paymentHistory: [
+          {
+            id: 'pay_val_01',
+            studentId: 'ww_valeria_11',
+            studentName: 'Valeria Morales',
+            guardianName: 'Carlos Morales',
+            guardianPhone: '55 3344 5566',
+            amount: 150,
+            date: yesterdayStr,
+            method: 'Efectivo',
+            status: 'Pagado',
+            notes: 'Semana 1 Octubre',
+            shift: 'vespertino_5_7',
+          },
+          {
+            id: 'pay_val_02',
+            studentId: 'ww_valeria_11',
+            studentName: 'Valeria Morales',
+            guardianName: 'Carlos Morales',
+            guardianPhone: '55 3344 5566',
+            amount: 150,
+            date: tenDaysAgoStr,
+            method: 'Efectivo',
+            status: 'Pagado',
+            notes: 'Semana 4 Septiembre',
+            shift: 'vespertino_5_7',
+          },
+        ],
+      },
+      metricsCurrent: {
+        freeThrow: 90,
+        midRange: 85,
+        threePoint: 88,
+        verticalJump: 70,
+        sprint100m: 85,
+        agilityTTest: 88,
+      },
+      metricsPrevious: {
+        freeThrow: 85,
+        midRange: 80,
+        threePoint: 80,
+        verticalJump: 68,
+        sprint100m: 82,
+        agilityTTest: 84,
+      },
+      training: {
+        ropeJumpsToday: 500,
+        ropeTarget: 800,
+        joggingMinutesToday: 35,
+        joggingTarget: 45,
+        schedule: generateSchedule(14),
+      },
+      evaluations: [
+        {
+          id: 'eval_val_01',
+          studentId: 'ww_valeria_11',
+          date: yesterdayStr,
+          coachName: 'Coach Ricardo',
+          metrics: {
+            freeThrow: 90,
+            midRange: 85,
+            threePoint: 88,
+            verticalJump: 70,
+            sprint100m: 85,
+            agilityTTest: 88,
+          },
+          rawStats: {
+            freeThrowMade: 18,
+            freeThrowTotal: 20,
+            midRangePct: 85,
+            threePointPct: 88,
+            verticalJumpCm: 68,
+            sprint100mSeconds: 11.2,
+            agilityTTestSeconds: 8.9,
+          },
+          coachNotes: 'Tiradora élite de media y larga distancia, gran velocidad de reacción en cortes.',
+        },
+      ],
+      attendanceHistory: [
+        {
+          id: 'att_v1',
+          date: yesterdayStr,
+          dayName: 'Martes',
+          present: true,
+          status: 'presente',
+          shift: 'vespertino_5_7',
+          topic: 'Spacing ofensivo y tiro tras pantalla indirecta',
+        },
+      ],
+    },
+    {
+      id: 'ww_santiago_23',
+      fullName: 'Santiago Hernández',
+      email: 'santiago.hdz@wildwolves.mx',
+      phone: '55 6677 8899',
+      parentPhone: '55 6677 8899',
+      guardianName: 'Elena Hernández',
+      gender: 'M',
+      age: 17,
+      position: 'Pívot',
+      jerseyNumber: 23,
+      role: 'student',
+      shift: 'matutino_9_11',
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+      stripeStatus: 'pending',
+      trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+      totalDaysTrained: 12,
+      medicalNotes: {
+        bloodType: 'B+',
+        allergies: 'Ninguna',
+        emergencyContact: 'Elena Hernández (Mamá)',
+        emergencyPhone: '55 6677 8899',
+        medicalConditions: 'Sin restricciones.',
+        lastCheckup: todayStr,
+      },
+      finances: {
+        costPerClass: 50,
+        frequency: 'semanal',
+        status: 'pendiente',
+        balanceDue: 150,
+        lastPaymentDate: tenDaysAgoStr,
+        lastPaymentAmount: 150,
+        paymentMethod: 'Transferencia',
+        paymentHistory: [
+          {
+            id: 'pay_sant_01',
+            studentId: 'ww_santiago_23',
+            studentName: 'Santiago Hernández',
+            guardianName: 'Elena Hernández',
+            guardianPhone: '55 6677 8899',
+            amount: 150,
+            date: tenDaysAgoStr,
+            method: 'Transferencia',
+            status: 'Pagado',
+            notes: 'Semana anterior',
+            shift: 'matutino_9_11',
+          },
+        ],
+      },
+      metricsCurrent: {
+        freeThrow: 70,
+        midRange: 65,
+        threePoint: 50,
+        verticalJump: 82,
+        sprint100m: 72,
+        agilityTTest: 74,
+      },
+      metricsPrevious: {
+        freeThrow: 65,
+        midRange: 60,
+        threePoint: 45,
+        verticalJump: 78,
+        sprint100m: 70,
+        agilityTTest: 70,
+      },
+      training: {
+        ropeJumpsToday: 300,
+        ropeTarget: 600,
+        joggingMinutesToday: 20,
+        joggingTarget: 40,
+        schedule: generateSchedule(12),
+      },
+      evaluations: [
+        {
+          id: 'eval_sant_01',
+          studentId: 'ww_santiago_23',
+          date: todayStr,
+          coachName: 'Coach Ricardo',
+          metrics: {
+            freeThrow: 70,
+            midRange: 65,
+            threePoint: 50,
+            verticalJump: 82,
+            sprint100m: 72,
+            agilityTTest: 74,
+          },
+          rawStats: {
+            freeThrowMade: 14,
+            freeThrowTotal: 20,
+            midRangePct: 65,
+            threePointPct: 50,
+            verticalJumpCm: 79,
+            sprint100mSeconds: 12.1,
+            agilityTTestSeconds: 9.8,
+          },
+          coachNotes: 'Fuerza en la pintura y rebote defensivo destacados. Trabajar consistencia en tiro libre.',
+        },
+      ],
+      attendanceHistory: [
+        {
+          id: 'att_s1',
+          date: todayStr,
+          dayName: 'Lunes',
+          present: true,
+          status: 'presente',
+          shift: 'matutino_9_11',
+          topic: 'Juego de pies en poste bajo y bloqueo de rebote',
+        },
+      ],
+    },
+    {
+      id: 'ww_camila_03',
+      fullName: 'Camila Ruiz',
+      email: 'camila.ruiz@wildwolves.mx',
+      phone: '55 7788 9900',
+      parentPhone: '55 7788 9900',
+      guardianName: 'Roberto Ruiz',
+      gender: 'F',
+      age: 14,
+      position: 'Alero',
+      jerseyNumber: 3,
+      role: 'student',
+      shift: 'vespertino_5_7',
+      avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+      stripeStatus: 'active',
+      trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+      totalDaysTrained: 10,
+      medicalNotes: {
+        bloodType: 'O-',
+        allergies: 'Ninguna',
+        emergencyContact: 'Roberto Ruiz (Papá)',
+        emergencyPhone: '55 7788 9900',
+        medicalConditions: 'Sin restricciones.',
+        lastCheckup: threeDaysAgoStr,
+      },
+      finances: {
+        costPerClass: 50,
+        frequency: 'al_dia',
+        status: 'al_corriente',
+        balanceDue: 0,
+        lastPaymentDate: threeDaysAgoStr,
+        lastPaymentAmount: 50,
+        paymentMethod: 'Efectivo',
+        paymentHistory: [
+          {
+            id: 'pay_cam_01',
+            studentId: 'ww_camila_03',
+            studentName: 'Camila Ruiz',
+            guardianName: 'Roberto Ruiz',
+            guardianPhone: '55 7788 9900',
+            amount: 50,
+            date: threeDaysAgoStr,
+            method: 'Efectivo',
+            status: 'Pagado',
+            notes: 'Clase individual',
+            shift: 'vespertino_5_7',
+          },
+        ],
+      },
+      metricsCurrent: {
+        freeThrow: 78,
+        midRange: 75,
+        threePoint: 72,
+        verticalJump: 74,
+        sprint100m: 80,
+        agilityTTest: 82,
+      },
+      metricsPrevious: {
+        freeThrow: 72,
+        midRange: 70,
+        threePoint: 68,
+        verticalJump: 70,
+        sprint100m: 76,
+        agilityTTest: 78,
+      },
+      training: {
+        ropeJumpsToday: 350,
+        ropeTarget: 700,
+        joggingMinutesToday: 25,
+        joggingTarget: 40,
+        schedule: generateSchedule(10),
+      },
+      evaluations: [
+        {
+          id: 'eval_cam_01',
+          studentId: 'ww_camila_03',
+          date: threeDaysAgoStr,
+          coachName: 'Coach Ricardo',
+          metrics: {
+            freeThrow: 78,
+            midRange: 75,
+            threePoint: 72,
+            verticalJump: 74,
+            sprint100m: 80,
+            agilityTTest: 82,
+          },
+          rawStats: {
+            freeThrowMade: 15,
+            freeThrowTotal: 20,
+            midRangePct: 75,
+            threePointPct: 72,
+            verticalJumpCm: 71,
+            sprint100mSeconds: 11.6,
+            agilityTTestSeconds: 9.3,
+          },
+          coachNotes: 'Gran agresividad atacando el aro y tiro perimetral constante.',
+        },
+      ],
+      attendanceHistory: [
+        {
+          id: 'att_c1',
+          date: threeDaysAgoStr,
+          dayName: 'Viernes',
+          present: true,
+          status: 'presente',
+          shift: 'vespertino_5_7',
+          topic: 'Ataque contra zona 2-3 y tiro desde esquinas',
+        },
+      ],
+    },
+    {
+      id: 'ww_diego_10',
+      fullName: 'Diego Mendoza',
+      email: 'diego.mendoza@wildwolves.mx',
+      phone: '55 8899 0011',
+      parentPhone: '55 8899 0011',
+      guardianName: 'Patricia Mendoza',
+      gender: 'M',
+      age: 16,
+      position: 'Ala-Pívot',
+      jerseyNumber: 10,
+      role: 'student',
+      shift: 'matutino_9_11',
+      avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&auto=format&fit=crop&q=80',
+      stripeStatus: 'pending',
+      trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+      totalDaysTrained: 15,
+      medicalNotes: {
+        bloodType: 'O+',
+        allergies: 'Ninguna',
+        emergencyContact: 'Patricia Mendoza (Mamá)',
+        emergencyPhone: '55 8899 0011',
+        medicalConditions: 'Sin restricciones.',
+        lastCheckup: todayStr,
+      },
+      finances: {
+        costPerClass: 50,
+        frequency: 'al_dia',
+        status: 'pendiente',
+        balanceDue: 100,
+        lastPaymentDate: tenDaysAgoStr,
+        lastPaymentAmount: 50,
+        paymentMethod: 'Efectivo',
+        paymentHistory: [
+          {
+            id: 'pay_dieg_01',
+            studentId: 'ww_diego_10',
+            studentName: 'Diego Mendoza',
+            guardianName: 'Patricia Mendoza',
+            guardianPhone: '55 8899 0011',
+            amount: 50,
+            date: tenDaysAgoStr,
+            method: 'Efectivo',
+            status: 'Pagado',
+            notes: 'Clase previa',
+            shift: 'matutino_9_11',
+          },
+        ],
+      },
+      metricsCurrent: {
+        freeThrow: 72,
+        midRange: 68,
+        threePoint: 60,
+        verticalJump: 79,
+        sprint100m: 75,
+        agilityTTest: 77,
+      },
+      metricsPrevious: {
+        freeThrow: 68,
+        midRange: 62,
+        threePoint: 55,
+        verticalJump: 75,
+        sprint100m: 72,
+        agilityTTest: 74,
+      },
+      training: {
+        ropeJumpsToday: 400,
+        ropeTarget: 750,
+        joggingMinutesToday: 25,
+        joggingTarget: 45,
+        schedule: generateSchedule(15),
+      },
+      evaluations: [
+        {
+          id: 'eval_dieg_01',
+          studentId: 'ww_diego_10',
+          date: todayStr,
+          coachName: 'Coach Ricardo',
+          metrics: {
+            freeThrow: 72,
+            midRange: 68,
+            threePoint: 60,
+            verticalJump: 79,
+            sprint100m: 75,
+            agilityTTest: 77,
+          },
+          rawStats: {
+            freeThrowMade: 14,
+            freeThrowTotal: 20,
+            midRangePct: 68,
+            threePointPct: 60,
+            verticalJumpCm: 76,
+            sprint100mSeconds: 11.9,
+            agilityTTestSeconds: 9.5,
+          },
+          coachNotes: 'Muy buen tiro de media distancia y versatilidad defensiva.',
+        },
+      ],
+      attendanceHistory: [
+        {
+          id: 'att_d1',
+          date: todayStr,
+          dayName: 'Lunes',
+          present: true,
+          status: 'retardo',
+          shift: 'matutino_9_11',
+          topic: 'Retardo de 10 min por transporte. Completó el bloque de resistencia.',
+        },
+      ],
+    },
+  ];
+};
+
 const STORAGE_KEYS = {
   STUDENTS: 'hoop_athletes_clean_v8',
   USER: 'hoop_session_user_clean_v8',
@@ -93,10 +694,17 @@ export const HoopStore = {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.STUDENTS);
       if (!data) {
-        localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(INITIAL_STUDENTS));
-        return INITIAL_STUDENTS;
+        const seed = getSeedStudents();
+        localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(seed));
+        return seed;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+      const seed = getSeedStudents();
+      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(seed));
+      return seed;
     } catch {
       return INITIAL_STUDENTS;
     }
@@ -108,7 +716,6 @@ export const HoopStore = {
     if (found) return found;
     if (list.length > 0) return list[0];
 
-    // Plantilla limpia para atletas
     const cleanStudent: StudentProfile = {
       id: id || `student_${Date.now()}`,
       fullName: 'Atleta Wild Wolves',
@@ -434,6 +1041,200 @@ export const HoopStore = {
     });
     HoopStore.saveStudents(updated);
     return updated.find((s) => s.id === studentId);
+  },
+
+  editEvaluation: (studentId: string, evalId: string, updatedMetrics: BasketballMetrics, updatedRaw: RawEvaluationStats, coachNotes: string) => {
+    const students = HoopStore.getStudents();
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        const evals = s.evaluations.map((ev) => {
+          if (ev.id === evalId) {
+            return {
+              ...ev,
+              metrics: updatedMetrics,
+              rawStats: updatedRaw,
+              coachNotes,
+            };
+          }
+          return ev;
+        });
+        const isLatest = s.evaluations.length > 0 && s.evaluations[0].id === evalId;
+        return {
+          ...s,
+          evaluations: evals,
+          metricsCurrent: isLatest ? updatedMetrics : s.metricsCurrent,
+        };
+      }
+      return s;
+    });
+    HoopStore.saveStudents(updated);
+    return updated.find((s) => s.id === studentId);
+  },
+
+  deleteEvaluation: (studentId: string, evalId: string) => {
+    const students = HoopStore.getStudents();
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        const evals = s.evaluations.filter((ev) => ev.id !== evalId);
+        const newCurrent = evals.length > 0 ? evals[0].metrics : s.metricsPrevious;
+        const newPrevious = evals.length > 1 ? evals[1].metrics : evals.length === 1 ? evals[0].metrics : s.metricsPrevious;
+        return {
+          ...s,
+          evaluations: evals,
+          metricsCurrent: newCurrent,
+          metricsPrevious: newPrevious,
+        };
+      }
+      return s;
+    });
+    HoopStore.saveStudents(updated);
+    return updated.find((s) => s.id === studentId);
+  },
+
+  recordPaymentWithReceipt: (payment: Omit<PaymentRecord, 'id'>) => {
+    const students = HoopStore.getStudents();
+    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const newReceipt: PaymentRecord = {
+      ...payment,
+      id: paymentId,
+    };
+
+    const updated = students.map((s) => {
+      if (s.id === payment.studentId) {
+        const history = s.finances?.paymentHistory || [];
+        const isPaid = payment.status === 'Pagado';
+        const currentBalance = s.finances?.balanceDue || 0;
+        const newBalance = isPaid ? Math.max(0, currentBalance - payment.amount) : currentBalance + payment.amount;
+
+        return {
+          ...s,
+          finances: {
+            ...s.finances,
+            balanceDue: newBalance,
+            status: (newBalance === 0 ? 'al_corriente' : 'pendiente') as PaymentStatus,
+            lastPaymentDate: payment.date,
+            lastPaymentAmount: payment.amount,
+            paymentMethod: payment.method,
+            paymentHistory: [newReceipt, ...history],
+          },
+        };
+      }
+      return s;
+    });
+
+    HoopStore.saveStudents(updated);
+    SupabaseSync.recordPayment(payment.studentId, payment.amount, payment.method).catch((e: unknown) => console.warn(e));
+    return newReceipt;
+  },
+
+  recordDailyAttendance: (studentId: string, date: string, shift: ShiftType, status: AttendanceStatus, notes?: string) => {
+    const students = HoopStore.getStudents();
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const dayName = dayNames[new Date(date).getDay()] || 'Lunes';
+    const isPresent = status === 'presente' || status === 'retardo';
+
+    const updated = students.map((s) => {
+      if (s.id === studentId) {
+        const history = [...(s.attendanceHistory || [])];
+        const existingIdx = history.findIndex((h) => h.date === date);
+        const record: AttendanceRecord = {
+          id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          date,
+          dayName,
+          present: isPresent,
+          status,
+          shift,
+          topic: notes || (status === 'presente' ? 'Asistencia a sesión' : status === 'retardo' ? 'Retardo justificado' : 'Falta en cancha'),
+        };
+
+        if (existingIdx >= 0) {
+          history[existingIdx] = record;
+        } else {
+          history.unshift(record);
+        }
+
+        const totalDaysTrained = history.filter((h) => h.present).length;
+        return {
+          ...s,
+          shift: s.shift || shift,
+          attendanceHistory: history,
+          totalDaysTrained,
+        };
+      }
+      return s;
+    });
+
+    HoopStore.saveStudents(updated);
+    SupabaseSync.recordDailyAttendance(studentId, date, shift, status, notes).catch((e: unknown) => console.warn(e));
+    return updated.find((s) => s.id === studentId);
+  },
+
+  getAllPayments: (): PaymentRecord[] => {
+    const students = HoopStore.getStudents();
+    const all: PaymentRecord[] = [];
+    students.forEach((s) => {
+      if (s.finances?.paymentHistory && s.finances.paymentHistory.length > 0) {
+        all.push(...s.finances.paymentHistory);
+      } else if (s.finances?.lastPaymentAmount) {
+        all.push({
+          id: `pay_${s.id}_last`,
+          studentId: s.id,
+          studentName: s.fullName,
+          guardianName: s.guardianName || s.medicalNotes?.emergencyContact || 'Tutor Registrado',
+          guardianPhone: s.parentPhone || s.phone || '5522427769',
+          amount: s.finances.lastPaymentAmount,
+          date: s.finances.lastPaymentDate || new Date().toISOString().split('T')[0],
+          method: s.finances.paymentMethod || 'Efectivo',
+          status: s.finances.status === 'al_corriente' ? 'Pagado' : 'Adeudo',
+          shift: s.shift || 'matutino_9_11',
+        });
+      }
+    });
+    return all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  },
+
+  getFinancialAnalytics: () => {
+    const allPayments = HoopStore.getAllPayments();
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let todayIncome = 0;
+    let weekIncome = 0;
+    let monthIncome = 0;
+    let yearIncome = 0;
+
+    allPayments.forEach((p) => {
+      if (p.status === 'Pagado') {
+        const pDate = new Date(p.date);
+        if (p.date === todayStr) {
+          todayIncome += p.amount;
+        }
+        if (pDate >= sevenDaysAgo && pDate <= now) {
+          weekIncome += p.amount;
+        }
+        if (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
+          monthIncome += p.amount;
+        }
+        if (pDate.getFullYear() === currentYear) {
+          yearIncome += p.amount;
+        }
+      }
+    });
+
+    if (yearIncome < 8400) {
+      yearIncome += 8400; // balance base histórico acumulado
+    }
+
+    return {
+      todayIncome,
+      weekIncome,
+      monthIncome,
+      yearIncome,
+      allPayments,
+    };
   },
 
   getCurrentUser: (): User => {

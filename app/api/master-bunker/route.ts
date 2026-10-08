@@ -42,10 +42,33 @@ export async function GET(request: Request) {
       .from("attendance_commitments")
       .select("*, profiles:user_id(email, full_name)");
 
+    // Pagos registrados en Supabase (si existe la tabla)
+    let payments: any[] = [];
+    try {
+      const { data: payData } = await adminSupabase
+        .from("student_payments")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (payData) payments = payData;
+    } catch {}
+
+    // Asistencias registradas
+    let attendance: any[] = [];
+    try {
+      const { data: attData } = await adminSupabase
+        .from("daily_attendance")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (attData) attendance = attData;
+    } catch {}
+
     return NextResponse.json({
       adminUser,
       coaches: coaches || [],
       commitments: commitments || [],
+      payments,
+      attendance,
       coachErr,
       commErr,
     });
@@ -57,7 +80,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { secret, action, userId } = body;
+    const { secret, action, userId, payment } = body;
 
     const adminUser = getAdminUser(secret || "");
     if (!adminUser) {
@@ -87,6 +110,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         success: true, 
         message: `Coach eliminado con éxito por ${adminUser}` 
+      });
+    }
+
+    if (action === "record_payment" && payment) {
+      const { error } = await adminSupabase
+        .from("student_payments")
+        .insert({
+          student_id: payment.studentId,
+          student_name: payment.studentName,
+          guardian_name: payment.guardianName,
+          amount: payment.amount,
+          payment_date: payment.date,
+          method: payment.method,
+          status: payment.status || 'Pagado',
+          notes: payment.notes || `Registrado por ${adminUser}`
+        });
+
+      if (error) throw error;
+      return NextResponse.json({
+        success: true,
+        message: `Pago registrado con éxito por ${adminUser}`
       });
     }
 

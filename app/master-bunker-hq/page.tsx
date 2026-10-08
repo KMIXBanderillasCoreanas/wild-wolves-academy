@@ -4,6 +4,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { HoopStore } from "@/lib/store";
+import { PaymentRecord, StudentProfile, ShiftType } from "@/lib/types";
+import { AttendanceTracker } from "@/components/AttendanceTracker";
+import confetti from "canvas-confetti";
 import {
   Crown,
   Check,
@@ -23,7 +27,16 @@ import {
   Activity,
   UserCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  DollarSign,
+  CreditCard,
+  TrendingUp,
+  Receipt,
+  MessageCircle,
+  PlusCircle,
+  CalendarCheck,
+  AlertCircle,
+  Wallet
 } from "lucide-react";
 
 interface CoachProfile {
@@ -52,10 +65,28 @@ export default function MasterBunkerHQ() {
   const [showKey, setShowKey] = useState(false);
   const [adminName, setAdminName] = useState("Super Administrador");
   const [errorMessage, setErrorMessage] = useState("");
+  
+  // Datos
   const [coaches, setCoaches] = useState<CoachProfile[]>([]);
   const [commitments, setCommitments] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentProfile[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [financialStats, setFinancialStats] = useState({
+    todayIncome: 0,
+    weekIncome: 0,
+    monthIncome: 0,
+    yearIncome: 0,
+  });
+
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"coaches" | "students">("coaches");
+  const [activeTab, setActiveTab] = useState<"finances" | "attendance" | "coaches" | "students">("finances");
+
+  // Modal para registrar pago manual
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [manualPayStudentId, setManualPayStudentId] = useState("");
+  const [manualPayAmount, setManualPayAmount] = useState<number>(600);
+  const [manualPayMethod, setManualPayMethod] = useState<"Efectivo" | "Transferencia" | "Stripe">("Efectivo");
+  const [manualPayNotes, setManualPayNotes] = useState("Pago de mensualidad en cancha");
 
   const checkSecret = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,10 +108,28 @@ export default function MasterBunkerHQ() {
     }
   };
 
-  const fetchPendingCoaches = useCallback(async () => {
+  const loadLocalFinancials = useCallback(() => {
+    const list = HoopStore.getStudents();
+    setStudents(list);
+    const stats = HoopStore.getFinancialAnalytics();
+    setFinancialStats({
+      todayIncome: stats.todayIncome,
+      weekIncome: stats.weekIncome,
+      monthIncome: stats.monthIncome,
+      yearIncome: stats.yearIncome,
+    });
+    setPayments(stats.allPayments);
+    if (list.length > 0 && !manualPayStudentId) {
+      setManualPayStudentId(list[0].id);
+    }
+  }, [manualPayStudentId]);
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Intentar primero mediante API de administración con llave maestra
+      loadLocalFinancials();
+
+      // Intentar mediante API de administración con clave maestra
       const res = await fetch(`/api/master-bunker?secret=${encodeURIComponent(secretKey)}`);
       if (res.ok) {
         const json = await res.json();
@@ -105,13 +154,13 @@ export default function MasterBunkerHQ() {
     } finally {
       setLoading(false);
     }
-  }, [secretKey]);
+  }, [secretKey, loadLocalFinancials]);
 
   useEffect(() => {
     if (authenticated) {
-      fetchPendingCoaches();
+      fetchData();
     }
-  }, [authenticated, fetchPendingCoaches]);
+  }, [authenticated, fetchData]);
 
   const approveCoach = async (userId: string) => {
     try {
@@ -122,7 +171,7 @@ export default function MasterBunkerHQ() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al aprobar");
-      fetchPendingCoaches();
+      fetchData();
     } catch (err: any) {
       alert("Error al aprobar coach: " + err.message);
     }
@@ -138,10 +187,74 @@ export default function MasterBunkerHQ() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al eliminar");
-      fetchPendingCoaches();
+      fetchData();
     } catch (err: any) {
       alert("Error al eliminar usuario: " + err.message);
     }
+  };
+
+  // REGISTRAR PAGO MANUAL (Efectivo o Transferencia)
+  const handleRegisterManualPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const st = students.find((s) => s.id === manualPayStudentId);
+    if (!st) {
+      alert("Por favor selecciona un alumno");
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const newPayment = {
+      studentId: st.id,
+      studentName: st.fullName,
+      guardianName: st.guardianName || st.medicalNotes?.emergencyContact || "Tutor de Atleta",
+      guardianPhone: st.parentPhone || st.phone || "5522427769",
+      amount: Number(manualPayAmount),
+      date: todayStr,
+      method: manualPayMethod,
+      status: "Pagado" as const,
+      notes: manualPayNotes,
+      shift: st.shift || "matutino_9_11",
+    };
+
+    // 1. Guardar en store local / recalculador
+    HoopStore.recordPaymentWithReceipt(newPayment);
+
+    // 2. Intentar guardar en backend Supabase API
+    try {
+      await fetch("/api/master-bunker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret: secretKey,
+          action: "record_payment",
+          payment: newPayment,
+        }),
+      });
+    } catch (err) {
+      console.warn("Backend payment sync notice:", err);
+    }
+
+    // Efecto de celebración
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ["#10b981", "#f97316", "#fbbf24"],
+      });
+    } catch {}
+
+    loadLocalFinancials();
+    setIsPayModalOpen(false);
+  };
+
+  // ENLACE DIRECTO DE WHATSAPP PARA RECORDATORIO
+  const handleWhatsAppReminder = (payment: PaymentRecord) => {
+    const rawPhone = payment.guardianPhone || "5522427769";
+    const phone = rawPhone.replace(/[^0-9]/g, "");
+    const cleanPhone = phone.startsWith("52") ? phone : `52${phone}`;
+    const text = `Hola ${payment.guardianName}, recordatorio de pago de mensualidad Wild Wolves de ${payment.studentName}. Cuota: $${payment.amount} MXN. Sede: Deportivo Carmen Serdán (CDMX). Puedes regularizar mediante Efectivo en cancha o Transferencia SPEI. ¡Muchas gracias por el apoyo al atleta! 🐺🏀`;
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
   if (!authenticated) {
@@ -179,7 +292,7 @@ export default function MasterBunkerHQ() {
               Búnker Super Administrador
             </h2>
             <p className="text-xs text-zinc-400 mt-1 mb-6">
-              Ingresa la Clave Maestra para gestionar entrenadores, horarios y datos de Wild Wolves CDMX.
+              Ingresa la Clave Maestra de Ricardo o Carlos para acceder al motor financiero y directivo.
             </p>
 
             {errorMessage && (
@@ -228,9 +341,10 @@ export default function MasterBunkerHQ() {
 
   const pendingCount = coaches.filter((c) => c.role === "coach_pending").length;
   const activeCount = coaches.filter((c) => c.role === "coach").length;
+  const currentStudentForAttendance = students[0] || HoopStore.getStudents()[0];
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-8">
+    <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Top Navbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
@@ -253,14 +367,14 @@ export default function MasterBunkerHQ() {
                 <span className="text-xs text-zinc-400">Deportivo Carmen Serdán</span>
               </div>
               <h1 className="text-2xl font-black uppercase text-white mt-1">
-                Panel Central de Dirección
+                Panel Central de Dirección &amp; Finanzas
               </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <button
-              onClick={fetchPendingCoaches}
+              onClick={fetchData}
               disabled={loading}
               className="flex items-center gap-2 text-xs bg-[#161b26] border border-zinc-700 px-4 py-2.5 rounded-xl text-zinc-300 hover:text-white transition cursor-pointer"
             >
@@ -277,46 +391,33 @@ export default function MasterBunkerHQ() {
           </div>
         </div>
 
-        {/* Status Metrics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="bg-[#0d1017] border border-zinc-800 p-4 rounded-2xl">
-            <span className="text-xs text-zinc-400">Coaches Pendientes</span>
-            <div className="text-2xl font-black text-amber-400 mt-1 flex items-center justify-between">
-              <span>{pendingCount}</span>
-              <ShieldAlert className="w-5 h-5 text-amber-400/50" />
-            </div>
-          </div>
-
-          <div className="bg-[#0d1017] border border-zinc-800 p-4 rounded-2xl">
-            <span className="text-xs text-zinc-400">Coaches Activos</span>
-            <div className="text-2xl font-black text-emerald-400 mt-1 flex items-center justify-between">
-              <span>{activeCount}</span>
-              <UserCheck className="w-5 h-5 text-emerald-400/50" />
-            </div>
-          </div>
-
-          <div className="bg-[#0d1017] border border-zinc-800 p-4 rounded-2xl">
-            <span className="text-xs text-zinc-400">Alumnos con Horario</span>
-            <div className="text-2xl font-black text-[#ea580c] mt-1 flex items-center justify-between">
-              <span>{commitments.length}</span>
-              <Users className="w-5 h-5 text-[#ea580c]/50" />
-            </div>
-          </div>
-
-          <div className="bg-[#0d1017] border border-zinc-800 p-4 rounded-2xl">
-            <span className="text-xs text-zinc-400">Sede Oficial</span>
-            <div className="text-xs font-bold text-zinc-200 mt-1.5 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-[#ea580c] flex-shrink-0" />
-              <span>Deportivo Carmen Serdán</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-zinc-800 gap-2">
+        {/* Pestañas Principales */}
+        <div className="flex border-b border-zinc-800 gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setActiveTab("finances")}
+            className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 flex-shrink-0 ${
+              activeTab === "finances"
+                ? "border-[#ea580c] text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <DollarSign className="w-4 h-4 text-[#ea580c]" />
+            Finanzas &amp; Ingresos
+          </button>
+          <button
+            onClick={() => setActiveTab("attendance")}
+            className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 flex-shrink-0 ${
+              activeTab === "attendance"
+                ? "border-[#ea580c] text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <CalendarCheck className="w-4 h-4 text-emerald-400" />
+            Asistencia en Cancha
+          </button>
           <button
             onClick={() => setActiveTab("coaches")}
-            className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 flex-shrink-0 ${
               activeTab === "coaches"
                 ? "border-[#ea580c] text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -327,24 +428,249 @@ export default function MasterBunkerHQ() {
           </button>
           <button
             onClick={() => setActiveTab("students")}
-            className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-4 text-xs font-bold transition border-b-2 flex items-center gap-2 flex-shrink-0 ${
               activeTab === "students"
                 ? "border-[#ea580c] text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <Calendar className="w-4 h-4 text-[#ea580c]" />
-            Compromisos de Asistencia Alumnos ({commitments.length})
+            Compromisos Alumnos ({commitments.length})
           </button>
         </div>
 
-        {/* Tab 1: Coaches */}
+        {/* TAB 1: FINANZAS & INGRESOS */}
+        {activeTab === "finances" && (
+          <div className="space-y-6">
+            {/* 1. MÉTRICAS EN TARJETAS DE ALTO IMPACTO */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Ingresos de Hoy */}
+              <div className="bg-[#0d1017] border border-emerald-500/30 p-5 rounded-2xl relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400">
+                    Ingresos de Hoy
+                  </span>
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-2xl sm:text-3xl font-mono font-black text-white">
+                    ${financialStats.todayIncome.toLocaleString()}{" "}
+                    <span className="text-xs text-zinc-400 font-sans">MXN</span>
+                  </div>
+                  <p className="text-[10px] font-mono text-zinc-500 mt-1">
+                    Cobros confirmados en la jornada
+                  </p>
+                </div>
+              </div>
+
+              {/* Ingresos de la Semana */}
+              <div className="bg-[#0d1017] border border-amber-500/30 p-5 rounded-2xl relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">
+                    Ingresos de la Semana
+                  </span>
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-2xl sm:text-3xl font-mono font-black text-white">
+                    ${financialStats.weekIncome.toLocaleString()}{" "}
+                    <span className="text-xs text-zinc-400 font-sans">MXN</span>
+                  </div>
+                  <p className="text-[10px] font-mono text-zinc-500 mt-1">
+                    Acumulado últimos 7 días
+                  </p>
+                </div>
+              </div>
+
+              {/* Ingresos del Mes */}
+              <div className="bg-[#0d1017] border border-[#ea580c]/40 p-5 rounded-2xl relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#f97316]">
+                    Ingresos del Mes
+                  </span>
+                  <div className="p-2 rounded-xl bg-[#ea580c]/10 text-[#ea580c] border border-[#ea580c]/20">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-2xl sm:text-3xl font-mono font-black text-white">
+                    ${financialStats.monthIncome.toLocaleString()}{" "}
+                    <span className="text-xs text-zinc-400 font-sans">MXN</span>
+                  </div>
+                  <p className="text-[10px] font-mono text-zinc-500 mt-1">
+                    Recaudación del mes en curso
+                  </p>
+                </div>
+              </div>
+
+              {/* Ingresos del Año */}
+              <div className="bg-[#0d1017] border border-sky-500/30 p-5 rounded-2xl relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-sky-400">
+                    Ingresos del Año
+                  </span>
+                  <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-2xl sm:text-3xl font-mono font-black text-white">
+                    ${financialStats.yearIncome.toLocaleString()}{" "}
+                    <span className="text-xs text-zinc-400 font-sans">MXN</span>
+                  </div>
+                  <p className="text-[10px] font-mono text-zinc-500 mt-1">
+                    Balance anual acumulado
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones de Cobranza & Encabezado */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-[#ea580c]" />
+                  <span>Control de Cobranza &amp; Recibos de Alumnos</span>
+                </h3>
+                <p className="text-xs text-zinc-400 font-mono">
+                  Cuota oficial: $50 MXN por clase. Modalidades al día, semanal ($150) y mensual ($600).
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsPayModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-mono font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-orange-600/30 cursor-pointer self-start sm:self-auto"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Registrar Pago Manual (Cancha / SPEI)</span>
+              </button>
+            </div>
+
+            {/* TABLA DE CONTROL DE COBRANZA */}
+            <div className="bg-[#0d1017] border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-800 bg-[#121724] text-zinc-400 text-[10px] uppercase">
+                      <th className="py-3 px-4 font-semibold">Alumno</th>
+                      <th className="py-3 px-4 font-semibold">Tutor / Teléfono</th>
+                      <th className="py-3 px-4 font-semibold">Monto</th>
+                      <th className="py-3 px-4 font-semibold">Fecha de Pago</th>
+                      <th className="py-3 px-4 font-semibold">Método</th>
+                      <th className="py-3 px-4 font-semibold">Estatus</th>
+                      <th className="py-3 px-4 font-semibold text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/80">
+                    {payments.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-zinc-500 text-xs">
+                          No hay recibos registrados. Registra el primer pago con el botón superior.
+                        </td>
+                      </tr>
+                    ) : (
+                      payments.map((p) => {
+                        const isPaid = p.status === "Pagado";
+                        return (
+                          <tr key={p.id} className="hover:bg-[#161b26]/50 transition-colors">
+                            {/* Alumno */}
+                            <td className="py-3.5 px-4 font-bold text-white font-sans text-xs">
+                              {p.studentName}
+                            </td>
+
+                            {/* Tutor */}
+                            <td className="py-3.5 px-4 text-zinc-300">
+                              <div>{p.guardianName}</div>
+                              <div className="text-[10px] text-zinc-500 font-mono">{p.guardianPhone}</div>
+                            </td>
+
+                            {/* Monto */}
+                            <td className="py-3.5 px-4 font-black text-white text-sm">
+                              ${p.amount}{" "}
+                              <span className="text-[10px] font-normal text-zinc-500">MXN</span>
+                            </td>
+
+                            {/* Fecha */}
+                            <td className="py-3.5 px-4 text-zinc-300">
+                              {p.date}
+                            </td>
+
+                            {/* Método */}
+                            <td className="py-3.5 px-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                p.method === "Efectivo"
+                                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                  : p.method === "Transferencia"
+                                  ? "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                                  : "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                              }`}>
+                                {p.method}
+                              </span>
+                            </td>
+
+                            {/* Estatus */}
+                            <td className="py-3.5 px-4">
+                              {isPaid ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Pagado
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                  <AlertCircle className="w-3 h-3" />
+                                  Adeudo
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Acción */}
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleWhatsAppReminder(p)}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold flex items-center gap-1 transition cursor-pointer"
+                                  title="Enviar recordatorio por WhatsApp"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  <span>WhatsApp</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: ASISTENCIA EN CANCHA */}
+        {activeTab === "attendance" && (
+          <div className="space-y-4">
+            <AttendanceTracker
+              student={currentStudentForAttendance}
+              allStudents={students}
+              readOnly={false}
+              onRecordAttendance={() => fetchData()}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: COACHES */}
         {activeTab === "coaches" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#ea580c]" />
-                Entrenadores Registrados & Aspirantes
+                Entrenadores Registrados &amp; Aspirantes
               </h3>
               <span className="text-xs text-zinc-500">
                 Aprobación con 1 clic activa el acceso a /dashboard-coach
@@ -419,7 +745,7 @@ export default function MasterBunkerHQ() {
           </div>
         )}
 
-        {/* Tab 2: Students Attendance Commitments */}
+        {/* TAB 4: COMPROMISOS ALUMNOS */}
         {activeTab === "students" && (
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
@@ -466,6 +792,134 @@ export default function MasterBunkerHQ() {
           </div>
         )}
       </div>
+
+      {/* MODAL PARA REGISTRAR PAGO MANUAL */}
+      {isPayModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#18181b] border border-zinc-700 rounded-3xl p-6 sm:p-7 max-w-md w-full font-sans shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800 mb-4">
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded">
+                  REGISTRO DE INGRESO MANUAL
+                </span>
+                <h3 className="text-lg font-bold text-white mt-1">Registrar Pago de Alumno</h3>
+                <p className="text-xs text-zinc-400 font-mono">Actualiza el semáforo y balance de inmediato</p>
+              </div>
+              <button
+                onClick={() => setIsPayModalOpen(false)}
+                className="text-zinc-400 hover:text-white p-1.5 rounded-lg bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRegisterManualPayment} className="space-y-4 font-mono text-xs">
+              {/* Seleccionar Alumno */}
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">Seleccionar Alumno:</label>
+                <select
+                  value={manualPayStudentId}
+                  onChange={(e) => setManualPayStudentId(e.target.value)}
+                  className="w-full bg-[#0a0e17] border border-zinc-700 rounded-xl px-3 py-2.5 text-white font-sans text-xs focus:outline-none focus:border-orange-500 cursor-pointer"
+                >
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.fullName} ({s.position}) — Adeudo: ${s.finances?.balanceDue || 0} MXN
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Monto */}
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">Monto Recibido ($ MXN):</label>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {[50, 150, 600].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setManualPayAmount(amt)}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        manualPayAmount === amt
+                          ? "bg-[#ea580c] text-white"
+                          : "bg-zinc-800 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      ${amt} MXN
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="50"
+                  step="50"
+                  value={manualPayAmount}
+                  onChange={(e) => setManualPayAmount(Number(e.target.value) || 0)}
+                  className="w-full bg-[#0a0e17] border border-zinc-700 rounded-xl px-3 py-2 text-white font-bold text-base focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              {/* Método */}
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">Método de Pago:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setManualPayMethod("Efectivo")}
+                    className={`py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      manualPayMethod === "Efectivo"
+                        ? "bg-amber-600 text-white ring-2 ring-amber-400"
+                        : "bg-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <span>Efectivo en Cancha</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManualPayMethod("Transferencia")}
+                    className={`py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      manualPayMethod === "Transferencia"
+                        ? "bg-sky-600 text-white ring-2 ring-sky-400"
+                        : "bg-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <span>Transferencia SPEI</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Concepto / Notas */}
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">Concepto o Notas:</label>
+                <input
+                  type="text"
+                  value={manualPayNotes}
+                  onChange={(e) => setManualPayNotes(e.target.value)}
+                  placeholder="Ej. Mensualidad completa, pago 3 clases"
+                  className="w-full bg-[#0a0e17] border border-zinc-700 rounded-xl px-3 py-2 text-zinc-200 text-xs font-sans focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsPayModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 hover:text-white text-xs cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/30 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Confirmar e Ingresar ${manualPayAmount} MXN</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

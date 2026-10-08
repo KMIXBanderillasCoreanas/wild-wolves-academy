@@ -1,6 +1,10 @@
-export type Role = 'coach' | 'student' | 'parent';
+export type Role = 'coach' | 'student' | 'parent' | 'superadmin' | 'coach_pending';
 
 export type Position = 'Base' | 'Escolta' | 'Alero' | 'Ala-Pívot' | 'Pívot';
+
+export type ShiftType = 'matutino_9_11' | 'vespertino_5_7';
+
+export type AttendanceStatus = 'presente' | 'falta' | 'retardo';
 
 export type PaymentFrequency = 'al_dia' | 'semanal' | 'mensual';
 
@@ -69,7 +73,23 @@ export interface AttendanceRecord {
   date: string;                 // YYYY-MM-DD o DD/MM/AAAA
   dayName: string;             // Lunes, Martes, etc.
   present: boolean;
+  status?: AttendanceStatus;    // 'presente' | 'falta' | 'retardo'
+  shift?: ShiftType;
   topic?: string;               // Ej. Fundamentos de tiro y drible
+}
+
+export interface PaymentRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  guardianName: string;
+  guardianPhone: string;
+  amount: number;
+  date: string;                 // YYYY-MM-DD
+  method: 'Efectivo' | 'Transferencia' | 'Stripe';
+  status: 'Pagado' | 'Adeudo';
+  notes?: string;
+  shift?: ShiftType;
 }
 
 export interface FinancialRecord {
@@ -80,6 +100,7 @@ export interface FinancialRecord {
   lastPaymentDate?: string;
   lastPaymentAmount?: number;
   paymentMethod?: 'Efectivo' | 'Transferencia' | 'Stripe';
+  paymentHistory?: PaymentRecord[];
 }
 
 export interface StudentProfile {
@@ -92,6 +113,9 @@ export interface StudentProfile {
   position: Position;
   role: Role;
   avatarUrl: string;
+  jerseyNumber?: number;        // Dorsal (ej. 7, 11, 23)
+  shift?: ShiftType;            // Turno asignado: matutino o vespertino
+  guardianName?: string;        // Nombre del tutor/padre
   parentPhone?: string;         // si es menor de edad
   medicalNotes: MedicalNotes;   // alergias, tipo de sangre, contacto de emergencia
   stripeStatus: 'active' | 'pending';
@@ -99,7 +123,7 @@ export interface StudentProfile {
   trainingDays: string[];       // Días que entrena (ej. ['Lunes', 'Miércoles', 'Viernes'])
   totalDaysTrained: number;     // Total de días que ha entrenado acumulados
   attendanceHistory: AttendanceRecord[];
-  // Control financiero (Costo clase: $30 pesos)
+  // Control financiero (Costo clase: $50 pesos)
   finances: FinancialRecord;
   // Métricas y entrenamiento
   metricsCurrent: BasketballMetrics;

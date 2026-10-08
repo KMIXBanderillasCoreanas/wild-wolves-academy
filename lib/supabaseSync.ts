@@ -229,5 +229,25 @@ export const SupabaseSync = {
       console.error('Error recording attendance in Supabase:', e);
       return false;
     }
+  },
+
+  /**
+   * Guarda registro de asistencia diaria en cancha (presente, falta, retardo) en daily_attendance
+   */
+  async recordDailyAttendance(studentId: string, date: string, shift: string, status: string, notes?: string) {
+    if (!isSupabaseConfigured || !supabase) return false;
+    try {
+      await supabase.from('daily_attendance').upsert({
+        student_id: studentId,
+        session_date: date,
+        shift,
+        status,
+        notes: notes || '',
+      });
+      return true;
+    } catch (e) {
+      console.warn('Supabase daily_attendance sync:', e);
+      return false;
+    }
   }
 };
