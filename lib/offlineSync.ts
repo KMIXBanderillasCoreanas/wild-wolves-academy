@@ -1,8 +1,16 @@
 import { supabase } from "@/lib/supabaseClient";
 
+export type OfflineActionType = 
+  | "ATTENDANCE" 
+  | "PAYMENT" 
+  | "BASELINE" 
+  | "PHYSICAL_LOG" 
+  | "BASKETBALL_LOG" 
+  | "DETAILED_TEST";
+
 export interface QueueItem {
   id: string;
-  type: "ATTENDANCE" | "PAYMENT";
+  type: OfflineActionType;
   payload: any;
   timestamp: number;
 }
@@ -47,7 +55,7 @@ export const getCachedRoster = (): any[] => {
 };
 
 // 2. Encolar acción cuando no hay internet o falla la petición
-export const enqueueOfflineAction = (type: "ATTENDANCE" | "PAYMENT", payload: any) => {
+export const enqueueOfflineAction = (type: OfflineActionType, payload: any) => {
   if (typeof window === "undefined") return;
   try {
     const queue: QueueItem[] = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
@@ -136,6 +144,28 @@ export const syncOfflineQueueToSupabase = async (
         if (error) throw error;
         syncedCount++;
         hasPaymentSynced = true;
+      } else if (item.type === "BASELINE") {
+        const { error } = await supabase.from("student_initial_baseline").upsert(
+          item.payload,
+          { onConflict: "student_id" }
+        );
+        if (error) throw error;
+        syncedCount++;
+      } else if (item.type === "PHYSICAL_LOG") {
+        const { error } = await supabase.from("physical_training_logs").insert(item.payload);
+        if (error) throw error;
+        syncedCount++;
+      } else if (item.type === "BASKETBALL_LOG") {
+        const { error } = await supabase.from("basketball_skills_logs").insert(item.payload);
+        if (error) throw error;
+        syncedCount++;
+      } else if (item.type === "DETAILED_TEST") {
+        const { error } = await supabase.from("detailed_test_records").upsert(
+          item.payload,
+          { onConflict: "student_id,evaluation_date" }
+        );
+        if (error) throw error;
+        syncedCount++;
       }
     } catch (err) {
       console.error("Fallo al sincronizar elemento de cola:", item, err);

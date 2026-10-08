@@ -26,6 +26,7 @@ import {
 import AttendanceTracker from "@/components/AttendanceTracker";
 import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
 import TestDayEvaluator from "@/components/TestDayEvaluator";
+import DualCoachCommand from "@/components/DualCoachCommand";
 import { 
   syncOfflineQueueToSupabase, 
   getOfflineQueueCount 
@@ -38,6 +39,7 @@ export default function MasterBunkerHQ() {
   const [adminLabel, setAdminLabel] = useState("SUPER ADMINISTRADOR");
   const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "test_day" | "coaches">("attendance");
   const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
+  const [testDaySubView, setTestDaySubView] = useState<"dual" | "ovr">("dual");
   const [coaches, setCoaches] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -508,8 +510,45 @@ export default function MasterBunkerHQ() {
       )}
 
       {activeTab === "test_day" && (
-        <div className="space-y-6 animate-fade-in">
-          <TestDayEvaluator />
+        <div className="space-y-4 animate-fade-in">
+          {/* Sub-selector de Vista Test Day */}
+          <div className="flex items-center justify-between flex-wrap gap-2 pb-2">
+            <div className="inline-flex p-1 rounded-xl bg-[#121724] border border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setTestDaySubView("dual")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  testDaySubView === "dual"
+                    ? "bg-[#8b5cf6] text-white shadow-md shadow-purple-600/20"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>⚡ Control Dual (Día 1, Físico y Baloncesto)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTestDaySubView("ovr")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  testDaySubView === "ovr"
+                    ? "bg-[#ea580c] text-white shadow-md shadow-orange-600/20"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>📊 Evaluación Biomecánica por Nivel (OVR)</span>
+              </button>
+            </div>
+            <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
+              {testDaySubView === "dual" 
+                ? "Línea base de llegada y entrenamiento modular con interruptores ON/OFF" 
+                : "Calificación y cálculo de Overall Rating OVR por nivel"}
+            </span>
+          </div>
+
+          {testDaySubView === "dual" ? (
+            <DualCoachCommand />
+          ) : (
+            <TestDayEvaluator />
+          )}
         </div>
       )}
 

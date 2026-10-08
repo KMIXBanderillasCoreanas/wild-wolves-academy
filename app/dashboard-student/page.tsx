@@ -11,27 +11,49 @@ export default function StudentDashboardPage() {
   const [toastVisible, setToastVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Estado reactivo de Test Day Dinámico por Nivel
+  // ==========================================
+  // ESTADOS DE LÍNEA BASE (DÍA 1 / LLEGADA)
+  // ==========================================
+  const [baseline, setBaseline] = useState<any>({
+    entry_date: "12 Septiembre 2026",
+    initial_laps_completed: 2,
+    initial_jump_rope_max: 25,
+    initial_pushups_form: "hincado",
+    initial_squats_count: 12,
+    initial_posture_notes: "Llegó con fatiga prematura tras trotar 2 vueltas. Postura encorvada.",
+    isReal: false
+  });
+
+  // ==========================================
+  // ESTADOS DE RENDIMIENTO ACTUAL (HOY / SEMANA ACTUAL)
+  // ==========================================
+  const [currentPerformance, setCurrentPerformance] = useState<any>({
+    court_laps_done: 12,
+    jogging_minutes: 25,
+    jump_rope_count: 350,
+    pushups_variation: "brazos_cerrados",
+    pushups_reps: 20,
+    free_throws_made: 4,
+    shooting_base_attempts: 5,
+    sprint_100m_seconds: 13.8,
+    lines_round_trip_seconds: 24.1,
+    vertical_jump_cm: 65,
+    isReal: false
+  });
+
+  // ==========================================
+  // ESTADO DE TEST DAY BIOMECÁNICO (OVR)
+  // ==========================================
   const [evaluation, setEvaluation] = useState<any>({
     overall_ovr: 81,
     athletic_level_assessed: "formativo_desarrollo",
-    court_laps_count: 5,
-    squats_count: 15,
-    pushups_count: 10,
+    court_laps_count: 6,
+    squats_count: 18,
+    pushups_count: 12,
     plank_seconds: 90,
-    jump_rope_count: 200,
-    short_range_shots_made: 3,
-    jogging_minutes: 18,
-    stairs_jumps_count: 8,
-    jump_rope_series_count: 250,
-    mid_range_shots_made: 6,
-    elite_jogging_minutes: 45,
-    elite_plank_seconds: 240,
-    elite_jump_rope_count: 750,
-    plyometric_circuit_minutes: 4,
-    three_point_shots_made: 7,
-    half_court_shots_made: 1,
-    coach_feedback: "Excelente lectura de bloqueo y salida rápida. Enfocar trabajo de pie pivote y amortiguación en drills de cancha.",
+    jump_rope_count: 250,
+    short_range_shots_made: 4,
+    coach_feedback: "Excelente evolución desde el Día 1. Destaca la fluidez en el trote y la amortiguación en cada salto.",
     evaluation_date: "Octubre 2026",
     isReal: false
   });
@@ -41,23 +63,53 @@ export default function StudentDashboardPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
-        // 1. Cargar Evaluación Local Detallada si existe
+        // 1. Cargar datos locales de línea base y logs si existen
         if (typeof window !== "undefined") {
           try {
-            const detailedStored = JSON.parse(localStorage.getItem("ww_detailed_test_records") || "{}");
-            const keys = Object.keys(detailedStored);
+            const localBaseline = JSON.parse(localStorage.getItem("ww_student_baseline") || "{}");
+            const keys = Object.keys(localBaseline);
             if (keys.length > 0) {
-              const matched = user?.id && detailedStored[user.id] ? detailedStored[user.id] : detailedStored[keys[keys.length - 1]];
+              const matched = user?.id && localBaseline[user.id] ? localBaseline[user.id] : localBaseline[keys[keys.length - 1]];
               if (matched) {
-                setEvaluation((prev: any) => ({
+                setBaseline({ ...matched, isReal: true });
+              }
+            }
+
+            const localPhysical = JSON.parse(localStorage.getItem("ww_physical_logs") || "{}");
+            const pKeys = Object.keys(localPhysical);
+            if (pKeys.length > 0) {
+              const pLogs = user?.id && localPhysical[user.id] ? localPhysical[user.id] : localPhysical[pKeys[pKeys.length - 1]];
+              if (pLogs && pLogs.length > 0) {
+                const latestP = pLogs[0];
+                setCurrentPerformance((prev: any) => ({
                   ...prev,
-                  ...matched,
+                  court_laps_done: latestP.court_laps_done || prev.court_laps_done,
+                  jogging_minutes: latestP.jogging_minutes || prev.jogging_minutes,
+                  jump_rope_count: latestP.jump_rope_count || prev.jump_rope_count,
+                  pushups_reps: latestP.pushups_reps || prev.pushups_reps,
+                  isReal: true
+                }));
+              }
+            }
+
+            const localBasket = JSON.parse(localStorage.getItem("ww_basketball_logs") || "{}");
+            const bKeys = Object.keys(localBasket);
+            if (bKeys.length > 0) {
+              const bLogs = user?.id && localBasket[user.id] ? localBasket[user.id] : localBasket[bKeys[bKeys.length - 1]];
+              if (bLogs && bLogs.length > 0) {
+                const latestB = bLogs[0];
+                setCurrentPerformance((prev: any) => ({
+                  ...prev,
+                  free_throws_made: latestB.free_throws_made || prev.free_throws_made,
+                  shooting_base_attempts: latestB.shooting_base_attempts || prev.shooting_base_attempts,
+                  vertical_jump_cm: latestB.vertical_jump_cm || prev.vertical_jump_cm,
+                  sprint_100m_seconds: latestB.sprint_100m_seconds || prev.sprint_100m_seconds,
                   isReal: true
                 }));
               }
             }
           } catch (err) {
-            console.warn("Fallo leyendo evaluaciones locales:", err);
+            console.warn("Fallo leyendo storage:", err);
           }
         }
 
@@ -86,7 +138,50 @@ export default function StudentDashboardPage() {
         const { data: comm } = await supabase.from("attendance_commitments").select("*").eq("user_id", user.id).maybeSingle();
         const { data: pay } = await supabase.from("membership_payments").select("*").eq("student_id", user.id).order("payment_date", { ascending: false }).limit(1).maybeSingle();
         
-        // Consultar primero la tabla detailed_test_records
+        // A) Consultar Línea Base (Día 1)
+        const { data: baselineData } = await supabase
+          .from("student_initial_baseline")
+          .select("*")
+          .eq("student_id", user.id)
+          .maybeSingle();
+
+        if (baselineData) {
+          setBaseline({ ...baselineData, isReal: true });
+        }
+
+        // B) Consultar Registro Físico más reciente
+        const { data: physicalData } = await supabase
+          .from("physical_training_logs")
+          .select("*")
+          .eq("student_id", user.id)
+          .order("training_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // C) Consultar Registro Baloncesto más reciente
+        const { data: basketData } = await supabase
+          .from("basketball_skills_logs")
+          .select("*")
+          .eq("student_id", user.id)
+          .order("test_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (physicalData || basketData) {
+          setCurrentPerformance((prev: any) => ({
+            ...prev,
+            court_laps_done: physicalData?.court_laps_done ?? prev.court_laps_done,
+            jogging_minutes: physicalData?.jogging_minutes ?? prev.jogging_minutes,
+            jump_rope_count: physicalData?.jump_rope_count ?? prev.jump_rope_count,
+            pushups_reps: physicalData?.pushups_reps ?? prev.pushups_reps,
+            free_throws_made: basketData?.free_throws_made ?? prev.free_throws_made,
+            shooting_base_attempts: basketData?.shooting_base_attempts ?? prev.shooting_base_attempts,
+            vertical_jump_cm: basketData?.vertical_jump_cm ?? prev.vertical_jump_cm,
+            isReal: true
+          }));
+        }
+
+        // D) Consultar Test Day Biomecánico
         const { data: detailedData } = await supabase
           .from("detailed_test_records")
           .select("*")
@@ -101,25 +196,6 @@ export default function StudentDashboardPage() {
             ...detailedData,
             isReal: true
           }));
-        } else {
-          // Fallback a student_evaluations tradicional
-          const { data: evalData } = await supabase
-            .from("student_evaluations")
-            .select("*")
-            .eq("student_id", user.id)
-            .order("evaluation_date", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (evalData) {
-            setEvaluation((prev: any) => ({
-              ...prev,
-              overall_ovr: evalData.overall_ovr,
-              coach_feedback: evalData.coach_feedback || "Progreso constante en cancha.",
-              evaluation_date: evalData.evaluation_date,
-              isReal: true
-            }));
-          }
         }
 
         setProfile(prof || { full_name: "Santiago Morales", email: user.email });
@@ -134,19 +210,46 @@ export default function StudentDashboardPage() {
 
     loadData();
 
-    // Listener reactivo al publicar nueva prueba en la misma sesión
-    const handleTestDayUpdate = (e: any) => {
+    // Listeners reactivos para sincronización en tiempo real
+    const handleBaselineUpdate = (e: any) => {
+      if (e.detail) setBaseline({ ...e.detail, isReal: true });
+    };
+    const handlePhysicalUpdate = (e: any) => {
       if (e.detail) {
-        setEvaluation((prev: any) => ({
+        setCurrentPerformance((prev: any) => ({
           ...prev,
-          ...e.detail,
+          court_laps_done: e.detail.court_laps_done || prev.court_laps_done,
+          jogging_minutes: e.detail.jogging_minutes || prev.jogging_minutes,
+          jump_rope_count: e.detail.jump_rope_count || prev.jump_rope_count,
+          pushups_reps: e.detail.pushups_reps || prev.pushups_reps,
           isReal: true
         }));
       }
     };
+    const handleBasketUpdate = (e: any) => {
+      if (e.detail) {
+        setCurrentPerformance((prev: any) => ({
+          ...prev,
+          free_throws_made: e.detail.free_throws_made || prev.free_throws_made,
+          shooting_base_attempts: e.detail.shooting_base_attempts || prev.shooting_base_attempts,
+          vertical_jump_cm: e.detail.vertical_jump_cm || prev.vertical_jump_cm,
+          isReal: true
+        }));
+      }
+    };
+    const handleTestDayUpdate = (e: any) => {
+      if (e.detail) setEvaluation((prev: any) => ({ ...prev, ...e.detail, isReal: true }));
+    };
 
+    window.addEventListener("student_baseline_updated", handleBaselineUpdate);
+    window.addEventListener("physical_training_logged", handlePhysicalUpdate);
+    window.addEventListener("basketball_skills_logged", handleBasketUpdate);
     window.addEventListener("test_day_updated", handleTestDayUpdate);
+
     return () => {
+      window.removeEventListener("student_baseline_updated", handleBaselineUpdate);
+      window.removeEventListener("physical_training_logged", handlePhysicalUpdate);
+      window.removeEventListener("basketball_skills_logged", handleBasketUpdate);
       window.removeEventListener("test_day_updated", handleTestDayUpdate);
     };
   }, []);
@@ -176,7 +279,14 @@ export default function StudentDashboardPage() {
     );
   }
 
-  const level = evaluation.athletic_level_assessed || "formativo_desarrollo";
+  // Cálculos de Δ Rendimiento
+  const deltaLaps = Math.max(0, currentPerformance.court_laps_done - baseline.initial_laps_completed);
+  const lapsIncreasePct = baseline.initial_laps_completed > 0 ? Math.round((deltaLaps / baseline.initial_laps_completed) * 100) : 500;
+  
+  const deltaRope = Math.max(0, currentPerformance.jump_rope_count - baseline.initial_jump_rope_max);
+  const ropeIncreasePct = baseline.initial_jump_rope_max > 0 ? Math.round((deltaRope / baseline.initial_jump_rope_max) * 100) : 1300;
+
+  const currentShootingPct = Math.round((currentPerformance.free_throws_made / (currentPerformance.shooting_base_attempts || 5)) * 100);
 
   return (
     <div className="bg-surface text-on-surface font-sans min-h-screen flex flex-col pb-24 selection:bg-primary-container selection:text-on-primary">
@@ -210,7 +320,7 @@ export default function StudentDashboardPage() {
       {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 w-full max-w-lg mx-auto px-4 pt-20 space-y-4">
         
-        {/* HERO: CYBER WOLVES ELITE PLAYER CARD */}
+        {/* 1. HERO: CYBER WOLVES ELITE PLAYER CARD */}
         <section className="relative overflow-hidden rounded-3xl bg-surface-container-low p-5 border border-surface-container-high shadow-2xl">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary-container via-secondary to-primary-container"></div>
           
@@ -255,14 +365,8 @@ export default function StudentDashboardPage() {
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-surface-container-high text-secondary uppercase border border-secondary/30">
                   GUARD (SG)
                 </span>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
-                  level === "iniciacion_adaptacion" 
-                    ? "bg-tertiary-container/30 text-tertiary border-tertiary/20" 
-                    : level === "formativo_desarrollo"
-                    ? "bg-secondary-container/30 text-secondary border-secondary/20"
-                    : "bg-primary-container/30 text-primary border-primary-container/20"
-                }`}>
-                  {level === "iniciacion_adaptacion" ? "Nivel 1 Adaptación" : level === "formativo_desarrollo" ? "Nivel 2 Formativo" : "Nivel 3 Élite"}
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary uppercase border border-tertiary/20">
+                  Nivel Formativo
                 </span>
               </div>
             </div>
@@ -308,7 +412,131 @@ export default function StudentDashboardPage() {
           </div>
         </section>
 
-        {/* ESTATUS FINANCIERO */}
+        {/* ========================================================================= */}
+        {/* 2. EVOLUCIÓN TEMPORAL: DÍA 1 (LLEGADA) VS. HOY (Δ RENDIMIENTO)             */}
+        {/* ========================================================================= */}
+        <section className="bg-surface-container-low rounded-3xl p-5 border border-amber-500/30 shadow-2xl space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-amber-400 text-lg">trending_up</span>
+                <h2 className="text-sm font-black text-white uppercase tracking-wide">
+                  Evolución Temporal: Día 1 vs. Semana Actual
+                </h2>
+              </div>
+              <p className="text-[10px] text-amber-300/80 font-mono mt-0.5">
+                Δ Rendimiento = Registro Semana Actual − Línea Base Día 1
+              </p>
+            </div>
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase font-black">
+              Seguimiento Activo
+            </span>
+          </div>
+
+          {/* TARJETAS COMPARATIVAS DÍA 1 VS ACTUAL */}
+          <div className="space-y-3">
+            
+            {/* COMPARATIVA 1: VUELTAS A LA CANCHA */}
+            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-white flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-base">directions_run</span>
+                  Vueltas Continuas a la Cancha
+                </span>
+                <span className="text-primary font-mono text-[11px] font-black bg-primary-container/20 px-2 py-0.5 rounded-md border border-primary-container/30">
+                  +{lapsIncreasePct}% (Δ +{deltaLaps} vueltas)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Llegada):</span>
+                  <span className="text-amber-400 font-mono font-black text-sm">
+                    {baseline.initial_laps_completed} vueltas
+                  </span>
+                  <span className="text-[9px] text-outline block mt-0.5">Fatiga prematura</span>
+                </div>
+                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                  <span className="text-primary font-mono font-black text-sm">
+                    {currentPerformance.court_laps_done} vueltas continuas
+                  </span>
+                  <span className="text-[9px] text-primary block mt-0.5">Trote de 25 min</span>
+                </div>
+              </div>
+            </div>
+
+            {/* COMPARATIVA 2: SALTOS DE CUERDA */}
+            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-white flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-tertiary text-base">fitness_center</span>
+                  Saltos Continuos de Cuerda
+                </span>
+                <span className="text-tertiary font-mono text-[11px] font-black bg-tertiary-container/20 px-2 py-0.5 rounded-md border border-tertiary/30">
+                  +{ropeIncreasePct}% (Δ +{deltaRope} saltos)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Llegada):</span>
+                  <span className="text-amber-400 font-mono font-black text-sm">
+                    {baseline.initial_jump_rope_max} saltos
+                  </span>
+                  <span className="text-[9px] text-outline block mt-0.5">A pies juntos con tropiezos</span>
+                </div>
+                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                  <span className="text-tertiary font-mono font-black text-sm">
+                    {currentPerformance.jump_rope_count} saltos
+                  </span>
+                  <span className="text-[9px] text-tertiary block mt-0.5">Protocolo 50-25-25</span>
+                </div>
+              </div>
+            </div>
+
+            {/* COMPARATIVA 3: TIRO Y PRECISIÓN */}
+            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-white flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-secondary text-base">sports_basketball</span>
+                  Eficacia de Tiro Libre
+                </span>
+                <span className="text-secondary font-mono text-[11px] font-black bg-secondary-container/20 px-2 py-0.5 rounded-md border border-secondary/30">
+                  {currentShootingPct}% de Acierto
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Mecánica Inicial):</span>
+                  <span className="text-amber-400 font-mono font-black text-sm">
+                    1 / 5 tiros (20%)
+                  </span>
+                  <span className="text-[9px] text-outline block mt-0.5">Desviación de codo</span>
+                </div>
+                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                  <span className="text-secondary font-mono font-black text-sm">
+                    {currentPerformance.free_throws_made} / {currentPerformance.shooting_base_attempts || 5} aciertos ({currentShootingPct}%)
+                  </span>
+                  <span className="text-[9px] text-secondary block mt-0.5">Mecánica fija en suspensión</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* TIMELINE DE PROGRESIÓN NARRATIVA */}
+          <div className="bg-surface-container-lowest p-3.5 rounded-2xl border border-surface-container text-xs">
+            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+              Ruta de Sobrecarga Progresiva:
+            </span>
+            <p className="text-on-surface font-mono text-[11px] leading-relaxed">
+              "Día 1: {baseline.initial_laps_completed} vueltas a la cancha → Semana 4: 12 vueltas continuas → Mes 3: 25 minutos continuos sin detenerse."
+            </p>
+          </div>
+        </section>
+
+        {/* 3. ESTATUS FINANCIERO */}
         <section className="bg-surface-container-low rounded-3xl p-5 border border-surface-container-high shadow-lg space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -356,9 +584,7 @@ export default function StudentDashboardPage() {
           </div>
         </section>
 
-        {/* ========================================================================= */}
-        {/* TEST DAY BIOMECÁNICO DINÁMICO POR NIVEL                                   */}
-        {/* ========================================================================= */}
+        {/* 4. TEST DAY BIOMECÁNICO */}
         <section className="bg-surface-container-low rounded-3xl p-5 border border-surface-container-high shadow-lg space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -379,7 +605,7 @@ export default function StudentDashboardPage() {
             </span>
           </div>
 
-          {/* OVR Score y Nivel */}
+          {/* OVR Score */}
           <div className="bg-surface-container p-3.5 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
             <div className="flex items-center gap-3">
               <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-primary-container to-surface-variant text-on-primary flex items-center justify-center text-xl font-black shadow-md shadow-primary-container/30">
@@ -387,94 +613,13 @@ export default function StudentDashboardPage() {
               </div>
               <div>
                 <span className="text-xs font-bold text-on-surface block uppercase">Puntaje General (OVR)</span>
-                <span className="text-[10px] text-primary font-medium">
-                  {level === "iniciacion_adaptacion" ? "Nivel 1: Iniciación & Adaptación" : level === "formativo_desarrollo" ? "Nivel 2: Formativo en Desarrollo" : "Nivel 3: Competitivo Élite"}
-                </span>
+                <span className="text-[10px] text-primary font-medium">Nivel Formativo en Desarrollo</span>
               </div>
             </div>
             <span className="text-[10px] text-secondary font-mono bg-surface-container-lowest px-2.5 py-1 rounded-lg border border-secondary/20 font-bold">
-              {level === "iniciacion_adaptacion" ? "Grupo Adaptación" : "Roster Oficial"}
+              Rank #4 U-17
             </span>
           </div>
-
-          {/* DESGLOSE DINÁMICO SEGÚN EL NIVEL EVALUADO */}
-          {level === "iniciacion_adaptacion" ? (
-            /* MÉTRICAS NIVEL 1 */
-            <div className="space-y-3 pt-1">
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Resistencia: Vueltas a Cancha</span>
-                <span className="text-tertiary font-bold">{evaluation.court_laps_count || 5} vueltas continuas</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Sentadillas al Aire (Control)</span>
-                <span className="text-secondary font-bold">{evaluation.squats_count || 15} repeticiones</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Flexiones / Lagartijas</span>
-                <span className="text-primary font-bold">{evaluation.pushups_count || 8} repeticiones</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Plancha Adaptada</span>
-                <span className="text-tertiary font-bold">{evaluation.plank_seconds || 30} segundos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Salto de Cuerda Suave</span>
-                <span className="text-secondary font-bold">{evaluation.jump_rope_count || 35} saltos pies juntos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Tiro Cercano al Aro</span>
-                <span className="text-primary font-bold">{evaluation.short_range_shots_made || 3} / 5 aciertos</span>
-              </div>
-            </div>
-          ) : level === "formativo_desarrollo" ? (
-            /* MÉTRICAS NIVEL 2 */
-            <div className="space-y-3 pt-1">
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Trote Continuo Cronometrado</span>
-                <span className="text-secondary font-bold">{evaluation.jogging_minutes || 18} minutos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Plancha Central (Core)</span>
-                <span className="text-primary font-bold">{evaluation.plank_seconds || 120} segundos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Pliometría: Escaleras Amortiguadas</span>
-                <span className="text-tertiary font-bold">{evaluation.stairs_jumps_count || 8} saltos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Protocolo de Cuerda (100-400)</span>
-                <span className="text-secondary font-bold">{evaluation.jump_rope_series_count || evaluation.jump_rope_count || 250} saltos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Tiro en Suspensión (Media Distancia)</span>
-                <span className="text-primary font-bold">{evaluation.mid_range_shots_made || 6} / 10 aciertos</span>
-              </div>
-            </div>
-          ) : (
-            /* MÉTRICAS NIVEL 3 ÉLITE */
-            <div className="space-y-3 pt-1">
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Resistencia Máxima (Meta 1h)</span>
-                <span className="text-primary font-bold">{evaluation.elite_jogging_minutes || 45} minutos continuos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Plancha Isométrica Núcleo</span>
-                <span className="text-secondary font-bold">{evaluation.elite_plank_seconds || 240} seg</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Cuerda Alto Volumen Diario</span>
-                <span className="text-tertiary font-bold">{evaluation.elite_jump_rope_count || 750} saltos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Pliometría: Escaleras Altas</span>
-                <span className="text-primary font-bold">{evaluation.stairs_jumps_count || 18} saltos</span>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-xl border border-surface-container flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-300">Triples Perimetrales</span>
-                <span className="text-tertiary font-bold">{evaluation.three_point_shots_made || 7} / 10 triples</span>
-              </div>
-            </div>
-          )}
 
           {/* Feedback Coach */}
           <div className="bg-surface-container p-3.5 rounded-2xl border-l-4 border-primary-container">

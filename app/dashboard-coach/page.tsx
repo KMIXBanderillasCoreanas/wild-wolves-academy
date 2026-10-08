@@ -23,6 +23,7 @@ import { WhatsAppReportButton } from '@/components/WhatsAppReportButton';
 import { AttendanceTracker } from '@/components/AttendanceTracker';
 import CourtAttendanceCommand from '@/components/CourtAttendanceCommand';
 import TestDayEvaluator from '@/components/TestDayEvaluator';
+import DualCoachCommand from '@/components/DualCoachCommand';
 import { FinanceManager } from '@/components/FinanceManager';
 import confetti from 'canvas-confetti';
 import { 
@@ -611,12 +612,17 @@ export default function CoachDashboardPage() {
             }}
           />
 
-          {/* 3. Módulo de Captura en Cancha: Test Day Biomecánico */}
+          {/* 3. Módulo Táctico Dual: Diagnóstico Día 1, Preparación Física y Baloncesto */}
+          <div className="mb-6">
+            <DualCoachCommand />
+          </div>
+
+          {/* 4. Módulo de Captura en Cancha: Test Day Biomecánico */}
           <div className="mb-6">
             <TestDayEvaluator />
           </div>
 
-          {/* 4. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
+          {/* 5. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
           <RadarChart360
             metricsCurrent={selectedStudent.metricsCurrent}
             metricsPrevious={selectedStudent.metricsPrevious}
