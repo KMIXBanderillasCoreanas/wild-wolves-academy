@@ -49,23 +49,29 @@ function StudentDashboardContent() {
     setCurrentUser(user);
 
     // Cargar perfil del estudiante
-    let studentData = HoopStore.getStudent(user.studentId || 'ww_mateo_07');
-    if (!studentData) {
+    const studentIdToSearch = user.studentId || (typeof window !== 'undefined' ? localStorage.getItem('ww_user_id') : '') || '';
+    let studentData = studentIdToSearch ? HoopStore.getStudent(studentIdToSearch) : null;
+    
+    if (!studentData && (user.role === 'student' || user.role === 'parent')) {
       const storedName = typeof window !== 'undefined' ? localStorage.getItem('ww_student_name') : null;
       const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ww_user_email') : null;
-      const syncedUser = HoopStore.loginAsStudent(
-        user.studentId || 'ww_mateo_07',
-        storedName || user.fullName || 'Atleta Wild Wolves',
-        storedEmail || user.email || 'atleta@wildwolves.mx'
-      );
-      studentData = HoopStore.getStudent(syncedUser.studentId || 'ww_mateo_07');
+      if (storedName || storedEmail) {
+        const syncedUser = HoopStore.loginAsStudent(
+          studentIdToSearch || `stu_${Date.now()}`,
+          storedName || user.fullName || 'Atleta Wild Wolves',
+          storedEmail || user.email || 'atleta@wildwolves.mx'
+        );
+        studentData = HoopStore.getStudent(syncedUser.studentId || '');
+      }
     }
     setStudent(studentData);
 
     // Sincronización en vivo con Supabase
     HoopStore.syncWithSupabase().then(() => {
-      const refreshed = HoopStore.getStudent(user.studentId || 'ww_mateo_07');
-      if (refreshed) setStudent(refreshed);
+      if (studentIdToSearch) {
+        const refreshed = HoopStore.getStudent(studentIdToSearch);
+        if (refreshed) setStudent(refreshed);
+      }
     });
 
     if (deniedParam) {

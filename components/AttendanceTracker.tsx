@@ -22,7 +22,7 @@ import {
 import confetti from 'canvas-confetti';
 
 interface AttendanceTrackerProps {
-  student: StudentProfile;
+  student?: StudentProfile | null;
   allStudents?: StudentProfile[];
   readOnly?: boolean;
   onRecordAttendance?: (studentId: string, date: string, dayName: string, present: boolean, topic: string) => void;
@@ -122,6 +122,13 @@ export function AttendanceTracker({
 
   // RENDER EN MODO ALUMNO / READ-ONLY
   if (readOnly) {
+    if (!student) {
+      return (
+        <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-8 text-center text-xs font-mono text-zinc-500">
+          No hay atleta seleccionado en este momento. La base de datos está limpia.
+        </div>
+      );
+    }
     return (
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none font-sans">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">

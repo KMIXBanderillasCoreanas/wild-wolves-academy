@@ -27,19 +27,7 @@ export default function StudentLoginPage() {
     }
 
     // Sincronizar con el store oficial
-    HoopStore.loginAsStudent("student_01");
-    router.push("/dashboard-student");
-  };
-
-  const handleQuickDemo = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("ww_user_role", "student");
-      localStorage.setItem("ww_user_email", "lucas.morales@wildwolves.academy");
-      localStorage.setItem("ww_student_name", "Lucas Morales");
-      document.cookie = "user_role=student; path=/; max-age=86400; SameSite=Lax";
-      window.dispatchEvent(new Event("auth_changed"));
-    }
-    HoopStore.loginAsStudent("student_01");
+    HoopStore.loginAsStudent(email ? `stu_${email.replace(/[^a-zA-Z0-9]/g, '_')}` : "student_01", name, email);
     router.push("/dashboard-student");
   };
 
@@ -148,18 +136,10 @@ export default function StudentLoginPage() {
             </button>
           </form>
 
-          {/* Acceso Rápido 1-Clic de Demostración para Atletas */}
+          {/* Información de Soporte */}
           <div className="mt-6 pt-4 border-t border-zinc-800 text-center">
-            <button
-              type="button"
-              onClick={handleQuickDemo}
-              className="w-full py-2 px-3 rounded-xl bg-[#090d16] hover:bg-zinc-800 border border-[#0284c7]/30 text-[#38bdf8] text-xs font-mono font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Entrar como Lucas Morales (Demo Alumno)</span>
-            </button>
-            <p className="text-zinc-500 text-[11px] mt-3">
-              ¿Dudas con tu inscripción? Contacta a coordinación deportiva en cancha.
+            <p className="text-zinc-500 text-[11px]">
+              ¿Dudas con tu inscripción o acceso? Contacta a coordinación deportiva en cancha.
             </p>
           </div>
         </div>

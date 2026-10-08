@@ -822,11 +822,15 @@ export default function MasterBunkerHQ() {
                   onChange={(e) => setManualPayStudentId(e.target.value)}
                   className="w-full bg-[#0a0e17] border border-zinc-700 rounded-xl px-3 py-2.5 text-white font-sans text-xs focus:outline-none focus:border-orange-500 cursor-pointer"
                 >
-                  {students.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.fullName} ({s.position}) — Adeudo: ${s.finances?.balanceDue || 0} MXN
-                    </option>
-                  ))}
+                  {students.length === 0 ? (
+                    <option value="">No hay alumnos registrados</option>
+                  ) : (
+                    students.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.fullName} ({s.position}) — Adeudo: ${s.finances?.balanceDue || 0} MXN
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -910,7 +914,8 @@ export default function MasterBunkerHQ() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/30 cursor-pointer"
+                  disabled={students.length === 0}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/30 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Confirmar e Ingresar ${manualPayAmount} MXN</span>
