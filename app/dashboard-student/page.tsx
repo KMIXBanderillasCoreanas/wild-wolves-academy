@@ -17,7 +17,9 @@ import {
   AlertCircle, 
   CalendarCheck,
   BadgeDollarSign,
-  MessageCircle
+  MessageCircle,
+  HeartPulse,
+  ShieldCheck
 } from 'lucide-react';
 
 function StudentDashboardContent() {
@@ -225,7 +227,37 @@ function StudentDashboardContent() {
         readOnly={true}
       />
 
-      {/* 4. RadarChart360 con Comparativa del Mes Actual vs. Mes Anterior */}
+      {/* 4. Ficha Médica y Contacto de Emergencia (Lectura Privada para Atleta y Tutor) */}
+      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 sm:p-5 font-mono text-xs">
+        <div className="flex items-center justify-between pb-3 border-b border-[#27272a] mb-3">
+          <div className="flex items-center gap-2">
+            <HeartPulse className="w-4 h-4 text-rose-500" />
+            <h4 className="font-bold text-white uppercase tracking-wider text-[11px]">
+              Ficha Médica y Seguridad en Cancha
+            </h4>
+          </div>
+          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+            Apto para Alto Rendimiento
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
+            <span className="text-[10px] text-zinc-400 uppercase block">Grupo Sanguíneo:</span>
+            <strong className="text-white text-xs">{student.medicalNotes?.bloodType || 'O+'}</strong>
+          </div>
+          <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
+            <span className="text-[10px] text-zinc-400 uppercase block">Alergias Registradas:</span>
+            <strong className="text-orange-400 text-xs">{student.medicalNotes?.allergies || 'Ninguna conocida'}</strong>
+          </div>
+          <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
+            <span className="text-[10px] text-zinc-400 uppercase block">Contacto de Emergencia:</span>
+            <strong className="text-sky-400 text-xs">{student.medicalNotes?.emergencyContact} ({student.medicalNotes?.emergencyPhone})</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. RadarChart360 con Comparativa del Mes Actual vs. Mes Anterior */}
       <RadarChart360
         metricsCurrent={student.metricsCurrent}
         metricsPrevious={student.metricsPrevious}

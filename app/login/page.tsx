@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { HoopStore } from '@/lib/store';
 import { Role } from '@/lib/types';
 import { 
-  KeyRound, 
-  UserCheck, 
   Flame, 
   ArrowRight, 
   AlertCircle,
@@ -18,7 +16,13 @@ import {
   Users,
   Sparkles,
   MessageCircle,
-  HelpCircle
+  Eye,
+  CreditCard,
+  Activity,
+  HeartPulse,
+  ClipboardList,
+  ChevronRight,
+  Download
 } from 'lucide-react';
 
 function LoginFormContent() {
@@ -27,16 +31,16 @@ function LoginFormContent() {
   const redirectParam = searchParams.get('redirect');
   const errorParam = searchParams.get('error');
 
-  // Modo: 'login' (iniciar sesión) o 'register' (registrarse)
+  // Modo de vista: 'login' | 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
-  // Método activo en el formulario: 'email' | 'whatsapp'
+  // Método de autenticación formulario: 'email' | 'whatsapp'
   const [method, setMethod] = useState<'email' | 'whatsapp'>('email');
 
-  // Rol seleccionado para registrarse o ingresar
+  // Rol activo seleccionado
   const [selectedRole, setSelectedRole] = useState<Role>('student');
 
-  // Campos del formulario
+  // Campos de formulario
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -46,74 +50,80 @@ function LoginFormContent() {
 
   useEffect(() => {
     if (errorParam === 'coach_only') {
-      setErrorMessage('Acceso restringido: El área de administración y evaluación requiere permisos de Entrenador.');
+      setErrorMessage('Acceso restringido: El panel de administración, pase de lista y finanzas requiere permisos de Entrenador (Coach Ricardo).');
     }
   }, [errorParam]);
 
-  // Acceso Rápido 1-Clic para pruebas
-  const handleQuickCoach = () => {
-    HoopStore.loginAsCoach();
-    router.push(redirectParam || '/dashboard-coach');
+  // Acceso Rápido 1-Clic
+  const handleQuickLogin = (role: Role, studentId: string = 'student_01') => {
+    setErrorMessage('');
+    if (role === 'coach') {
+      HoopStore.loginAsCoach();
+      setSuccessMessage('Iniciando sesión como Coach Ricardo (Director Técnico)...');
+      setTimeout(() => router.push(redirectParam || '/dashboard-coach'), 400);
+    } else if (role === 'parent') {
+      HoopStore.loginAsParent(studentId);
+      setSuccessMessage('Iniciando sesión como Elena Morales (Tutor de Lucas)...');
+      setTimeout(() => router.push(redirectParam || '/dashboard-student'), 400);
+    } else {
+      HoopStore.loginAsStudent(studentId);
+      setSuccessMessage('Iniciando sesión como Lucas Morales (Alumno)...');
+      setTimeout(() => router.push(redirectParam || '/dashboard-student'), 400);
+    }
   };
 
-  const handleQuickStudent = (studentId: string = 'student_01') => {
-    HoopStore.loginAsStudent(studentId);
-    router.push(redirectParam || '/dashboard-student');
-  };
-
-  const handleQuickParent = (studentId: string = 'student_01') => {
-    HoopStore.loginAsParent(studentId);
-    router.push(redirectParam || '/dashboard-student');
-  };
-
-  // 1. Registro / Login con GOOGLE
+  // 1. Google OAuth
   const handleGoogleAuth = () => {
     setErrorMessage('');
     const user = HoopStore.signInWithGoogle(selectedRole);
-    setSuccessMessage(`¡Bienvenido(a) con Google! Ingresando como ${user.role === 'coach' ? 'Coach Ricardo' : user.role === 'parent' ? 'Tutor' : 'Alumno'}...`);
+    setSuccessMessage(`Conectado con Google. Ingresando como ${user.role === 'coach' ? 'Coach Ricardo' : user.role === 'parent' ? 'Padre/Tutor' : 'Alumno'}...`);
     setTimeout(() => {
       if (user.role === 'coach') {
         router.push(redirectParam || '/dashboard-coach');
       } else {
         router.push(redirectParam || '/dashboard-student');
       }
-    }, 600);
+    }, 500);
   };
 
-  // 2. Registro / Login con APPLE
+  // 2. Apple Auth
   const handleAppleAuth = () => {
     setErrorMessage('');
     const user = HoopStore.signInWithApple(selectedRole);
-    setSuccessMessage(`¡Conectado con Apple ID! Ingresando...`);
+    setSuccessMessage(`Conectado con Apple ID. Ingresando...`);
     setTimeout(() => {
       if (user.role === 'coach') {
         router.push(redirectParam || '/dashboard-coach');
       } else {
         router.push(redirectParam || '/dashboard-student');
       }
-    }, 600);
+    }, 500);
   };
 
-  // 3. Registro / Login con WHATSAPP / CELULAR
+  // 3. WhatsApp Auth
   const handleWhatsAppAuth = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     if (!phone || phone.replace(/[^0-9]/g, '').length < 10) {
-      setErrorMessage('Por favor introduce un número de teléfono celular válido (mínimo 10 dígitos).');
+      setErrorMessage('Introduce un número de teléfono celular válido de 10 dígitos (CDMX / México).');
       return;
     }
-    const user = HoopStore.signInWithWhatsApp(phone, fullName || (selectedRole === 'parent' ? 'Tutor WhatsApp' : 'Atleta WhatsApp'), selectedRole);
-    setSuccessMessage('¡Número validado por WhatsApp! Redirigiendo a tu consola...');
+    const user = HoopStore.signInWithWhatsApp(
+      phone, 
+      fullName || (selectedRole === 'parent' ? 'Tutor WhatsApp' : selectedRole === 'coach' ? 'Coach Ricardo' : 'Atleta WhatsApp'), 
+      selectedRole
+    );
+    setSuccessMessage('Número validado por WhatsApp. Accediendo al sistema...');
     setTimeout(() => {
       if (user.role === 'coach') {
         router.push(redirectParam || '/dashboard-coach');
       } else {
         router.push(redirectParam || '/dashboard-student');
       }
-    }, 600);
+    }, 500);
   };
 
-  // 4. Registro / Login con CORREO Y CONTRASEÑA
+  // 4. Correo y Contraseña
   const handleEmailAuth = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -122,63 +132,256 @@ function LoginFormContent() {
       return;
     }
     if (authMode === 'register' && password.length < 6) {
-      setErrorMessage('La contraseña debe tener al menos 6 caracteres.');
+      setErrorMessage('La contraseña debe contener al menos 6 caracteres.');
       return;
     }
 
     const user = HoopStore.signInWithEmail(email, fullName, selectedRole);
-    setSuccessMessage(`¡Autenticación correcta! Accediendo como ${user.role === 'coach' ? 'Coach Ricardo' : user.role === 'parent' ? 'Tutor' : 'Alumno'}...`);
+    setSuccessMessage(`Autenticación correcta. Accediendo como ${user.role === 'coach' ? 'Coach Ricardo' : user.role === 'parent' ? 'Padre/Tutor' : 'Alumno'}...`);
     setTimeout(() => {
       if (user.role === 'coach') {
         router.push(redirectParam || '/dashboard-coach');
       } else {
         router.push(redirectParam || '/dashboard-student');
       }
-    }, 600);
+    }, 500);
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-10 font-sans">
-      <div className="max-w-lg w-full bg-[#18181b] border border-[#27272a] rounded-3xl p-6 sm:p-8 shadow-2xl relative">
-        {/* Resplandor superior sutil */}
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-600/10 rounded-full blur-2xl pointer-events-none" />
+    <div className="min-h-[90vh] py-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto flex flex-col justify-center font-sans">
+      
+      {/* 1. PRESENTACIÓN OFICIAL DE LA ACADEMIA */}
+      <div className="text-center max-w-2xl mx-auto mb-8 space-y-3">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono text-xs font-bold uppercase tracking-wider">
+          <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+          <span>WILD WOLVES BASKETBALL ACADEMY CDMX</span>
+        </div>
 
-        {/* Cabecera */}
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center mx-auto mb-2.5 shadow-md shadow-orange-600/30">
-            <Flame className="w-7 h-7 text-white" />
+        <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight font-sans">
+          PORTAL DE ACCESO Y <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-500">CONTROL DE ROLES</span>
+        </h1>
+
+        <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed font-sans">
+          Bienvenido al sistema de alto rendimiento deportivo. Selecciona tu rol para acceder a tus métricas, asistencias o herramientas técnicas.
+        </p>
+
+        {/* Tarifa Oficial en Grande */}
+        <div className="inline-flex flex-wrap items-center justify-center gap-2 pt-1 font-mono text-[11px]">
+          <span className="px-2.5 py-1 rounded-lg bg-[#18181b] border border-emerald-500/40 text-emerald-400 font-bold">
+            💵 $50 MXN / Clase
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-[#18181b] border border-zinc-800 text-zinc-300">
+            Semanal (3 clases): $150 MXN
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-[#18181b] border border-zinc-800 text-zinc-300">
+            Mensual (12 clases): $600 MXN
+          </span>
+        </div>
+      </div>
+
+      {/* 2. MATRIZ EXPLICATIVA DE ROLES: ¿QUÉ VE CADA QUIÉN? */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        
+        {/* ROL 1: ALUMNO / ATLETA */}
+        <div 
+          onClick={() => { setSelectedRole('student'); handleQuickLogin('student'); }}
+          className={`p-5 rounded-3xl border transition-all cursor-pointer relative overflow-hidden group ${
+            selectedRole === 'student'
+              ? 'bg-blue-950/30 border-blue-500 shadow-xl shadow-blue-500/10'
+              : 'bg-[#18181b] border-[#27272a] hover:border-blue-500/50'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-xl">
+              🏀
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+              Solo Lectura
+            </span>
           </div>
-          <h2 className="text-2xl font-black text-white tracking-tight">HoopPerformance OS</h2>
-          <p className="text-xs font-mono text-zinc-400 mt-0.5">
-            Wild Wolves Academy CDMX • Autenticación &amp; RBAC
+
+          <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors">
+            ROL ALUMNO / ATLETA
+          </h3>
+          <p className="text-[11px] text-zinc-400 mt-1 mb-3 leading-snug font-sans">
+            Para los jugadores en cancha. Acceso privado y exclusivo a su propio rendimiento.
           </p>
+
+          <div className="space-y-1.5 text-[11px] font-mono text-zinc-300 pt-2 border-t border-zinc-800/80">
+            <div className="flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+              <span>Gráfico Radar 360° (6 ejes Combine)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <ClipboardList className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+              <span>Días entrenados vs. días asignados</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+              <span>Sobrecarga: Cuerda y trote aeróbico</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span>Cuota ($50/clase) y botón Stripe</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="w-full mt-4 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/30"
+          >
+            <span>Entrar como Alumno</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* Conmutador de Pestañas: Iniciar Sesión vs. Registrarse */}
-        <div className="flex bg-[#0a0e17] rounded-xl p-1 border border-[#27272a] mb-5 font-mono text-xs">
+        {/* ROL 2: PADRE / TUTOR */}
+        <div 
+          onClick={() => { setSelectedRole('parent'); handleQuickLogin('parent'); }}
+          className={`p-5 rounded-3xl border transition-all cursor-pointer relative overflow-hidden group ${
+            selectedRole === 'parent'
+              ? 'bg-purple-950/30 border-purple-500 shadow-xl shadow-purple-500/10'
+              : 'bg-[#18181b] border-[#27272a] hover:border-purple-500/50'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-xl">
+              👨‍👩‍👧
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/30">
+              Supervisión
+            </span>
+          </div>
+
+          <h3 className="text-base font-black text-white group-hover:text-purple-400 transition-colors">
+            ROL PADRE / TUTOR
+          </h3>
+          <p className="text-[11px] text-zinc-400 mt-1 mb-3 leading-snug font-sans">
+            Para padres de familia. Transparencia de asistencia, salud y cobranza de su hijo(a).
+          </p>
+
+          <div className="space-y-1.5 text-[11px] font-mono text-zinc-300 pt-2 border-t border-zinc-800/80">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+              <span>Control de asistencias a entrenamientos</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span>Transparencia en saldo ($50/sesión)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <HeartPulse className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+              <span>Ficha médica y teléfono de emergencia</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span>Botón directo WhatsApp a Coach Ricardo</span>
+            </div>
+          </div>
+
           <button
-            onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
-            className={`flex-1 py-2 rounded-lg font-bold transition-all cursor-pointer ${
-              authMode === 'login'
-                ? 'bg-orange-600 text-white shadow-sm'
-                : 'text-zinc-400 hover:text-white'
-            }`}
+            type="button"
+            className="w-full mt-4 py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-600/30"
           >
-            Iniciar Sesión
-          </button>
-          <button
-            onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
-            className={`flex-1 py-2 rounded-lg font-bold transition-all cursor-pointer ${
-              authMode === 'register'
-                ? 'bg-orange-600 text-white shadow-sm'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            Registrarse (Nuevo Atleta/Tutor)
+            <span>Entrar como Padre/Tutor</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Mensajes de Alerta */}
+        {/* ROL 3: COACH RICARDO (ADMIN TOTAL) */}
+        <div 
+          onClick={() => { setSelectedRole('coach'); handleQuickLogin('coach'); }}
+          className={`p-5 rounded-3xl border transition-all cursor-pointer relative overflow-hidden group ${
+            selectedRole === 'coach'
+              ? 'bg-orange-950/30 border-orange-500 shadow-xl shadow-orange-500/10'
+              : 'bg-[#18181b] border-[#27272a] hover:border-orange-500/50'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-xl">
+              🛡️
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-orange-500/10 text-orange-400 border border-orange-500/30">
+              Control Total
+            </span>
+          </div>
+
+          <h3 className="text-base font-black text-white group-hover:text-orange-400 transition-colors">
+            COACH RICARDO (ADMIN)
+          </h3>
+          <p className="text-[11px] text-zinc-400 mt-1 mb-3 leading-snug font-sans">
+            Dirección técnica y administrativa de Wild Wolves. Control exclusivo de operaciones.
+          </p>
+
+          <div className="space-y-1.5 text-[11px] font-mono text-zinc-300 pt-2 border-t border-zinc-800/80">
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+              <span>Roster completo y pase de lista diario</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+              <span>Carga de evaluaciones Combine y Radar</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span>Cobranza ($50 día / $150 sem / $600 mes)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <HeartPulse className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+              <span>Fichas médicas confidenciales del plantel</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="w-full mt-4 py-2 px-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-orange-600/30"
+          >
+            <span>Entrar como Coach Ricardo</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+      </div>
+
+      {/* 3. CAJA CENTRAL DE INICIO DE SESIÓN / REGISTRO FORMAL */}
+      <div className="max-w-xl mx-auto w-full bg-[#18181b] border border-[#27272a] rounded-3xl p-6 sm:p-8 shadow-2xl relative">
+        
+        {/* Cabecera del formulario */}
+        <div className="flex items-center justify-between pb-4 border-b border-[#27272a] mb-5">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-orange-500" />
+            <div>
+              <h4 className="font-bold text-white text-sm">Autenticación Segura</h4>
+              <p className="text-[11px] font-mono text-zinc-400">Acceso conectado con Supabase PostgreSQL</p>
+            </div>
+          </div>
+
+          {/* Botones de conmutación */}
+          <div className="flex bg-[#0a0e17] rounded-xl p-1 border border-[#27272a] font-mono text-xs">
+            <button
+              onClick={() => { setAuthMode('login'); setErrorMessage(''); }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                authMode === 'login'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Ingresar
+            </button>
+            <button
+              onClick={() => { setAuthMode('register'); setErrorMessage(''); }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                authMode === 'register'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Registrarse
+            </button>
+          </div>
+        </div>
+
+        {/* Mensajes de feedback */}
         {errorMessage && (
           <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs font-mono flex items-center gap-2 animate-fadeIn">
             <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
@@ -193,56 +396,8 @@ function LoginFormContent() {
           </div>
         )}
 
-        {/* Selector de Rol cuando se registra o entra */}
-        <div className="mb-4 bg-[#0a0e17] p-3 rounded-xl border border-[#27272a]">
-          <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-2 font-bold">
-            ¿Cómo deseas ingresar al sistema?
-          </span>
-          <div className="grid grid-cols-3 gap-1.5 font-mono text-xs">
-            <button
-              type="button"
-              onClick={() => setSelectedRole('student')}
-              className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
-                selectedRole === 'student'
-                  ? 'bg-blue-500/20 border-blue-500 text-white font-bold'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
-              }`}
-            >
-              <div className="text-sm">🏀</div>
-              <div className="text-[11px] mt-0.5">Alumno</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedRole('parent')}
-              className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
-                selectedRole === 'parent'
-                  ? 'bg-purple-500/20 border-purple-500 text-white font-bold'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
-              }`}
-            >
-              <div className="text-sm">👨‍👦</div>
-              <div className="text-[11px] mt-0.5">Padre/Tutor</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedRole('coach')}
-              className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
-                selectedRole === 'coach'
-                  ? 'bg-orange-500/20 border-orange-500 text-white font-bold'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
-              }`}
-            >
-              <div className="text-sm">🛡️</div>
-              <div className="text-[11px] mt-0.5">Coach Ricardo</div>
-            </button>
-          </div>
-        </div>
-
-        {/* BOTONES DE PROVEEDORES SOCIALES (GOOGLE & APPLE) */}
+        {/* Botones Sociales 1-Clic (Google & Apple) */}
         <div className="space-y-2.5 mb-5 font-mono text-xs">
-          {/* Botón de Google */}
           <button
             type="button"
             onClick={handleGoogleAuth}
@@ -257,7 +412,6 @@ function LoginFormContent() {
             <span>{authMode === 'login' ? 'Continuar con Google' : 'Registrarse con Google'}</span>
           </button>
 
-          {/* Botón de Apple */}
           <button
             type="button"
             onClick={handleAppleAuth}
@@ -277,13 +431,13 @@ function LoginFormContent() {
           </div>
           <div className="relative flex justify-center text-xs uppercase font-mono">
             <span className="bg-[#18181b] px-3 text-zinc-500 text-[10px]">
-              O continuar con
+              O con teléfono / correo
             </span>
           </div>
         </div>
 
-        {/* Selector de Método: Correo vs WhatsApp */}
-        <div className="flex items-center gap-2 mb-3 font-mono text-xs">
+        {/* Conmutador Correo vs WhatsApp */}
+        <div className="flex items-center gap-2 mb-3.5 font-mono text-xs">
           <button
             type="button"
             onClick={() => setMethod('email')}
@@ -307,11 +461,11 @@ function LoginFormContent() {
             }`}
           >
             <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>WhatsApp / Móvil</span>
+            <span>WhatsApp / Celular</span>
           </button>
         </div>
 
-        {/* FORMULARIO POR CORREO */}
+        {/* FORMULARIO CORREO */}
         {method === 'email' && (
           <form onSubmit={handleEmailAuth} className="space-y-3 font-mono text-xs">
             {authMode === 'register' && (
@@ -362,12 +516,12 @@ function LoginFormContent() {
               type="submit"
               className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition-all shadow-md cursor-pointer active:scale-95 mt-2"
             >
-              {authMode === 'login' ? 'Entrar con Correo' : 'Crear Cuenta con Correo'}
+              {authMode === 'login' ? 'Iniciar Sesión con Correo' : 'Crear Cuenta con Correo'}
             </button>
           </form>
         )}
 
-        {/* FORMULARIO POR WHATSAPP / MÓVIL */}
+        {/* FORMULARIO WHATSAPP */}
         {method === 'whatsapp' && (
           <form onSubmit={handleWhatsAppAuth} className="space-y-3 font-mono text-xs">
             <div>
@@ -386,7 +540,7 @@ function LoginFormContent() {
 
             <div>
               <label className="text-[10px] text-zinc-400 uppercase block mb-1">
-                Número de Celular / WhatsApp (10 dígitos CDMX/México)
+                Número Celular / WhatsApp (10 dígitos CDMX)
               </label>
               <div className="flex items-center">
                 <span className="px-3 py-2 bg-[#0a0e17] border border-r-0 border-[#27272a] rounded-l-xl text-zinc-400 text-xs">
@@ -408,48 +562,12 @@ function LoginFormContent() {
               className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-md cursor-pointer active:scale-95 mt-2 flex items-center justify-center gap-1.5"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Acceso Rápido vía WhatsApp</span>
+              <span>Acceso Directo vía WhatsApp</span>
             </button>
           </form>
         )}
-
-        {/* CONMUTADOR RÁPIDO PARA VALIDACIÓN DE ROLES (DEMOSTRACIÓN ANTIGRAVITY) */}
-        <div className="mt-6 pt-4 border-t border-[#27272a] space-y-2.5 font-mono">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 text-center flex items-center justify-center gap-1">
-            <Sparkles className="w-3 h-3 text-orange-400" />
-            <span>Acceso Instantáneo de Demostración:</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {/* Coach Ricardo (Acceso Total) */}
-            <button
-              onClick={handleQuickCoach}
-              className="p-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-left transition-all cursor-pointer group"
-            >
-              <div className="text-[10px] font-bold text-orange-400 uppercase">Coach Ricardo</div>
-              <div className="text-[11px] font-bold text-white truncate">Acceso Total (Admin)</div>
-            </button>
-
-            {/* Alumno (Solo Lectura) */}
-            <button
-              onClick={() => handleQuickStudent('student_01')}
-              className="p-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-left transition-all cursor-pointer group"
-            >
-              <div className="text-[10px] font-bold text-blue-400 uppercase">Lucas Morales #7</div>
-              <div className="text-[11px] font-bold text-white truncate">Alumno (Lectura)</div>
-            </button>
-
-            {/* Padre / Tutor */}
-            <button
-              onClick={() => handleQuickParent('student_01')}
-              className="p-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-left transition-all cursor-pointer group"
-            >
-              <div className="text-[10px] font-bold text-purple-400 uppercase">Elena Morales</div>
-              <div className="text-[11px] font-bold text-white truncate">Tutor / Finanzas</div>
-            </button>
-          </div>
-        </div>
       </div>
+
     </div>
   );
 }

@@ -13,7 +13,8 @@ import {
   Youtube, 
   Facebook, 
   MessageCircle, 
-  ArrowRightLeft
+  ArrowRightLeft,
+  Download
 } from 'lucide-react';
 
 export function Navbar() {
@@ -130,6 +131,20 @@ export function Navbar() {
               <Youtube className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">YouTube</span>
             </a>
+            <span className="text-zinc-700">|</span>
+            {/* Botón Universal de Instalación PWA */}
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('open-pwa-install'));
+                }
+              }}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 hover:text-orange-300 font-bold border border-orange-500/30 transition-all cursor-pointer text-[11px]"
+              title="Instalar App en Windows, Android, iPhone o Mac"
+            >
+              <Download className="w-3 h-3 animate-pulse" />
+              <span>Instalar App 📲</span>
+            </button>
           </div>
         </div>
       </div>

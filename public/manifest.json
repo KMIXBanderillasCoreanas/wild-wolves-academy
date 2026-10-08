@@ -1,0 +1,33 @@
+{
+  "name": "Wild Wolves Basketball Academy CDMX",
+  "short_name": "Wild Wolves",
+  "description": "Sistema Integral de Alto Rendimiento, Biomecánica 360, Sobrecarga Progresiva y Control de Roles para Baloncesto.",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e17",
+  "theme_color": "#f97316",
+  "categories": ["sports", "fitness", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

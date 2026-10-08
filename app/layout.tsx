@@ -1,11 +1,30 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
+import { InstallPwaPrompt } from '@/components/InstallPwaPrompt';
 import { Flame, MessageCircle, Instagram, Youtube, Facebook, MapPin, Phone, Mail } from 'lucide-react';
 
+export const viewport: Viewport = {
+  themeColor: '#f97316',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
-  title: 'HoopPerformance OS (v0.3.0) | Academia de Baloncesto Wild Wolves',
+  title: 'Wild Wolves Basketball Academy CDMX | HoopPerformance OS',
   description: 'Sistema Integral de Alto Rendimiento, Biomecánica 360, Sobrecarga Progresiva y Control de Roles para Baloncesto.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Wild Wolves',
+  },
+  icons: {
+    icon: '/icon.svg',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -16,6 +35,9 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <body className="min-h-screen bg-[#0a0e17] text-zinc-100 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+        {/* Componente Global de Instalación PWA (Windows, Android, Apple) */}
+        <InstallPwaPrompt />
+
         {/* Barra de Navegación Global y Redes Sociales */}
         <Navbar />
 
