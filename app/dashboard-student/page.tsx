@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import AuthModal from "@/components/AuthModal";
 
 // ==============================================================================
 // 1. DEFINICIÓN DEL ESCALAFÓN BIOLÓGICO (NIVELES 1 AL 9)
@@ -200,6 +201,9 @@ function calculateRankProgress(currentRank: BiologicalRankInfo, perf: any): { pe
   if (currentRank.level === 9) {
     return { percent: 100, label: "Rango Máximo Alcanzado (100%)" };
   }
+  if (currentRank.level === 0) {
+    return { percent: 0, label: "0% • Esperando Diagnóstico Día 1 en Cancha" };
+  }
   
   const joggingMin = Number(perf.jogging_minutes) || 0;
   const rope = Number(perf.jump_rope_count) || 0;
@@ -262,71 +266,72 @@ export default function StudentDashboardPage() {
   const [profile, setProfile] = useState<any>(null);
   const [commitment, setCommitment] = useState<any>(null);
   const [lastPayment, setLastPayment] = useState<any>(null);
-  const [attendanceStats, setAttendanceStats] = useState({ total: 15, goal: 16, percentage: 94 });
+  const [attendanceStats, setAttendanceStats] = useState({ total: 0, goal: 16, percentage: 100 });
   const [toastVisible, setToastVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showRankModal, setShowRankModal] = useState(false);
+  const [showCommitmentModal, setShowCommitmentModal] = useState(false);
 
   // ==========================================
-  // ESTADOS DE LÍNEA BASE (DÍA 1 / LLEGADA)
+  // ESTADOS DE LÍNEA BASE (DÍA 1 / LLEGADA) - LIMPIO
   // ==========================================
   const [baseline, setBaseline] = useState<any>({
-    entry_date: "12 Septiembre 2026",
-    initial_laps_completed: 2,
-    initial_jump_rope_max: 25,
-    initial_pushups_form: "hincado",
-    initial_squats_count: 12,
-    initial_posture_notes: "Llegó con fatiga prematura tras trotar 2 vueltas continuas. Postura encorvada. Requiere adaptación biomecánica inicial sin sobrecargas.",
+    entry_date: null,
+    initial_laps_completed: 0,
+    initial_jump_rope_max: 0,
+    initial_pushups_form: null,
+    initial_squats_count: 0,
+    initial_posture_notes: "",
     isReal: false
   });
 
   // ==========================================
-  // ESTADOS DE RENDIMIENTO ACTUAL (HOY / SEMANA ACTUAL)
+  // ESTADOS DE RENDIMIENTO ACTUAL - LIMPIO
   // ==========================================
   const [currentPerformance, setCurrentPerformance] = useState<any>({
-    court_laps_done: 12,
-    jogging_minutes: 25,
-    jump_rope_count: 350,
-    pushups_variation: "brazos_cerrados",
-    pushups_reps: 20,
-    squats_3x25_done: true,
-    abs_3x25_done: true,
-    calves_3x25_done: true,
-    wall_sit_seconds: 120,
-    plank_seconds: 60,
-    lunges_laps: 2,
-    posture_status: "optima",
+    court_laps_done: 0,
+    jogging_minutes: 0,
+    jump_rope_count: 0,
+    pushups_variation: null,
+    pushups_reps: 0,
+    squats_3x25_done: false,
+    abs_3x25_done: false,
+    calves_3x25_done: false,
+    wall_sit_seconds: 0,
+    plank_seconds: 0,
+    lunges_laps: 0,
+    posture_status: "pendiente",
     rest_seconds: 45,
     shooting_base_attempts: 5,
-    free_throws_made: 4,
-    mid_range_made: 3,
-    three_point_made: 2,
+    free_throws_made: 0,
+    mid_range_made: 0,
+    three_point_made: 0,
     half_court_made: 0,
-    sprint_100m_seconds: 13.8,
-    lines_one_way_seconds: 11.2,
-    lines_round_trip_seconds: 24.1,
-    defensive_touch_verified: true,
-    vertical_jump_cm: 65,
-    broad_jump_cm: 195,
-    board_rebound_drill_done: true,
-    coach_notes: "Mecánica sólida en tiro en suspensión. Excelente amortiguación en el drill de rebote al tablero y salida rápida.",
+    sprint_100m_seconds: 0,
+    lines_one_way_seconds: 0,
+    lines_round_trip_seconds: 0,
+    defensive_touch_verified: false,
+    vertical_jump_cm: 0,
+    broad_jump_cm: 0,
+    board_rebound_drill_done: false,
+    coach_notes: "",
     isReal: false
   });
 
   // ==========================================
-  // ESTADO DE TEST DAY BIOMECÁNICO (OVR)
+  // ESTADO DE TEST DAY BIOMECÁNICO (OVR) - LIMPIO
   // ==========================================
   const [evaluation, setEvaluation] = useState<any>({
-    overall_ovr: 81,
-    athletic_level_assessed: "formativo_desarrollo",
-    court_laps_count: 6,
-    squats_count: 18,
-    pushups_count: 12,
-    plank_seconds: 90,
-    jump_rope_count: 250,
-    short_range_shots_made: 4,
-    coach_feedback: "Excelente evolución desde el Día 1. Destaca la fluidez en el trote y la amortiguación en cada salto.",
-    evaluation_date: "Octubre 2026",
+    overall_ovr: 70,
+    athletic_level_assessed: "iniciacion_adaptacion",
+    court_laps_count: 0,
+    squats_count: 0,
+    pushups_count: 0,
+    plank_seconds: 0,
+    jump_rope_count: 0,
+    short_range_shots_made: 0,
+    coach_feedback: "Tu evaluación técnica aún no se aplica. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base.",
+    evaluation_date: "Por programar",
     isReal: false
   });
 
@@ -341,7 +346,7 @@ export default function StudentDashboardPage() {
             const localBaseline = JSON.parse(localStorage.getItem("ww_student_baseline") || "{}");
             const keys = Object.keys(localBaseline);
             if (keys.length > 0) {
-              const matched = user?.id && localBaseline[user.id] ? localBaseline[user.id] : localBaseline[keys[keys.length - 1]];
+              const matched = user?.id && localBaseline[user.id] ? localBaseline[user.id] : null;
               if (matched) {
                 setBaseline({ ...matched, isReal: true });
               }
@@ -350,7 +355,7 @@ export default function StudentDashboardPage() {
             const localPhysical = JSON.parse(localStorage.getItem("ww_physical_logs") || "{}");
             const pKeys = Object.keys(localPhysical);
             if (pKeys.length > 0) {
-              const pLogs = user?.id && localPhysical[user.id] ? localPhysical[user.id] : localPhysical[pKeys[pKeys.length - 1]];
+              const pLogs = user?.id && localPhysical[user.id] ? localPhysical[user.id] : null;
               if (pLogs && pLogs.length > 0) {
                 const latestP = pLogs[0];
                 setCurrentPerformance((prev: any) => ({
@@ -376,7 +381,7 @@ export default function StudentDashboardPage() {
             const localBasket = JSON.parse(localStorage.getItem("ww_basketball_logs") || "{}");
             const bKeys = Object.keys(localBasket);
             if (bKeys.length > 0) {
-              const bLogs = user?.id && localBasket[user.id] ? localBasket[user.id] : localBasket[bKeys[bKeys.length - 1]];
+              const bLogs = user?.id && localBasket[user.id] ? localBasket[user.id] : null;
               if (bLogs && bLogs.length > 0) {
                 const latestB = bLogs[0];
                 setCurrentPerformance((prev: any) => ({
@@ -399,34 +404,78 @@ export default function StudentDashboardPage() {
               }
             }
           } catch (err) {
-            console.warn("Fallo leyendo storage:", err);
+            console.warn("Fallo leyendo storage local:", err);
           }
         }
 
         if (!user) {
           const storedEmail = typeof window !== "undefined" ? localStorage.getItem("ww_user_email") : null;
-          const storedName = typeof window !== "undefined" ? localStorage.getItem("ww_target_name") : null;
-          setProfile({
-            full_name: storedName || "Santiago Morales",
-            email: storedEmail || "santiago.morales@wildwolves.mx",
-          });
-          setCommitment({
-            days_selected: ["Lunes", "Miércoles", "Viernes"],
-            shift: "vespertino_5_7",
-          });
-          setLastPayment({
-            amount: 600,
-            payment_date: "02 Octubre 2026",
-            status: "pagado",
-          });
+          const storedName = typeof window !== "undefined" ? (localStorage.getItem("ww_student_name") || localStorage.getItem("ww_target_name")) : null;
+          
+          if (storedEmail) {
+            setProfile({
+              full_name: storedName || "Atleta Wild Wolves",
+              email: storedEmail,
+            });
+            const localDays = typeof window !== "undefined" ? localStorage.getItem("ww_selected_days") : null;
+            if (localDays) {
+              setCommitment({
+                days_selected: JSON.parse(localDays),
+                shift: localStorage.getItem("ww_selected_shift") || "vespertino_5_7",
+                frequency_type: localStorage.getItem("ww_frequency_type") || "cada_tercer_dia_3_dias"
+              });
+            } else {
+              setShowCommitmentModal(true);
+            }
+          } else {
+            window.location.href = "/login";
+            return;
+          }
           setLoading(false);
           return;
         }
 
         // Carga desde Supabase
-        const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
         const { data: comm } = await supabase.from("attendance_commitments").select("*").eq("user_id", user.id).maybeSingle();
         const { data: pay } = await supabase.from("membership_payments").select("*").eq("student_id", user.id).order("payment_date", { ascending: false }).limit(1).maybeSingle();
+        
+        setProfile(prof || { full_name: user.user_metadata?.full_name || "Atleta Wild Wolves", email: user.email });
+
+        // Onboarding obligatorio si el alumno no tiene compromiso guardado
+        if (!comm) {
+          const localDays = typeof window !== "undefined" ? localStorage.getItem("ww_selected_days") : null;
+          if (localDays) {
+            setCommitment({
+              days_selected: JSON.parse(localDays),
+              shift: localStorage.getItem("ww_selected_shift") || "vespertino_5_7",
+              frequency_type: localStorage.getItem("ww_frequency_type") || "cada_tercer_dia_3_dias"
+            });
+          } else {
+            setShowCommitmentModal(true);
+          }
+        } else {
+          setCommitment(comm);
+        }
+
+        if (pay) {
+          setLastPayment(pay);
+        }
+
+        // Conteo de asistencias reales en Supabase
+        const { count: attCount } = await supabase
+          .from("daily_attendance")
+          .select("*", { count: "exact", head: true })
+          .eq("student_id", user.id)
+          .eq("status", "presente");
+
+        if (typeof attCount === "number") {
+          setAttendanceStats({
+            total: attCount,
+            goal: 16,
+            percentage: Math.min(100, Math.round((attCount / 16) * 100))
+          });
+        }
         
         // A) Consultar Línea Base (Día 1)
         const { data: baselineData } = await supabase
@@ -503,9 +552,6 @@ export default function StudentDashboardPage() {
           }));
         }
 
-        setProfile(prof || { full_name: "Santiago Morales", email: user.email });
-        setCommitment(comm || { days_selected: ["Lunes", "Miércoles", "Viernes"], shift: "vespertino_5_7" });
-        setLastPayment(pay);
       } catch (e) {
         console.error("Error cargando dashboard:", e);
       } finally {
@@ -589,30 +635,54 @@ export default function StudentDashboardPage() {
     } catch {
       // Ignorar error
     }
-    window.location.href = "/";
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("ww_user_role");
+      localStorage.removeItem("ww_user_email");
+      localStorage.removeItem("ww_student_name");
+      localStorage.removeItem("ww_target_name");
+    }
+    window.location.href = "/login";
   };
 
-  // Cálculo del Rango Biológico activo
-  const activeRank = calculateBiologicalRank(currentPerformance);
+  // Verificación de evaluación real
+  const isEvaluated = Boolean(currentPerformance.isReal || baseline.isReal);
+
+  // Cálculo del Rango Biológico activo o estado pendiente de Día 1
+  const activeRank: BiologicalRankInfo = isEvaluated
+    ? calculateBiologicalRank(currentPerformance)
+    : {
+        level: 0,
+        title: "Iniciación / Día 1 Pendiente",
+        subtitle: "Esperando Diagnóstico en Cancha Carmen Serdán",
+        badgeGlow: "shadow-[0_0_15px_rgba(148,163,184,0.15)]",
+        badgeBorder: "border-slate-600/60",
+        badgeBg: "bg-slate-900/80",
+        textColor: "text-slate-300",
+        accentColor: "#94a3b8",
+        icon: "hourglass_top",
+        description: "Fase de bienvenida. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base inicial de 2 vueltas y saltos de cuerda.",
+        milestone: "Asistir al primer entrenamiento",
+        nextGoal: "Completar la evaluación de Día 1 con el Head Coach Ricardo para activar tu Nivel 1."
+      };
+
   const rankProgress = calculateRankProgress(activeRank, currentPerformance);
 
   // Cálculos de Δ Rendimiento
-  const initialLaps = Number(baseline.initial_laps_completed) || 2;
-  const currentLaps = Number(currentPerformance.court_laps_done) || 12;
+  const initialLaps = Number(baseline.initial_laps_completed) || 0;
+  const currentLaps = Number(currentPerformance.court_laps_done) || 0;
   const deltaLaps = Math.max(0, currentLaps - initialLaps);
-  const lapsIncreasePct = initialLaps > 0 ? Math.round((deltaLaps / initialLaps) * 100) : 500;
+  const lapsIncreasePct = initialLaps > 0 ? Math.round((deltaLaps / initialLaps) * 100) : 0;
   
-  const initialRope = Number(baseline.initial_jump_rope_max) || 25;
-  const currentRope = Number(currentPerformance.jump_rope_count) || 350;
+  const initialRope = Number(baseline.initial_jump_rope_max) || 0;
+  const currentRope = Number(currentPerformance.jump_rope_count) || 0;
   const deltaRope = Math.max(0, currentRope - initialRope);
-  const ropeIncreasePct = initialRope > 0 ? Math.round((deltaRope / initialRope) * 100) : 1300;
+  const ropeIncreasePct = initialRope > 0 ? Math.round((deltaRope / initialRope) * 100) : 0;
 
   const shootingAttempts = Number(currentPerformance.shooting_base_attempts) || 5;
-  const currentShootingPct = Math.round(((Number(currentPerformance.free_throws_made) || 4) / shootingAttempts) * 100);
-  const shootingDeltaPct = Math.max(0, currentShootingPct - 20);
+  const currentShootingPct = shootingAttempts > 0 ? Math.round(((Number(currentPerformance.free_throws_made) || 0) / shootingAttempts) * 100) : 0;
 
   // Estatus Postural del Coach
-  const postureStatus = currentPerformance.posture_status || "optima";
+  const postureStatus = currentPerformance.posture_status || "pendiente";
   const restSeconds = currentPerformance.rest_seconds || 45;
 
   if (loading) {
@@ -645,10 +715,12 @@ export default function StudentDashboardPage() {
           </div>
           <div className="flex items-center gap-2.5">
             <div className="text-right">
-              <span className="text-[10px] text-on-surface-variant block font-mono font-bold">#11 MORALES</span>
+              <span className="text-[10px] text-on-surface-variant block font-mono font-bold uppercase truncate max-w-[140px]">
+                {profile?.full_name ? profile.full_name.toUpperCase() : "ATLETA WILD WOLVES"}
+              </span>
               <span className="text-[9px] text-tertiary font-bold flex items-center gap-1 justify-end">
                 <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-                MEMBRESÍA ACTIVA
+                {lastPayment?.status === "pagado" ? "MEMBRESÍA ACTIVA" : "REGISTRADO"}
               </span>
             </div>
             <button 
@@ -677,22 +749,22 @@ export default function StudentDashboardPage() {
           <div className="flex items-center justify-between text-[10px] font-mono text-secondary mb-3.5">
             <span className="flex items-center gap-1.5 font-bold">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-              CYBER WOLVES // ELITE #11
+              CYBER WOLVES // ATLETA OFICIAL
             </span>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary-container font-mono font-black text-[10px] border border-primary-container/30">
-                OVR {evaluation.overall_ovr}
+                OVR {evaluation.isReal ? evaluation.overall_ovr : "--"}
               </span>
               <span className="bg-surface-container px-2 py-0.5 rounded text-on-surface-variant font-bold">
-                #WW-8841
+                #WW-{profile?.id ? profile.id.slice(0, 4).toUpperCase() : "CDMX"}
               </span>
             </div>
           </div>
 
-          {/* Información del Jugador y Avatar Holográfico */}
+          {/* Información del Jugador y Avatar */}
           <div className="flex gap-4 items-center">
             {/* Box con Foto y Borde de Aura */}
-            <div className={`relative shrink-0 w-24 h-28 rounded-2xl overflow-hidden bg-surface-container-highest border ${activeRank.badgeBorder} shadow-lg`}>
+            <div className={`relative shrink-0 w-24 h-28 rounded-2xl overflow-hidden bg-surface-container-highest border ${activeRank.badgeBorder} shadow-lg flex items-center justify-center`}>
               <img 
                 src="https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=400&q=80" 
                 alt="Player Card"
@@ -700,36 +772,36 @@ export default function StudentDashboardPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-transparent to-transparent"></div>
               <span className="absolute bottom-1 right-1 text-[10px] font-black text-on-primary bg-primary-container px-1.5 py-0.5 rounded shadow">
-                #11
+                {profile?.jersey_number ? `#${profile.jersey_number}` : "#WW"}
               </span>
             </div>
 
             {/* Datos Personales y Categoría */}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-black text-on-surface truncate tracking-tight">
-                {profile?.full_name || "Santiago Morales"}
+                {profile?.full_name || "Atleta Wild Wolves"}
               </h1>
-              <p className="text-xs text-on-surface-variant flex items-center gap-1.5 mt-0.5 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
-                Atleta Formativo • Dep. Carmen Serdán
+              <p className="text-xs text-on-surface-variant flex items-center gap-1.5 mt-0.5 font-medium truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-tertiary shrink-0"></span>
+                <span>{profile?.email || "Deportivo Carmen Serdán"}</span>
               </p>
 
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-container text-on-primary">
-                  JERSEY #11
+                  {profile?.jersey_number ? `JERSEY #${profile.jersey_number}` : "ACTIVO"}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-container-high text-secondary border border-secondary/30">
-                  GUARD (SG)
+                  {profile?.position || "FORMATIVO"}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary border border-tertiary/20">
-                  U-17 ÉLITE
+                  CARMEN SERDÁN
                 </span>
               </div>
             </div>
           </div>
 
           {/* ===================================================================== */}
-          {/* INSIGNIA DE RANGO BIOLÓGICO ACTIVO (NIVELES 1 AL 9)                   */}
+          {/* INSIGNIA DE RANGO BIOLÓGICO ACTIVO                                   */}
           {/* ===================================================================== */}
           <div className={`mt-4 rounded-2xl p-3.5 border ${activeRank.badgeBorder} ${activeRank.badgeBg} ${activeRank.badgeGlow} relative overflow-hidden`}>
             <div className="flex items-start justify-between gap-2">
@@ -745,7 +817,7 @@ export default function StudentDashboardPage() {
                       Rango Biológico Activo
                     </span>
                     <span className={`text-[9px] font-black font-mono px-1.5 py-0.2 rounded uppercase ${activeRank.textColor} bg-white/5 border border-white/10`}>
-                      NIVEL {activeRank.level} / 9
+                      {activeRank.level > 0 ? `NIVEL ${activeRank.level} / 9` : "PENDIENTE DÍA 1"}
                     </span>
                   </div>
                   <h3 className={`text-base font-black tracking-tight ${activeRank.textColor}`}>
@@ -795,7 +867,7 @@ export default function StudentDashboardPage() {
             <div className="flex items-center gap-2 bg-surface-container px-3 py-2 rounded-xl text-xs border border-surface-container-high/60">
               <span className="material-symbols-outlined text-secondary text-base shrink-0">calendar_month</span>
               <span className="font-medium text-[11px] truncate">
-                {commitment?.days_selected?.join(", ") || "Lunes, Miércoles, Viernes"}
+                {commitment?.days_selected?.length > 0 ? commitment.days_selected.join(", ") : "Días por seleccionar"}
               </span>
             </div>
             <div className="flex items-center gap-2 bg-surface-container px-3 py-2 rounded-xl text-xs border border-surface-container-high/60">
@@ -811,26 +883,15 @@ export default function StudentDashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-tertiary text-lg">verified</span>
-                {attendanceStats.percentage}% Asistencia en Cancha
+                {attendanceStats.total} Asistencias Registradas
               </span>
               <span className="text-[10px] font-bold text-tertiary bg-surface-container-lowest px-2.5 py-0.5 rounded-full uppercase border border-tertiary/20">
-                Récord Élite
+                Pase de Lista Carmen Serdán
               </span>
             </div>
             <p className="text-[11px] text-on-surface-variant font-sans">
-              {attendanceStats.total} de {attendanceStats.goal} entrenamientos asistidos en cancha Carmen Serdán
+              Asistencias marcadas por el Head Coach en cancha durante tus entrenamientos oficiales.
             </p>
-            {/* Streak Dots */}
-            <div className="flex items-center justify-between gap-1 pt-1">
-              {Array.from({ length: 16 }).map((_, i) => (
-                <span
-                  key={i}
-                  className={`w-3.5 h-3.5 rounded-full ${
-                    i === 13 ? "bg-surface-variant" : "bg-tertiary shadow-[0_0_6px_rgba(74,225,118,0.6)]"
-                  }`}
-                />
-              ))}
-            </div>
           </div>
         </section>
 
@@ -859,19 +920,22 @@ export default function StudentDashboardPage() {
               </span>
 
               {/* Badges según estatus postural */}
-              {postureStatus === "ultra_instinto" && (
+              {!isEvaluated ? (
+                <span className="text-[10px] font-black font-mono px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">hourglass_top</span>
+                  [DÍA 1 PENDIENTE]
+                </span>
+              ) : postureStatus === "ultra_instinto" ? (
                 <span className="text-[10px] font-black font-mono px-2.5 py-1 rounded-full bg-fuchsia-500/20 text-fuchsia-200 border border-fuchsia-400/50 shadow-[0_0_12px_rgba(217,70,239,0.5)] flex items-center gap-1">
                   <span className="material-symbols-outlined text-xs">auto_awesome</span>
                   [IMPECABLE ULTRA INSTINTO]
                 </span>
-              )}
-              {postureStatus === "optima" && (
+              ) : postureStatus === "optima" ? (
                 <span className="text-[10px] font-black font-mono px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(74,225,118,0.3)] flex items-center gap-1">
                   <span className="material-symbols-outlined text-xs">verified</span>
                   [ÓPTIMA CERTIFICADA]
                 </span>
-              )}
-              {postureStatus === "en_correccion" && (
+              ) : (
                 <span className="text-[10px] font-black font-mono px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
                   <span className="material-symbols-outlined text-xs">warning</span>
                   [EN CORRECCIÓN ACTIVA]
@@ -880,12 +944,15 @@ export default function StudentDashboardPage() {
             </div>
 
             <p className="text-[11px] text-on-surface-variant leading-relaxed">
-              {postureStatus === "ultra_instinto" &&
-                "Biomecánica profesional Ultra Instinto: fluidez neuromuscular automatizada, balance perfecto en despegue de tiro y absorción elástica al caer."}
-              {postureStatus === "optima" &&
-                "Postura Óptima validada por el Head Coach: espalda neutra, ángulo de codo a 90° en suspensión y amortiguación simétrica sin sobrecarga lesiva."}
-              {postureStatus === "en_correccion" &&
-                "En corrección biomecánica: el coach vigila la alineación de rodillas en sentadilla y la trayectoria vertical del codo. Se aplican series cortas con descanso vigilado."}
+              {!isEvaluated ? (
+                "Tu evaluación técnica aún no se aplica. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base."
+              ) : postureStatus === "ultra_instinto" ? (
+                "Biomecánica profesional Ultra Instinto: fluidez neuromuscular automatizada, balance perfecto en despegue de tiro y absorción elástica al caer."
+              ) : postureStatus === "optima" ? (
+                "Postura Óptima validada por el Head Coach: espalda neutra, ángulo de codo a 90° en suspensión y amortiguación simétrica sin sobrecarga lesiva."
+              ) : (
+                "En corrección biomecánica: el coach vigila la alineación de rodillas en sentadilla y la trayectoria vertical del codo. Se aplican series cortas con descanso vigilado."
+              )}
             </p>
 
             {/* Prescripción de Descanso Asignado */}
@@ -902,7 +969,7 @@ export default function StudentDashboardPage() {
                 </div>
               </div>
               <span className="text-xs font-mono font-black text-secondary bg-secondary-container/20 px-2.5 py-1 rounded-lg border border-secondary/30">
-                {restSeconds}s pausa
+                {isEvaluated ? `${restSeconds}s pausa` : "45s estándar"}
               </span>
             </div>
           </div>
@@ -913,7 +980,9 @@ export default function StudentDashboardPage() {
               Diagnóstico Biomecánico del Head Coach:
             </span>
             <p className="text-xs text-on-surface italic mt-1 leading-relaxed">
-              "{currentPerformance.coach_notes || baseline.initial_posture_notes || 'Mecánica sólida en suspensión. Excelente amortiguación en el drill de rebote al tablero.'}"
+              "{!isEvaluated 
+                ? "Tu evaluación técnica aún no se aplica. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base." 
+                : (currentPerformance.coach_notes || baseline.initial_posture_notes || "Mecánica sólida en suspensión. Excelente amortiguación en el drill de rebote al tablero.")}"
             </p>
             <span className="text-[10px] text-on-surface-variant block mt-1.5 font-mono">
               Coach Ricardo • Head Coach Formativo Wild Wolves CDMX
@@ -938,208 +1007,183 @@ export default function StudentDashboardPage() {
               </p>
             </div>
             <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase font-black">
-              Seguimiento Activo
+              {isEvaluated ? "Seguimiento Activo" : "Día 1 Pendiente"}
             </span>
           </div>
 
-          {/* TARJETAS COMPARATIVAS DÍA 1 VS ACTUAL */}
-          <div className="space-y-3">
-            
-            {/* COMPARATIVA 1: VUELTAS Y TROTE CONTINUO */}
-            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-white flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-primary text-base">directions_run</span>
-                  Vueltas & Resistencia Aeróbica
-                </span>
-                <span className="text-primary font-mono text-[11px] font-black bg-primary-container/20 px-2 py-0.5 rounded-md border border-primary-container/30">
-                  +{lapsIncreasePct}% (Δ +{deltaLaps} vueltas)
-                </span>
+          {/* SI EL ATLETA NO TIENE EVALUACIÓN AÚN: ESTADO VACÍO ELEGANTE */}
+          {!isEvaluated ? (
+            <div className="py-12 px-6 text-center bg-surface-container/70 rounded-2xl border border-amber-500/20 flex flex-col items-center justify-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <span className="material-symbols-outlined text-3xl">sports_score</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Llegada):</span>
-                  <span className="text-amber-400 font-mono font-black text-sm">
-                    {initialLaps} vueltas
+              <h3 className="text-sm font-black text-white uppercase tracking-wide">
+                Línea Base en Espera de tu Primer Entrenamiento
+              </h3>
+              <p className="text-xs text-on-surface-variant max-w-md leading-relaxed">
+                Tu evaluación técnica aún no se aplica. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base.
+              </p>
+              <div className="mt-2 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-high border border-surface-container-highest text-[10px] font-mono text-amber-300">
+                <span>Protocolo Inicial: 2 vueltas de diagnóstico • Saltos de cuerda • Batería 3x25</span>
+              </div>
+            </div>
+          ) : (
+            /* TARJETAS COMPARATIVAS DÍA 1 VS ACTUAL (SOLO SI TIENE EVALUACIÓN REAL) */
+            <div className="space-y-3">
+              {/* COMPARATIVA 1: VUELTAS Y TROTE CONTINUO */}
+              <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-white flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-primary text-base">directions_run</span>
+                    Vueltas & Resistencia Aeróbica
                   </span>
-                  <span className="text-[9px] text-outline block mt-0.5">Fatiga prematura inicial</span>
+                  <span className="text-primary font-mono text-[11px] font-black bg-primary-container/20 px-2 py-0.5 rounded-md border border-primary-container/30">
+                    +{lapsIncreasePct}% (Δ +{deltaLaps} vueltas)
+                  </span>
                 </div>
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
-                  <span className="text-primary font-mono font-black text-sm">
-                    {currentLaps} vueltas continuas
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Llegada):</span>
+                    <span className="text-amber-400 font-mono font-black text-sm">
+                      {initialLaps} vueltas
+                    </span>
+                    <span className="text-[9px] text-outline block mt-0.5">Fatiga prematura inicial</span>
+                  </div>
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                    <span className="text-primary font-mono font-black text-sm">
+                      {currentLaps} vueltas continuas
+                    </span>
+                    <span className="text-[9px] text-primary block mt-0.5 font-bold">
+                      {currentPerformance.jogging_minutes} min trote continuo
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* COMPARATIVA 2: SALTOS DE CUERDA */}
+              <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-white flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-tertiary text-base">fitness_center</span>
+                    Saltos Continuos de Cuerda
                   </span>
-                  <span className="text-[9px] text-primary block mt-0.5 font-bold">
-                    {currentPerformance.jogging_minutes} min trote continuo
+                  <span className="text-tertiary font-mono text-[11px] font-black bg-tertiary-container/20 px-2 py-0.5 rounded-md border border-tertiary/30">
+                    +{ropeIncreasePct}% (Δ +{deltaRope} saltos)
                   </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Llegada):</span>
+                    <span className="text-amber-400 font-mono font-black text-sm">
+                      {initialRope} saltos
+                    </span>
+                    <span className="text-[9px] text-outline block mt-0.5">A pies juntos con tropiezos</span>
+                  </div>
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                    <span className="text-tertiary font-mono font-black text-sm">
+                      {currentRope} saltos continuos
+                    </span>
+                    <span className="text-[9px] text-tertiary block mt-0.5 font-bold">Ritmo constante</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* COMPARATIVA 3: CALISTENIA & LAGARTIJAS */}
+              <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-white flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-secondary text-base">accessibility</span>
+                    Fuerza de Empuje (Lagartijas)
+                  </span>
+                  <span className="text-secondary font-mono text-[11px] font-black bg-secondary-container/20 px-2 py-0.5 rounded-md border border-secondary/30">
+                    Sobrecarga Progresiva
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Forma Inicial):</span>
+                    <span className="text-amber-400 font-mono font-black text-xs block truncate">
+                      {formatPushupVariation(baseline.initial_pushups_form)}
+                    </span>
+                    <span className="text-[9px] text-outline block mt-0.5">Autocarga reducida</span>
+                  </div>
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                    <span className="text-secondary font-mono font-black text-xs block truncate">
+                      {formatPushupVariation(currentPerformance.pushups_variation)}
+                    </span>
+                    <span className="text-[9px] text-secondary block mt-0.5 font-bold">
+                      {currentPerformance.pushups_reps || 0} repeticiones estrictas
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* COMPARATIVA 4: BATERÍA 3X25 TREN INFERIOR */}
+              <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-white flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-emerald-400 text-base">sports_gymnastics</span>
+                    Batería 3x25 & Tren Inferior
+                  </span>
+                  <span className="text-emerald-400 font-mono text-[11px] font-black bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                    {currentPerformance.squats_3x25_done ? "Completada ✓" : "En desarrollo"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1:</span>
+                    <span className="text-amber-400 font-mono font-black text-sm">
+                      {baseline.initial_squats_count || 0} sentadillas
+                    </span>
+                    <span className="text-[9px] text-outline block mt-0.5">Fatiga en cuádriceps</span>
+                  </div>
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                    <span className="text-emerald-400 font-mono font-black text-xs block">
+                      Sentadillas 3x25 {currentPerformance.squats_3x25_done ? "✓" : "..."}
+                    </span>
+                    <span className="text-[9px] text-emerald-400 block mt-0.5 font-bold">
+                      Abs 3x25 {currentPerformance.abs_3x25_done ? "✓" : "..."} • Gemelos 3x25 {currentPerformance.calves_3x25_done ? "✓" : "..."}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* COMPARATIVA 5: TIRO GRADUADO Y PRECISIÓN */}
+              <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-white flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-orange-400 text-base">sports_basketball</span>
+                    Eficacia de Tiro Graduado ({shootingAttempts} Tiros Base)
+                  </span>
+                  <span className="text-orange-400 font-mono text-[11px] font-black bg-orange-500/20 px-2 py-0.5 rounded-md border border-orange-500/30">
+                    {currentShootingPct}%
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Mecánica Inicial):</span>
+                    <span className="text-amber-400 font-mono font-black text-sm">
+                      {baseline.initial_laps_completed > 0 ? "1 / 5 tiros (20%)" : "Base motriz"}
+                    </span>
+                    <span className="text-[9px] text-outline block mt-0.5">Desviación motriz de codo</span>
+                  </div>
+                  <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
+                    <span className="text-orange-400 font-mono font-black text-xs block truncate">
+                      Libres: {currentPerformance.free_throws_made}/{shootingAttempts} ({currentShootingPct}%)
+                    </span>
+                    <span className="text-[9px] text-orange-300 block mt-0.5 font-medium truncate">
+                      Media: {currentPerformance.mid_range_made ?? 0}/{shootingAttempts} • Triples: {currentPerformance.three_point_made ?? 0}/{shootingAttempts}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* COMPARATIVA 2: SALTOS DE CUERDA */}
-            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-white flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-tertiary text-base">fitness_center</span>
-                  Saltos Continuos de Cuerda
-                </span>
-                <span className="text-tertiary font-mono text-[11px] font-black bg-tertiary-container/20 px-2 py-0.5 rounded-md border border-tertiary/30">
-                  +{ropeIncreasePct}% (Δ +{deltaRope} saltos)
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Llegada):</span>
-                  <span className="text-amber-400 font-mono font-black text-sm">
-                    {initialRope} saltos
-                  </span>
-                  <span className="text-[9px] text-outline block mt-0.5">A pies juntos con tropiezos</span>
-                </div>
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
-                  <span className="text-tertiary font-mono font-black text-sm">
-                    {currentRope} saltos continuos
-                  </span>
-                  <span className="text-[9px] text-tertiary block mt-0.5 font-bold">Ritmo constante</span>
-                </div>
-              </div>
-            </div>
-
-            {/* COMPARATIVA 3: CALISTENIA & LAGARTIJAS (FORMA BIOMECÁNICA) */}
-            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-white flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-secondary text-base">accessibility</span>
-                  Fuerza de Empuje (Lagartijas)
-                </span>
-                <span className="text-secondary font-mono text-[11px] font-black bg-secondary-container/20 px-2 py-0.5 rounded-md border border-secondary/30">
-                  Sobrecarga Progresiva
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Forma Inicial):</span>
-                  <span className="text-amber-400 font-mono font-black text-xs block truncate">
-                    {formatPushupVariation(baseline.initial_pushups_form)}
-                  </span>
-                  <span className="text-[9px] text-outline block mt-0.5">Autocarga reducida</span>
-                </div>
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
-                  <span className="text-secondary font-mono font-black text-xs block truncate">
-                    {formatPushupVariation(currentPerformance.pushups_variation)}
-                  </span>
-                  <span className="text-[9px] text-secondary block mt-0.5 font-bold">
-                    {currentPerformance.pushups_reps || 20} repeticiones estrictas
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* COMPARATIVA 4: BATERÍA 3X25 TREN INFERIOR */}
-            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-white flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-emerald-400 text-base">sports_gymnastics</span>
-                  Batería 3x25 & Tren Inferior
-                </span>
-                <span className="text-emerald-400 font-mono text-[11px] font-black bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30">
-                  {currentPerformance.squats_3x25_done ? "Completada ✓" : "En desarrollo"}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1:</span>
-                  <span className="text-amber-400 font-mono font-black text-sm">
-                    {baseline.initial_squats_count || 12} sentadillas
-                  </span>
-                  <span className="text-[9px] text-outline block mt-0.5">Fatiga en cuádriceps</span>
-                </div>
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
-                  <span className="text-emerald-400 font-mono font-black text-xs block">
-                    Sentadillas 3x25 {currentPerformance.squats_3x25_done ? "✓" : "..."}
-                  </span>
-                  <span className="text-[9px] text-emerald-400 block mt-0.5 font-bold">
-                    Abs 3x25 {currentPerformance.abs_3x25_done ? "✓" : "..."} • Gemelos 3x25 {currentPerformance.calves_3x25_done ? "✓" : "..."}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* COMPARATIVA 5: TIRO GRADUADO Y PRECISIÓN */}
-            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-white flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-orange-400 text-base">sports_basketball</span>
-                  Eficacia de Tiro Graduado ({shootingAttempts} Tiros Base)
-                </span>
-                <span className="text-orange-400 font-mono text-[11px] font-black bg-orange-500/20 px-2 py-0.5 rounded-md border border-orange-500/30">
-                  {currentShootingPct}% (+{shootingDeltaPct}%)
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Mecánica Inicial):</span>
-                  <span className="text-amber-400 font-mono font-black text-sm">
-                    1 / 5 tiros (20%)
-                  </span>
-                  <span className="text-[9px] text-outline block mt-0.5">Desviación motriz de codo</span>
-                </div>
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
-                  <span className="text-orange-400 font-mono font-black text-xs block truncate">
-                    Libres: {currentPerformance.free_throws_made}/{shootingAttempts} ({currentShootingPct}%)
-                  </span>
-                  <span className="text-[9px] text-orange-300 block mt-0.5 font-medium truncate">
-                    Media: {currentPerformance.mid_range_made ?? 3}/{shootingAttempts} • Triples: {currentPerformance.three_point_made ?? 2}/{shootingAttempts}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* COMPARATIVA 6: SALTO VERTICAL Y DRILL DE TABLERO */}
-            <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-white flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sky-400 text-base">flight_takeoff</span>
-                  Capacidad de Salto & Velocidad
-                </span>
-                <span className="text-sky-400 font-mono text-[11px] font-black bg-sky-500/20 px-2 py-0.5 rounded-md border border-sky-500/30">
-                  {currentPerformance.vertical_jump_cm || 65} cm vertical
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Día 1 (Sin Registro):</span>
-                  <span className="text-amber-400 font-mono font-black text-sm">
-                    Base Motriz
-                  </span>
-                  <span className="text-[9px] text-outline block mt-0.5">Salto plano sin elevación</span>
-                </div>
-                <div className="bg-surface-container-lowest p-2.5 rounded-xl border border-surface-container">
-                  <span className="text-on-surface-variant block text-[10px] uppercase font-bold">Semana Actual:</span>
-                  <span className="text-sky-400 font-mono font-black text-xs block">
-                    Vertical: {currentPerformance.vertical_jump_cm || 65}cm • Long: {currentPerformance.broad_jump_cm || 195}cm
-                  </span>
-                  <span className="text-[9px] text-sky-300 block mt-0.5 font-medium">
-                    Sprint 100m: {currentPerformance.sprint_100m_seconds}s • Tablero {currentPerformance.board_rebound_drill_done ? "✓" : "..."}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* TIMELINE DE PROGRESIÓN NARRATIVA */}
-          <div className="bg-surface-container-lowest p-3.5 rounded-2xl border border-surface-container text-xs">
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
-              Ruta de Sobrecarga Progresiva Wild Wolves:
-            </span>
-            <p className="text-on-surface font-mono text-[11px] leading-relaxed">
-              "Día 1: {initialLaps} vueltas a la cancha → Semana 4: 12 vueltas continuas → Mes 3: {currentPerformance.jogging_minutes} minutos ininterrumpidos en cancha Carmen Serdán."
-            </p>
-          </div>
+          )}
         </section>
 
         {/* ========================================================================= */}
@@ -1152,29 +1196,30 @@ export default function StudentDashboardPage() {
               <h2 className="text-sm font-bold text-on-surface uppercase tracking-wide">Estatus Financiero</h2>
             </div>
             <span className="text-[10px] font-bold uppercase text-on-tertiary bg-tertiary-container px-2.5 py-0.5 rounded-full">
-              Membresía Activa
+              {lastPayment?.status === "pagado" ? "Membresía Activa" : "Registro Activo"}
             </span>
           </div>
 
           <div className="bg-surface-container p-3.5 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
             <div>
-              <span className="text-sm font-bold text-on-surface block">Mensualidad Vigente</span>
-              <span className="text-[10px] text-on-surface-variant">Cubre Academia Formativa CDMX</span>
+              <span className="text-sm font-bold text-on-surface block">
+                {lastPayment?.status === "pagado" ? "Mensualidad Vigente" : "Inscripción en Cancha"}
+              </span>
+              <span className="text-[10px] text-on-surface-variant">Cubre Academia Formativa Carmen Serdán</span>
             </div>
             <div className="text-right">
-              <span className="text-base font-black text-tertiary">${lastPayment?.amount || 600} MXN</span>
-              <span className="text-[10px] text-on-surface-variant block font-mono">/ Mes Pagado</span>
+              <span className="text-base font-black text-tertiary">
+                {lastPayment?.amount ? `$${lastPayment.amount} MXN` : "Cuota $50 / $150 / $600"}
+              </span>
+              <span className="text-[10px] text-on-surface-variant block font-mono">
+                {lastPayment?.status === "pagado" ? "/ Mes Pagado" : "Pago en Cancha"}
+              </span>
             </div>
-          </div>
-
-          <div className="text-[11px] bg-surface-container-lowest p-3 rounded-xl flex justify-between text-on-surface-variant font-mono border border-surface-container">
-            <span>Último pago: {lastPayment?.payment_date || "02 Octubre 2026"}</span>
-            <span className="text-secondary font-bold">Faltan 14 días</span>
           </div>
 
           <div className="space-y-2 pt-1">
             <a
-              href="https://wa.me/525549128810?text=Hola,%20solicito%20aclaraci%C3%B3n%20sobre%20la%20membres%C3%ADa%20de%20Santiago%20Morales%20%2311"
+              href="https://wa.me/525549128810?text=Hola,%20solicito%20aclaraci%C3%B3n%20sobre%20la%20membres%C3%ADa%20en%20Wild%20Wolves%20CDMX"
               target="_blank"
               rel="noopener noreferrer"
               className="h-11 w-full flex items-center justify-center gap-2 bg-tertiary-container hover:bg-tertiary text-on-tertiary text-xs font-bold rounded-xl transition cursor-pointer shadow-md"
@@ -1187,7 +1232,7 @@ export default function StudentDashboardPage() {
               className="h-11 w-full flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-variant text-secondary text-xs font-bold rounded-xl transition cursor-pointer border border-surface-container-high"
             >
               <span className="material-symbols-outlined text-base">download</span>
-              <span>Descargar Comprobante Digital #WW-8841</span>
+              <span>Descargar Comprobante Digital Oficial</span>
             </button>
           </div>
         </section>
@@ -1211,7 +1256,7 @@ export default function StudentDashboardPage() {
                 ? "bg-tertiary/20 text-tertiary border border-tertiary/30" 
                 : "bg-surface-container text-on-surface-variant"
             }`}>
-              {evaluation.isReal ? "Validado por Coach" : "Registro Base"}
+              {evaluation.isReal ? "Validado por Coach" : "Día 1 Pendiente"}
             </span>
           </div>
 
@@ -1219,29 +1264,53 @@ export default function StudentDashboardPage() {
           <div className="bg-surface-container p-3.5 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-container to-surface-variant text-on-primary flex items-center justify-center text-xl font-black shadow-md shadow-primary-container/30">
-                {evaluation.overall_ovr}
+                {evaluation.isReal ? evaluation.overall_ovr : "--"}
               </div>
               <div>
                 <span className="text-xs font-bold text-on-surface block uppercase">Puntaje General (OVR)</span>
-                <span className="text-[10px] text-primary font-medium">Nivel Formativo en Desarrollo</span>
+                <span className="text-[10px] text-primary font-medium">
+                  {evaluation.isReal ? "Nivel Formativo en Desarrollo" : "Pendiente de Diagnóstico Inicial"}
+                </span>
               </div>
             </div>
-            <span className="text-[10px] text-secondary font-mono bg-surface-container-lowest px-2.5 py-1 rounded-lg border border-secondary/20 font-bold">
-              Rank #4 U-17
-            </span>
           </div>
 
           {/* Feedback Coach */}
           <div className="bg-surface-container p-3.5 rounded-2xl border-l-4 border-primary-container">
             <span className="text-[10px] font-bold text-on-surface block uppercase tracking-wider">Feedback Técnico Oficial:</span>
             <p className="text-xs text-on-surface italic mt-1 leading-relaxed">
-              "{evaluation.coach_feedback}"
+              "{evaluation.isReal ? evaluation.coach_feedback : "Tu evaluación técnica aún no se aplica. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base."}"
             </p>
             <span className="text-[10px] text-on-surface-variant block mt-1.5 font-mono">Coach Ricardo • Head Coach Formativo</span>
           </div>
         </section>
 
       </main>
+
+      {/* ========================================================================= */}
+      {/* MODAL ONBOARDING PACTO DE ENTRENAMIENTO (OBLIGATORIO)                     */}
+      {/* ========================================================================= */}
+      {showCommitmentModal && (
+        <AuthModal
+          isOpen={showCommitmentModal}
+          onClose={() => setShowCommitmentModal(false)}
+          userId={profile?.id}
+          targetRole="student"
+          onSuccess={() => {
+            setShowCommitmentModal(false);
+            if (typeof window !== "undefined") {
+              const localDays = localStorage.getItem("ww_selected_days");
+              if (localDays) {
+                setCommitment({
+                  days_selected: JSON.parse(localDays),
+                  shift: localStorage.getItem("ww_selected_shift") || "vespertino_5_7",
+                  frequency_type: localStorage.getItem("ww_frequency_type") || "cada_tercer_dia_3_dias"
+                });
+              }
+            }
+          }}
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: ESCALAFÓN BIOLÓGICO COMPLETO (NIVELES 1 AL 9)                      */}
@@ -1274,7 +1343,7 @@ export default function StudentDashboardPage() {
             <div className="p-4 overflow-y-auto space-y-3">
               {Object.values(BIOLOGICAL_RANKS).map((rank) => {
                 const isActive = rank.level === activeRank.level;
-                const isPassed = rank.level < activeRank.level;
+                const isPassed = rank.level < activeRank.level && activeRank.level > 0;
 
                 return (
                   <div
@@ -1361,7 +1430,7 @@ export default function StudentDashboardPage() {
         <span className="material-symbols-outlined text-tertiary text-2xl">task_alt</span>
         <div className="flex flex-col min-w-0">
           <span className="text-xs font-bold text-on-surface truncate">Comprobante Digital Generado</span>
-          <span className="text-[10px] text-on-surface-variant truncate">Recibo #WW-8841 enviado al correo registrado.</span>
+          <span className="text-[10px] text-on-surface-variant truncate">Comprobante digital enviado al correo del atleta.</span>
         </div>
       </div>
 

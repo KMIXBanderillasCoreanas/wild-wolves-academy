@@ -13,6 +13,7 @@ import {
   Calendar, 
   AlertTriangle,
   UserCheck,
+  Users,
   RefreshCw,
   Sparkles,
   X,
@@ -121,39 +122,10 @@ export default function AttendanceTracker({
         .eq("role", "student");
 
       if (profilesErr || !profilesData || profilesData.length === 0) {
-        // Fallback a caché local previo
+        // Fallback solo si estamos offline y hay caché de atletas reales previo
         const cached = getCachedRoster();
         if (cached && cached.length > 0) {
           setStudents(cached);
-          setLoading(false);
-          return;
-        }
-
-        // Fallback a HoopStore para tests y arranque
-        const localList = HoopStore.getStudents();
-        if (localList.length > 0) {
-          const formattedLocal: StudentItem[] = localList.map((st) => {
-            const hasPaid = st.finances ? st.finances.balanceDue === 0 : false;
-            return {
-              id: st.id,
-              full_name: st.fullName,
-              email: st.email,
-              commitment: {
-                days_selected: st.trainingDays || ["Lunes", "Miércoles", "Viernes"],
-                shift: st.shift === "matutino_9_11" ? "matutino_9_11" : "vespertino_5_7",
-                frequency_type: st.finances?.frequency || "cada_3er_dia",
-              },
-              lastPayment: hasPaid ? {
-                payment_date: todayDateString,
-                status: "pagado",
-                concept: "mensualidad",
-                amount: st.finances?.lastPaymentAmount || 600,
-              } : undefined,
-              attendanceToday: undefined,
-            };
-          });
-          setStudents(formattedLocal);
-          cacheRosterLocally(formattedLocal);
         } else {
           setStudents([]);
         }
@@ -624,8 +596,21 @@ export default function AttendanceTracker({
             Cargando atletas registrados...
           </div>
         ) : filteredStudents.length === 0 ? (
-          <div className="p-8 text-center text-xs text-zinc-500 bg-[#07090e] border border-zinc-800 rounded-2xl">
-            No se encontraron atletas {activeTab === "scheduled" ? "programados para hoy en este turno." : "registrados."}
+          <div className="py-16 px-6 text-center bg-[#0d1017] border border-zinc-800 rounded-3xl flex flex-col items-center justify-center shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-[#191b23] border border-zinc-700 flex items-center justify-center text-[#ea580c] mb-4">
+              <Users className="w-7 h-7" />
+            </div>
+            <h3 className="text-base font-black text-white uppercase tracking-wide">
+              {searchQuery ? "Sin coincidencias para tu búsqueda" : "No hay atletas registrados en este turno"}
+            </h3>
+            <p className="text-xs text-zinc-400 max-w-md mt-2 leading-relaxed">
+              {searchQuery
+                ? `No se encontraron coincidencias para "${searchQuery}".`
+                : "Los alumnos aparecerán aquí automáticamente en cuanto completen su registro inicial con Google o correo en el Deportivo Carmen Serdán."}
+            </p>
+            <span className="mt-4 px-3 py-1 rounded-full bg-[#121724] border border-zinc-700 text-[10px] font-mono text-[#38bdf8]">
+              Turno: {selectedShift === "matutino_9_11" ? "Matutino (09:00 - 11:00 hrs)" : "Vespertino (17:00 - 19:00 hrs)"}
+            </span>
           </div>
         ) : (
           filteredStudents.map((st) => {

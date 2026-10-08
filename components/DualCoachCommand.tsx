@@ -114,10 +114,14 @@ export default function DualCoachCommand() {
           setSelectedStudentId(currentId);
           await loadBaselineForStudent(currentId);
           return;
+        } else {
+          setStudents([]);
+          setSelectedStudentId("");
+          return;
         }
       }
 
-      // Fallback local
+      // Fallback local solo si hay atletas reales cacheados
       const local = HoopStore.getStudents();
       if (local && local.length > 0) {
         const mapped = local.map((s) => ({
@@ -130,17 +134,13 @@ export default function DualCoachCommand() {
         setSelectedStudentId(currentId);
         loadBaselineForStudent(currentId);
       } else {
-        const defaultList = [
-          { id: "ww_santiago_11", full_name: "Santiago Morales", email: "santiago@wildwolves.mx" },
-          { id: "ww_mateo_07", full_name: "Mateo Hernández", email: "mateo@wildwolves.mx" },
-          { id: "ww_diego_23", full_name: "Diego Ramírez", email: "diego@wildwolves.mx" }
-        ];
-        setStudents(defaultList);
-        setSelectedStudentId(defaultList[0].id);
-        loadBaselineForStudent(defaultList[0].id);
+        setStudents([]);
+        setSelectedStudentId("");
       }
     } catch (err) {
       console.warn("Fallo cargando alumnos en DualCoachCommand:", err);
+      setStudents([]);
+      setSelectedStudentId("");
     }
   }, [selectedStudentId]);
 
@@ -372,7 +372,7 @@ export default function DualCoachCommand() {
         </div>
 
         {/* SELECTOR DE ATLETA REGISTRADO */}
-        <div className="w-full lg:w-80 shrink-0">
+        <div className="w-full lg:w-96 shrink-0">
           <label className="text-[10px] font-mono text-[#e2bfb2] uppercase font-bold block mb-1.5">
             Seleccionar Atleta Registrado:
           </label>
@@ -380,17 +380,41 @@ export default function DualCoachCommand() {
             <select
               value={selectedStudentId}
               onChange={(e) => handleStudentSelect(e.target.value)}
-              className="w-full h-11 px-3.5 pr-10 bg-[#1d2027] border border-[#32353d] rounded-xl text-xs font-bold text-white outline-none focus:border-[#7bd0ff] transition cursor-pointer"
+              disabled={students.length === 0}
+              className="w-full h-11 px-3.5 pr-10 bg-[#1d2027] border border-[#32353d] rounded-xl text-xs font-bold text-white outline-none focus:border-[#7bd0ff] transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {students.map((s) => (
-                <option key={s.id} value={s.id} className="bg-[#10131a] text-white">
-                  {s.full_name} ({s.email})
+              {students.length === 0 ? (
+                <option value="" className="bg-[#10131a] text-zinc-400">
+                  Esperando alumnos reales para evaluación de Día 1 o Test Day.
                 </option>
-              ))}
+              ) : (
+                students.map((s) => (
+                  <option key={s.id} value={s.id} className="bg-[#10131a] text-white">
+                    {s.full_name} ({s.email})
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
       </div>
+
+      {/* BANNER INFORMATIVO SI NO HAY ALUMNOS EN LA BASE DE DATOS */}
+      {students.length === 0 && (
+        <div className="my-4 p-4 rounded-2xl bg-[#191b23] border border-amber-500/40 flex items-center gap-3.5 text-xs text-amber-200 shadow-xl">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <UserCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="font-bold block uppercase tracking-wide text-amber-300">
+              Esperando alumnos reales para evaluación de Día 1 o Test Day
+            </span>
+            <span className="text-[11px] text-zinc-300">
+              Aún no hay atletas registrados en Supabase. En cuanto un alumno complete su registro inicial con Google o correo en el Deportivo Carmen Serdán, se habilitará automáticamente su evaluación técnica y física.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 2. PESTAÑAS PRINCIPALES DEL SISTEMA DUAL */}
       <div className="flex flex-wrap gap-2.5 my-6 border-b border-[#272a32] pb-3">

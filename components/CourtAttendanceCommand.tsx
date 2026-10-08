@@ -42,88 +42,8 @@ export default function CourtAttendanceCommand() {
   const [payMethod, setPayMethod] = useState<"efectivo" | "spei">("efectivo");
   const [sendWhatsApp, setSendWhatsApp] = useState(true);
 
-  // Lista de atletas con carga resiliente
-  const [students, setStudents] = useState<StudentRosterItem[]>([
-    {
-      id: "mateo-1",
-      full_name: "Mateo Hernández",
-      number: "#8",
-      category: "U-15 FORMATIVO",
-      schedule_days: "Lun-Mié-Vie",
-      shift: "vespertino",
-      attendance_rate: 92,
-      last_payment_status: "al_corriente",
-      last_payment_amount: 600,
-      attendance_status: "presente",
-      tutor_phone: "+525549128810",
-    },
-    {
-      id: "diego-2",
-      full_name: "Diego Ramírez",
-      number: "#23",
-      category: "U-17 COMPETITIVO",
-      schedule_days: "Mar-Jue",
-      shift: "vespertino",
-      attendance_rate: 74,
-      last_payment_status: "adeudo",
-      last_payment_amount: 150,
-      last_session_date: "18 Oct",
-      attendance_status: "falta",
-      tutor_phone: "+525549128810",
-    },
-    {
-      id: "santiago-3",
-      full_name: "Santiago Morales",
-      number: "#11",
-      category: "U-15 FORMATIVO",
-      schedule_days: "Lun-Mié-Vie",
-      shift: "vespertino",
-      attendance_rate: 88,
-      last_payment_status: "al_corriente",
-      last_payment_amount: 600,
-      attendance_status: "retardo",
-      tutor_phone: "+525549128810",
-    },
-    {
-      id: "valeria-4",
-      full_name: "Valeria Gómez",
-      number: "#4",
-      category: "U-17 FEMENIL",
-      schedule_days: "Lun-Mié-Vie",
-      shift: "vespertino",
-      attendance_rate: 95,
-      last_payment_status: "al_corriente",
-      last_payment_amount: 600,
-      attendance_status: "presente",
-      tutor_phone: "+525549128810",
-    },
-    {
-      id: "rodrigo-5",
-      full_name: "Rodrigo Mendoza",
-      number: "#15",
-      category: "ADULTOS +20 INICIACIÓN",
-      schedule_days: "Lun-Mié-Vie",
-      shift: "matutino",
-      attendance_rate: 80,
-      last_payment_status: "adeudo",
-      last_payment_amount: 50,
-      attendance_status: undefined,
-      tutor_phone: "+525549128810",
-    },
-    {
-      id: "carlos-6",
-      full_name: "Carlos Velázquez",
-      number: "#30",
-      category: "U-15 FORMATIVO",
-      schedule_days: "Mar-Jue",
-      shift: "matutino",
-      attendance_rate: 86,
-      last_payment_status: "al_corriente",
-      last_payment_amount: 150,
-      attendance_status: undefined,
-      tutor_phone: "+525549128810",
-    }
-  ]);
+  // Lista de atletas con carga resiliente (inicializada vacía, solo atletas reales de Supabase)
+  const [students, setStudents] = useState<StudentRosterItem[]>([]);
 
   const daysMap = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   const currentDayName = daysMap[new Date().getDay()];
@@ -182,34 +102,22 @@ export default function CourtAttendanceCommand() {
           setStudents(mapped);
           cacheRosterLocally(mapped);
           return;
+        } else {
+          setStudents([]);
+          return;
         }
       }
 
-      // 2. Fallback a caché local o HoopStore
+      // 2. Fallback offline solo si hay atletas reales cacheados previamente
       const cached = getCachedRoster();
       if (cached && cached.length > 0) {
         setStudents(cached);
       } else {
-        const storeStudents = HoopStore.getStudents();
-        if (storeStudents.length > 0) {
-          const localMapped: StudentRosterItem[] = storeStudents.map((s, idx) => ({
-            id: s.id,
-            full_name: s.fullName,
-            number: `#${s.jerseyNumber || 11}`,
-            category: s.age < 16 ? "U-15 FORMATIVO" : s.age <= 18 ? "U-17 COMPETITIVO" : "ADULTOS +20",
-            schedule_days: s.trainingDays?.join("-") || "Lun-Mié-Vie",
-            shift: s.shift?.includes("matutino") ? "matutino" : "vespertino",
-            attendance_rate: 90,
-            last_payment_status: s.finances?.balanceDue === 0 ? "al_corriente" : "adeudo",
-            last_payment_amount: s.finances?.lastPaymentAmount || 600,
-            attendance_status: undefined,
-            tutor_phone: s.parentPhone || "+525522427769",
-          }));
-          setStudents(localMapped);
-        }
+        setStudents([]);
       }
     } catch (err) {
       console.warn("Fallo cargando roster en CourtAttendanceCommand:", err);
+      setStudents([]);
     }
   }, []);
 
@@ -600,14 +508,22 @@ export default function CourtAttendanceCommand() {
       {/* 4. ATHLETE ROSTER: AUTO-ADJUSTING RESPONSIVE GRID (1 COL ON MOBILE, 2 COLS ON TABLET, 3-4 COLS ON DESKTOP) */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {filtered.length === 0 ? (
-          <div className="col-span-full py-12 text-center bg-surface-container-low rounded-2xl border border-surface-container">
-            <span className="material-symbols-outlined text-outline text-[48px] mb-2 block mx-auto">
-              person_search
-            </span>
-            <p className="text-sm font-bold text-on-surface">No se encontraron atletas</p>
-            <p className="text-xs text-on-surface-variant mt-1">
-              Prueba cambiando los filtros de turno, búsqueda o seleccionando "Todo el Plantel".
+          <div className="col-span-full py-16 px-6 text-center bg-surface-container-low/80 rounded-3xl border border-surface-container-high/80 shadow-2xl flex flex-col items-center justify-center max-w-xl mx-auto my-6">
+            <div className="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary-container mb-4 border border-surface-container-highest shadow-inner">
+              <span className="material-symbols-outlined text-3xl">sports_basketball</span>
+            </div>
+            <h3 className="text-base font-black text-white uppercase tracking-wide">
+              {search ? "Sin resultados para tu búsqueda" : "No hay atletas registrados en este turno"}
+            </h3>
+            <p className="text-xs text-on-surface-variant max-w-md mt-2 leading-relaxed">
+              {search 
+                ? `No se encontró ningún alumno con el criterio "${search}".` 
+                : "Los alumnos aparecerán aquí automáticamente en cuanto completen su registro inicial con Google o correo en el Deportivo Carmen Serdán."}
             </p>
+            <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container border border-surface-container-high text-[11px] font-mono text-secondary">
+              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+              <span>Turno: {shift === "matutino" ? "Matutino (09:00 - 11:00 hrs)" : "Vespertino (17:00 - 19:00 hrs)"}</span>
+            </div>
           </div>
         ) : (
           filtered.map((st) => (

@@ -97,18 +97,14 @@ export default function TestDayEvaluator() {
           athletic_level: idx % 3 === 0 ? "iniciacion_adaptacion" : idx % 3 === 1 ? "formativo_desarrollo" : "competitivo_elite"
         }));
         setStudents(mapped);
-        setSelectedStudentId((prev) => (prev ? prev : mapped[0].id));
       } else {
-        const fallbackList: StudentItem[] = [
-          { id: "ww_mateo_07", full_name: "Mateo Hernández", email: "mateo@wildwolves.mx", category: "U-15 Formativo", number: "#8", athletic_level: "formativo_desarrollo" },
-          { id: "ww_diego_23", full_name: "Diego Ramírez", email: "diego@wildwolves.mx", category: "U-17 Competitivo", number: "#23", athletic_level: "competitivo_elite" },
-          { id: "ww_santiago_11", full_name: "Santiago Morales", email: "santiago@wildwolves.mx", category: "U-15 Formativo", number: "#11", athletic_level: "iniciacion_adaptacion" },
-        ];
-        setStudents(fallbackList);
-        setSelectedStudentId(fallbackList[0].id);
+        setStudents([]);
+        setSelectedStudentId("");
       }
     } catch (err) {
       console.warn("Fallo cargando atletas para Test Day:", err);
+      setStudents([]);
+      setSelectedStudentId("");
     }
   }, []);
 
@@ -330,13 +326,20 @@ export default function TestDayEvaluator() {
               <select
                 value={selectedStudentId}
                 onChange={(e) => handleStudentChange(e.target.value)}
-                className="w-full h-12 px-4 pr-10 rounded-xl bg-surface-container text-on-surface border border-surface-container-high text-xs font-bold outline-none focus:border-secondary transition cursor-pointer"
+                disabled={students.length === 0}
+                className="w-full h-12 px-4 pr-10 rounded-xl bg-surface-container text-on-surface border border-surface-container-high text-xs font-bold outline-none focus:border-secondary transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {students.map((st) => (
-                  <option key={st.id} value={st.id} className="bg-[#121724] text-white py-1">
-                    {st.number ? `${st.number} • ` : ""}{st.full_name} {st.category ? `(${st.category})` : ""} — {st.email}
+                {students.length === 0 ? (
+                  <option value="" className="bg-[#121724] text-zinc-400">
+                    Esperando alumnos reales para evaluación de Día 1 o Test Day.
                   </option>
-                ))}
+                ) : (
+                  students.map((st) => (
+                    <option key={st.id} value={st.id} className="bg-[#121724] text-white py-1">
+                      {st.number ? `${st.number} • ` : ""}{st.full_name} {st.category ? `(${st.category})` : ""} — {st.email}
+                    </option>
+                  ))
+                )}
               </select>
               <span className="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
                 unfold_more

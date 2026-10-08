@@ -146,29 +146,13 @@ export default function MasterBunkerHQ() {
           year: yearTotal
         });
       } else {
-        // Fallback a pagos de HoopStore local
-        const localAnalytics = HoopStore.getFinancialAnalytics();
+        setPayments([]);
         setMetrics({
-          day: localAnalytics.todayIncome,
-          week: localAnalytics.weekIncome,
-          month: localAnalytics.monthIncome,
-          year: localAnalytics.yearIncome,
+          day: 0,
+          week: 0,
+          month: 0,
+          year: 0
         });
-        
-        const formattedLocalPayments = localAnalytics.allPayments.map(p => ({
-          id: p.id,
-          payment_date: p.date,
-          student_id: p.studentId,
-          concept: (p as any).concept || p.notes || "Mensualidad deportiva",
-          payment_method: p.method.toLowerCase(),
-          amount: p.amount,
-          status: p.status.toLowerCase(),
-          profiles: {
-            full_name: p.studentName,
-            email: "atleta@wildwolves.mx"
-          }
-        }));
-        setPayments(formattedLocalPayments);
       }
 
     } catch (err) {
@@ -472,7 +456,13 @@ export default function MasterBunkerHQ() {
             </h3>
 
             {payments.length === 0 ? (
-              <div className="p-8 text-center text-xs text-zinc-500">No hay pagos registrados aún en el sistema.</div>
+              <div className="py-12 px-4 text-center bg-[#121724]/60 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center">
+                <DollarSign className="w-8 h-8 text-zinc-500 mb-2" />
+                <p className="text-sm font-bold text-zinc-300 uppercase">Sin movimientos registrados</p>
+                <p className="text-xs text-zinc-500 max-w-sm mt-1">
+                  No hay pagos registrados aún en el sistema. Los cobros de $50, $150 y $600 MXN registrados en cancha aparecerán aquí en tiempo real.
+                </p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
