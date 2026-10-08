@@ -102,6 +102,16 @@ export default function WildWolvesHome() {
       tag: "Alto Rendimiento",
       color: "border-sky-500/40 text-sky-400 bg-sky-500/10",
       skills: ["Radar de Tiro 360°", "Fuerza explosiva pliométrica", "Sistemas ofensivos tácticos", "Preparación para visorías"]
+    },
+    {
+      id: 3,
+      name: "Adultos & Adaptación (+20 Años)",
+      age: "+20 Años (Cero Experiencia)",
+      focus: "Acondicionamiento físico progresivo, sin presiones ni sobrecargas. Movilidad, fundamentos de bote y tiro para iniciar desde cero a tu propio ritmo.",
+      schedule: "Lun a Sáb • Turno Matutino (9-11) o Vespertino (17-19)",
+      tag: "Adultos Sedentarios",
+      color: "border-purple-500/40 text-purple-400 bg-purple-500/10",
+      skills: ["Movilidad articular y cardio sano", "Bote y tiro sin impacto lesivo", "Rutinas progresivas sin sobrecarga", "Salud, antiestrés y comunidad"]
     }
   ];
 
@@ -147,7 +157,7 @@ export default function WildWolvesHome() {
       badgeColor: "bg-sky-500/20 text-sky-400 border-sky-500/40",
       description: "Inmersión total de rendimiento con diagnóstico biomecánico mensual.",
       features: [
-        "12 sesiones intensivas en duela",
+        "12 sesiones intensivas en cancha",
         "Participación en Test Day Mensual",
         "Perfil digital con radar de estadísticas",
         "Prioridad de convocatoria para partidos"
@@ -159,11 +169,11 @@ export default function WildWolvesHome() {
   const faqs = [
     {
       q: "¿Cómo funciona la Clase Muestra Gratuita?",
-      a: "Tu primera sesión de entrenamiento es 100% libre de costo. Llegas a la duela del Deportivo Carmen Serdán, el Coach Ricardo y el equipo te asignan a tu grupo de edad, realizas el calentamiento y los ejercicios. Al finalizar, si te gusta el ambiente y la exigencia, decides si continuar."
+      a: "Tu primera sesión de entrenamiento es 100% libre de costo ($0). Llegas a la cancha del Deportivo Carmen Serdán, el Coach Ricardo y el equipo te reciben y te asignan a tu grupo según tu edad y condición física. Si tienes más de 20 años y jamás has hecho ejercicio en tu vida, contamos con un grupo de adaptación inicial sin presiones ni sobrecargas para que avances a tu propio ritmo. Realizas el calentamiento y ejercicios adaptados. Al finalizar, si te gusta el ambiente, decides si continuar."
     },
     {
       q: "¿Qué indumentaria o equipo debo llevar a mi primer entrenamiento?",
-      a: "Ropa deportiva cómoda (short o pants, playera transpirable), tenis con suela limpia y buen soporte de tobillo, y un termo con agua para hidratación. El material de básquetbol (balones de distintos calibres, conos y cuerdas) lo provee la academia."
+      a: "Para tu primer entrenamiento debes traer: ropa deportiva cómoda acorde a la temporada (short o pants, playera transpirable), tenis con buen soporte de tobillo, gorra para protegerte del sol, termo con agua para hidratación constante, toalla para secar el sudor y tu balón de básquetbol. Conforme avances en tu preparación, se integrarán herramientas de potencia como cuerda para brincar, polainas y paracaídas de velocidad. Nota: En Wild Wolves CDMX podrás adquirir todo este equipamiento oficial y accesorios deportivos directamente en la academia."
     },
     {
       q: "¿Hay que pagar inscripción o cuota de examen?",
@@ -265,7 +275,7 @@ export default function WildWolvesHome() {
 
         {/* SUBTÍTULO PERSUASIVO DE 3 SEGUNDOS */}
         <p className="text-zinc-300 text-sm sm:text-base max-w-2xl mt-4 font-medium leading-relaxed">
-          Academia formativa y de alto rendimiento en el <strong className="text-white">Deportivo Carmen Serdán (CDMX)</strong>. Biomecánica de tiro, salto vertical con cuerda y disciplina de duela. Desde <span className="text-[#f97316] font-bold font-mono">$50 MXN</span> por clase, sin mensualidades forzosas.
+          Academia formativa y de alto rendimiento en el <strong className="text-white">Deportivo Carmen Serdán (CDMX)</strong>. Biomecánica de tiro, salto vertical con cuerda y disciplina de cancha. Desde <span className="text-[#f97316] font-bold font-mono">$50 MXN</span> por clase, sin mensualidades forzosas.
         </p>
 
         {/* CONTROL INTERACTIVO DE PREFERENCIAS (RAMA Y TURNO) */}
@@ -441,7 +451,7 @@ export default function WildWolvesHome() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {categories.map((cat) => (
             <div
               key={cat.id}

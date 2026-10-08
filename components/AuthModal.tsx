@@ -65,7 +65,7 @@ export default function AuthModal({
     }
   };
 
-  // 1. REGISTRO / LOGIN CON GOOGLE REAL
+  // 1. REGISTRO / LOGIN CON GOOGLE REAL CON INTERCEPCIÓN BLINDADA
   const handleGoogleAuth = async () => {
     setErrorMsg("");
     setLoading(true);
@@ -86,11 +86,40 @@ export default function AuthModal({
         },
       });
       if (error) {
-        setErrorMsg(error.message);
+        const errorLower = (error.message || "").toLowerCase();
+        const isUnsupported =
+          error.status === 400 ||
+          (error as any).statusCode === 400 ||
+          (error as any).statusCode === "400" ||
+          errorLower.includes("unsupported provider") ||
+          errorLower.includes("provider is not enabled") ||
+          errorLower.includes("not enabled");
+
+        if (isUnsupported) {
+          setErrorMsg(
+            "El acceso directo con Google se encuentra en mantenimiento. Por favor regístrate o inicia sesión con tu correo electrónico y contraseña aquí abajo."
+          );
+        } else {
+          setErrorMsg(error.message);
+        }
         setLoading(false);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Error al conectar con Google");
+      const errLower = (err?.message || "").toLowerCase();
+      const isUnsupported =
+        err?.status === 400 ||
+        err?.statusCode === 400 ||
+        errLower.includes("unsupported provider") ||
+        errLower.includes("provider is not enabled") ||
+        errLower.includes("not enabled");
+
+      if (isUnsupported) {
+        setErrorMsg(
+          "El acceso directo con Google se encuentra en mantenimiento. Por favor regístrate o inicia sesión con tu correo electrónico y contraseña aquí abajo."
+        );
+      } else {
+        setErrorMsg(err?.message || "Error al conectar con Google");
+      }
       setLoading(false);
     }
   };
@@ -149,9 +178,16 @@ export default function AuthModal({
           return;
         }
 
-        // Si es alumno, guardar compromiso de entrenamiento
+        // Si es alumno, guardar en profiles y en attendance_commitments
         if (data.user && targetRole === "student") {
           try {
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email: email,
+              full_name: fullName || "Atleta Wild Wolves",
+              role: "student",
+              status: "active",
+            });
             await supabase.from("attendance_commitments").insert({
               user_id: data.user.id,
               days_selected: selectedDays,
@@ -219,6 +255,10 @@ export default function AuthModal({
           document.cookie = `user_role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
           document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
+        }
+
+        if (onSuccess) {
+          onSuccess(userRole);
         }
 
         if (userRole === "coach" || userRole === "superadmin") {
