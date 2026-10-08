@@ -10,31 +10,39 @@ export async function GET(request: Request) {
     try {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (data?.user) {
-        // Consultar el rol del usuario en la tabla profiles
-        let role = targetRole || "student";
+        const userEmail = (data.user.email || "").toLowerCase();
+        const isMasterAdmin = 
+          userEmail === "wildwolvescdmx@gmail.com" ||
+          userEmail === "ricardo@wildwolves.mx" || 
+          userEmail === "carlos@wildwolves.mx" || 
+          userEmail === "director@wildwolves.mx";
+
+        let role = isMasterAdmin ? "superadmin" : (targetRole || "student");
+
         try {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("role, status")
+            .select("role, status, full_name")
             .eq("id", data.user.id)
             .single();
 
-          if (profile?.role) {
+          if (isMasterAdmin) {
+            role = "superadmin";
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: profile?.full_name || "Coach Ricardo (Director General)",
+              role: "superadmin",
+              status: "active",
+            });
+          } else if (profile?.role) {
             role = profile.role;
           } else {
             // Auto registrar en profiles si es primer inicio con Google
-            const email = data.user.email || "";
-            const isMasterAdmin = 
-              email === "ricardo@wildwolves.mx" || 
-              email === "carlos@wildwolves.mx" || 
-              email === "director@wildwolves.mx" ||
-              email.toLowerCase().includes("wildwolvescdmx");
-
-            role = isMasterAdmin ? "superadmin" : (targetRole || "student");
-
+            role = targetRole || "student";
             await supabase.from("profiles").upsert({
               id: data.user.id,
-              email: email,
+              email: data.user.email,
               full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || "Atleta Wild Wolves",
               role: role,
               status: "active",

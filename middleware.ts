@@ -7,6 +7,12 @@ export function middleware(request: NextRequest) {
 
   // 1. Proteger estrictamente el panel de Entrenador (Coach & SuperAdmin)
   if (pathname.startsWith('/dashboard-coach')) {
+    const userEmail = request.cookies.get('user_email')?.value?.toLowerCase();
+    const isSuper = userRole === 'superadmin' || userEmail === 'wildwolvescdmx@gmail.com';
+    if (isSuper) {
+      return NextResponse.next();
+    }
+
     // Si viene con credencial de pase directo de dirección o staff, permitir y setear cookie
     if (searchParams.get('full_access') === 'unrestricted' || searchParams.get('access') === 'coach') {
       const response = NextResponse.next();

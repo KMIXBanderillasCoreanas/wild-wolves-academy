@@ -28,12 +28,13 @@ export default function AuthSync() {
         const user = session.user;
         const email = user.email || "";
 
-        // Detección de rol prioritario por correo oficial
+        const cleanEmail = email.toLowerCase().trim();
+        // Detección de rol prioritario por correo oficial inmutable
         const isMasterAdmin = 
-          email === "ricardo@wildwolves.mx" || 
-          email === "carlos@wildwolves.mx" || 
-          email === "director@wildwolves.mx" ||
-          email.toLowerCase().includes("wildwolvescdmx");
+          cleanEmail === "wildwolvescdmx@gmail.com" ||
+          cleanEmail === "ricardo@wildwolves.mx" || 
+          cleanEmail === "carlos@wildwolves.mx" || 
+          cleanEmail === "director@wildwolves.mx";
 
         let detectedRole = isMasterAdmin ? "superadmin" : "student";
 
@@ -44,18 +45,17 @@ export default function AuthSync() {
             .eq("id", user.id)
             .single();
 
-          if (profile?.role) {
-            detectedRole = profile.role;
-          } else if (isMasterAdmin) {
-            // Auto-crear o asegurar perfil de superadmin
+          if (isMasterAdmin) {
+            detectedRole = "superadmin";
             await supabase.from("profiles").upsert({
               id: user.id,
               email: email,
-              full_name: profile?.full_name || "Coach Ricardo (Director)",
+              full_name: profile?.full_name || "Coach Ricardo (Director General)",
               role: "superadmin",
               status: "active"
             });
-            detectedRole = "superadmin";
+          } else if (profile?.role) {
+            detectedRole = profile.role;
           }
         } catch (err) {
           console.warn("Aviso en sincronización de perfil:", err);

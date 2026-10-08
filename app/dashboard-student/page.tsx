@@ -7,10 +7,12 @@ import { supabase } from "@/lib/supabaseClient";
 import AuthModal from "@/components/AuthModal";
 
 // ==============================================================================
-// 1. DEFINICIÓN DEL ESCALAFÓN BIOLÓGICO (NIVELES 1 AL 9)
+// 1. DEFINICIÓN DEL ESCALAFÓN BIOLÓGICO (9 TIERS OFICIALES WILD WOLVES)
+// Principiante -> Básico -> Intermedio -> Avanzado -> Militar -> Élite -> Bestia Alfa -> Titán Wolf -> Ultra Instinto
 // ==============================================================================
 interface BiologicalRankInfo {
   level: number;
+  tierName: string;
   title: string;
   subtitle: string;
   badgeGlow: string;
@@ -22,13 +24,17 @@ interface BiologicalRankInfo {
   description: string;
   milestone: string;
   nextGoal: string;
+  joggingTime: string;
+  restTime: string;
+  gymAccess: boolean;
 }
 
 const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
   1: {
     level: 1,
-    title: "Cachorro Novato",
-    subtitle: "Iniciación Sedentaria / Adaptación Motriz",
+    tierName: "Principiante",
+    title: "Tier 1: Principiante",
+    subtitle: "Iniciación Sedentaria & Adaptación Motriz",
     badgeGlow: "shadow-[0_0_15px_rgba(148,163,184,0.2)]",
     badgeBorder: "border-slate-500/60",
     badgeBg: "bg-slate-900/80",
@@ -37,12 +43,16 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     icon: "pets",
     description: "Fase de entrada. Acondicionamiento neuromuscular inicial, control de postura y adaptación cardiovascular básica sin sobrecarga.",
     milestone: "1-2 vueltas continuas • Cuerda básica",
-    nextGoal: "Lograr 5 vueltas a la cancha sin detenerse para desbloquear Nivel 2."
+    nextGoal: "Dominar los 6 ejercicios base para ascender automáticamente a Tier Básico.",
+    joggingTime: "10-15 Min",
+    restTime: "90s entre series",
+    gymAccess: false
   },
   2: {
     level: 2,
-    title: "Lobo Rastreador",
-    subtitle: "Adaptación 5 Vueltas / Ritmo Continuo",
+    tierName: "Básico",
+    title: "Tier 2: Básico",
+    subtitle: "Adaptación 5 Vueltas & Ritmo Continuo",
     badgeGlow: "shadow-[0_0_18px_rgba(56,189,248,0.25)]",
     badgeBorder: "border-sky-600/60",
     badgeBg: "bg-sky-950/70",
@@ -51,12 +61,16 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     icon: "explore",
     description: "Capacidad aeróbica en desarrollo. El atleta completa 5 vueltas a la cancha Carmen Serdán y coordina saltos de cuerda continuos.",
     milestone: "5 vueltas • Cuerda 40-50 saltos",
-    nextGoal: "Alcanzar 100 saltos de cuerda continuos e iniciar series 3x25 para subir a Nivel 3."
+    nextGoal: "Alcanzar 100 saltos de cuerda y consolidar batería 3x25 para subir a Intermedio.",
+    joggingTime: "20 Min",
+    restTime: "75s entre series",
+    gymAccess: false
   },
   3: {
     level: 3,
-    title: "Lobo Cazador",
-    subtitle: "Fuerza Base Calistenia / Batería 3x25",
+    tierName: "Intermedio",
+    title: "Tier 3: Intermedio",
+    subtitle: "Fuerza Base Calistenia & Batería 3x25",
     badgeGlow: "shadow-[0_0_20px_rgba(234,179,8,0.3)]",
     badgeBorder: "border-amber-600/60",
     badgeBg: "bg-amber-950/70",
@@ -65,82 +79,106 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     icon: "fitness_center",
     description: "Fuerza calisténica consolidada. Ejecuta sentadillas y abdominales en autocarga con buena profundidad y 100 saltos de cuerda sin tropiezo.",
     milestone: "Cuerda 100 reps • Batería 3x25 en marcha",
-    nextGoal: "Sostener trote continuo de 15 minutos en cancha para ascender a Nivel 4."
+    nextGoal: "Sostener trote continuo de 35 minutos en cancha para ascender a Avanzado.",
+    joggingTime: "25 Min",
+    restTime: "60s entre series",
+    gymAccess: false
   },
   4: {
     level: 4,
-    title: "Lobo de Guardia",
-    subtitle: "Resistencia 15 Minutos / Mecánica Tiro",
+    tierName: "Avanzado",
+    title: "Tier 4: Avanzado",
+    subtitle: "Resistencia 35 Minutos & Cargas Ligeras",
     badgeGlow: "shadow-[0_0_22px_rgba(20,184,166,0.35)]",
     badgeBorder: "border-teal-500/60",
     badgeBg: "bg-teal-950/70",
     textColor: "text-teal-300",
     accentColor: "#14b8a6",
     icon: "security",
-    description: "Resistencia de medio fondo y mecánica de tiro estructurada. Mantiene trote continuo durante 15 minutos sin claudicar.",
-    milestone: "15 min trote continuo • Tiro Libre 50%",
-    nextGoal: "Llegar a 25 min de trote continuo y salto +60 cm para obtener el rango Lobo Alfa Formativo."
+    description: "Resistencia de medio fondo y mecánica de tiro estructurada. Mantiene trote continuo durante 35 minutos sin claudicar.",
+    milestone: "35 min trote continuo • Tiro Libre 50%",
+    nextGoal: "Completar la batería militar y sostener 45 min de trote para obtener rango Militar.",
+    joggingTime: "35 Min",
+    restTime: "50s entre series",
+    gymAccess: false
   },
   5: {
     level: 5,
-    title: "Lobo Alfa Formativo",
-    subtitle: "Motor Biológico 25 Min / Batería 3x25 Full",
+    tierName: "Militar",
+    title: "Tier 5: Militar",
+    subtitle: "Calistenia Férrea & Acceso a Sala de Cargas",
     badgeGlow: "shadow-[0_0_25px_rgba(74,225,118,0.4)]",
     badgeBorder: "border-emerald-500/70",
     badgeBg: "bg-emerald-950/70",
     textColor: "text-emerald-300",
     accentColor: "#4ae176",
-    icon: "shield",
-    description: "Atleta en plenitud formativa. Trote ininterrumpido de 25 minutos, Batería 3x25 completa (sentadillas, abs, gemelos) y salto vertical de +60 cm.",
-    milestone: "25 min trote • Salto +60 cm • 3x25 Completo",
-    nextGoal: "Alcanzar 40 min de trote ininterrumpido y 500 saltos de cuerda para ser Lobo Élite CDMX."
+    icon: "military_tech",
+    description: "Atleta en plenitud física. Trote de 45 minutos, Batería 3x25 estricta y desbloqueo de acceso a la sala de pesas y cargas progresivas.",
+    milestone: "45 min trote • Salto +60 cm • Pesas Desbloqueadas",
+    nextGoal: "Alcanzar 60 min (1 hora) de trote ininterrumpido y 500 saltos de cuerda para ser Élite.",
+    joggingTime: "45 Min",
+    restTime: "45s entre series",
+    gymAccess: true
   },
   6: {
     level: 6,
-    title: "Lobo Élite CDMX",
-    subtitle: "Alta Competencia 40 Min / Cuerda 500",
+    tierName: "Élite",
+    title: "Tier 6: Élite",
+    subtitle: "Alta Competencia CDMX & Pliometría Pro",
     badgeGlow: "shadow-[0_0_28px_rgba(56,189,248,0.5)]",
     badgeBorder: "border-cyan-400/80",
     badgeBg: "bg-cyan-950/70",
     textColor: "text-cyan-300",
     accentColor: "#00a6e0",
     icon: "stars",
-    description: "Nivel competitivo avanzado en torneos locales. Trote de 40 minutos sostenido, cuerda de 500 reps y agilidad defensiva sobresaliente.",
-    milestone: "40 min trote continuo • Cuerda 500 • Sprint 13.8s",
-    nextGoal: "Sostener 60 minutos (1 hora) de trote aeróbico y triples consistentes para Nivel 7."
+    description: "Nivel competitivo avanzado en torneos locales. Trote de 60 minutos (1 hora) sostenido, cuerda de 500 reps y pliometría avanzada.",
+    milestone: "60 min trote continuo • Cuerda 500 • Sprint 13.8s",
+    nextGoal: "Sostener 75 minutos y triples consistentes para desbloquear Tier Bestia Alfa.",
+    joggingTime: "60 Min (1 Hora)",
+    restTime: "40s entre series",
+    gymAccess: true
   },
   7: {
     level: 7,
-    title: "Lobo Guerrero",
-    subtitle: "Resistencia 1 Hora Continua / Triples Pro",
+    tierName: "Bestia Alfa",
+    title: "Tier 7: Bestia Alfa",
+    subtitle: "Potencia Extrema & Resistencia 75 Min",
     badgeGlow: "shadow-[0_0_30px_rgba(246,96,24,0.55)]",
     badgeBorder: "border-orange-500/80",
     badgeBg: "bg-orange-950/70",
     textColor: "text-orange-300",
     accentColor: "#f66018",
     icon: "local_fire_department",
-    description: "Atleta de resistencia extrema. Resiste 1 hora continua de trote, gran potencia de piernas y efectividad perimetral de 3 puntos.",
-    milestone: "60 min trote • Triples 60%+ • Sprint sub 13.5s",
-    nextGoal: "Alcanzar Postura Óptima certificada y dominar la Batería 3x25 estricta con 45s de descanso para Nivel 8."
+    description: "Atleta de resistencia extrema. Resiste 75 minutos continuos de trote, gran potencia de piernas y efectividad perimetral de 3 puntos.",
+    milestone: "75 min trote • Triples 60%+ • Sprint sub 13.5s",
+    nextGoal: "Alcanzar Postura Óptima certificada y 90 minutos de trote para ascender a Titán Wolf.",
+    joggingTime: "75 Min",
+    restTime: "35s entre series",
+    gymAccess: true
   },
   8: {
     level: 8,
-    title: "Lobo Maestro",
-    subtitle: "Perfección Biomecánica / Postura Óptima",
+    tierName: "Titán Wolf",
+    title: "Tier 8: Titán Wolf",
+    subtitle: "Maestría Biomecánica & Resistencia 90 Min",
     badgeGlow: "shadow-[0_0_35px_rgba(251,191,36,0.65)]",
     badgeBorder: "border-amber-400",
     badgeBg: "bg-amber-950/80",
     textColor: "text-amber-200",
     accentColor: "#fbbf24",
     icon: "workspace_premium",
-    description: "Maestría técnica y biomecánica impecable. Control postural absoluto avalado por el Coach, descansos reducidos a 45s y salto vertical +70 cm.",
-    milestone: "Postura Óptima • 3x25 Estricta 45s • Salto +70 cm",
-    nextGoal: "Completar 2 horas ininterrumpidas o recibir certificación Ultra Instinto para alcanzar el rango supremo."
+    description: "Maestría técnica y biomecánica impecable. Control postural absoluto avalado por el Coach, descansos reducidos a 30s y salto vertical +70 cm.",
+    milestone: "Postura Óptima • 90 min trote • Salto +70 cm",
+    nextGoal: "Completar 2 horas ininterrumpidas para alcanzar la cúspide suprema: Ultra Instinto.",
+    joggingTime: "90 Min",
+    restTime: "30s entre series",
+    gymAccess: true
   },
   9: {
     level: 9,
-    title: "Lobo Ultra Instinto",
-    subtitle: "Capacidad Biológica Suprema / 2 Horas Trote",
+    tierName: "Ultra Instinto",
+    title: "Tier 9: Ultra Instinto",
+    subtitle: "Capacidad Biológica Suprema • 2 Horas Continuas",
     badgeGlow: "shadow-[0_0_45px_rgba(217,70,239,0.7),0_0_70px_rgba(123,208,255,0.5)]",
     badgeBorder: "border-fuchsia-400",
     badgeBg: "bg-gradient-to-r from-purple-950/80 via-fuchsia-950/80 to-cyan-950/80",
@@ -148,54 +186,87 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     accentColor: "#d946ef",
     icon: "auto_awesome",
     description: "Cúspide del rendimiento atlético en Wild Wolves CDMX. Resistencia de 2 horas continuas, drill de rebote al tablero dominado, biomecánica automatizada sin fatiga.",
-    milestone: "2 Horas Trote / Postura Ultra Instinto • Dominio Tablero",
-    nextGoal: "¡Has alcanzado la cima biológica de la Manada! Mantén la disciplina y lidera a tus compañeros."
+    milestone: "2 Horas Trote / Postura Ultra Instinto • Dominio Total",
+    nextGoal: "¡Has alcanzado la cima biológica de la Manada! Mantén la disciplina y lidera a tus compañeros.",
+    joggingTime: "120 Min (2 Horas)",
+    restTime: "Mínimo / Automatizado",
+    gymAccess: true
   }
 };
 
-// Algoritmo de cálculo dinámico de Rango Biológico
-function calculateBiologicalRank(perf: any): BiologicalRankInfo {
-  const joggingMin = Number(perf.jogging_minutes) || 0;
-  const laps = Number(perf.court_laps_done) || 0;
-  const rope = Number(perf.jump_rope_count) || 0;
-  const posture = perf.posture_status || "optima";
-  const verticalJump = Number(perf.vertical_jump_cm) || 0;
-  const sprintSec = Number(perf.sprint_100m_seconds) || 15;
-  const threeMade = Number(perf.three_point_made) || 0;
+// Verificación de Dominio de los 6 Ejercicios de la Rutina Base
+interface BaseMasteryState {
+  pushups: boolean;
+  squats: boolean;
+  abs: boolean;
+  calves: boolean;
+  stairs: boolean;
+  lunges: boolean;
+  masteredCount: number;
+  allMastered: boolean;
+}
+
+function checkBaseExercisesMastery(perf: any, baseline: any): BaseMasteryState {
+  const pushups = Boolean(
+    perf?.pushups_3x25_done || 
+    perf?.pushups_done || 
+    (Number(perf?.court_laps_done) >= 3 && baseline?.initial_pushup_variant) ||
+    baseline?.initial_pushup_variant === "cerrada" ||
+    baseline?.initial_pushup_variant === "pie_sobre_pie"
+  );
+  const squats = Boolean(perf?.squats_3x25_done || Number(perf?.squats_done) >= 20 || perf?.squats_completed);
+  const abs = Boolean(perf?.abs_3x25_done || Number(perf?.abs_done) >= 20 || perf?.abs_completed);
+  const calves = Boolean(perf?.calves_3x25_done || Number(perf?.calves_done) >= 20 || perf?.calves_completed);
+  const stairs = Boolean(Number(perf?.jump_rope_count) >= 60 || Number(baseline?.initial_jump_rope_max) >= 30 || Number(perf?.court_laps_done) >= 4);
+  const lunges = Boolean(Number(perf?.lunges_laps) >= 1 || perf?.lunges_done || Number(perf?.wall_sit_seconds) >= 30);
+
+  const masteredCount = [pushups, squats, abs, calves, stairs, lunges].filter(Boolean).length;
+  const allMastered = masteredCount === 6;
+
+  return { pushups, squats, abs, calves, stairs, lunges, masteredCount, allMastered };
+}
+
+// Algoritmo de cálculo dinámico de Rango Biológico & Desbloqueo Automático
+function calculateBiologicalRank(perf: any, baseline: any = {}): BiologicalRankInfo {
+  const mastery = checkBaseExercisesMastery(perf, baseline);
+  const joggingMin = Number(perf?.jogging_minutes) || 0;
+  const laps = Number(perf?.court_laps_done) || 0;
+  const rope = Number(perf?.jump_rope_count) || 0;
+  const posture = perf?.posture_status || "optima";
 
   // Nivel 9: Ultra Instinto
   if (posture === "ultra_instinto" || joggingMin >= 120 || (joggingMin >= 90 && rope >= 1000)) {
     return BIOLOGICAL_RANKS[9];
   }
-  // Nivel 8: Lobo Maestro
-  if ((posture === "optima" && joggingMin >= 60 && perf.squats_3x25_done && perf.abs_3x25_done) || joggingMin >= 75) {
+  // Nivel 8: Titán Wolf
+  if ((posture === "optima" && joggingMin >= 60 && mastery.allMastered) || joggingMin >= 75) {
     return BIOLOGICAL_RANKS[8];
   }
-  // Nivel 7: Lobo Guerrero
-  if (joggingMin >= 60 || rope >= 800 || (threeMade >= 3 && sprintSec <= 13.5 && sprintSec > 0)) {
+  // Nivel 7: Bestia Alfa
+  if (joggingMin >= 60 || rope >= 800 || (mastery.allMastered && joggingMin >= 45)) {
     return BIOLOGICAL_RANKS[7];
   }
-  // Nivel 6: Lobo Élite CDMX
-  if (joggingMin >= 40 || rope >= 500 || laps >= 20) {
+  // Nivel 6: Élite
+  if (joggingMin >= 40 || rope >= 500 || laps >= 20 || (mastery.allMastered && joggingMin >= 30)) {
     return BIOLOGICAL_RANKS[6];
   }
-  // Nivel 5: Lobo Alfa Formativo
-  if (joggingMin >= 25 || laps >= 12 || rope >= 300 || verticalJump >= 60) {
+  // Nivel 5: Militar (Desbloqueo de Sala de Pesas)
+  if (joggingMin >= 25 || laps >= 12 || (mastery.allMastered && joggingMin >= 20)) {
     return BIOLOGICAL_RANKS[5];
   }
-  // Nivel 4: Lobo de Guardia
+  // Nivel 4: Avanzado
   if (joggingMin >= 15 || laps >= 8 || rope >= 150) {
     return BIOLOGICAL_RANKS[4];
   }
-  // Nivel 3: Lobo Cazador
-  if (laps >= 5 || rope >= 100 || perf.squats_3x25_done) {
+  // Nivel 3: Intermedio
+  if (laps >= 5 || rope >= 100 || mastery.allMastered) {
     return BIOLOGICAL_RANKS[3];
   }
-  // Nivel 2: Lobo Rastreador
-  if (laps >= 3 || rope >= 40) {
+  // Nivel 2: Básico (Promoción automática si domina rutina base o tiene ritmo)
+  if (laps >= 3 || rope >= 40 || mastery.masteredCount >= 4) {
     return BIOLOGICAL_RANKS[2];
   }
-  // Nivel 1: Cachorro Novato
+  // Nivel 1: Principiante
   return BIOLOGICAL_RANKS[1];
 }
 
@@ -487,16 +558,40 @@ export default function StudentDashboardPage() {
           }
         }
 
-        const isCoachOrAdmin = prof?.role === "coach" || prof?.role === "superadmin" || storedRole === "coach" || storedRole === "superadmin";
+        const cleanEmail = effectiveEmail.toLowerCase().trim();
+        const isSuperAdminEmail = cleanEmail === "wildwolvescdmx@gmail.com";
+        const isSuperAdmin = prof?.role === "superadmin" || isSuperAdminEmail || storedRole === "superadmin";
+        const isCoachOrAdmin = isSuperAdmin || prof?.role === "coach" || storedRole === "coach";
+
+        if (isSuperAdmin) {
+          prof = {
+            ...prof,
+            id: effectiveId,
+            full_name: "Coach Ricardo (Director General)",
+            email: "wildwolvescdmx@gmail.com",
+            role: "superadmin",
+            jersey_number: "00",
+            position: "DIRECTOR GENERAL • NIVEL 0",
+            status: "active"
+          };
+          pay = {
+            status: "pagado",
+            amount: 0,
+            payment_date: new Date().toISOString().split("T")[0],
+            payment_method: "Vitalicio",
+            notes: "Membresía vitalicia y control directivo del club"
+          };
+        }
 
         setProfile({
           id: effectiveId,
-          full_name: prof?.full_name || effectiveName,
-          email: prof?.email || effectiveEmail,
-          role: prof?.role || storedRole || "student",
+          full_name: isSuperAdmin ? "Coach Ricardo (Director General)" : (prof?.full_name || effectiveName),
+          email: effectiveEmail,
+          role: isSuperAdmin ? "superadmin" : (prof?.role || storedRole || "student"),
           avatar_url: prof?.avatar_url || null,
-          jersey_number: prof?.jersey_number || 11,
-          position: prof?.position || "GUARD (SG)",
+          jersey_number: isSuperAdmin ? "00" : (prof?.jersey_number || 11),
+          position: isSuperAdmin ? "DIRECTOR GENERAL • NIVEL 0" : (prof?.position || "GUARD (SG)"),
+          isSuperAdmin: isSuperAdmin,
           isCoachOrAdmin: isCoachOrAdmin,
           isGuest: false
         });
@@ -615,12 +710,14 @@ export default function StudentDashboardPage() {
 
   // Verificación de evaluación real
   const isEvaluated = Boolean(currentPerformance.isReal || baseline.isReal);
+  const baseMastery = checkBaseExercisesMastery(currentPerformance, baseline);
 
   // Cálculo del Rango Biológico activo o estado pendiente de Día 1
   const activeRank: BiologicalRankInfo = isEvaluated
-    ? calculateBiologicalRank(currentPerformance)
+    ? calculateBiologicalRank(currentPerformance, baseline)
     : {
         level: 0,
+        tierName: "Iniciación",
         title: "Iniciación / Día 1 Pendiente",
         subtitle: "Esperando Diagnóstico en Cancha Carmen Serdán",
         badgeGlow: "shadow-[0_0_15px_rgba(148,163,184,0.15)]",
@@ -631,7 +728,10 @@ export default function StudentDashboardPage() {
         icon: "hourglass_top",
         description: "Fase de bienvenida. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base inicial de 2 vueltas y saltos de cuerda.",
         milestone: "Asistir al primer entrenamiento",
-        nextGoal: "Completar la evaluación de Día 1 con el Head Coach Ricardo para activar tu Nivel 1."
+        nextGoal: "Completar la evaluación de Día 1 con el Head Coach Ricardo para activar tu Tier 1 Principiante.",
+        joggingTime: "Adaptación",
+        restTime: "Libre",
+        gymAccess: false
       };
 
   const rankProgress = calculateRankProgress(activeRank, currentPerformance);
@@ -677,14 +777,15 @@ export default function StudentDashboardPage() {
           {/* Logo y Nombre de la Academia */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center border border-surface-container-high p-1 shadow-md group-hover:border-primary transition">
-                <Image
-                  src="/logo-official.png"
-                  alt="Wild Wolves Logo"
-                  width={36}
-                  height={36}
-                  className="w-full h-full object-contain"
-                  priority
+              {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
+              <div className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-xl overflow-hidden shadow-lg border border-orange-500/40 shrink-0">
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
+                  alt="Wild Wolves CDMX Emblem"
+                  className="w-full h-full object-cover transform scale-105"
+                  onError={(e: any) => {
+                    e.currentTarget.src = "/logo-official.png";
+                  }}
                 />
               </div>
               <div className="flex flex-col">
@@ -693,7 +794,7 @@ export default function StudentDashboardPage() {
                     Wild Wolves CDMX
                   </span>
                   <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary-container/20 text-primary font-mono font-bold">
-                    PORTAL ATLETA
+                    {profile?.isSuperAdmin ? "DIRECCIÓN GENERAL" : "PORTAL ATLETA"}
                   </span>
                 </div>
                 <span className="text-[10px] text-zinc-400 tracking-wider uppercase font-mono">
@@ -706,8 +807,16 @@ export default function StudentDashboardPage() {
           {/* Enlaces y Datos de Sesión */}
           <div className="flex items-center gap-3 sm:gap-4">
             
-            {/* Si es Coach o SuperAdmin, acceso rápido al Bunker/Coach */}
-            {profile?.isCoachOrAdmin && (
+            {/* Si es SuperAdmin o Coach, acceso directo */}
+            {profile?.isSuperAdmin ? (
+              <Link
+                href="/master-bunker-hq"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold hover:bg-amber-500/30 transition shadow-sm"
+              >
+                <span className="material-symbols-outlined text-sm text-amber-400">crown</span>
+                <span>Búnker Central HQ</span>
+              </Link>
+            ) : profile?.isCoachOrAdmin ? (
               <Link
                 href="/dashboard-coach"
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold hover:bg-amber-500/30 transition shadow-sm"
@@ -715,16 +824,18 @@ export default function StudentDashboardPage() {
                 <span className="material-symbols-outlined text-sm">shield_person</span>
                 <span>Panel Coach</span>
               </Link>
-            )}
+            ) : null}
 
             {/* Nombre del Usuario y Estatus */}
             <div className="text-right hidden sm:block">
-              <span className="text-xs text-white font-bold block truncate max-w-[160px]">
+              <span className="text-xs text-white font-bold block truncate max-w-[170px]">
                 {profile?.full_name || "Atleta Wild Wolves"}
               </span>
               <span className="text-[9px] text-tertiary font-bold flex items-center gap-1 justify-end">
                 <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-                {profile?.isCoachOrAdmin 
+                {profile?.isSuperAdmin
+                  ? "SUPERADMIN (DIRECTOR)"
+                  : profile?.isCoachOrAdmin 
                   ? "VISTA PREVIA COACH" 
                   : lastPayment?.status === "pagado" 
                   ? "MEMBRESÍA ACTIVA" 
@@ -744,8 +855,25 @@ export default function StudentDashboardPage() {
         </div>
       </header>
 
-      {/* BANNER DE VISTA PREVIA (SI ES COACH O INVITADO) */}
-      {profile?.isCoachOrAdmin && (
+      {/* BANNER DE VISTA PREVIA O SUPERADMIN */}
+      {profile?.isSuperAdmin ? (
+        <div className="bg-amber-950/80 border-b border-amber-500/50 px-4 py-2.5 text-xs font-mono text-amber-200 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-amber-400 text-base">crown</span>
+            <span>
+              <strong>CONSOLA DE DIRECCIÓN GENERAL (SUPERADMIN)</strong> • Acceso Raíz Activo (<strong>{profile.email}</strong>).
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/master-bunker-hq" className="px-3 py-1 rounded-xl bg-amber-500 text-black font-black hover:bg-amber-400 transition text-[11px] shadow">
+              Abrir Búnker Central HQ →
+            </Link>
+            <Link href="/dashboard-coach" className="px-3 py-1 rounded-xl bg-zinc-800 text-zinc-200 border border-zinc-700 hover:text-white transition text-[11px]">
+              Panel Coach →
+            </Link>
+          </div>
+        </div>
+      ) : profile?.isCoachOrAdmin ? (
         <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-center text-xs text-amber-200 flex items-center justify-center gap-2">
           <span className="material-symbols-outlined text-base text-amber-400">visibility</span>
           <span>
@@ -755,7 +883,7 @@ export default function StudentDashboardPage() {
             Regresar al Panel de Control →
           </Link>
         </div>
-      )}
+      ) : null}
 
       {profile?.isGuest && (
         <div className="bg-sky-500/15 border-b border-sky-500/30 px-4 py-2 text-center text-xs text-sky-200 flex items-center justify-center gap-2">
@@ -804,19 +932,19 @@ export default function StudentDashboardPage() {
 
               {/* Información del Jugador y Avatar Oficial */}
               <div className="flex gap-4 sm:gap-5 items-center">
-                {/* Holographic Avatar Box con Logo Oficial Nítido */}
-                <div className={`relative shrink-0 w-28 h-32 sm:w-32 sm:h-36 rounded-2xl overflow-hidden bg-surface-container-highest border ${activeRank.badgeBorder} shadow-lg flex items-center justify-center p-2.5`}>
-                  <Image 
-                    src={profile?.avatar_url || "/logo-official.png"} 
-                    alt="Player Official Emblem"
-                    width={130}
-                    height={130}
-                    className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] transition-transform duration-300 hover:scale-105" 
-                    priority
+                {/* Holographic Avatar Box con Logo Oficial Nítido de Cobertura Total */}
+                <div className="relative shrink-0 w-28 h-32 sm:w-32 sm:h-36 rounded-2xl overflow-hidden bg-surface-container-highest border border-orange-500/40 shadow-xl">
+                  <img 
+                    src={profile?.avatar_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"} 
+                    alt="Wild Wolves CDMX Emblem"
+                    className="w-full h-full object-cover transform scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = "/logo-official.png";
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-transparent pointer-events-none"></div>
                   <span className="absolute bottom-1.5 right-1.5 text-[10px] font-black text-on-primary bg-primary-container px-2 py-0.5 rounded shadow">
-                    {profile?.jersey_number ? `#${profile.jersey_number}` : "#WW"}
+                    {profile?.isSuperAdmin ? "#DIRECTOR" : (profile?.jersey_number ? `#${profile.jersey_number}` : "#WW")}
                   </span>
                 </div>
 
@@ -904,6 +1032,147 @@ export default function StudentDashboardPage() {
                     Próximo hito: {activeRank.nextGoal}
                   </p>
                 </div>
+
+                {/* PARÁMETROS DEL TIER Y ACCESO */}
+                <div className="grid grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-white/10 text-center">
+                  <div className="bg-surface-container-lowest/70 rounded-xl p-2 border border-white/5">
+                    <span className="text-[9px] font-mono uppercase text-zinc-400 block font-bold">Trote Asignado</span>
+                    <span className="text-xs font-black text-white font-mono mt-0.5 block">{activeRank.joggingTime}</span>
+                  </div>
+                  <div className="bg-surface-container-lowest/70 rounded-xl p-2 border border-white/5">
+                    <span className="text-[9px] font-mono uppercase text-zinc-400 block font-bold">Descanso Series</span>
+                    <span className="text-xs font-black text-secondary font-mono mt-0.5 block">{activeRank.restTime}</span>
+                  </div>
+                  <div className={`rounded-xl p-2 border ${activeRank.gymAccess ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300" : "bg-surface-container-lowest/70 border-white/5 text-zinc-400"}`}>
+                    <span className="text-[9px] font-mono uppercase block font-bold">Sala Cargas</span>
+                    <span className={`text-[10px] font-black font-mono mt-0.5 flex items-center justify-center gap-0.5 ${activeRank.gymAccess ? "text-emerald-400" : "text-zinc-500"}`}>
+                      <span className="material-symbols-outlined text-[12px]">{activeRank.gymAccess ? "fitness_center" : "lock"}</span>
+                      {activeRank.gymAccess ? "Desbloqueado" : "Bloqueado"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ================================================================= */}
+              {/* BATERÍA BASE DE CALISTENIA: 6 EJERCICIOS DE AUTOCARGA             */}
+              {/* ================================================================= */}
+              <div className="bg-surface-container-low/90 border border-surface-container-high rounded-2xl p-4 mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-lg">exercise</span>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-white tracking-wide">
+                        Batería Base de Autocarga
+                      </h4>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        6 Pilares para Ascenso de Tier
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                    baseMastery.allMastered 
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
+                      : "bg-surface-container text-zinc-400 border-white/10"
+                  }`}>
+                    {baseMastery.masteredCount} / 6 Dominados
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+                  {/* 1. Lagartijas */}
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    baseMastery.pushups 
+                      ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
+                      : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
+                  }`}>
+                    <span className={`material-symbols-outlined text-sm ${baseMastery.pushups ? "text-emerald-400" : "text-zinc-500"}`}>
+                      {baseMastery.pushups ? "check_circle" : "radio_button_unchecked"}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-bold block truncate">1. Lagartijas</span>
+                      <span className="text-[9px] text-zinc-400 block truncate font-mono">3x25 / Variantes</span>
+                    </div>
+                  </div>
+
+                  {/* 2. Sentadillas */}
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    baseMastery.squats 
+                      ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
+                      : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
+                  }`}>
+                    <span className={`material-symbols-outlined text-sm ${baseMastery.squats ? "text-emerald-400" : "text-zinc-500"}`}>
+                      {baseMastery.squats ? "check_circle" : "radio_button_unchecked"}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-bold block truncate">2. Sentadillas</span>
+                      <span className="text-[9px] text-zinc-400 block truncate font-mono">Autocarga</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Abdominales */}
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    baseMastery.abs 
+                      ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
+                      : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
+                  }`}>
+                    <span className={`material-symbols-outlined text-sm ${baseMastery.abs ? "text-emerald-400" : "text-zinc-500"}`}>
+                      {baseMastery.abs ? "check_circle" : "radio_button_unchecked"}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-bold block truncate">3. Abdominales</span>
+                      <span className="text-[9px] text-zinc-400 block truncate font-mono">3 Fases Core</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Pantorrillas */}
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    baseMastery.calves 
+                      ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
+                      : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
+                  }`}>
+                    <span className={`material-symbols-outlined text-sm ${baseMastery.calves ? "text-emerald-400" : "text-zinc-500"}`}>
+                      {baseMastery.calves ? "check_circle" : "radio_button_unchecked"}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-bold block truncate">4. Pantorrillas</span>
+                      <span className="text-[9px] text-zinc-400 block truncate font-mono">Elevación 3x25</span>
+                    </div>
+                  </div>
+
+                  {/* 5. Cuerda / Escaleras */}
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    baseMastery.stairs 
+                      ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
+                      : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
+                  }`}>
+                    <span className={`material-symbols-outlined text-sm ${baseMastery.stairs ? "text-emerald-400" : "text-zinc-500"}`}>
+                      {baseMastery.stairs ? "check_circle" : "radio_button_unchecked"}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-bold block truncate">5. Cuerda/Gradas</span>
+                      <span className="text-[9px] text-zinc-400 block truncate font-mono">Ritmo & Salto</span>
+                    </div>
+                  </div>
+
+                  {/* 6. Desplantes / Isometría */}
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                    baseMastery.lunges 
+                      ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
+                      : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
+                  }`}>
+                    <span className={`material-symbols-outlined text-sm ${baseMastery.lunges ? "text-emerald-400" : "text-zinc-500"}`}>
+                      {baseMastery.lunges ? "check_circle" : "radio_button_unchecked"}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-bold block truncate">6. Desplantes</span>
+                      <span className="text-[9px] text-zinc-400 block truncate font-mono">Pared & Isometría</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-zinc-400 font-sans leading-relaxed">
+                  ⚡ <em>Al dominar los 6 pilares de autocarga y alcanzar la marca de trote de tu rango, el sistema te promueve automáticamente al siguiente nivel.</em>
+                </p>
               </div>
 
               {/* Días y Horarios */}
@@ -1462,7 +1731,26 @@ export default function StudentDashboardPage() {
                       {rank.description}
                     </p>
 
-                    <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
+                    {/* Parámetros del Tier en el modal */}
+                    <div className="grid grid-cols-3 gap-1.5 mt-2 pt-2 border-t border-white/5 text-[10px] font-mono text-center">
+                      <div className="bg-surface-container-lowest/60 rounded-lg p-1">
+                        <span className="text-zinc-400 block text-[9px]">Trote:</span>
+                        <span className="text-white font-bold truncate">{rank.joggingTime}</span>
+                      </div>
+                      <div className="bg-surface-container-lowest/60 rounded-lg p-1">
+                        <span className="text-zinc-400 block text-[9px]">Descanso:</span>
+                        <span className="text-secondary font-bold truncate">{rank.restTime}</span>
+                      </div>
+                      <div className={`rounded-lg p-1 ${rank.gymAccess ? "bg-emerald-950/40 text-emerald-300 border border-emerald-500/20" : "bg-surface-container-lowest/60 text-zinc-400"}`}>
+                        <span className="text-zinc-400 block text-[9px]">Sala Pesas:</span>
+                        <span className="font-bold flex items-center justify-center gap-0.5">
+                          <span className="material-symbols-outlined text-[11px]">{rank.gymAccess ? "fitness_center" : "lock"}</span>
+                          {rank.gymAccess ? "Acceso" : "Bloqueado"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-1.5 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
                       <span className="text-zinc-400">Requisito Clave:</span>
                       <span className="text-white font-bold">{rank.milestone}</span>
                     </div>

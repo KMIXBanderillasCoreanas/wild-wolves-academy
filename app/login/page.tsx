@@ -333,7 +333,7 @@ export default function UnifiedLoginPage() {
           if (redirectParam && (userRole === "coach" || userRole === "superadmin")) {
             router.push(redirectParam);
           } else if (userRole === "superadmin") {
-            router.push("/dashboard-coach");
+            router.push("/master-bunker-hq");
           } else if (userRole === "coach") {
             router.push("/dashboard-coach");
           } else {
@@ -371,14 +371,15 @@ export default function UnifiedLoginPage() {
       <div className="w-full max-w-md z-10">
         {/* Encabezado con Logotipo Oficial */}
         <div className="text-center mb-5">
-          <div className="relative w-20 h-20 mx-auto mb-2.5 flex items-center justify-center drop-shadow-[0_0_25px_rgba(234,88,12,0.35)]">
-            <Image
-              src="/logo-official.png"
-              alt="Wild Wolves Logo Oficial"
-              width={80}
-              height={80}
-              className="object-contain"
-              priority
+          {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-2xl overflow-hidden shadow-2xl border border-orange-500/40 shrink-0">
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
+              alt="Wild Wolves CDMX Emblem"
+              className="w-full h-full object-cover transform scale-105"
+              onError={(e: any) => {
+                e.currentTarget.src = "/logo-official.png";
+              }}
             />
           </div>
 

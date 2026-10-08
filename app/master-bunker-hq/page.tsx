@@ -280,22 +280,32 @@ export default function MasterBunkerHQ() {
     <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto font-sans">
       {/* HEADER BÚNKER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase font-bold">
-              {adminLabel} • SEDE CARMEN SERDÁN
-            </span>
-            {isOnline ? (
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <Wifi className="w-3 h-3" /> Online
-              </span>
-            ) : (
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                <WifiOff className="w-3 h-3" /> Cancha Offline
-              </span>
-            )}
+        <div className="flex items-center gap-4">
+          {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
+          <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden shadow-lg border border-orange-500/40 shrink-0">
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
+              alt="Wild Wolves CDMX Emblem"
+              className="w-full h-full object-cover transform scale-105"
+            />
           </div>
-          <h1 className="text-3xl font-black uppercase text-white mt-2 tracking-tight">Panel Central de Dirección</h1>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase font-bold">
+                {adminLabel} • SEDE CARMEN SERDÁN
+              </span>
+              {isOnline ? (
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <Wifi className="w-3 h-3" /> Online
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                  <WifiOff className="w-3 h-3" /> Cancha Offline
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black uppercase text-white mt-1 tracking-tight">Panel Central de Dirección</h1>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isOnline && queueCount > 0 && (

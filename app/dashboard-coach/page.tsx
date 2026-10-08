@@ -430,23 +430,33 @@ export default function CoachDashboardPage() {
       {/* 1. Panel Superior de Control con Roster y RBAC Indicator */}
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 pb-5 border-b border-[#27272a]">
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                isSuperAdmin
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                  : 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
-              }`}>
-                {isSuperAdmin ? <Crown className="w-3 h-3 text-amber-400" /> : <ShieldCheck className="w-3 h-3 text-orange-400" />}
-                ROL OPERACIONAL: {isSuperAdmin ? 'SUPER ADMINISTRADOR (NIVEL 0)' : 'COACH DEPORTIVO (NIVEL 1)'}
-              </span>
-              <span className="text-zinc-400 text-xs font-mono">
-                {students.length} Atletas • Deportivo Carmen Serdán
-              </span>
+          <div className="flex items-center gap-3.5">
+            {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shadow-lg border border-orange-500/40 shrink-0">
+              <img
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
+                alt="Wild Wolves CDMX Emblem"
+                className="w-full h-full object-cover transform scale-105"
+              />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Control Técnico, Evaluaciones &amp; Asistencia Diaria
-            </h1>
+            <div>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                  isSuperAdmin
+                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                    : 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
+                }`}>
+                  {isSuperAdmin ? <Crown className="w-3 h-3 text-amber-400" /> : <ShieldCheck className="w-3 h-3 text-orange-400" />}
+                  ROL OPERACIONAL: {isSuperAdmin ? 'SUPER ADMINISTRADOR (NIVEL 0)' : 'COACH DEPORTIVO (NIVEL 1)'}
+                </span>
+                <span className="text-zinc-400 text-xs font-mono">
+                  {students.length} Atletas • Deportivo Carmen Serdán
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                Control Técnico, Evaluaciones &amp; Asistencia Diaria
+              </h1>
+            </div>
           </div>
 
           {/* Acciones Rápidas & Switcher RBAC */}
