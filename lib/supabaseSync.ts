@@ -192,6 +192,28 @@ export const SupabaseSync = {
         updated_at: new Date().toISOString(),
       }).eq('student_id', studentId);
 
+      // Audit inserts en membership_payments y student_payments
+      const todayStr = new Date().toISOString().split('T')[0];
+      try {
+        await supabase.from('membership_payments').insert({
+          student_id: studentId,
+          amount,
+          method,
+          payment_date: todayStr,
+          status: 'Pagado',
+        });
+      } catch {}
+
+      try {
+        await supabase.from('student_payments').insert({
+          student_id: studentId,
+          amount,
+          method,
+          payment_date: todayStr,
+          status: 'Pagado',
+        });
+      } catch {}
+
       return !error;
     } catch (e) {
       console.error('Error recording payment in Supabase:', e);

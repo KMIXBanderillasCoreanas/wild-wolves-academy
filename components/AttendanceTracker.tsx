@@ -1,23 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { StudentProfile, ShiftType, AttendanceStatus } from '@/lib/types';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { StudentProfile, ShiftType, AttendanceStatus, PaymentRecord } from '@/lib/types';
 import { HoopStore } from '@/lib/store';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { 
   CalendarCheck, 
   Calendar, 
   CheckCircle2, 
   XCircle, 
   Clock, 
-  Lock, 
-  Activity,
-  Check,
-  AlertTriangle,
-  Sun,
-  Moon,
-  Users,
+  Check, 
+  Sun, 
+  Moon, 
+  Users, 
+  DollarSign, 
+  Search, 
+  AlertCircle, 
+  Filter, 
+  Sparkles, 
+  X,
   CreditCard,
-  AlertCircle
+  Receipt,
+  UserCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -27,7 +32,10 @@ interface AttendanceTrackerProps {
   readOnly?: boolean;
   onRecordAttendance?: (studentId: string, date: string, dayName: string, present: boolean, topic: string) => void;
   onRecordDailyAttendance?: (studentId: string, date: string, shift: ShiftType, status: AttendanceStatus, notes?: string) => void;
+  onPaymentRecorded?: (payment: PaymentRecord) => void;
 }
+
+const DAY_OF_WEEK_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 export function AttendanceTracker({
   student,
@@ -35,45 +43,91 @@ export function AttendanceTracker({
   readOnly = false,
   onRecordAttendance,
   onRecordDailyAttendance,
+  onPaymentRecorded,
 }: AttendanceTrackerProps) {
-  // Estado para el pase de lista
-  const [sessionDate, setSessionDate] = useState<string>(
-    () => new Date().toISOString().split('T')[0]
-  );
+  // 1. Estados de Sesión
+  const [sessionDate, setSessionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [selectedShift, setSelectedShift] = useState<ShiftType | 'all'>('all');
   const [sessionTopic, setSessionTopic] = useState<string>('Fundamentos técnicos, tiro y acondicionamiento');
+  const [activeTab, setActiveTab] = useState<'scheduled' | 'all'>('scheduled');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 2. Estados de datos y mapa de asistencia
+  const [studentsList, setStudentsList] = useState<StudentProfile[]>(() => {
+    return allStudents && allStudents.length > 0 ? allStudents : HoopStore.getStudents();
+  });
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceStatus>>({});
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
-  // Lista de alumnos activa
-  const roster = allStudents && allStudents.length > 0 ? allStudents : HoopStore.getStudents();
+  // 3. Modal de Cobro Rápido en Cancha
+  const [isQuickPayOpen, setIsQuickPayOpen] = useState(false);
+  const [quickPayStudent, setQuickPayStudent] = useState<StudentProfile | null>(null);
+  const [quickPayAmount, setQuickPayAmount] = useState<number>(50);
+  const [quickPayMethod, setQuickPayMethod] = useState<'Efectivo' | 'Transferencia' | 'Stripe'>('Efectivo');
+  const [quickPayNotes, setQuickPayNotes] = useState('Cobro en cancha Deportivo Carmen Serdán');
+  const [isSavingPay, setIsSavingPay] = useState(false);
 
-  const dayOfWeekNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const currentDayName = dayOfWeekNames[new Date(sessionDate).getDay()] || 'Lunes';
+  // Día de la semana actual
+  const currentDayName = useMemo(() => {
+    const d = new Date(sessionDate + 'T12:00:00');
+    return DAY_OF_WEEK_NAMES[d.getDay()] || 'Lunes';
+  }, [sessionDate]);
 
-  // Cargar estado de asistencia para la fecha seleccionada
+  // Sincronización de roster cuando cambian props
   useEffect(() => {
-    const map: Record<string, AttendanceStatus> = {};
-    roster.forEach((st) => {
-      const record = st.attendanceHistory?.find((h) => h.date === sessionDate);
-      if (record) {
-        if (record.status) {
-          map[st.id] = record.status;
-        } else if (record.present) {
-          map[st.id] = 'presente';
-        } else {
-          map[st.id] = 'falta';
-        }
+    if (allStudents && allStudents.length > 0) {
+      setStudentsList(allStudents);
+    } else {
+      setStudentsList(HoopStore.getStudents());
+    }
+  }, [allStudents]);
+
+  // Cargar estado de asistencia desde Supabase y HoopStore
+  const fetchSessionAttendance = useCallback(async () => {
+    const localMap: Record<string, AttendanceStatus> = {};
+    
+    // Primero desde almacenamiento local
+    studentsList.forEach((st) => {
+      const rec = st.attendanceHistory?.find((h) => h.date === sessionDate);
+      if (rec) {
+        if (rec.status) localMap[st.id] = rec.status;
+        else if (rec.present) localMap[st.id] = 'presente';
+        else localMap[st.id] = 'falta';
       }
     });
-    setAttendanceMap(map);
-  }, [sessionDate, roster]);
 
-  // Manejador de 1-clic: Presente / Falta / Retardo
-  const handleMarkStatus = (targetStudentId: string, status: AttendanceStatus, studentShift: ShiftType) => {
+    // Intentar complementar desde Supabase en vivo
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: remoteData } = await supabase
+          .from('daily_attendance')
+          .select('student_id, status')
+          .eq('session_date', sessionDate);
+
+        if (remoteData && remoteData.length > 0) {
+          remoteData.forEach((row: any) => {
+            if (row.student_id && row.status) {
+              localMap[row.student_id] = row.status as AttendanceStatus;
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Sync daily_attendance notice:', err);
+      }
+    }
+
+    setAttendanceMap(localMap);
+  }, [sessionDate, studentsList]);
+
+  useEffect(() => {
+    fetchSessionAttendance();
+  }, [fetchSessionAttendance]);
+
+  // Manejador de 1 Clic: Presente, Retardo, Falta
+  const handleMarkStatus = async (targetStudentId: string, status: AttendanceStatus, studentShift: ShiftType) => {
     const shiftToSave = studentShift || (selectedShift !== 'all' ? selectedShift : 'matutino_9_11');
-    
-    // Guardar en HoopStore y Supabase
+
+    // 1. Actualizar HoopStore local
     HoopStore.recordDailyAttendance(
       targetStudentId,
       sessionDate,
@@ -82,45 +136,188 @@ export function AttendanceTracker({
       sessionTopic
     );
 
+    // 2. Notificar callbacks de componente padre
     if (onRecordDailyAttendance) {
       onRecordDailyAttendance(targetStudentId, sessionDate, shiftToSave, status, sessionTopic);
-    } else if (onRecordAttendance) {
+    }
+    if (onRecordAttendance) {
       onRecordAttendance(targetStudentId, sessionDate, currentDayName, status !== 'falta', sessionTopic);
     }
 
+    // 3. Actualizar estado local reactivo
     setAttendanceMap((prev) => ({ ...prev, [targetStudentId]: status }));
 
-    const stName = roster.find((s) => s.id === targetStudentId)?.fullName || 'Atleta';
-    setSaveFeedback(`✓ ${stName.split(' ')[0]}: ${status.toUpperCase()} registrado`);
+    const stObj = studentsList.find((s) => s.id === targetStudentId);
+    const firstName = stObj?.fullName?.split(' ')[0] || 'Atleta';
+    setSaveFeedback(`✓ ${firstName}: ${status.toUpperCase()} registrado`);
     setTimeout(() => setSaveFeedback(null), 2500);
 
+    // 4. Feedback con confeti al registrar Presente
     if (status === 'presente') {
       try {
         confetti({
-          particleCount: 25,
+          particleCount: 20,
           spread: 45,
           origin: { y: 0.8 },
-          colors: ['#10b981', '#34d399']
+          colors: ['#10b981', '#34d399', '#ea580c'],
         });
       } catch {}
     }
+
+    // 5. Intentar inserción directa en Supabase
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('daily_attendance').upsert({
+          student_id: targetStudentId,
+          session_date: sessionDate,
+          shift: shiftToSave,
+          status: status,
+          notes: sessionTopic,
+        });
+      } catch (e) {
+        console.warn('Supabase daily_attendance direct save:', e);
+      }
+    }
   };
 
-  // Filtrado de alumnos según turno seleccionado
-  const filteredRoster = roster.filter((s) => {
-    if (selectedShift === 'all') return true;
-    const sShift = s.shift || 'matutino_9_11';
-    return sShift === selectedShift;
-  });
+  // Abrir Modal de Cobro Rápido
+  const handleOpenQuickPay = (st: StudentProfile) => {
+    setQuickPayStudent(st);
+    // Preseleccionar monto según frecuencia del alumno
+    const due = st.finances?.balanceDue || 50;
+    setQuickPayAmount(due > 0 ? due : 50);
+    setQuickPayMethod('Efectivo');
+    setQuickPayNotes(`Cobro en cancha para ${st.fullName} (${currentDayName} ${sessionDate})`);
+    setIsQuickPayOpen(true);
+  };
 
-  // Estadísticas del estudiante individual (para vista alumno o cabecera)
+  // Guardar Cobro Rápido en Cancha
+  const handleSaveQuickPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickPayStudent) return;
+
+    setIsSavingPay(true);
+    const paymentRecord: Omit<PaymentRecord, 'id'> = {
+      studentId: quickPayStudent.id,
+      studentName: quickPayStudent.fullName,
+      guardianName: quickPayStudent.guardianName || quickPayStudent.medicalNotes?.emergencyContact || 'Tutor Registrado',
+      guardianPhone: quickPayStudent.parentPhone || quickPayStudent.phone || '5522427769',
+      amount: Number(quickPayAmount),
+      date: sessionDate,
+      method: quickPayMethod,
+      status: 'Pagado',
+      notes: quickPayNotes,
+      shift: quickPayStudent.shift || (selectedShift !== 'all' ? selectedShift : 'matutino_9_11'),
+    };
+
+    // 1. Guardar en HoopStore con recibo y actualizar saldo
+    const savedReceipt = HoopStore.recordPaymentWithReceipt(paymentRecord);
+
+    // 2. Actualizar lista de alumnos local
+    const freshList = HoopStore.getStudents();
+    setStudentsList(freshList);
+
+    // 3. Emitir evento global de pago para actualizar las 4 tarjetas del Búnker al instante
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('payment_recorded'));
+    }
+
+    if (onPaymentRecorded) {
+      onPaymentRecorded(savedReceipt);
+    }
+
+    // 4. Intentar guardar en Supabase directamente
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('membership_payments').insert({
+          student_id: quickPayStudent.id,
+          amount: Number(quickPayAmount),
+          method: quickPayMethod,
+          payment_date: sessionDate,
+          status: 'Pagado',
+          notes: quickPayNotes,
+        });
+      } catch (e) {
+        console.warn('membership_payments direct insert:', e);
+      }
+      try {
+        await supabase.from('student_payments').insert({
+          student_id: quickPayStudent.id,
+          student_name: quickPayStudent.fullName,
+          amount: Number(quickPayAmount),
+          method: quickPayMethod,
+          payment_date: sessionDate,
+          status: 'Pagado',
+        });
+      } catch (e) {
+        console.warn('student_payments direct insert:', e);
+      }
+    }
+
+    setIsSavingPay(false);
+    setIsQuickPayOpen(false);
+
+    // Confeti de pago recibido
+    try {
+      confetti({
+        particleCount: 60,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#10b981', '#fbbf24', '#ea580c'],
+      });
+    } catch {}
+
+    setSaveFeedback(`✓ Cobro de $${quickPayAmount} registrado para ${quickPayStudent.fullName.split(' ')[0]}`);
+    setTimeout(() => setSaveFeedback(null), 3500);
+  };
+
+  // Filtrado de alumnos: Pestaña 1 (Programados hoy) vs Pestaña 2 (Todos)
+  const scheduledForTodayList = useMemo(() => {
+    return studentsList.filter((s) => {
+      // 1. Filtro de turno si aplica
+      if (selectedShift !== 'all') {
+        const sShift = s.shift || 'matutino_9_11';
+        if (sShift !== selectedShift) return false;
+      }
+      // 2. Filtro de día comprometido
+      const trainingDays = s.trainingDays || ['Lunes', 'Miércoles', 'Viernes'];
+      return trainingDays.includes(currentDayName);
+    });
+  }, [studentsList, selectedShift, currentDayName]);
+
+  const allFilteredList = useMemo(() => {
+    return studentsList.filter((s) => {
+      // 1. Filtro de turno si aplica
+      if (selectedShift !== 'all') {
+        const sShift = s.shift || 'matutino_9_11';
+        if (sShift !== selectedShift) return false;
+      }
+      // 2. Filtro de búsqueda predictiva
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = s.fullName?.toLowerCase().includes(q);
+        const matchJersey = s.jerseyNumber?.toString().includes(q);
+        const matchPos = s.position?.toLowerCase().includes(q);
+        const matchPhone = (s.phone || s.parentPhone || '').includes(q);
+        return matchName || matchJersey || matchPos || matchPhone;
+      }
+      return true;
+    });
+  }, [studentsList, selectedShift, searchQuery]);
+
+  // Lista a renderizar según pestaña activa
+  const displayList = activeTab === 'scheduled' ? scheduledForTodayList : allFilteredList;
+
+  // Estadísticas del estudiante individual (modo Alumno readOnly)
   const history = student?.attendanceHistory || [];
   const presentCount = history.filter((h) => h.present || h.status === 'presente' || h.status === 'retardo').length;
   const retardoCount = history.filter((h) => h.status === 'retardo').length;
   const faltaCount = history.filter((h) => !h.present || h.status === 'falta').length;
   const attendanceRate = history.length > 0 ? Math.round((presentCount / history.length) * 100) : 100;
 
-  // RENDER EN MODO ALUMNO / READ-ONLY
+  // ==========================================
+  // RENDER: MODO READONLY / PORTAL DEL ALUMNO
+  // ==========================================
   if (readOnly) {
     if (!student) {
       return (
@@ -210,7 +407,6 @@ export function AttendanceTracker({
             history.map((record) => {
               const isPresent = record.status === 'presente' || (!record.status && record.present);
               const isRetardo = record.status === 'retardo';
-              const isFalta = record.status === 'falta' || (!record.status && !record.present);
 
               return (
                 <div
@@ -268,31 +464,33 @@ export function AttendanceTracker({
     );
   }
 
-  // RENDER EN MODO COACH / SUPERADMIN (INTERACTIVO 1-CLIC CON SUPABASE)
+  // ==========================================
+  // RENDER: MODO COACH / SUPERADMIN EN CANCHA
+  // ==========================================
   return (
     <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none font-sans">
       {/* Cabecera Técnica */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              OPERACIONAL RBAC • CONTROL DE ASISTENCIA DIARIA
+              OPERACIONAL RBAC • CONTROL DE ASISTENCIA &amp; COBRANZA
             </span>
             <span className="text-zinc-400 text-xs font-mono">Sincronización en Vivo Supabase</span>
           </div>
           <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <CalendarCheck className="w-5 h-5 text-emerald-400" />
-            <span>Pase de Lista en Cancha &amp; Control de Turnos</span>
+            <span>Pase de Lista en Cancha &amp; Control de Cuotas</span>
           </h3>
           <p className="text-xs text-zinc-400 font-mono">
-            Marca asistencia rápida con 1 clic: Presente, Falta o Retardo. Valida estatus de pago en tiempo real.
+            Marca asistencia rápida con 1 clic: Presente, Falta o Retardo. Valida semáforo de pago y cobra en cancha.
           </p>
         </div>
 
         {/* Feedback flotante */}
         {saveFeedback && (
-          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-xs animate-fadeIn flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="px-3.5 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-xs animate-fadeIn flex items-center gap-2 shadow-lg">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>{saveFeedback}</span>
           </div>
         )}
@@ -310,9 +508,9 @@ export function AttendanceTracker({
                   type="date"
                   value={sessionDate}
                   onChange={(e) => setSessionDate(e.target.value)}
-                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-xs font-mono focus:outline-none focus:border-emerald-500"
+                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-xs font-mono focus:outline-none focus:border-emerald-500 cursor-pointer"
                 />
-                <span className="px-2.5 py-1 rounded bg-zinc-800 text-zinc-300 text-[11px] font-bold">
+                <span className="px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/30 text-xs font-bold">
                   {currentDayName}
                 </span>
               </div>
@@ -328,18 +526,18 @@ export function AttendanceTracker({
                 onClick={() => setSelectedShift('all')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   selectedShift === 'all'
-                    ? 'bg-[#ea580c] text-white'
+                    ? 'bg-[#ea580c] text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                Todos ({roster.length})
+                Todos ({studentsList.length})
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedShift('matutino_9_11')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   selectedShift === 'matutino_9_11'
-                    ? 'bg-amber-600 text-white'
+                    ? 'bg-amber-600 text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -351,7 +549,7 @@ export function AttendanceTracker({
                 onClick={() => setSelectedShift('vespertino_5_7')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   selectedShift === 'vespertino_5_7'
-                    ? 'bg-sky-600 text-white'
+                    ? 'bg-sky-600 text-white shadow-sm'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -375,24 +573,91 @@ export function AttendanceTracker({
         </div>
       </div>
 
+      {/* PESTAÑAS 1 Y 2: PROGRAMADOS HOY vs LISTA COMPLETA */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+        {/* Selector de Pestañas */}
+        <div className="flex items-center gap-2 bg-[#0a0e17] p-1.5 rounded-2xl border border-[#27272a] self-start font-mono">
+          <button
+            type="button"
+            onClick={() => setActiveTab('scheduled')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'scheduled'
+                ? 'bg-[#ea580c] text-white shadow-md shadow-orange-600/30'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <CalendarCheck className="w-3.5 h-3.5" />
+            <span>Programados para Hoy ({scheduledForTodayList.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'all'
+                ? 'bg-zinc-800 text-white shadow-md'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Lista Completa / Asistencia Libre ({studentsList.length})</span>
+          </button>
+        </div>
+
+        {/* Buscador Predictivo (Activo en ambas pestañas) */}
+        <div className="relative flex-1 sm:max-w-xs font-mono text-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Buscar atleta por nombre o dorsal..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#0a0e17] border border-[#27272a] focus:border-orange-500 focus:outline-none rounded-xl py-2 pl-9 pr-3 text-xs text-white"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Lista de Atletas para Pase de Lista */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between text-xs font-mono text-zinc-400 pb-2 border-b border-[#27272a]">
           <span className="uppercase text-[10px] font-bold">
-            Atletas en {selectedShift === 'all' ? 'Todos los Turnos' : selectedShift === 'matutino_9_11' ? 'Turno Matutino' : 'Turno Vespertino'} ({filteredRoster.length})
+            {activeTab === 'scheduled'
+              ? `Atletas Programados para ${currentDayName} (${displayList.length})`
+              : `Todos los Atletas del Club (${displayList.length})`}
           </span>
           <span className="text-[10px] text-zinc-500">
-            Sede: Deportivo Carmen Serdán CDMX
+            Sede Oficial: Deportivo Carmen Serdán CDMX
           </span>
         </div>
 
-        {filteredRoster.length === 0 ? (
-          <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a]">
-            No hay atletas asignados a este turno.
+        {displayList.length === 0 ? (
+          <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a] space-y-2">
+            <div>
+              {activeTab === 'scheduled'
+                ? `No hay atletas programados para el día ${currentDayName} con el filtro actual.`
+                : 'No se encontraron atletas con el término de búsqueda proporcionado.'}
+            </div>
+            {activeTab === 'scheduled' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('all')}
+                className="px-3.5 py-1.5 rounded-lg bg-orange-600/20 text-orange-400 border border-orange-500/40 text-xs font-bold hover:bg-orange-600/30 transition cursor-pointer"
+              >
+                Ver Lista Completa para Marcar Asistencia Libre &rarr;
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-[#27272a]">
-            {filteredRoster.map((st) => {
+            {displayList.map((st) => {
               const currentStatus = attendanceMap[st.id];
               const isUpToDate = st.finances?.status === 'al_corriente';
               const stShift = st.shift || 'matutino_9_11';
@@ -410,7 +675,7 @@ export function AttendanceTracker({
                       className="w-10 h-10 rounded-xl object-cover border border-zinc-700 flex-shrink-0"
                     />
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-white text-sm font-sans">{st.fullName}</span>
                         {st.jerseyNumber && (
                           <span className="text-[10px] bg-zinc-800 text-orange-400 font-bold px-1.5 py-0.2 rounded border border-zinc-700">
@@ -418,7 +683,7 @@ export function AttendanceTracker({
                           </span>
                         )}
                         <span className="text-[10px] text-zinc-400">
-                          {st.position} • {st.gender === 'M' ? 'Var' : 'Fem'}
+                          {st.position} • {st.gender === 'M' ? 'Varonil' : 'Femenil'}
                         </span>
                       </div>
 
@@ -448,8 +713,25 @@ export function AttendanceTracker({
                     </div>
                   </div>
 
-                  {/* Botones de 1 Clic: Presente, Falta, Retardo */}
-                  <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-center">
+                  {/* Acciones: Botón Rápido de Cobro + Botones de Asistencia */}
+                  <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-center flex-wrap">
+                    {/* Botón de Cobro Rápido en Cancha */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickPay(st)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                        !isUpToDate
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                          : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
+                      }`}
+                      title="Registrar cobro manual de clase o mensualidad"
+                    >
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-300" />
+                      <span>{!isUpToDate ? 'Cobrar Cuota' : 'Registrar Pago'}</span>
+                    </button>
+
+                    <div className="h-5 w-px bg-zinc-800 hidden sm:block" />
+
                     {/* Botón Presente (Verde) */}
                     <button
                       type="button"
@@ -501,6 +783,153 @@ export function AttendanceTracker({
           </div>
         )}
       </div>
+
+      {/* MODAL DE COBRO RÁPIDO EN CANCHA */}
+      {isQuickPayOpen && quickPayStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#121724] border border-emerald-500/40 rounded-3xl p-6 sm:p-7 max-w-md w-full font-sans shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Cobro Rápido en Cancha</h3>
+                  <p className="text-xs text-zinc-400 font-mono">Deportivo Carmen Serdán CDMX</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickPayOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuickPayment} className="mt-4 space-y-4 font-mono text-xs">
+              {/* Resumen del Atleta */}
+              <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
+                <span className="text-[10px] text-zinc-500 uppercase block">Atleta / Tutor:</span>
+                <div className="font-bold text-white text-sm mt-0.5">{quickPayStudent.fullName}</div>
+                <div className="text-[11px] text-zinc-400 mt-0.5">
+                  Tutor: {quickPayStudent.guardianName || 'Tutor de Atleta'} • {quickPayStudent.parentPhone || quickPayStudent.phone}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[10px] text-zinc-500">Saldo actual:</span>
+                  <span className="text-rose-400 font-bold">
+                    ${quickPayStudent.finances?.balanceDue || 50} MXN
+                  </span>
+                </div>
+              </div>
+
+              {/* Botones Rápidos de Monto */}
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
+                  Seleccionar Cuota:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQuickPayAmount(50)}
+                    className={`py-2 px-1 rounded-xl text-center border cursor-pointer transition ${
+                      quickPayAmount === 50
+                        ? 'bg-emerald-600 border-emerald-400 text-white font-bold shadow-md'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
+                    }`}
+                  >
+                    <div className="text-sm font-black">$50</div>
+                    <div className="text-[9px] opacity-80">1 Clase (Día)</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setQuickPayAmount(150)}
+                    className={`py-2 px-1 rounded-xl text-center border cursor-pointer transition ${
+                      quickPayAmount === 150
+                        ? 'bg-[#ea580c] border-orange-400 text-white font-bold shadow-md'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
+                    }`}
+                  >
+                    <div className="text-sm font-black">$150</div>
+                    <div className="text-[9px] opacity-80">Semanal (3 Clases)</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setQuickPayAmount(600)}
+                    className={`py-2 px-1 rounded-xl text-center border cursor-pointer transition ${
+                      quickPayAmount === 600
+                        ? 'bg-sky-600 border-sky-400 text-white font-bold shadow-md'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
+                    }`}
+                  >
+                    <div className="text-sm font-black">$600</div>
+                    <div className="text-[9px] opacity-80">Mes (12 Clases)</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Monto manual si es diferente */}
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                  Monto a Cobrar ($ MXN):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={quickPayAmount}
+                  onChange={(e) => setQuickPayAmount(Number(e.target.value) || 0)}
+                  className="w-full bg-[#0a0e17] border border-zinc-700 rounded-xl px-3 py-2 text-white font-bold text-base focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Método de Pago */}
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                  Método de Recepción:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['Efectivo', 'Transferencia', 'Stripe'] as const).map((m) => (
+                    <button
+                      type="button"
+                      key={m}
+                      onClick={() => setQuickPayMethod(m)}
+                      className={`py-1.5 px-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                        quickPayMethod === m
+                          ? 'bg-emerald-600 text-white border-emerald-400'
+                          : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
+                      }`}
+                    >
+                      {m === 'Transferencia' ? 'SPEI' : m === 'Stripe' ? 'Tarjeta' : m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickPayOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPay}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/30 cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isSavingPay ? 'Registrando...' : 'Registrar Cobro & Poner en Verde'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

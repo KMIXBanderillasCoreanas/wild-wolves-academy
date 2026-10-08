@@ -46,6 +46,7 @@ export default function AuthModal({
   const [successMsg, setSuccessMsg] = useState("");
 
   // Estado del compromiso de entrenamiento (de lunes a sábado)
+  const [frequencyType, setFrequencyType] = useState<"diario" | "cada_3er_dia" | "2_dias_semana">("cada_3er_dia");
   const [selectedDays, setSelectedDays] = useState<string[]>(["Lunes", "Miércoles", "Viernes"]);
   const [shift, setShift] = useState<"matutino_9_11" | "vespertino_5_7">("vespertino_5_7");
 
@@ -57,11 +58,35 @@ export default function AuthModal({
 
   if (!isOpen) return null;
 
+  const handleSelectFrequency = (freq: "diario" | "cada_3er_dia" | "2_dias_semana") => {
+    setFrequencyType(freq);
+    if (freq === "diario") {
+      setSelectedDays([...DAYS_OF_WEEK]);
+    } else if (freq === "cada_3er_dia") {
+      setSelectedDays(["Lunes", "Miércoles", "Viernes"]);
+    } else if (freq === "2_dias_semana") {
+      setSelectedDays(["Martes", "Jueves"]);
+    }
+  };
+
   const toggleDay = (day: string) => {
+    if (frequencyType === "diario") return; // Fijo 6 días
+
     if (selectedDays.includes(day)) {
-      if (selectedDays.length > 1) setSelectedDays(selectedDays.filter((d) => d !== day));
+      if (selectedDays.length > 1) {
+        setSelectedDays(selectedDays.filter((d) => d !== day));
+      }
     } else {
-      setSelectedDays([...selectedDays, day]);
+      if (frequencyType === "2_dias_semana") {
+        if (selectedDays.length >= 2) {
+          // Reemplaza el primer día para mantener exactamente 2
+          setSelectedDays([selectedDays[1], day]);
+        } else {
+          setSelectedDays([...selectedDays, day]);
+        }
+      } else {
+        setSelectedDays([...selectedDays, day]);
+      }
     }
   };
 
@@ -74,6 +99,7 @@ export default function AuthModal({
         localStorage.setItem("ww_target_role", targetRole);
         if (fullName) localStorage.setItem("ww_target_name", fullName);
         localStorage.setItem("ww_selected_days", JSON.stringify(selectedDays));
+        localStorage.setItem("ww_frequency_type", frequencyType);
         localStorage.setItem("ww_selected_shift", shift);
       }
       const { error } = await supabase.auth.signInWithOAuth({
@@ -191,6 +217,7 @@ export default function AuthModal({
             await supabase.from("attendance_commitments").insert({
               user_id: data.user.id,
               days_selected: selectedDays,
+              frequency_type: frequencyType,
               shift: shift,
               commitment_agreement: true,
             });
@@ -205,6 +232,7 @@ export default function AuthModal({
           localStorage.setItem("ww_user_email", email);
           if (fullName) localStorage.setItem("ww_student_name", fullName);
           localStorage.setItem("ww_selected_days", JSON.stringify(selectedDays));
+          localStorage.setItem("ww_frequency_type", frequencyType);
           localStorage.setItem("ww_selected_shift", shift);
           document.cookie = "user_role=student; path=/; max-age=86400; SameSite=Lax";
           document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
@@ -449,10 +477,10 @@ export default function AuthModal({
             </div>
           </div>
 
-          {/* MÓDULO OBLIGATORIO: DÍAS DE ENTRENAMIENTO Y HORARIO (LUNES A SÁBADO) */}
+          {/* MÓDULO FLEXIBLE DE COMPROMISO DE ENTRENAMIENTO (LUNES A SÁBADO) */}
           {isRegister && targetRole === "student" && (
-            <div className="bg-[#121724] border border-zinc-800 p-4 rounded-2xl space-y-3 mt-2">
-              <div className="flex items-center justify-between">
+            <div className="bg-[#121724] border border-zinc-800 p-4 rounded-2xl space-y-3.5 mt-2 font-sans">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#ea580c]">
                   <Calendar className="w-4 h-4" /> Compromiso de Asistencia Semanal
                 </div>
@@ -460,33 +488,117 @@ export default function AuthModal({
                   {selectedDays.length} días seleccionados
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400">
-                Selecciona los días en que el atleta asistirá (Lunes a Sábado):
-              </p>
 
-              <div className="grid grid-cols-3 gap-2">
-                {DAYS_OF_WEEK.map((day) => {
-                  const active = selectedDays.includes(day);
-                  return (
+              {/* 1. SELECTOR DE MODALIDAD / FRECUENCIA */}
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-300 mb-1.5 uppercase font-mono">
+                  1. Modalidad / Frecuencia de Asistencia:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Opción 1: Diario */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFrequency("diario")}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
+                      frequencyType === "diario"
+                        ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30 font-black"
+                        : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <div>Diario (6 Días)</div>
+                    <div className="text-[9px] opacity-80 font-normal">Lun a Sáb</div>
+                  </button>
+
+                  {/* Opción 2: Cada 3er Día */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFrequency("cada_3er_dia")}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
+                      frequencyType === "cada_3er_dia"
+                        ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30 font-black"
+                        : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <div>Cada 3er Día</div>
+                    <div className="text-[9px] opacity-80 font-normal">3 Días / Sem</div>
+                  </button>
+
+                  {/* Opción 3: 2 Días por Semana */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFrequency("2_dias_semana")}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
+                      frequencyType === "2_dias_semana"
+                        ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30 font-black"
+                        : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <div>2 Días / Sem</div>
+                    <div className="text-[9px] opacity-80 font-normal">Libre Elección</div>
+                  </button>
+                </div>
+
+                {/* Sub-presets si seleccionó 'cada_3er_dia' */}
+                {frequencyType === "cada_3er_dia" && (
+                  <div className="flex items-center gap-2 mt-2 pt-1 font-mono text-[11px]">
+                    <span className="text-zinc-500 text-[10px]">Presets rápidos:</span>
                     <button
                       type="button"
-                      key={day}
-                      onClick={() => toggleDay(day)}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                        active
-                          ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
-                          : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                      onClick={() => setSelectedDays(["Lunes", "Miércoles", "Viernes"])}
+                      className={`px-2 py-1 rounded-lg border cursor-pointer transition ${
+                        selectedDays.join(",") === "Lunes,Miércoles,Viernes"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold"
+                          : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                       }`}
                     >
-                      {day}
+                      [Lun - Mié - Vie]
                     </button>
-                  );
-                })}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDays(["Martes", "Jueves", "Sábado"])}
+                      className={`px-2 py-1 rounded-lg border cursor-pointer transition ${
+                        selectedDays.join(",") === "Martes,Jueves,Sábado"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold"
+                          : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                      }`}
+                    >
+                      [Mar - Jue - Sáb]
+                    </button>
+                  </div>
+                )}
               </div>
 
+              {/* DÍAS ACTIVOS EN LA SEMANA */}
+              <div>
+                <span className="block text-[11px] font-semibold text-zinc-300 mb-1.5 uppercase font-mono">
+                  Días Asignados ({selectedDays.length} días):
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {DAYS_OF_WEEK.map((day) => {
+                    const active = selectedDays.includes(day);
+                    return (
+                      <button
+                        type="button"
+                        key={day}
+                        onClick={() => toggleDay(day)}
+                        disabled={frequencyType === "diario"}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                          active
+                            ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
+                            : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                        } ${frequencyType === "diario" ? "cursor-default" : ""}`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. SELECTOR DE TURNO */}
               <div className="pt-2 border-t border-zinc-800/80">
-                <span className="block text-[11px] font-semibold text-zinc-400 mb-2 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-[#f97316]" /> Turno de Entrenamiento:
+                <span className="block text-[11px] font-semibold text-zinc-300 mb-2 flex items-center gap-1.5 uppercase font-mono">
+                  <Clock className="w-3.5 h-3.5 text-[#f97316]" /> 2. Turno de Entrenamiento:
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -494,7 +606,7 @@ export default function AuthModal({
                     onClick={() => setShift("matutino_9_11")}
                     className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
                       shift === "matutino_9_11"
-                        ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
+                        ? "bg-amber-600 border-amber-500 text-white shadow-md shadow-amber-600/30"
                         : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
                     }`}
                   >

@@ -118,6 +118,14 @@ export default function CoachDashboardPage() {
         setStudents(remoteList);
       }
     });
+
+    const handlePaymentRecorded = () => {
+      setStudents(HoopStore.getStudents());
+    };
+    window.addEventListener('payment_recorded', handlePaymentRecorded);
+    return () => {
+      window.removeEventListener('payment_recorded', handlePaymentRecorded);
+    };
   }, []);
 
   // Filtrado de atletas en el roster
@@ -591,6 +599,9 @@ export default function CoachDashboardPage() {
             allStudents={students}
             readOnly={false}
             onRecordDailyAttendance={handleRecordDailyAttendance}
+            onPaymentRecorded={() => {
+              setStudents(HoopStore.getStudents());
+            }}
           />
 
           {/* 3. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}

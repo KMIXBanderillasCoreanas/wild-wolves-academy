@@ -160,7 +160,12 @@ export default function MasterBunkerHQ() {
     if (authenticated) {
       fetchData();
     }
-  }, [authenticated, fetchData]);
+    const handlePaymentRecorded = () => {
+      loadLocalFinancials();
+    };
+    window.addEventListener("payment_recorded", handlePaymentRecorded);
+    return () => window.removeEventListener("payment_recorded", handlePaymentRecorded);
+  }, [authenticated, fetchData, loadLocalFinancials]);
 
   const approveCoach = async (userId: string) => {
     try {
@@ -193,7 +198,7 @@ export default function MasterBunkerHQ() {
     }
   };
 
-  // REGISTRAR PAGO MANUAL (Efectivo o Transferencia)
+  // REGISTRAR PAGO MANUAL (Efectivo, Transferencia o Tarjeta)
   const handleRegisterManualPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     const st = students.find((s) => s.id === manualPayStudentId);
@@ -248,12 +253,23 @@ export default function MasterBunkerHQ() {
     setIsPayModalOpen(false);
   };
 
-  // ENLACE DIRECTO DE WHATSAPP PARA RECORDATORIO
+  // ENLACE DIRECTO DE WHATSAPP PARA RECORDATORIO DESDE RECIBO
   const handleWhatsAppReminder = (payment: PaymentRecord) => {
     const rawPhone = payment.guardianPhone || "5522427769";
     const phone = rawPhone.replace(/[^0-9]/g, "");
     const cleanPhone = phone.startsWith("52") ? phone : `52${phone}`;
     const text = `Hola ${payment.guardianName}, recordatorio de pago de mensualidad Wild Wolves de ${payment.studentName}. Cuota: $${payment.amount} MXN. Sede: Deportivo Carmen Serdán (CDMX). Puedes regularizar mediante Efectivo en cancha o Transferencia SPEI. ¡Muchas gracias por el apoyo al atleta! 🐺🏀`;
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  };
+
+  // ENLACE DIRECTO DE WHATSAPP PARA COBRO DE ALUMNO MOROSO
+  const handleWhatsAppCollectDebt = (st: StudentProfile) => {
+    const guardian = st.guardianName || st.medicalNotes?.emergencyContact || "Tutor del Atleta";
+    const rawPhone = st.parentPhone || st.phone || "5522427769";
+    const phone = rawPhone.replace(/[^0-9]/g, "");
+    const cleanPhone = phone.startsWith("52") ? phone : `52${phone}`;
+    const amount = st.finances?.balanceDue || 50;
+    const text = `Hola ${guardian}, recordatorio de pago de mensualidad Wild Wolves de ${st.fullName}. Cuota pendiente: $${amount} MXN. Sede: Deportivo Carmen Serdán (CDMX). Puedes regularizar directamente en la cancha (Efectivo) o vía SPEI. ¡Agradecemos tu compromiso con el crecimiento del atleta! 🐺🏀`;
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -529,6 +545,99 @@ export default function MasterBunkerHQ() {
               </div>
             </div>
 
+            {/* SECCIÓN DEDICADA: LISTA DE MOROSIDAD & GESTIÓN DE COBRANZA */}
+            <div className="bg-[#0d1017] border border-rose-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <span>Lista de Morosidad &amp; Alumnos con Adeudo</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                        {students.filter((s) => s.finances?.status !== "al_corriente" || (s.finances?.balanceDue || 0) > 0).length} Pendientes
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-zinc-400 font-mono">
+                      Atletas que adeudan cuota en el periodo actual. Envía mensaje de cobro directo a su tutor por WhatsApp o liquida en 1 clic.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {students.filter((s) => s.finances?.status !== "al_corriente" || (s.finances?.balanceDue || 0) > 0).length === 0 ? (
+                <div className="py-6 px-4 bg-[#121724]/60 rounded-xl border border-emerald-500/20 text-center font-mono text-xs text-emerald-400 flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>¡Excelente! Todos los atletas registrados se encuentran al corriente de pago ($0 adeudo).</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {students
+                    .filter((s) => s.finances?.status !== "al_corriente" || (s.finances?.balanceDue || 0) > 0)
+                    .map((st) => (
+                      <div
+                        key={st.id}
+                        className="bg-[#121724] border border-rose-500/20 hover:border-rose-500/40 rounded-xl p-4 flex flex-col justify-between gap-3 transition"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <img
+                              src={st.avatarUrl || "/logo-official.png"}
+                              alt={st.fullName}
+                              className="w-10 h-10 rounded-lg object-cover border border-zinc-700 flex-shrink-0"
+                            />
+                            <div>
+                              <div className="font-bold text-white text-xs">{st.fullName}</div>
+                              <div className="text-[10px] text-zinc-400 font-mono">
+                                Tutor: {st.guardianName || "Tutor"}
+                              </div>
+                              <div className="text-[10px] text-zinc-500 font-mono">
+                                {st.parentPhone || st.phone || "5522427769"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded block">
+                              ${st.finances?.balanceDue || 50} MXN
+                            </span>
+                            <span className="text-[9px] text-zinc-500 font-mono uppercase block mt-0.5">
+                              {st.finances?.frequency === "al_dia" ? "Por Clase" : st.finances?.frequency === "semanal" ? "Semanal" : "Mensual"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/80">
+                          <button
+                            type="button"
+                            onClick={() => handleWhatsAppCollectDebt(st)}
+                            className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Cobrar por WhatsApp</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualPayStudentId(st.id);
+                              setManualPayAmount(st.finances?.balanceDue || 50);
+                              setIsPayModalOpen(true);
+                            }}
+                            className="py-1.5 px-2.5 rounded-lg bg-[#ea580c] hover:bg-[#c2410c] text-white text-[10px] font-mono font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                            title="Registrar cobro manual"
+                          >
+                            <DollarSign className="w-3.5 h-3.5" />
+                            <span>Cobrar</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
             {/* Acciones de Cobranza & Encabezado */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
               <div>
@@ -660,6 +769,10 @@ export default function MasterBunkerHQ() {
               allStudents={students}
               readOnly={false}
               onRecordAttendance={() => fetchData()}
+              onPaymentRecorded={() => {
+                fetchData();
+                loadLocalFinancials();
+              }}
             />
           </div>
         )}
@@ -866,7 +979,7 @@ export default function MasterBunkerHQ() {
               {/* Método */}
               <div>
                 <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">Método de Pago:</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setManualPayMethod("Efectivo")}
@@ -876,7 +989,7 @@ export default function MasterBunkerHQ() {
                         : "bg-zinc-800 text-zinc-400 hover:text-white"
                     }`}
                   >
-                    <span>Efectivo en Cancha</span>
+                    <span>Efectivo</span>
                   </button>
                   <button
                     type="button"
@@ -887,7 +1000,18 @@ export default function MasterBunkerHQ() {
                         : "bg-zinc-800 text-zinc-400 hover:text-white"
                     }`}
                   >
-                    <span>Transferencia SPEI</span>
+                    <span>SPEI</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManualPayMethod("Stripe")}
+                    className={`py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      manualPayMethod === "Stripe"
+                        ? "bg-purple-600 text-white ring-2 ring-purple-400"
+                        : "bg-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <span>Stripe / Tarjeta</span>
                   </button>
                 </div>
               </div>
