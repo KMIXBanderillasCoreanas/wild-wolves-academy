@@ -5,29 +5,12 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const userRole = request.cookies.get('user_role')?.value;
 
-  // 1. Guard Coach Dashboard: Only accessible by users with role 'coach'
+  // 1. Proteger el panel de Entrenador (Coach) contra accesos indebidos de rol 'student'
   if (pathname.startsWith('/dashboard-coach')) {
-    if (!userRole) {
-      // Unauthenticated, redirect to login
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', '/dashboard-coach');
-      return NextResponse.redirect(loginUrl);
-    }
-
-    if (userRole !== 'coach') {
-      // Role is student, redirect to student dashboard with error
+    if (userRole === 'student') {
       const studentUrl = new URL('/dashboard-student', request.url);
       studentUrl.searchParams.set('denied', 'coach_area_restricted');
       return NextResponse.redirect(studentUrl);
-    }
-  }
-
-  // 2. Guard Student Dashboard: Requires authentication
-  if (pathname.startsWith('/dashboard-student')) {
-    if (!userRole) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', '/dashboard-student');
-      return NextResponse.redirect(loginUrl);
     }
   }
 
@@ -35,8 +18,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/dashboard-coach/:path*',
-    '/dashboard-student/:path*',
-  ],
+  matcher: ['/dashboard-coach/:path*', '/dashboard-student/:path*'],
 };
