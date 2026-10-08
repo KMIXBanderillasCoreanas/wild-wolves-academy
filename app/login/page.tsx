@@ -28,7 +28,7 @@ import {
 
 type RolePortal = "student" | "coach" | "superadmin";
 
-export default function UnifiedLoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -746,3 +746,18 @@ export default function UnifiedLoginPage() {
     </div>
   );
 }
+
+export default function UnifiedLoginPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="min-h-screen bg-[#07090e] text-zinc-400 flex items-center justify-center font-mono text-xs">
+          Cargando consola Wild Wolves CDMX...
+        </div>
+      }
+    >
+      <LoginContent />
+    </React.Suspense>
+  );
+}
+
