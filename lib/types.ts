@@ -10,7 +10,7 @@ export type PaymentFrequency = 'al_dia' | 'semanal' | 'mensual';
 
 export type PaymentStatus = 'al_corriente' | 'pendiente';
 
-export type AuthProvider = 'google' | 'email' | 'whatsapp' | 'apple' | 'demo';
+export type AuthProvider = 'google' | 'email' | 'whatsapp' | 'apple' | 'demo' | 'supabase';
 
 export interface BasketballMetrics {
   freeThrow: number;    // % tiros libres (base 20 tiros) (0-100)

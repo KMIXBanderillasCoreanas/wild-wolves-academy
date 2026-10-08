@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 import { HoopStore } from '@/lib/store';
 import { 
   StudentProfile, 
@@ -108,6 +109,37 @@ export default function CoachDashboardPage() {
     } else {
       setCurrentRole('coach');
     }
+
+    // Sincronización en vivo con Supabase Auth
+    supabase.auth.getUser().then(async ({ data }) => {
+      const authUser = data?.user;
+      if (authUser) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+
+          const isDirector = 
+            authUser.email === 'ricardo@wildwolves.mx' || 
+            authUser.email === 'carlos@wildwolves.mx' ||
+            authUser.email?.toLowerCase().includes('wildwolvescdmx');
+
+          const role = profile?.role || (isDirector ? 'superadmin' : 'coach');
+          setCurrentRole(role === 'superadmin' ? 'superadmin' : 'coach');
+
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('ww_user_role', role);
+            localStorage.setItem('ww_user_email', authUser.email || '');
+            document.cookie = `user_role=${role}; path=/; max-age=86400; SameSite=Lax`;
+            document.cookie = `user_email=${encodeURIComponent(authUser.email || '')}; path=/; max-age=86400; SameSite=Lax`;
+          }
+        } catch (e) {
+          console.warn('Profile sync in dashboard-coach:', e);
+        }
+      }
+    });
 
     const list = HoopStore.getStudents();
     setStudents(list);

@@ -74,8 +74,7 @@ export default function WildWolvesHome() {
   };
 
   const openLoginModal = () => {
-    setAuthMode("login");
-    setIsModalOpen(true);
+    router.push("/login");
   };
 
   const categories = [
@@ -229,18 +228,18 @@ export default function WildWolvesHome() {
           >
             <MessageCircle className="w-4 h-4" /> Coach Ricardo
           </a>
-          <button
-            onClick={openLoginModal}
+          <Link
+            href="/login"
             className="text-zinc-300 hover:text-white text-xs font-semibold px-2.5 sm:px-3 py-2 transition"
           >
             Iniciar Sesión
-          </button>
-          <button
-            onClick={openRegisterModal}
+          </Link>
+          <Link
+            href="/login?mode=register"
             className="bg-gradient-to-r from-[#ea580c] to-[#f97316] hover:brightness-110 text-white font-bold text-xs px-3.5 sm:px-4 py-2.5 rounded-xl transition shadow-lg shadow-[#ea580c]/25 flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
             <span>Crear Cuenta</span> <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          </Link>
         </div>
       </header>
 

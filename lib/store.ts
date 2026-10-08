@@ -596,7 +596,10 @@ export const HoopStore = {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      localStorage.setItem('ww_user_role', user.role);
+      localStorage.setItem('ww_user_email', user.email);
       document.cookie = `user_role=${user.role}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `user_email=${encodeURIComponent(user.email)}; path=/; max-age=86400; SameSite=Lax`;
       window.dispatchEvent(new Event('auth_changed'));
     } catch (e) {
       console.error('Error al guardar sesión', e);

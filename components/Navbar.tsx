@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { HoopStore } from '@/lib/store';
+import { supabase } from '@/lib/supabaseClient';
 import { User } from '@/lib/types';
 import { 
   Flame, 
@@ -50,13 +51,16 @@ export function Navbar() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
     HoopStore.logout();
     setCurrentUser(null);
     router.push('/login');
   };
 
-  const isCoach = currentUser?.role === 'coach';
+  const isStaff = currentUser?.role === 'coach' || currentUser?.role === 'superadmin';
 
   // No mostrar Navbar en la portada pública ni en los portales de acceso aislados
   if (
@@ -214,7 +218,7 @@ export function Navbar() {
           >
             Portal Alumno (Lectura)
           </Link>
-          {isCoach && (
+          {isStaff && (
             <Link
               href="/dashboard-coach"
               className={`px-3 py-1.5 rounded-lg transition-colors ${
@@ -224,6 +228,18 @@ export function Navbar() {
               }`}
             >
               Panel Coach (Admin)
+            </Link>
+          )}
+          {currentUser?.role === 'superadmin' && (
+            <Link
+              href="/master-bunker-hq"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                pathname.startsWith('/master-bunker-hq')
+                  ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              Búnker Central
             </Link>
           )}
         </div>

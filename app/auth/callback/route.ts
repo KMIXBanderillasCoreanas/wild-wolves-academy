@@ -21,6 +21,24 @@ export async function GET(request: Request) {
 
           if (profile?.role) {
             role = profile.role;
+          } else {
+            // Auto registrar en profiles si es primer inicio con Google
+            const email = data.user.email || "";
+            const isMasterAdmin = 
+              email === "ricardo@wildwolves.mx" || 
+              email === "carlos@wildwolves.mx" || 
+              email === "director@wildwolves.mx" ||
+              email.toLowerCase().includes("wildwolvescdmx");
+
+            role = isMasterAdmin ? "superadmin" : (targetRole || "student");
+
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email: email,
+              full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || "Atleta Wild Wolves",
+              role: role,
+              status: "active",
+            });
           }
         } catch (e) {
           console.warn("Aviso al consultar profile en callback:", e);
