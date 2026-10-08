@@ -17,9 +17,16 @@ import {
   Eye,
   EyeOff,
   UserCheck,
-  CheckCircle2
+  CheckCircle2,
+  Wifi,
+  WifiOff,
+  CloudUpload
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
+import { 
+  syncOfflineQueueToSupabase, 
+  getOfflineQueueCount 
+} from "@/lib/offlineSync";
 
 export default function MasterBunkerHQ() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -31,6 +38,14 @@ export default function MasterBunkerHQ() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  
+  // Estado Offline-First
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    if (typeof window !== "undefined") return navigator.onLine;
+    return true;
+  });
+  const [queueCount, setQueueCount] = useState<number>(0);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Métricas financieras calculadas
   const [metrics, setMetrics] = useState({
@@ -157,15 +172,47 @@ export default function MasterBunkerHQ() {
     }
   }, []);
 
-  // Escuchar eventos de cobros en tiempo real para actualizar métricas de inmediato
+  // Escuchar eventos de cobros y sincronización offline en tiempo real
   useEffect(() => {
     if (!authenticated) return;
-    const handlePayment = () => {
+
+    const handleRefresh = () => {
       fetchDashboardData();
     };
-    window.addEventListener("payment_recorded", handlePayment);
+
+    const handleOnline = async () => {
+      setIsOnline(true);
+      setIsSyncing(true);
+      try {
+        await syncOfflineQueueToSupabase();
+        fetchDashboardData();
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    const handleQueueUpdated = (e: any) => {
+      setQueueCount(e.detail?.count ?? getOfflineQueueCount());
+    };
+
+    window.addEventListener("payment_recorded", handleRefresh);
+    window.addEventListener("offline_queue_synced", handleRefresh);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("offline_queue_updated", handleQueueUpdated as EventListener);
+
+    setQueueCount(getOfflineQueueCount());
+
     return () => {
-      window.removeEventListener("payment_recorded", handlePayment);
+      window.removeEventListener("payment_recorded", handleRefresh);
+      window.removeEventListener("offline_queue_synced", handleRefresh);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("offline_queue_updated", handleQueueUpdated as EventListener);
     };
   }, [authenticated, fetchDashboardData]);
 
@@ -244,12 +291,41 @@ export default function MasterBunkerHQ() {
       {/* HEADER BÚNKER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
         <div>
-          <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase font-bold">
-            {adminLabel} • SEDE CARMEN SERDÁN
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase font-bold">
+              {adminLabel} • SEDE CARMEN SERDÁN
+            </span>
+            {isOnline ? (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                <Wifi className="w-3 h-3" /> Online
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                <WifiOff className="w-3 h-3" /> Cancha Offline
+              </span>
+            )}
+          </div>
           <h1 className="text-3xl font-black uppercase text-white mt-2 tracking-tight">Panel Central de Dirección</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {isOnline && queueCount > 0 && (
+            <button
+              onClick={async () => {
+                setIsSyncing(true);
+                try {
+                  await syncOfflineQueueToSupabase();
+                  fetchDashboardData();
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 text-xs bg-sky-500 hover:bg-sky-400 text-black px-3.5 py-2.5 rounded-xl font-black transition cursor-pointer shadow-md disabled:opacity-50"
+            >
+              <CloudUpload className={`w-3.5 h-3.5 ${isSyncing ? "animate-bounce" : ""}`} />
+              Sincronizar ({queueCount})
+            </button>
+          )}
           <button
             onClick={fetchDashboardData}
             className="flex items-center gap-2 text-xs bg-[#161b26] border border-zinc-700 px-4 py-2.5 rounded-xl text-zinc-300 hover:text-white transition cursor-pointer font-bold"

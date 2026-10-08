@@ -15,8 +15,20 @@ import {
   UserCheck,
   RefreshCw,
   Sparkles,
-  X
+  X,
+  Wifi,
+  WifiOff,
+  CloudUpload,
+  Layers
 } from "lucide-react";
+import {
+  cacheRosterLocally,
+  getCachedRoster,
+  enqueueOfflineAction,
+  getOfflineQueueCount,
+  syncOfflineQueueToSupabase,
+  generateUUID
+} from "@/lib/offlineSync";
 
 export interface StudentItem {
   id: string;
@@ -37,6 +49,7 @@ export interface StudentItem {
     id: string;
     status: "presente" | "falta" | "retardo" | "justificado";
   };
+  isOfflinePending?: boolean;
 }
 
 export interface AttendanceTrackerProps {
@@ -53,11 +66,24 @@ export default function AttendanceTracker({
   onRecordDailyAttendance,
   onPaymentRecorded,
 }: AttendanceTrackerProps = {}) {
+  // 1. Estados de Datos
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"scheduled" | "all">("scheduled");
   const [selectedShift, setSelectedShift] = useState<"matutino_9_11" | "vespertino_5_7">("vespertino_5_7");
+  
+  // 2. Estados de Red y Sincronización Offline-First
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return navigator.onLine;
+    }
+    return true;
+  });
+  const [queueCount, setQueueCount] = useState<number>(() => getOfflineQueueCount());
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // 3. Modal de Cobro
   const [paymentModalUser, setPaymentModalUser] = useState<StudentItem | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(50);
   const [paymentMethod, setPaymentMethod] = useState<"efectivo" | "transferencia">("efectivo");
@@ -71,20 +97,39 @@ export default function AttendanceTracker({
 
   const showNotification = (msg: string) => {
     setFeedbackMsg(msg);
-    setTimeout(() => setFeedbackMsg(null), 3500);
+    setTimeout(() => setFeedbackMsg(null), 4000);
   };
 
+  // 4. Carga Resiliente de Roster (Supabase Online -> Caché Local Offline -> Fallback HoopStore)
   const fetchRoster = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Obtener perfiles de estudiantes de Supabase
+      // Si estamos explícitamente offline, usar caché local inmediato
+      if (typeof window !== "undefined" && !navigator.onLine) {
+        const cached = getCachedRoster();
+        if (cached && cached.length > 0) {
+          setStudents(cached);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 1. Intentar consulta en Supabase
       const { data: profilesData, error: profilesErr } = await supabase
         .from("profiles")
         .select("id, full_name, email")
         .eq("role", "student");
 
-      // Si Supabase aún no tiene perfiles en la nube o hay error de conexión, usamos fallback local de HoopStore
       if (profilesErr || !profilesData || profilesData.length === 0) {
+        // Fallback a caché local previo
+        const cached = getCachedRoster();
+        if (cached && cached.length > 0) {
+          setStudents(cached);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback a HoopStore para tests y arranque
         const localList = HoopStore.getStudents();
         if (localList.length > 0) {
           const formattedLocal: StudentItem[] = localList.map((st) => {
@@ -108,6 +153,7 @@ export default function AttendanceTracker({
             };
           });
           setStudents(formattedLocal);
+          cacheRosterLocally(formattedLocal);
         } else {
           setStudents([]);
         }
@@ -115,18 +161,18 @@ export default function AttendanceTracker({
         return;
       }
 
-      // 2. Obtener compromisos de asistencia
+      // 2. Compromisos
       const { data: commitmentsData } = await supabase
         .from("attendance_commitments")
         .select("user_id, days_selected, shift, frequency_type");
 
-      // 3. Obtener asistencias de hoy
+      // 3. Asistencias de hoy
       const { data: attendanceData } = await supabase
         .from("daily_attendance")
         .select("id, student_id, status, shift")
         .eq("date", todayDateString);
 
-      // 4. Obtener pagos históricos de membresía
+      // 4. Pagos históricos
       const { data: paymentsData } = await supabase
         .from("membership_payments")
         .select("student_id, payment_date, status, concept, amount")
@@ -157,138 +203,249 @@ export default function AttendanceTracker({
       });
 
       setStudents(formatted);
+      // Guardar copia local idéntica para blindaje sin conexión
+      cacheRosterLocally(formatted);
     } catch (err) {
-      console.error("Error al cargar lista de atletas:", err);
+      console.warn("Fallo de red al consultar Supabase, usando caché local:", err);
+      const cached = getCachedRoster();
+      if (cached && cached.length > 0) {
+        setStudents(cached);
+      }
     } finally {
       setLoading(false);
     }
   }, [selectedShift, todayDateString]);
 
+  // 5. Manejador de Sincronización Automática al Reconectar
+  const handleTriggerSync = useCallback(async () => {
+    if (typeof window === "undefined" || !navigator.onLine) return;
+    setIsSyncing(true);
+    try {
+      const result = await syncOfflineQueueToSupabase((count) => {
+        showNotification(`⚡ ¡${count} registro${count > 1 ? "s" : ""} sincronizado${count > 1 ? "s" : ""} con éxito en la nube!`);
+      });
+      setQueueCount(result.failed);
+      if (result.synced > 0) {
+        fetchRoster();
+      }
+    } catch (err) {
+      console.error("Error al sincronizar cola offline:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [fetchRoster]);
+
+  // 6. Listeners Globales de Estado de Conexión y Eventos de Cola
   useEffect(() => {
     fetchRoster();
   }, [fetchRoster]);
 
-  // Marcado rápido de asistencia
+  useEffect(() => {
+    const onOnline = () => {
+      setIsOnline(true);
+      showNotification("🌐 Conexión a Internet restablecida. Vaciando cola offline...");
+      handleTriggerSync();
+    };
+
+    const onOffline = () => {
+      setIsOnline(false);
+      showNotification("⚡ Modo Cancha Offline Activo. Las acciones se guardarán localmente.");
+    };
+
+    const onQueueUpdated = (e: any) => {
+      setQueueCount(e.detail?.count ?? getOfflineQueueCount());
+    };
+
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    window.addEventListener("offline_queue_updated", onQueueUpdated as EventListener);
+
+    // Revisar cola pendiente al montar
+    setQueueCount(getOfflineQueueCount());
+    if (navigator.onLine && getOfflineQueueCount() > 0) {
+      handleTriggerSync();
+    }
+
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("offline_queue_updated", onQueueUpdated as EventListener);
+    };
+  }, [handleTriggerSync]);
+
+  // 7. Marcado de Asistencia (Optimistic UI + Fallback Offline)
   const markAttendance = async (studentId: string, status: "presente" | "falta" | "retardo") => {
     if (readOnly) return;
+    
+    // A) Actualización Optimista Instantánea en la UI
+    const targetStudent = students.find((s) => s.id === studentId);
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.id === studentId
+          ? {
+              ...s,
+              attendanceToday: { id: generateUUID(), status },
+              isOfflinePending: !isOnline,
+            }
+          : s
+      )
+    );
+
+    // B) Confeti si está presente
+    if (status === "presente") {
+      confetti({
+        particleCount: 25,
+        spread: 60,
+        origin: { y: 0.8 },
+        colors: ["#22c55e", "#ea580c", "#38bdf8"],
+      });
+    }
+
+    // C) Persistencia en HoopStore para consistencia local
+    HoopStore.recordDailyAttendance(
+      studentId,
+      todayDateString,
+      selectedShift,
+      status,
+      "Pase de lista oficial en cancha"
+    );
+
+    if (onRecordDailyAttendance) {
+      onRecordDailyAttendance(studentId, todayDateString, selectedShift, status);
+    }
+
+    const payload = {
+      student_id: studentId,
+      date: todayDateString,
+      shift: selectedShift,
+      status: status,
+    };
+
+    // D) Si NO hay red: Encolar localmente
+    if (!navigator.onLine) {
+      enqueueOfflineAction("ATTENDANCE", payload);
+      setQueueCount(getOfflineQueueCount());
+      showNotification(`⚡ Asistencia guardada localmente (${status.toUpperCase()}) • Pendiente de Sync`);
+      return;
+    }
+
+    // E) Si hay red: Guardar en Supabase directamente
     try {
-      // Intentar persistencia en Supabase daily_attendance
       const { error } = await supabase
         .from("daily_attendance")
-        .upsert(
-          {
-            student_id: studentId,
-            date: todayDateString,
-            shift: selectedShift,
-            status: status
-          },
-          { onConflict: "student_id,date,shift" }
-        );
+        .upsert(payload, { onConflict: "student_id,date,shift" });
 
       if (error) {
-        console.warn("Supabase upsert daily_attendance fallback:", error.message);
+        throw error;
       }
-
-      // Sincronizar en HoopStore local para continuidad offline
-      HoopStore.recordDailyAttendance(
-        studentId,
-        todayDateString,
-        selectedShift,
-        status,
-        "Pase de lista oficial en cancha"
-      );
-
-      if (onRecordDailyAttendance) {
-        onRecordDailyAttendance(
-          studentId,
-          todayDateString,
-          selectedShift,
-          status
-        );
-      }
-
-      // Celebración visual si está presente
-      if (status === "presente") {
-        confetti({
-          particleCount: 25,
-          spread: 60,
-          origin: { y: 0.8 },
-          colors: ["#22c55e", "#ea580c", "#38bdf8"]
-        });
-      }
-
-      showNotification(`Asistencia registrada: ${status.toUpperCase()}`);
-      fetchRoster();
+      showNotification(`Asistencia confirmada en la nube: ${status.toUpperCase()}`);
     } catch (err: any) {
-      alert("Error al marcar asistencia: " + err.message);
+      console.warn("Fallo en Supabase, encolando offline:", err?.message);
+      enqueueOfflineAction("ATTENDANCE", payload);
+      setQueueCount(getOfflineQueueCount());
+      showNotification(`⚡ Conexión inestable: Asistencia guardada localmente • Pendiente de Sync`);
     }
   };
 
-  // Registro de cobro en cancha
+  // 8. Registro de Cobro en Cancha (Optimistic UI + Fallback Offline)
   const handleRegisterPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentModalUser) return;
     setProcessingPayment(true);
 
+    const paymentId = generateUUID();
+    const studentName = paymentModalUser.full_name;
+    const targetId = paymentModalUser.id;
+
+    // A) Actualización Optimista Instantánea en la UI
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.id === targetId
+          ? {
+              ...s,
+              lastPayment: {
+                payment_date: todayDateString,
+                status: "pagado",
+                concept: paymentConcept,
+                amount: paymentAmount,
+              },
+              isOfflinePending: !isOnline,
+            }
+          : s
+      )
+    );
+
+    // B) Confeti festivo
+    confetti({
+      particleCount: 50,
+      spread: 70,
+      origin: { y: 0.7 },
+      colors: ["#ea580c", "#22c55e", "#fbbf24"],
+    });
+
+    // C) Actualizar HoopStore local
+    const paymentRecord = {
+      id: paymentId,
+      studentId: targetId,
+      studentName: studentName,
+      guardianName: "Tutor de Atleta",
+      amount: paymentAmount,
+      date: todayDateString,
+      method: (paymentMethod === "efectivo" ? "Efectivo" : "Transferencia") as "Efectivo" | "Transferencia",
+      status: "Pagado" as const,
+      concept: paymentConcept === "clase_individual" ? "Por Clase (Día)" : paymentConcept === "semanal" ? "Semanal (3 Clases)" : "Mensualidad Completa",
+    };
+
+    HoopStore.recordPayment(
+      targetId,
+      paymentAmount,
+      paymentMethod === "efectivo" ? "Efectivo" : "Transferencia"
+    );
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("payment_recorded"));
+    }
+
+    if (onPaymentRecorded) {
+      onPaymentRecorded(paymentRecord);
+    }
+
+    setPaymentModalUser(null);
+    setProcessingPayment(false);
+
+    const payload = {
+      id: paymentId,
+      student_id: targetId,
+      amount: paymentAmount,
+      payment_date: todayDateString,
+      payment_method: paymentMethod,
+      concept: paymentConcept,
+      status: "pagado",
+    };
+
+    // D) Si NO hay red: Encolar cobro localmente
+    if (!navigator.onLine) {
+      enqueueOfflineAction("PAYMENT", payload);
+      setQueueCount(getOfflineQueueCount());
+      showNotification(`⚡ Cobro de $${paymentAmount} MXN guardado en el teléfono • Pendiente de Sync`);
+      return;
+    }
+
+    // E) Si hay red: Subir a Supabase
     try {
-      // 1. Inserción en Supabase membership_payments
-      const { error } = await supabase.from("membership_payments").insert({
-        student_id: paymentModalUser.id,
-        amount: paymentAmount,
-        payment_date: todayDateString,
-        payment_method: paymentMethod,
-        concept: paymentConcept,
-        status: "pagado"
+      const { error } = await supabase.from("membership_payments").upsert(payload, {
+        onConflict: "id",
       });
 
       if (error) {
-        console.warn("Supabase insert membership_payments fallback:", error.message);
+        throw error;
       }
-
-      // 2. Registrar en HoopStore local para actualizar semáforo y analíticas
-      const studentName = paymentModalUser.full_name;
-      const paymentRecord = {
-        id: `pay-${Date.now()}`,
-        studentId: paymentModalUser.id,
-        studentName: studentName,
-        guardianName: "Tutor de Atleta",
-        amount: paymentAmount,
-        date: todayDateString,
-        method: (paymentMethod === "efectivo" ? "Efectivo" : "Transferencia") as "Efectivo" | "Transferencia",
-        status: "Pagado" as const,
-        concept: paymentConcept === "clase_individual" ? "Por Clase (Día)" : paymentConcept === "semanal" ? "Semanal (3 Clases)" : "Mensualidad Completa",
-      };
-
-      HoopStore.recordPayment(
-        paymentModalUser.id,
-        paymentAmount,
-        paymentMethod === "efectivo" ? "Efectivo" : "Transferencia"
-      );
-
-      // 3. Disparar evento global para sincronizar el Búnker y Dashboards sin recargar
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("payment_recorded"));
-      }
-
-      if (onPaymentRecorded) {
-        onPaymentRecorded(paymentRecord);
-      }
-
-      // 4. Confeti festivo
-      confetti({
-        particleCount: 50,
-        spread: 70,
-        origin: { y: 0.7 },
-        colors: ["#ea580c", "#22c55e", "#fbbf24"]
-      });
-
-      showNotification(`Pago de $${paymentAmount} MXN registrado correctamente`);
-      setPaymentModalUser(null);
-      fetchRoster();
+      showNotification(`Pago de $${paymentAmount} MXN confirmado en la nube`);
     } catch (err: any) {
-      alert("Error registrando cobro: " + err.message);
-    } finally {
-      setProcessingPayment(false);
+      console.warn("Fallo al subir cobro a Supabase, encolando offline:", err?.message);
+      enqueueOfflineAction("PAYMENT", payload);
+      setQueueCount(getOfflineQueueCount());
+      showNotification(`⚡ Cobro de $${paymentAmount} MXN respaldado en el teléfono • Pendiente de Sync`);
     }
   };
 
@@ -311,12 +468,62 @@ export default function AttendanceTracker({
 
   return (
     <div className="w-full bg-[#0d1017] border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl text-white">
-      {/* Toast Feedback */}
+      {/* Toast Feedback Dinámico */}
       {feedbackMsg && (
-        <div className="mb-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between animate-fade-in">
+        <div className="mb-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between animate-fade-in shadow-lg">
           <span>{feedbackMsg}</span>
-          <button onClick={() => setFeedbackMsg(null)} className="text-zinc-400 hover:text-white">
+          <button onClick={() => setFeedbackMsg(null)} className="text-zinc-400 hover:text-white cursor-pointer">
             <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* BANNER 1: CANCHA SIN CONEXIÓN (OFFLINE) */}
+      {!isOnline && (
+        <div className="mb-5 bg-gradient-to-r from-amber-950/70 via-amber-900/50 to-[#0d1017] border border-amber-500/40 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-200 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/20 rounded-xl text-amber-400 border border-amber-500/30">
+              <WifiOff className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-amber-300">
+                Modo Cancha Offline Activo
+              </h4>
+              <p className="text-[11px] text-zinc-300 mt-0.5 font-sans">
+                Sin señal en el Deportivo. Las asistencias y cobros se guardan en tu celular y se subirán en automático al recuperar internet.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30 shrink-0">
+            {queueCount} en cola
+          </span>
+        </div>
+      )}
+
+      {/* BANNER 2: REGISTROS PENDIENTES DE SINCRONIZAR (CUANDO HAY RED) */}
+      {isOnline && queueCount > 0 && (
+        <div className="mb-5 bg-gradient-to-r from-sky-950/70 via-sky-900/40 to-[#0d1017] border border-sky-500/40 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sky-200 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-sky-500/20 rounded-xl text-sky-400 border border-sky-500/30">
+              <CloudUpload className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-sky-300">
+                {queueCount} Registro{queueCount > 1 ? "s" : ""} Pendiente{queueCount > 1 ? "s" : ""} de Sincronizar
+              </h4>
+              <p className="text-[11px] text-zinc-300 mt-0.5 font-sans">
+                Se detectaron cobros o asistencias tomadas fuera de línea. Listos para subirse a Supabase.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleTriggerSync}
+            disabled={isSyncing}
+            className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50 shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+            {isSyncing ? "Sincronizando..." : "Sincronizar Ahora"}
           </button>
         </div>
       )}
@@ -324,9 +531,20 @@ export default function AttendanceTracker({
       {/* HEADER DE CONTROL EN CANCHA */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
         <div>
-          <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-[#ea580c]/15 text-[#ea580c] border border-[#ea580c]/30 px-3 py-1 rounded-full">
-            Control de Cancha en Vivo
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-[#ea580c]/15 text-[#ea580c] border border-[#ea580c]/30 px-3 py-1 rounded-full">
+              Control de Cancha en Vivo
+            </span>
+            {isOnline ? (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                <Wifi className="w-3 h-3" /> Online
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                <WifiOff className="w-3 h-3" /> Offline
+              </span>
+            )}
+          </div>
           <h2 className="text-2xl font-black uppercase mt-2 tracking-wide flex items-center gap-2">
             Pase de Asistencia • <span className="text-[#38bdf8]">{currentDayName}</span>
           </h2>
@@ -354,10 +572,10 @@ export default function AttendanceTracker({
 
           <button
             onClick={fetchRoster}
-            title="Refrescar lista desde Supabase"
+            title="Refrescar lista"
             className="p-2.5 bg-[#161b26] hover:bg-[#1f2636] border border-zinc-700 rounded-xl text-zinc-300 transition cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
@@ -420,7 +638,7 @@ export default function AttendanceTracker({
                 className="bg-[#121724] border border-zinc-800/80 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:border-zinc-700 transition"
               >
                 <div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <h3 className="text-sm font-bold text-white">{st.full_name}</h3>
                     {hasPaid ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
@@ -429,6 +647,12 @@ export default function AttendanceTracker({
                     ) : (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" /> Pago Pendiente
+                      </span>
+                    )}
+
+                    {st.isOfflinePending && (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        • Pendiente de Sync
                       </span>
                     )}
                   </div>
