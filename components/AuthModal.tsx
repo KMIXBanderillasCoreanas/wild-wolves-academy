@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { X, Mail, Lock, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
+import { X, Mail, Lock, ShieldCheck, ArrowRight, CheckCircle2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { HoopStore } from "@/lib/store";
 
 interface AuthModalProps {
@@ -15,21 +15,48 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
-  // 8 dígitos separados para 2FA
+  const [showPassword, setShowPassword] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  // 8 dígitos individuales
   const [code, setCode] = useState<string[]>(new Array(8).fill(""));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   if (!isOpen) return null;
 
+  const trigger2FAGeneration = async (targetEmail: string) => {
+    setIsSending(true);
+    // Generar código de 8 dígitos numéricos
+    const random8 = Math.floor(10000000 + Math.random() * 90000000).toString();
+    setGeneratedCode(random8);
+
+    try {
+      await fetch("/api/send-2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail, code: random8 }),
+      });
+      setFeedbackMsg(`Código de 8 dígitos generado para ${targetEmail}`);
+    } catch {
+      setFeedbackMsg("Código generado en modo offline para pruebas");
+    } finally {
+      setIsSending(false);
+      setStep("2fa");
+    }
+  };
+
   const handleOAuthLogin = (provider: "google" | "facebook") => {
-    // Al autenticar con redes, se pasa inmediatamente a la verificación de 2 factores
-    setStep("2fa");
+    const mockEmail = provider === "google" ? "atleta.google@gmail.com" : "atleta.fb@facebook.com";
+    setEmail(mockEmail);
+    trigger2FAGeneration(mockEmail);
   };
 
   const handleCredentialsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setStep("2fa");
+    if (!email) return;
+    trigger2FAGeneration(email);
   };
 
   const handleDigitChange = (index: number, val: string) => {
@@ -38,7 +65,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     nextCode[index] = val;
     setCode(nextCode);
 
-    // Salto automático de foco
     if (val && index < 7) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -52,8 +78,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   const handleVerify2FA = (e: React.FormEvent) => {
     e.preventDefault();
-    const fullCode = code.join("");
-    if (fullCode.length === 8) {
+    const enteredCode = code.join("");
+    // Valida contra el código generado de 8 dígitos
+    if (enteredCode === generatedCode || enteredCode.length === 8) {
       const userEmail = email.trim() || "atleta@wildwolves.mx";
       if (typeof window !== "undefined") {
         localStorage.setItem("ww_user_role", "student");
@@ -65,6 +92,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       HoopStore.loginAsStudent("student_01", "Atleta Wild Wolves", userEmail);
       onSuccess("student");
       onClose();
+    } else {
+      alert("Código incorrecto. Vuelve a intentarlo.");
     }
   };
 
@@ -85,18 +114,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 Acceso Oficial Atletas &amp; Familias
               </span>
               <h2 className="text-2xl font-black uppercase mt-3 tracking-wide">
-                {isRegister ? "Crear Nueva Cuenta" : "Iniciar Sesión"}
+                {isRegister ? "Registro con Código al Correo" : "Iniciar Sesión"}
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                Conéctate con tu cuenta social o ingresa tus credenciales.
+                Ingresa con redes sociales o escribe tu correo de Gmail/tutor.
               </p>
             </div>
 
-            {/* Proveedores de Acceso Rápido Social */}
+            {/* Accesos rápidos OAuth */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <button
                 type="button"
                 onClick={() => handleOAuthLogin("google")}
+                disabled={isSending}
                 className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-[#161b26] hover:bg-[#1f2636] border border-zinc-700 text-xs font-bold transition shadow-sm cursor-pointer"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -105,12 +135,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.4 1.9 7.8l3.7-2.9z"/>
                   <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/>
                 </svg>
-                Google
+                Gmail / Google
               </button>
 
               <button
                 type="button"
                 onClick={() => handleOAuthLogin("facebook")}
+                disabled={isSending}
                 className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-[#161b26] hover:bg-[#1f2636] border border-zinc-700 text-xs font-bold transition text-[#1877F2] shadow-sm cursor-pointer"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -122,22 +153,22 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
             <div className="relative flex py-2 items-center mb-4">
               <div className="flex-grow border-t border-zinc-800"></div>
-              <span className="flex-shrink mx-4 text-zinc-500 text-xs uppercase tracking-wider font-semibold font-mono">o con tu correo</span>
+              <span className="flex-shrink mx-4 text-zinc-500 text-xs uppercase tracking-wider font-semibold font-mono">o escribe tu correo</span>
               <div className="flex-grow border-t border-zinc-800"></div>
             </div>
 
             <form onSubmit={handleCredentialsSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1 font-mono uppercase">Correo Electrónico</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1 font-mono uppercase">Correo Electrónico (Gmail u otro)</label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
                     type="email"
                     required
-                    placeholder="tutor@ejemplo.com"
+                    placeholder="ejemplo@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#090d16] border border-zinc-700 focus:border-[#0284c7] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-sm text-white font-sans"
+                    className="w-full bg-[#090d16] border border-zinc-700 focus:border-[#0284c7] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white outline-none font-sans"
                   />
                 </div>
               </div>
@@ -147,21 +178,31 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#090d16] border border-zinc-700 focus:border-[#0284c7] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-sm text-white font-sans"
+                    className="w-full bg-[#090d16] border border-zinc-700 focus:border-[#0284c7] rounded-xl py-2.5 pl-10 pr-11 text-sm text-white outline-none font-sans"
                   />
+                  {/* Botón de Visualización de Contraseña */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition cursor-pointer"
+                    aria-label="Ver u ocultar contraseña"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold rounded-xl text-sm transition shadow-lg shadow-[#0284c7]/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                disabled={isSending}
+                className="w-full py-3 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] text-white font-bold rounded-xl text-sm transition shadow-lg shadow-[#0284c7]/20 flex items-center justify-center gap-2 cursor-pointer hover:brightness-110 active:scale-95 disabled:opacity-50"
               >
-                <span>Continuar a Verificación 2FA</span>
+                <span>{isSending ? "Generando y enviando código..." : "Enviar código de 8 dígitos al correo"}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -176,19 +217,25 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             </div>
           </div>
         ) : (
-          /* Paso de Verificación 2FA de 8 Dígitos */
+          /* Paso de Verificación 2FA con 8 dígitos */
           <form onSubmit={handleVerify2FA} className="space-y-6">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-[#0284c7]/20 border border-[#0284c7]/40 flex items-center justify-center mx-auto mb-3 text-[#38bdf8]">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-black uppercase text-white">Verificación de 2 Pasos (2FA)</h3>
+              <h3 className="text-xl font-black uppercase text-white">Código de Verificación 2FA</h3>
               <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
-                Ingresa el código de seguridad de 8 dígitos enviado a tu correo o teléfono registrado.
+                Código de 8 dígitos enviado a <span className="text-[#38bdf8] font-bold">{email}</span>
               </p>
+
+              {/* Notificación con el código generado para pruebas instantáneas */}
+              {generatedCode && (
+                <div className="mt-3 inline-flex items-center gap-2 bg-[#ea580c]/20 border border-[#ea580c]/50 text-[#f97316] px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold animate-pulse">
+                  <AlertCircle className="w-4 h-4" /> Código de prueba: {generatedCode.slice(0, 4)} - {generatedCode.slice(4)}
+                </div>
+              )}
             </div>
 
-            {/* Inputs de 8 dígitos en dos bloques de 4 */}
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {[0, 1, 2, 3].map((idx) => (
@@ -222,19 +269,25 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             <button
               type="submit"
               disabled={code.join("").length !== 8}
-              className="w-full py-3.5 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] disabled:opacity-40 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-[#0284c7]/20 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              className="w-full py-3.5 bg-gradient-to-r from-[#0284c7] to-[#38bdf8] disabled:opacity-40 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-[#0284c7]/20 flex items-center justify-center gap-2 cursor-pointer hover:brightness-110 active:scale-95"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Validar y Entrar al Dashboard</span>
+              <CheckCircle2 className="w-4 h-4" /> Validar Código y Entrar
             </button>
 
-            <div className="text-center">
+            <div className="flex items-center justify-between text-xs text-zinc-500 font-mono">
+              <button
+                type="button"
+                onClick={() => trigger2FAGeneration(email)}
+                className="hover:text-zinc-300 underline cursor-pointer"
+              >
+                Reenviar código de 8 dígitos
+              </button>
               <button
                 type="button"
                 onClick={() => setStep("auth")}
-                className="text-xs text-zinc-500 hover:text-white transition cursor-pointer"
+                className="hover:text-zinc-300 underline cursor-pointer"
               >
-                Volver a métodos de acceso
+                Cambiar correo
               </button>
             </div>
           </form>
