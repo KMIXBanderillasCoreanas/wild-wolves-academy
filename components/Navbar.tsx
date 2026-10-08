@@ -171,15 +171,15 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logotipo Oficial */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
-          <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-md border border-orange-500/40 shrink-0">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
-              alt="Wild Wolves CDMX Emblem"
-              className="w-full h-full object-cover transform scale-105"
-              onError={(e: any) => {
-                e.currentTarget.src = "/logo-official.png";
-              }}
+          {/* Logotipo Oficial Original */}
+          <div className="relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
+            <Image
+              src="/logo-official.png"
+              alt="Wild Wolves Logo"
+              width={38}
+              height={38}
+              className="object-contain transition-transform group-hover:scale-105"
+              priority
             />
           </div>
           <div>

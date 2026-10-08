@@ -199,14 +199,14 @@ export default function WildWolvesHome() {
       {/* HEADER TÁCTICO FLOTANTE */}
       <header className="sticky top-0 z-40 w-full bg-[#07090e]/90 backdrop-blur-xl border-b border-zinc-800/80 px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden shadow-md border border-orange-500/40 shrink-0">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
+          <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0">
+            <Image
+              src="/logo-official.png"
               alt="Wild Wolves Logo"
-              className="w-full h-full object-cover transform scale-105"
-              onError={(e: any) => {
-                e.currentTarget.src = "/logo-official.png";
-              }}
+              width={42}
+              height={42}
+              className="object-contain"
+              priority
             />
           </div>
           <div>

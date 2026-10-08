@@ -106,7 +106,8 @@ export default function DualCoachCommand() {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, full_name, email, role")
-          .eq("role", "student");
+          .eq("role", "student")
+          .neq("email", "wildwolvescdmx@gmail.com");
 
         if (profiles && profiles.length > 0) {
           setStudents(profiles);

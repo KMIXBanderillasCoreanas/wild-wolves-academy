@@ -23,6 +23,15 @@ export const SupabaseSync = {
         return null;
       }
 
+      const cleanStudentsData = studentsData.filter((s: any) => {
+        const em = (s.email || "").toLowerCase().trim();
+        return em !== "wildwolvescdmx@gmail.com" && em !== "ricardo@wildwolves.mx";
+      });
+
+      if (cleanStudentsData.length === 0) {
+        return [];
+      }
+
       // 2. Obtener finanzas
       const { data: financesData } = await supabase.from('finances').select('*');
       
@@ -36,7 +45,7 @@ export const SupabaseSync = {
       const { data: attendanceData } = await supabase.from('attendance').select('*').order('session_date', { ascending: false });
 
       // Mapear al modelo StudentProfile de la app
-      const students: StudentProfile[] = studentsData.map((s: any) => {
+      const students: StudentProfile[] = cleanStudentsData.map((s: any) => {
         const fin = financesData?.find((f: any) => f.student_id === s.id);
         const evals = evaluationsData?.filter((e: any) => e.student_id === s.id) || [];
         const overload = overloadData?.find((o: any) => o.student_id === s.id);

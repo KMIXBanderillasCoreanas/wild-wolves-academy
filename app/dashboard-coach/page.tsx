@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
 import { HoopStore } from '@/lib/store';
 import { 
@@ -141,7 +142,19 @@ export default function CoachDashboardPage() {
       }
     });
 
-    const list = HoopStore.getStudents();
+    const filterRealAthletes = (raw: StudentProfile[]) => {
+      return (raw || []).filter((s) => {
+        const email = (s.email || "").toLowerCase().trim();
+        return (
+          email !== "wildwolvescdmx@gmail.com" &&
+          email !== "ricardo@wildwolves.mx" &&
+          s.role !== "superadmin" &&
+          s.role !== "coach"
+        );
+      });
+    };
+
+    const list = filterRealAthletes(HoopStore.getStudents());
     setStudents(list);
     if (list.length > 0) {
       setSelectedStudentId(list[0].id);
@@ -150,12 +163,12 @@ export default function CoachDashboardPage() {
     // Sincronización en vivo con Supabase PostgreSQL
     HoopStore.syncWithSupabase().then((remoteList) => {
       if (remoteList && remoteList.length > 0) {
-        setStudents(remoteList);
+        setStudents(filterRealAthletes(remoteList));
       }
     });
 
     const handlePaymentRecorded = () => {
-      setStudents(HoopStore.getStudents());
+      setStudents(filterRealAthletes(HoopStore.getStudents()));
     };
     window.addEventListener('payment_recorded', handlePaymentRecorded);
     return () => {
@@ -163,8 +176,12 @@ export default function CoachDashboardPage() {
     };
   }, []);
 
-  // Filtrado de atletas en el roster
+  // Filtrado de atletas en el roster (Excluyendo al Fundador/Director)
   const filteredStudents = students.filter((s) => {
+    const email = (s.email || "").toLowerCase().trim();
+    if (email === "wildwolvescdmx@gmail.com" || email === "ricardo@wildwolves.mx" || s.role === "superadmin" || s.role === "coach") {
+      return false;
+    }
     if (filterGender !== 'ALL' && s.gender !== filterGender) return false;
     if (filterPosition !== 'ALL' && s.position !== filterPosition) return false;
     if (filterAge === 'SUB15' && s.age >= 16) return false;
@@ -431,12 +448,15 @@ export default function CoachDashboardPage() {
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 pb-5 border-b border-[#27272a]">
           <div className="flex items-center gap-3.5">
-            {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shadow-lg border border-orange-500/40 shrink-0">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
-                alt="Wild Wolves CDMX Emblem"
-                className="w-full h-full object-cover transform scale-105"
+            {/* Logotipo Oficial Original */}
+            <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0">
+              <Image
+                src="/logo-official.png"
+                alt="Wild Wolves Logo"
+                width={44}
+                height={44}
+                className="object-contain"
+                priority
               />
             </div>
             <div>

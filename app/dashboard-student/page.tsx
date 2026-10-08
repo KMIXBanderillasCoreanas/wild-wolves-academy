@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import AuthModal from "@/components/AuthModal";
+import SelfieCameraCapture from "@/components/SelfieCameraCapture";
 
 // ==============================================================================
 // 1. DEFINICIÓN DEL ESCALAFÓN BIOLÓGICO (9 TIERS OFICIALES WILD WOLVES)
@@ -344,6 +345,7 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showRankModal, setShowRankModal] = useState(false);
   const [showCommitmentModal, setShowCommitmentModal] = useState(false);
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
 
   // ==========================================
   // ESTADOS DE LÍNEA BASE (DÍA 1 / LLEGADA)
@@ -564,23 +566,10 @@ export default function StudentDashboardPage() {
         const isCoachOrAdmin = isSuperAdmin || prof?.role === "coach" || storedRole === "coach";
 
         if (isSuperAdmin) {
-          prof = {
-            ...prof,
-            id: effectiveId,
-            full_name: "Coach Ricardo (Director General)",
-            email: "wildwolvescdmx@gmail.com",
-            role: "superadmin",
-            jersey_number: "00",
-            position: "DIRECTOR GENERAL • NIVEL 0",
-            status: "active"
-          };
-          pay = {
-            status: "pagado",
-            amount: 0,
-            payment_date: new Date().toISOString().split("T")[0],
-            payment_method: "Vitalicio",
-            notes: "Membresía vitalicia y control directivo del club"
-          };
+          if (typeof window !== "undefined") {
+            window.location.href = "/master-bunker-hq";
+            return;
+          }
         }
 
         setProfile({
@@ -675,16 +664,24 @@ export default function StudentDashboardPage() {
       if (e.detail) setEvaluation((prev: any) => ({ ...prev, ...e.detail, isReal: true }));
     };
 
+    const handleAvatarUpdate = (e: any) => {
+      if (e.detail?.avatar_url) {
+        setProfile((prev: any) => ({ ...prev, avatar_url: e.detail.avatar_url }));
+      }
+    };
+
     window.addEventListener("student_baseline_updated", handleBaselineUpdate);
     window.addEventListener("physical_training_logged", handlePhysicalUpdate);
     window.addEventListener("basketball_skills_logged", handleBasketUpdate);
     window.addEventListener("test_day_updated", handleTestDayUpdate);
+    window.addEventListener("profile_avatar_updated", handleAvatarUpdate);
 
     return () => {
       window.removeEventListener("student_baseline_updated", handleBaselineUpdate);
       window.removeEventListener("physical_training_logged", handlePhysicalUpdate);
       window.removeEventListener("basketball_skills_logged", handleBasketUpdate);
       window.removeEventListener("test_day_updated", handleTestDayUpdate);
+      window.removeEventListener("profile_avatar_updated", handleAvatarUpdate);
     };
   }, []);
 
@@ -711,6 +708,11 @@ export default function StudentDashboardPage() {
   // Verificación de evaluación real
   const isEvaluated = Boolean(currentPerformance.isReal || baseline.isReal);
   const baseMastery = checkBaseExercisesMastery(currentPerformance, baseline);
+  const hasRealSelfie = Boolean(
+    profile?.avatar_url && 
+    !profile.avatar_url.includes("logo-official") && 
+    !profile.avatar_url.includes("lh3.googleusercontent.com")
+  );
 
   // Cálculo del Rango Biológico activo o estado pendiente de Día 1
   const activeRank: BiologicalRankInfo = isEvaluated
@@ -777,15 +779,15 @@ export default function StudentDashboardPage() {
           {/* Logo y Nombre de la Academia */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
-              {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
-              <div className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-xl overflow-hidden shadow-lg border border-orange-500/40 shrink-0">
-                <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
-                  alt="Wild Wolves CDMX Emblem"
-                  className="w-full h-full object-cover transform scale-105"
-                  onError={(e: any) => {
-                    e.currentTarget.src = "/logo-official.png";
-                  }}
+              {/* Logotipo Oficial Original */}
+              <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0">
+                <Image
+                  src="/logo-official.png"
+                  alt="Wild Wolves Logo"
+                  width={42}
+                  height={42}
+                  className="object-contain"
+                  priority
                 />
               </div>
               <div className="flex flex-col">
@@ -902,6 +904,38 @@ export default function StudentDashboardPage() {
       {/* ========================================================================= */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         
+        {/* AVISO: FOTOGRAFÍA OFICIAL REAL OBLIGATORIA */}
+        {!hasRealSelfie && !profile?.isGuest && (
+          <div className="mb-6 bg-gradient-to-r from-orange-950/80 via-amber-950/70 to-zinc-900 border-2 border-orange-500/60 p-4 sm:p-5 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0">
+                <span className="material-symbols-outlined text-2xl">photo_camera</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-tight">
+                    Selfie Oficial Requerida para Credencial
+                  </h3>
+                  <span className="bg-orange-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                    Paso Obligatorio
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-300 mt-1 leading-relaxed">
+                  Para validar tu credencial y ser reconocido en cancha por el Coach Ricardo en Carmen Serdán, debes tomarte una <strong>selfie real de tu rostro exclusivamente</strong>.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowSelfieModal(true)}
+              className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-[#ea580c] to-[#f97316] hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 active:scale-95 shrink-0"
+            >
+              <span className="material-symbols-outlined text-base">camera_alt</span>
+              <span>Tomar mi Selfie Ahora</span>
+            </button>
+          </div>
+        )}
+
         {/* GRID PRINCIPAL: 1 COL EN MÓVIL, 12 COLUMNAS EN DESKTOP/TABLET */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
@@ -932,19 +966,39 @@ export default function StudentDashboardPage() {
 
               {/* Información del Jugador y Avatar Oficial */}
               <div className="flex gap-4 sm:gap-5 items-center">
-                {/* Holographic Avatar Box con Logo Oficial Nítido de Cobertura Total */}
-                <div className="relative shrink-0 w-28 h-32 sm:w-32 sm:h-36 rounded-2xl overflow-hidden bg-surface-container-highest border border-orange-500/40 shadow-xl">
-                  <img 
-                    src={profile?.avatar_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"} 
-                    alt="Wild Wolves CDMX Emblem"
-                    className="w-full h-full object-cover transform scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = "/logo-official.png";
-                    }}
-                  />
+                {/* Holographic Avatar Box con Fotografía Real del Atleta */}
+                <div className="relative shrink-0 w-28 h-32 sm:w-32 sm:h-36 rounded-2xl overflow-hidden bg-surface-container-highest border border-orange-500/40 shadow-xl group">
+                  {hasRealSelfie ? (
+                    <img 
+                      src={profile?.avatar_url} 
+                      alt={profile?.full_name || "Foto Oficial del Atleta"}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/logo-official.png";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900/90 p-2 text-center">
+                      <span className="material-symbols-outlined text-4xl text-zinc-600 mb-1">account_circle</span>
+                      <span className="text-[9px] font-mono text-amber-400 font-bold uppercase">Sin Selfie</span>
+                      <span className="text-[8px] font-mono text-zinc-500">Foto Real</span>
+                    </div>
+                  )}
+
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-transparent pointer-events-none"></div>
-                  <span className="absolute bottom-1.5 right-1.5 text-[10px] font-black text-on-primary bg-primary-container px-2 py-0.5 rounded shadow">
-                    {profile?.isSuperAdmin ? "#DIRECTOR" : (profile?.jersey_number ? `#${profile.jersey_number}` : "#WW")}
+
+                  {/* Botón flotante para tomar o cambiar selfie */}
+                  <button
+                    onClick={() => setShowSelfieModal(true)}
+                    className="absolute bottom-1.5 left-1.5 bg-black/80 hover:bg-orange-600 text-white px-2 py-1 rounded-lg border border-white/20 transition cursor-pointer flex items-center gap-1 text-[10px] font-mono shadow-md backdrop-blur-sm z-10"
+                    title="Tomar o cambiar fotografía oficial"
+                  >
+                    <span className="material-symbols-outlined text-xs">photo_camera</span>
+                    <span className="font-bold">{hasRealSelfie ? "Cambiar" : "Selfie"}</span>
+                  </button>
+
+                  <span className="absolute bottom-1.5 right-1.5 text-[10px] font-black text-on-primary bg-primary-container px-2 py-0.5 rounded shadow z-10">
+                    {profile?.jersey_number ? `#${profile.jersey_number}` : "#WW"}
                   </span>
                 </div>
 
@@ -1784,6 +1838,17 @@ export default function StudentDashboardPage() {
           <span className="text-[10px] text-zinc-400 truncate">Comprobante digital enviado al correo del atleta.</span>
         </div>
       </div>
+
+      {/* MODAL DE CAPTURA DE SELFIE OBLIGATORIA */}
+      <SelfieCameraCapture
+        isOpen={showSelfieModal}
+        onClose={() => setShowSelfieModal(false)}
+        studentId={profile?.id}
+        studentName={profile?.full_name}
+        onPhotoCaptured={(url) => {
+          setProfile((prev: any) => ({ ...prev, avatar_url: url }));
+        }}
+      />
 
     </div>
   );

@@ -105,7 +105,16 @@ export const HoopStore = {
         return INITIAL_STUDENTS;
       }
       const parsed = JSON.parse(data);
-      return Array.isArray(parsed) ? parsed : INITIAL_STUDENTS;
+      if (!Array.isArray(parsed)) return INITIAL_STUDENTS;
+      return parsed.filter((s: StudentProfile) => {
+        const em = (s.email || '').toLowerCase().trim();
+        return (
+          em !== 'wildwolvescdmx@gmail.com' &&
+          em !== 'ricardo@wildwolves.mx' &&
+          s.role !== 'superadmin' &&
+          s.role !== 'coach'
+        );
+      });
     } catch {
       return INITIAL_STUDENTS;
     }

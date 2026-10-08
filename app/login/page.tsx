@@ -19,20 +19,19 @@ import {
   Shield, 
   KeyRound,
   ArrowLeft,
-  Crown,
   Users,
   Eye,
   EyeOff,
   Briefcase
 } from "lucide-react";
 
-type RolePortal = "student" | "coach" | "superadmin";
+type RolePortal = "student" | "coach";
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Rol activo seleccionado en pestañas
+  // Rol activo seleccionado en pestañas (Solo Atletas o Coaches)
   const [activePortal, setActivePortal] = useState<RolePortal>("student");
   const [isRegister, setIsRegister] = useState(false);
 
@@ -42,11 +41,9 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Claves rápidas / PIN para Staff y Superadmin
+  // Clave rápida / PIN para Coaches
   const [staffPin, setStaffPin] = useState("");
   const [showStaffPin, setShowStaffPin] = useState(false);
-  const [masterKey, setMasterKey] = useState("");
-  const [showMasterKey, setShowMasterKey] = useState(false);
 
   // Estados de carga y mensajes
   const [loading, setLoading] = useState(false);
@@ -63,8 +60,6 @@ function LoginContent() {
     }
     if (roleParam === "coach") {
       setActivePortal("coach");
-    } else if (roleParam === "superadmin" || roleParam === "bunker") {
-      setActivePortal("superadmin");
     }
   }, [searchParams]);
 
@@ -153,38 +148,6 @@ function LoginContent() {
     }
   };
 
-  // Acceso Directivo vía Clave Maestra
-  const handleMasterKeyLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
-    const clean = masterKey.trim().toUpperCase();
-
-    if (
-      clean === "WW-SUPERADMIN-FULL-2026" ||
-      clean === "RICARDO-WOLVES-2026" ||
-      clean === "CARLOS-WOLVES-2026" ||
-      clean === "WW-SUPERADMIN-KEY-99"
-    ) {
-      const adminEmail = clean.includes("CARLOS") ? "carlos@wildwolves.mx" : "ricardo@wildwolves.mx";
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("ww_user_role", "superadmin");
-        localStorage.setItem("ww_user_email", adminEmail);
-        document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
-        document.cookie = `user_email=${encodeURIComponent(adminEmail)}; path=/; max-age=86400; SameSite=Lax`;
-        window.dispatchEvent(new Event("auth_changed"));
-      }
-
-      HoopStore.loginAsCoach();
-      setSuccessMsg("¡Credencial Maestra Aprobada! Ingresando al Búnker Central...");
-      setTimeout(() => {
-        router.push("/master-bunker-hq");
-      }, 700);
-    } else {
-      setErrorMsg("Clave Maestra Inválida. Acceso Restringido.");
-    }
-  };
-
   // Manejador Principal con Detección Automática de Roles
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,13 +178,22 @@ function LoginContent() {
           throw error;
         }
 
+        const isFounderAccount = 
+          email.toLowerCase().includes("wildwolvescdmx") || 
+          email.toLowerCase() === "ricardo@wildwolves.mx";
+
+        const assignedRole = isFounderAccount ? "superadmin" : "student";
+        const officialName = isFounderAccount 
+          ? "Coach Ricardo (Fundador y Director General)" 
+          : (name || "Atleta Wild Wolves");
+
         if (data.user) {
           try {
             await supabase.from("profiles").upsert({
               id: data.user.id,
               email: email,
-              full_name: name || "Atleta Wild Wolves",
-              role: "student",
+              full_name: officialName,
+              role: assignedRole,
               status: "active",
             });
           } catch (profileErr) {
@@ -230,12 +202,21 @@ function LoginContent() {
         }
 
         if (typeof window !== "undefined") {
-          localStorage.setItem("ww_user_role", "student");
+          localStorage.setItem("ww_user_role", assignedRole);
           localStorage.setItem("ww_user_email", email);
-          if (name) localStorage.setItem("ww_student_name", name);
-          document.cookie = "user_role=student; path=/; max-age=86400; SameSite=Lax";
+          if (name) localStorage.setItem("ww_student_name", officialName);
+          document.cookie = `user_role=${assignedRole}; path=/; max-age=86400; SameSite=Lax`;
           document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
+        }
+
+        if (isFounderAccount) {
+          HoopStore.loginAsCoach();
+          setSuccessMsg("¡Cuenta de Fundador / Director General confirmada! Ingresando al Búnker...");
+          setTimeout(() => {
+            router.push("/master-bunker-hq");
+          }, 800);
+          return;
         }
 
         HoopStore.loginAsStudent(
@@ -353,9 +334,7 @@ function LoginContent() {
     <div className="min-h-screen bg-[#07090e] text-white flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden font-sans">
       {/* Resplandor ambiental deportivo según rol */}
       <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] blur-[160px] rounded-full pointer-events-none transition-colors duration-500 ${
-        activePortal === "superadmin" 
-          ? "bg-amber-500/15" 
-          : activePortal === "coach" 
+        activePortal === "coach" 
           ? "bg-[#ea580c]/18" 
           : "bg-sky-500/15"
       }`} />
@@ -371,15 +350,15 @@ function LoginContent() {
       <div className="w-full max-w-md z-10">
         {/* Encabezado con Logotipo Oficial */}
         <div className="text-center mb-5">
-          {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
-          <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-2xl overflow-hidden shadow-2xl border border-orange-500/40 shrink-0">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
-              alt="Wild Wolves CDMX Emblem"
-              className="w-full h-full object-cover transform scale-105"
-              onError={(e: any) => {
-                e.currentTarget.src = "/logo-official.png";
-              }}
+          {/* Logotipo Oficial Original */}
+          <div className="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 flex items-center justify-center">
+            <Image
+              src="/logo-official.png"
+              alt="Wild Wolves Logo"
+              width={72}
+              height={72}
+              className="object-contain select-none"
+              priority
             />
           </div>
 
@@ -389,7 +368,7 @@ function LoginContent() {
           <p className="text-zinc-400 text-xs mt-0.5">Plataforma Oficial &amp; Control de Alto Rendimiento</p>
         </div>
 
-        {/* SELECTOR DE ROL (3 PESTAÑAS PRINCIPALES) */}
+        {/* SELECTOR DE ROL (2 PESTAÑAS: ATLETAS Y COACHES) */}
         <div className="bg-[#10141f] border border-zinc-800 p-1.5 rounded-2xl mb-4 flex items-center gap-1 shadow-lg">
           <button
             type="button"
@@ -415,19 +394,6 @@ function LoginContent() {
           >
             <Shield className="w-3.5 h-3.5" />
             <span>Coaches</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => switchPortal("superadmin")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              activePortal === "superadmin"
-                ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm"
-                : "text-zinc-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Crown className="w-3.5 h-3.5" />
-            <span>Dirección</span>
           </button>
         </div>
 
@@ -555,56 +521,6 @@ function LoginContent() {
             </div>
           )}
 
-          {/* VISTA 3: SUPERADMIN / DIRECCIÓN GENERAL */}
-          {activePortal === "superadmin" && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 pb-2 mb-3 border-b border-zinc-800">
-                <Crown className="w-4 h-4 text-amber-400" />
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Dirección General • Búnker Central</span>
-              </div>
-
-              {/* Formulario de Clave Maestra Directiva */}
-              <form onSubmit={handleMasterKeyLogin} className="p-3.5 rounded-2xl bg-[#14120a] border border-amber-500/30 mb-4">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1.5 font-mono">
-                  Clave Maestra Directiva (Acceso Irrestricto)
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-amber-500" />
-                    <input
-                      type={showMasterKey ? "text" : "password"}
-                      placeholder="RICARDO-WOLVES-2026..."
-                      value={masterKey}
-                      onChange={(e) => setMasterKey(e.target.value)}
-                      className="w-full bg-[#07090e] border border-amber-500/40 focus:border-amber-400 focus:outline-none rounded-xl py-2 pl-9 pr-8 text-xs text-white font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowMasterKey(!showMasterKey)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-400 cursor-pointer"
-                    >
-                      {showMasterKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:brightness-110 text-white font-bold text-xs rounded-xl transition cursor-pointer active:scale-95 shadow-md shadow-amber-600/30"
-                  >
-                    Desbloquear
-                  </button>
-                </div>
-              </form>
-
-              <div className="relative flex py-2 items-center mb-3">
-                <div className="flex-grow border-t border-zinc-800"></div>
-                <span className="flex-shrink mx-3 text-zinc-500 text-[10px] uppercase font-bold tracking-wider">
-                  o con correo institucional
-                </span>
-                <div className="flex-grow border-t border-zinc-800"></div>
-              </div>
-            </div>
-          )}
-
           {/* Avisos de Alerta / Éxito */}
           {errorMsg && (
             <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
@@ -643,18 +559,14 @@ function LoginContent() {
 
             <div>
               <label className="block text-[11px] font-semibold uppercase text-zinc-400 mb-1 font-mono">
-                {activePortal === "superadmin" ? "Correo Directivo" : activePortal === "coach" ? "Correo de Entrenador" : "Correo Electrónico"}
+                {activePortal === "coach" ? "Correo de Entrenador" : "Correo Electrónico"}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input
                   type="email"
                   required
-                  placeholder={
-                    activePortal === "superadmin" ? "director@wildwolves.mx" : 
-                    activePortal === "coach" ? "coach@wildwolves.mx" : 
-                    "alumno@ejemplo.com"
-                  }
+                  placeholder={activePortal === "coach" ? "coach@wildwolves.mx" : "alumno@ejemplo.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-xs text-white transition placeholder-zinc-600 font-sans"
@@ -690,19 +602,13 @@ function LoginContent() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 disabled:opacity-50 mt-2 shadow-lg ${
-                activePortal === "superadmin"
-                  ? "bg-gradient-to-r from-amber-600 to-amber-500 shadow-amber-600/30 text-white"
-                  : "bg-gradient-to-r from-[#ea580c] to-[#f97316] shadow-[#ea580c]/30 text-white"
-              }`}
+              className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 disabled:opacity-50 mt-2 shadow-lg bg-gradient-to-r from-[#ea580c] to-[#f97316] shadow-[#ea580c]/30 text-white"
             >
               <span>
                 {loading
                   ? "Verificando Credenciales..."
                   : isRegister
                   ? "Completar Registro de Atleta"
-                  : activePortal === "superadmin"
-                  ? "Acceder al Búnker Central"
                   : activePortal === "coach"
                   ? "Entrar al Panel de Coach"
                   : "Entrar a mi Perfil"}
@@ -722,15 +628,12 @@ function LoginContent() {
                 <Shield className="w-3 h-3 text-[#ea580c]" /> Acceso Coaches
               </button>
             )}
-            {activePortal !== "superadmin" && (
-              <button
-                type="button"
-                onClick={() => switchPortal("superadmin")}
-                className="hover:text-amber-400 transition flex items-center gap-1 cursor-pointer"
-              >
-                <KeyRound className="w-3 h-3 text-amber-500" /> Búnker Master
-              </button>
-            )}
+            <Link
+              href="/"
+              className="text-zinc-500 hover:text-zinc-300 transition"
+            >
+              ← Volver al Club
+            </Link>
             {activePortal !== "student" && (
               <button
                 type="button"

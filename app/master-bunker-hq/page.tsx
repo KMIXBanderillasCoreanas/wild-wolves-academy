@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
 import { 
@@ -281,12 +282,15 @@ export default function MasterBunkerHQ() {
       {/* HEADER BÚNKER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
         <div className="flex items-center gap-4">
-          {/* CONTENEDOR DE LOGO INSTITUCIONAL DE COBERTURA TOTAL */}
-          <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden shadow-lg border border-orange-500/40 shrink-0">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm4ikoFqujPLuz7TfbSmtR5c4AMiAS3BhardFvx2oWyb5zvQKUuwMzY0hY3UUgqB6hjHbMxbKwLhKnm_QngrultrguEkfNxGcCereyCs-hSt8yKZqcP8NyXwn4hysLv-sJlkNAEeOIHIxhbz0rx94tIc5raNQVE7oBNC54iBbsWVAT3EI5RJymE4lGZPo96i-XCSHgLeEEeo9UEQzy402-JMhDrPGxuqyNHMTGZsM"
-              alt="Wild Wolves CDMX Emblem"
-              className="w-full h-full object-cover transform scale-105"
+          {/* Logotipo Oficial Original */}
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center flex-shrink-0">
+            <Image
+              src="/logo-official.png"
+              alt="Wild Wolves Logo"
+              width={52}
+              height={52}
+              className="object-contain"
+              priority
             />
           </div>
           <div>
