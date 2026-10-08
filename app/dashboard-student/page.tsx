@@ -11,10 +11,46 @@ export default function StudentDashboardPage() {
   const [toastVisible, setToastVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Estado reactivo de Test Day Biomecánico
+  const [evaluation, setEvaluation] = useState<any>({
+    overall_ovr: 81,
+    shooting_percentage: 78,
+    vertical_jump_cm: 64,
+    ball_handling_score: 70,
+    coach_feedback: "Excelente lectura de bloqueo y salida rápida. Enfocar trabajo de pie pivote esta semana en drills de contraataque.",
+    evaluation_date: "Octubre 2026",
+    isReal: false
+  });
+
   useEffect(() => {
     async function loadData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+
+        // 1. Cargar Evaluación Local por defecto si existe
+        if (typeof window !== "undefined") {
+          try {
+            const storedEvals = JSON.parse(localStorage.getItem("ww_student_evaluations") || "{}");
+            const keys = Object.keys(storedEvals);
+            if (keys.length > 0) {
+              const matchedEval = user?.id && storedEvals[user.id] ? storedEvals[user.id] : storedEvals[keys[keys.length - 1]];
+              if (matchedEval) {
+                setEvaluation({
+                  overall_ovr: matchedEval.overall_ovr,
+                  shooting_percentage: matchedEval.shooting_percentage,
+                  vertical_jump_cm: matchedEval.vertical_jump_cm,
+                  ball_handling_score: matchedEval.ball_handling_score,
+                  coach_feedback: matchedEval.coach_feedback,
+                  evaluation_date: matchedEval.evaluation_date,
+                  isReal: true
+                });
+              }
+            }
+          } catch (err) {
+            console.warn("Fallo leyendo evaluaciones locales:", err);
+          }
+        }
+
         if (!user) {
           // Si estamos probando en local o no hay sesión de Supabase
           const storedEmail = typeof window !== "undefined" ? localStorage.getItem("ww_user_email") : null;
@@ -36,9 +72,31 @@ export default function StudentDashboardPage() {
           return;
         }
 
+        // Carga desde Supabase
         const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         const { data: comm } = await supabase.from("attendance_commitments").select("*").eq("user_id", user.id).maybeSingle();
         const { data: pay } = await supabase.from("membership_payments").select("*").eq("student_id", user.id).order("payment_date", { ascending: false }).limit(1).maybeSingle();
+        
+        // Consultar la evaluación más reciente registrada por el coach
+        const { data: evalData } = await supabase
+          .from("student_evaluations")
+          .select("*")
+          .eq("student_id", user.id)
+          .order("evaluation_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (evalData) {
+          setEvaluation({
+            overall_ovr: evalData.overall_ovr,
+            shooting_percentage: evalData.shooting_percentage,
+            vertical_jump_cm: evalData.vertical_jump_cm,
+            ball_handling_score: evalData.ball_handling_score,
+            coach_feedback: evalData.coach_feedback || "Progreso constante en cancha.",
+            evaluation_date: evalData.evaluation_date,
+            isReal: true
+          });
+        }
 
         setProfile(prof || { full_name: "Santiago Morales", email: user.email });
         setCommitment(comm || { days_selected: ["Lunes", "Miércoles", "Viernes"], shift: "vespertino_5_7" });
@@ -49,7 +107,28 @@ export default function StudentDashboardPage() {
         setLoading(false);
       }
     }
+
     loadData();
+
+    // Listener para actualizar en caliente cuando el coach capture un Test Day
+    const handleTestDayUpdate = (e: any) => {
+      if (e.detail) {
+        setEvaluation({
+          overall_ovr: e.detail.overall_ovr,
+          shooting_percentage: e.detail.shooting_percentage,
+          vertical_jump_cm: e.detail.vertical_jump_cm,
+          ball_handling_score: e.detail.ball_handling_score,
+          coach_feedback: e.detail.coach_feedback,
+          evaluation_date: e.detail.evaluation_date,
+          isReal: true
+        });
+      }
+    };
+
+    window.addEventListener("test_day_updated", handleTestDayUpdate);
+    return () => {
+      window.removeEventListener("test_day_updated", handleTestDayUpdate);
+    };
   }, []);
 
   const triggerToast = () => {
@@ -76,6 +155,8 @@ export default function StudentDashboardPage() {
       </div>
     );
   }
+
+  const jumpNormalizedPct = Math.min(100, Math.round((evaluation.vertical_jump_cm / 75) * 100));
 
   return (
     <div className="bg-surface text-on-surface font-sans min-h-screen flex flex-col pb-24 selection:bg-primary-container selection:text-on-primary">
@@ -118,7 +199,14 @@ export default function StudentDashboardPage() {
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
               CYBER WOLVES // ELITE #11
             </span>
-            <span className="bg-surface-container px-2.5 py-0.5 rounded text-on-surface-variant font-bold">#CARD-8841-CDMX</span>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary-container font-mono font-black text-[10px] border border-primary-container/30">
+                OVR {evaluation.overall_ovr}
+              </span>
+              <span className="bg-surface-container px-2.5 py-0.5 rounded text-on-surface-variant font-bold">
+                #CARD-8841-CDMX
+              </span>
+            </div>
           </div>
 
           <div className="flex gap-4 items-center">
@@ -146,6 +234,9 @@ export default function StudentDashboardPage() {
                 </span>
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-surface-container-high text-secondary uppercase border border-secondary/30">
                   GUARD (SG)
+                </span>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary uppercase border border-tertiary/20">
+                  {evaluation.overall_ovr >= 85 ? "Élite" : evaluation.overall_ovr >= 75 ? "Competitivo" : "Formativo"}
                 </span>
               </div>
             </div>
@@ -246,23 +337,31 @@ export default function StudentDashboardPage() {
               <span className="material-symbols-outlined text-secondary text-lg">radar</span>
               <div>
                 <h2 className="text-sm font-bold text-on-surface uppercase tracking-wide">Test Day Biomecánico</h2>
-                <span className="text-[10px] text-on-surface-variant block font-mono">Octubre 2026 • Deportivo Carmen Serdán</span>
+                <span className="text-[10px] text-on-surface-variant block font-mono">
+                  {evaluation.evaluation_date} • Deportivo Carmen Serdán
+                </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono bg-surface-container text-on-surface-variant px-2.5 py-0.5 rounded uppercase font-bold">
-              Solo Lectura
+            <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded uppercase font-bold ${
+              evaluation.isReal 
+                ? "bg-tertiary/20 text-tertiary border border-tertiary/30" 
+                : "bg-surface-container text-on-surface-variant"
+            }`}>
+              {evaluation.isReal ? "Validado por Coach" : "Registro Base"}
             </span>
           </div>
 
           {/* OVR Score */}
           <div className="bg-surface-container p-3.5 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-primary-container text-on-primary flex items-center justify-center text-xl font-black shadow-md shadow-primary-container/30">
-                81
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-primary-container to-surface-variant text-on-primary flex items-center justify-center text-xl font-black shadow-md shadow-primary-container/30">
+                {evaluation.overall_ovr}
               </div>
               <div>
                 <span className="text-xs font-bold text-on-surface block uppercase">Puntaje General (OVR)</span>
-                <span className="text-[10px] text-primary font-medium">Nivel Competitivo en Desarrollo</span>
+                <span className="text-[10px] text-primary font-medium">
+                  {evaluation.overall_ovr >= 85 ? "Nivel Élite Competitivo" : evaluation.overall_ovr >= 75 ? "Competitivo en Desarrollo" : "Formativo Inicial"}
+                </span>
               </div>
             </div>
             <span className="text-[10px] text-secondary font-mono bg-surface-container-lowest px-2.5 py-1 rounded-lg border border-secondary/20 font-bold">
@@ -275,28 +374,37 @@ export default function StudentDashboardPage() {
             <div>
               <div className="flex justify-between text-xs font-bold mb-1.5">
                 <span className="text-zinc-300">Tiro Libre y Media Distancia</span>
-                <span className="text-secondary font-mono">78%</span>
+                <span className="text-secondary font-mono">{evaluation.shooting_percentage}%</span>
               </div>
               <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                <div className="h-full bg-secondary transition-all duration-500" style={{ width: "78%" }} />
+                <div 
+                  className="h-full bg-secondary transition-all duration-500 rounded-full" 
+                  style={{ width: `${Math.min(100, evaluation.shooting_percentage)}%` }} 
+                />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-xs font-bold mb-1.5">
-                <span className="text-zinc-300">Salto Vertical & Rebote</span>
-                <span className="text-primary font-mono">85%</span>
+                <span className="text-zinc-300">Salto Vertical & Rebote ({evaluation.vertical_jump_cm} cm)</span>
+                <span className="text-primary font-mono">{jumpNormalizedPct}%</span>
               </div>
               <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                <div className="h-full bg-primary-container transition-all duration-500" style={{ width: "85%" }} />
+                <div 
+                  className="h-full bg-primary-container transition-all duration-500 rounded-full" 
+                  style={{ width: `${jumpNormalizedPct}%` }} 
+                />
               </div>
             </div>
             <div>
               <div className="flex justify-between text-xs font-bold mb-1.5">
                 <span className="text-zinc-300">Manejo de Balón & Bote Ambidiestro</span>
-                <span className="text-tertiary font-mono">70%</span>
+                <span className="text-tertiary font-mono">{evaluation.ball_handling_score}%</span>
               </div>
               <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                <div className="h-full bg-tertiary transition-all duration-500" style={{ width: "70%" }} />
+                <div 
+                  className="h-full bg-tertiary transition-all duration-500 rounded-full" 
+                  style={{ width: `${Math.min(100, evaluation.ball_handling_score)}%` }} 
+                />
               </div>
             </div>
           </div>
@@ -305,7 +413,7 @@ export default function StudentDashboardPage() {
           <div className="bg-surface-container p-3.5 rounded-2xl border-l-4 border-primary-container">
             <span className="text-[10px] font-bold text-on-surface block uppercase tracking-wider">Feedback Técnico Oficial:</span>
             <p className="text-xs text-on-surface italic mt-1 leading-relaxed">
-              "Excelente lectura de bloqueo y salida rápida. Enfocar trabajo de pie pivote esta semana en drills de contraataque."
+              "{evaluation.coach_feedback}"
             </p>
             <span className="text-[10px] text-on-surface-variant block mt-1.5 font-mono">Coach Ricardo • Head Coach Formativo</span>
           </div>

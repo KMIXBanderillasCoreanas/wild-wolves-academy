@@ -20,10 +20,12 @@ import {
   CheckCircle2,
   Wifi,
   WifiOff,
-  CloudUpload
+  CloudUpload,
+  Activity
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
 import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
+import TestDayEvaluator from "@/components/TestDayEvaluator";
 import { 
   syncOfflineQueueToSupabase, 
   getOfflineQueueCount 
@@ -34,7 +36,8 @@ export default function MasterBunkerHQ() {
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("SUPER ADMINISTRADOR");
-  const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "coaches">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "test_day" | "coaches">("attendance");
+  const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
   const [coaches, setCoaches] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -288,7 +291,7 @@ export default function MasterBunkerHQ() {
   }
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-8 max-w-6xl mx-auto font-sans">
+    <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto font-sans">
       {/* HEADER BÚNKER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
         <div>
@@ -365,6 +368,16 @@ export default function MasterBunkerHQ() {
           <DollarSign className="w-4 h-4" /> Finanzas & Ingresos
         </button>
         <button
+          onClick={() => setActiveTab("test_day")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "test_day"
+              ? "bg-[#8b5cf6] text-white font-black shadow-lg shadow-purple-500/20"
+              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          }`}
+        >
+          <Activity className="w-4 h-4" /> Test Day & Evaluaciones
+        </button>
+        <button
           onClick={() => setActiveTab("coaches")}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "coaches"
@@ -378,9 +391,45 @@ export default function MasterBunkerHQ() {
 
       {/* CONTENIDO DE PESTAÑAS */}
       {activeTab === "attendance" && (
-        <div className="space-y-6">
-          <CourtAttendanceCommand />
-          <AttendanceTracker />
+        <div className="space-y-4 animate-fade-in">
+          {/* Sub-selector de Vista */}
+          <div className="flex items-center justify-between flex-wrap gap-2 pb-2">
+            <div className="inline-flex p-1 rounded-xl bg-[#121724] border border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setAttendanceSubView("command")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  attendanceSubView === "command"
+                    ? "bg-[#ea580c] text-white shadow-md shadow-orange-600/20"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>⚡ Vista Táctica en Cancha (Live Grid)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAttendanceSubView("historical")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  attendanceSubView === "historical"
+                    ? "bg-sky-600 text-white shadow-md shadow-sky-600/20"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>📅 Registro Histórico por Fecha</span>
+              </button>
+            </div>
+            <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
+              {attendanceSubView === "command" 
+                ? "Diseño auto-ajustable en tiempo real para móvil, tablet y monitor" 
+                : "Consulta y reportes por fecha de calendario"}
+            </span>
+          </div>
+
+          {attendanceSubView === "command" ? (
+            <CourtAttendanceCommand />
+          ) : (
+            <AttendanceTracker />
+          )}
         </div>
       )}
 
@@ -455,6 +504,12 @@ export default function MasterBunkerHQ() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === "test_day" && (
+        <div className="space-y-6 animate-fade-in">
+          <TestDayEvaluator />
         </div>
       )}
 

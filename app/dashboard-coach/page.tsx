@@ -22,6 +22,7 @@ import { MedicalModal } from '@/components/MedicalModal';
 import { WhatsAppReportButton } from '@/components/WhatsAppReportButton';
 import { AttendanceTracker } from '@/components/AttendanceTracker';
 import CourtAttendanceCommand from '@/components/CourtAttendanceCommand';
+import TestDayEvaluator from '@/components/TestDayEvaluator';
 import { FinanceManager } from '@/components/FinanceManager';
 import confetti from 'canvas-confetti';
 import { 
@@ -610,7 +611,12 @@ export default function CoachDashboardPage() {
             }}
           />
 
-          {/* 3. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
+          {/* 3. Módulo de Captura en Cancha: Test Day Biomecánico */}
+          <div className="mb-6">
+            <TestDayEvaluator />
+          </div>
+
+          {/* 4. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
           <RadarChart360
             metricsCurrent={selectedStudent.metricsCurrent}
             metricsPrevious={selectedStudent.metricsPrevious}
