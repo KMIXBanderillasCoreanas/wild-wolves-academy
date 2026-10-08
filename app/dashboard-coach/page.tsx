@@ -202,8 +202,49 @@ export default function CoachDashboardPage() {
 
   if (!selectedStudent) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center font-mono text-zinc-400 text-xs">
-        Cargando consola del entrenador...
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6 font-sans">
+        <div className="w-16 h-16 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center mx-auto text-2xl font-black">
+          WW
+        </div>
+        <div>
+          <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-orange-500/10 text-orange-400 border border-orange-500/30 uppercase">
+            Panel Coach Ricardo • Academia CDMX
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight mt-3">
+            Roster Oficial Vacío
+          </h2>
+          <p className="text-zinc-400 text-sm max-w-md mx-auto mt-2 leading-relaxed">
+            No hay atletas precargados en el sistema. Los atletas aparecerán aquí automáticamente en cuanto se registren en la plataforma o puedes agregar el primero.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            const created = HoopStore.registerStudent({
+              fullName: 'Nuevo Atleta',
+              email: 'atleta@wildwolves.academy',
+              phone: '55 2242 7769',
+              gender: 'M',
+              age: 16,
+              position: 'Base',
+              role: 'student',
+              avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
+              stripeStatus: 'active',
+              medicalNotes: {
+                bloodType: 'O+',
+                allergies: 'Ninguna',
+                emergencyContact: 'Tutor',
+                emergencyPhone: '55 2242 7769',
+                medicalConditions: 'Apto para alto rendimiento',
+                lastCheckup: new Date().toLocaleDateString('es-MX'),
+              },
+            });
+            setStudents(HoopStore.getStudents());
+            setSelectedStudentId(created.id);
+          }}
+          className="py-3 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm transition shadow-lg shadow-orange-600/30 cursor-pointer"
+        >
+          + Registrar Primer Atleta en Cancha
+        </button>
       </div>
     );
   }

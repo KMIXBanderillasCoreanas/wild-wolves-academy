@@ -57,6 +57,16 @@ export function Navbar() {
 
   const isCoach = currentUser?.role === 'coach';
 
+  // No mostrar Navbar en la portada pública ni en los portales de acceso aislados
+  if (
+    pathname === '/' || 
+    pathname === '/login' || 
+    pathname === '/staff-portal-ww' || 
+    pathname === '/head-coach-master-hq'
+  ) {
+    return null;
+  }
+
   return (
     <nav className="bg-[#0a0e17] border-b border-[#27272a] sticky top-0 z-50 font-sans">
       {/* 1. Barra de Canales Oficiales y Redes Sociales */}
