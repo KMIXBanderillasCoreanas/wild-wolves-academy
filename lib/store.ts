@@ -466,7 +466,68 @@ export const HoopStore = {
   },
 
   loginAsStudent: (studentId: string = 'student_01', customName?: string, customEmail?: string) => {
-    const student = HoopStore.getStudent(studentId);
+    let student = HoopStore.getStudent(studentId);
+    if (!student) {
+      student = {
+        id: studentId,
+        fullName: customName || 'Atleta Wild Wolves',
+        email: customEmail || 'atleta@wildwolves.mx',
+        age: 14,
+        gender: 'M',
+        position: 'Alero',
+        role: 'student',
+        trainingDays: ['Lunes', 'Miércoles', 'Viernes'],
+        phone: '55 2242 7769',
+        parentPhone: '55 2242 7769',
+        totalDaysTrained: 0,
+        avatarUrl: '/logo-official.png',
+        stripeStatus: 'active',
+        finances: {
+          frequency: 'al_dia',
+          status: 'al_corriente',
+          costPerClass: 50,
+          balanceDue: 0,
+          lastPaymentDate: new Date().toLocaleDateString('es-MX'),
+          lastPaymentAmount: 50,
+          paymentMethod: 'Efectivo',
+        },
+        medicalNotes: {
+          allergies: 'Ninguna',
+          bloodType: 'O+',
+          emergencyContact: 'Coach Ricardo (55 2242 7769)',
+          emergencyPhone: '55 2242 7769',
+          medicalConditions: 'Ninguna',
+        },
+        attendanceHistory: [],
+        metricsCurrent: {
+          freeThrow: 70,
+          midRange: 65,
+          threePoint: 55,
+          verticalJump: 50,
+          sprint100m: 65,
+          agilityTTest: 68,
+        },
+        metricsPrevious: {
+          freeThrow: 60,
+          midRange: 55,
+          threePoint: 45,
+          verticalJump: 45,
+          sprint100m: 60,
+          agilityTTest: 60,
+        },
+        training: {
+          ropeTarget: 300,
+          joggingTarget: 20,
+          ropeJumpsToday: 0,
+          joggingMinutesToday: 0,
+          schedule: generateSchedule(0),
+        },
+        evaluations: [],
+      };
+      const all = HoopStore.getStudents();
+      all.push(student);
+      HoopStore.saveStudents(all);
+    }
     const user: User = {
       id: `usr_${student.id}`,
       fullName: customName || student.fullName,
@@ -474,24 +535,27 @@ export const HoopStore = {
       role: 'student',
       studentId: student.id,
       avatarUrl: student.avatarUrl,
-      provider: 'demo',
+      provider: 'email',
     };
     HoopStore.setCurrentUser(user);
     return user;
   },
 
   loginAsParent: (studentId: string = 'student_01') => {
-    const student = HoopStore.getStudent(studentId);
+    let student = HoopStore.getStudent(studentId);
+    if (!student) {
+      student = HoopStore.getStudents()[0];
+    }
     const user: User = {
-      id: `usr_parent_${student.id}`,
-      fullName: student.medicalNotes.emergencyContact ? `${student.medicalNotes.emergencyContact}` : `Tutor de Atleta`,
-      email: student.email.replace('@', '.tutor@'),
+      id: `usr_parent_${student?.id || '01'}`,
+      fullName: student?.medicalNotes?.emergencyContact ? `${student.medicalNotes.emergencyContact}` : `Tutor de Atleta`,
+      email: student?.email ? student.email.replace('@', '.tutor@') : 'tutor@wildwolves.mx',
       role: 'parent',
-      studentId: student.id,
-      parentOfStudentId: student.id,
-      phone: student.parentPhone || student.phone,
-      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-      provider: 'demo',
+      studentId: student?.id || 'student_01',
+      parentOfStudentId: student?.id || 'student_01',
+      phone: student?.parentPhone || student?.phone || '55 2242 7769',
+      avatarUrl: '/logo-official.png',
+      provider: 'email',
     };
     HoopStore.setCurrentUser(user);
     return user;

@@ -36,7 +36,17 @@ function StudentDashboardContent() {
     setCurrentUser(user);
 
     // El alumno SOLO ve sus propios datos: no tiene acceso a listas de otros atletas
-    const studentData = HoopStore.getStudent(user.studentId || 'student_01');
+    let studentData = HoopStore.getStudent(user.studentId || 'student_01');
+    if (!studentData) {
+      const storedName = typeof window !== 'undefined' ? localStorage.getItem('ww_student_name') : null;
+      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ww_user_email') : null;
+      const syncedUser = HoopStore.loginAsStudent(
+        user.studentId || 'student_01',
+        storedName || user.fullName || 'Atleta Wild Wolves',
+        storedEmail || user.email || 'atleta@wildwolves.mx'
+      );
+      studentData = HoopStore.getStudent(syncedUser.studentId || 'student_01');
+    }
     setStudent(studentData);
 
     // Sincronización en vivo con Supabase
