@@ -1,929 +1,583 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { StudentProfile, ShiftType, AttendanceStatus, PaymentRecord } from '@/lib/types';
-import { HoopStore } from '@/lib/store';
-import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import React, { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { HoopStore } from "@/lib/store";
+import confetti from "canvas-confetti";
 import { 
-  CalendarCheck, 
-  Calendar, 
-  CheckCircle2, 
+  CheckCircle, 
   XCircle, 
   Clock, 
-  Check, 
-  Sun, 
-  Moon, 
-  Users, 
   DollarSign, 
   Search, 
-  AlertCircle, 
-  Filter, 
-  Sparkles, 
-  X,
-  CreditCard,
-  Receipt,
-  UserCheck
-} from 'lucide-react';
-import confetti from 'canvas-confetti';
+  Calendar, 
+  AlertTriangle,
+  UserCheck,
+  RefreshCw,
+  Sparkles,
+  X
+} from "lucide-react";
 
-interface AttendanceTrackerProps {
-  student?: StudentProfile | null;
-  allStudents?: StudentProfile[];
-  readOnly?: boolean;
-  onRecordAttendance?: (studentId: string, date: string, dayName: string, present: boolean, topic: string) => void;
-  onRecordDailyAttendance?: (studentId: string, date: string, shift: ShiftType, status: AttendanceStatus, notes?: string) => void;
-  onPaymentRecorded?: (payment: PaymentRecord) => void;
+export interface StudentItem {
+  id: string;
+  full_name: string;
+  email: string;
+  commitment?: {
+    days_selected: string[];
+    shift: string;
+    frequency_type: string;
+  };
+  lastPayment?: {
+    payment_date: string;
+    status: string;
+    concept: string;
+    amount: number;
+  };
+  attendanceToday?: {
+    id: string;
+    status: "presente" | "falta" | "retardo" | "justificado";
+  };
 }
 
-const DAY_OF_WEEK_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+export interface AttendanceTrackerProps {
+  student?: any;
+  allStudents?: any[];
+  readOnly?: boolean;
+  onRecordAttendance?: any;
+  onRecordDailyAttendance?: (studentId: string, date: string, shift: any, status: any, notes?: string) => void;
+  onPaymentRecorded?: (payment?: any) => void;
+}
 
-export function AttendanceTracker({
-  student,
-  allStudents,
+export default function AttendanceTracker({
   readOnly = false,
-  onRecordAttendance,
   onRecordDailyAttendance,
   onPaymentRecorded,
-}: AttendanceTrackerProps) {
-  // 1. Estados de Sesión
-  const [sessionDate, setSessionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const [selectedShift, setSelectedShift] = useState<ShiftType | 'all'>('all');
-  const [sessionTopic, setSessionTopic] = useState<string>('Fundamentos técnicos, tiro y acondicionamiento');
-  const [activeTab, setActiveTab] = useState<'scheduled' | 'all'>('scheduled');
-  const [searchQuery, setSearchQuery] = useState('');
+}: AttendanceTrackerProps = {}) {
+  const [students, setStudents] = useState<StudentItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"scheduled" | "all">("scheduled");
+  const [selectedShift, setSelectedShift] = useState<"matutino_9_11" | "vespertino_5_7">("vespertino_5_7");
+  const [paymentModalUser, setPaymentModalUser] = useState<StudentItem | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(50);
+  const [paymentMethod, setPaymentMethod] = useState<"efectivo" | "transferencia">("efectivo");
+  const [paymentConcept, setPaymentConcept] = useState<"clase_individual" | "semanal" | "mensualidad">("clase_individual");
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // 2. Estados de datos y mapa de asistencia
-  const [studentsList, setStudentsList] = useState<StudentProfile[]>(() => {
-    return allStudents && allStudents.length > 0 ? allStudents : HoopStore.getStudents();
-  });
-  const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceStatus>>({});
-  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+  const daysMap = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const currentDayName = daysMap[new Date().getDay()];
+  const todayDateString = new Date().toISOString().split("T")[0];
 
-  // 3. Modal de Cobro Rápido en Cancha
-  const [isQuickPayOpen, setIsQuickPayOpen] = useState(false);
-  const [quickPayStudent, setQuickPayStudent] = useState<StudentProfile | null>(null);
-  const [quickPayAmount, setQuickPayAmount] = useState<number>(50);
-  const [quickPayMethod, setQuickPayMethod] = useState<'Efectivo' | 'Transferencia' | 'Stripe'>('Efectivo');
-  const [quickPayNotes, setQuickPayNotes] = useState('Cobro en cancha Deportivo Carmen Serdán');
-  const [isSavingPay, setIsSavingPay] = useState(false);
-
-  // Día de la semana actual
-  const currentDayName = useMemo(() => {
-    const d = new Date(sessionDate + 'T12:00:00');
-    return DAY_OF_WEEK_NAMES[d.getDay()] || 'Lunes';
-  }, [sessionDate]);
-
-  // Sincronización de roster cuando cambian props
-  useEffect(() => {
-    if (allStudents && allStudents.length > 0) {
-      setStudentsList(allStudents);
-    } else {
-      setStudentsList(HoopStore.getStudents());
-    }
-  }, [allStudents]);
-
-  // Cargar estado de asistencia desde Supabase y HoopStore
-  const fetchSessionAttendance = useCallback(async () => {
-    const localMap: Record<string, AttendanceStatus> = {};
-    
-    // Primero desde almacenamiento local
-    studentsList.forEach((st) => {
-      const rec = st.attendanceHistory?.find((h) => h.date === sessionDate);
-      if (rec) {
-        if (rec.status) localMap[st.id] = rec.status;
-        else if (rec.present) localMap[st.id] = 'presente';
-        else localMap[st.id] = 'falta';
-      }
-    });
-
-    // Intentar complementar desde Supabase en vivo
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data: remoteData } = await supabase
-          .from('daily_attendance')
-          .select('student_id, status')
-          .eq('session_date', sessionDate);
-
-        if (remoteData && remoteData.length > 0) {
-          remoteData.forEach((row: any) => {
-            if (row.student_id && row.status) {
-              localMap[row.student_id] = row.status as AttendanceStatus;
-            }
-          });
-        }
-      } catch (err) {
-        console.warn('Sync daily_attendance notice:', err);
-      }
-    }
-
-    setAttendanceMap(localMap);
-  }, [sessionDate, studentsList]);
-
-  useEffect(() => {
-    fetchSessionAttendance();
-  }, [fetchSessionAttendance]);
-
-  // Manejador de 1 Clic: Presente, Retardo, Falta
-  const handleMarkStatus = async (targetStudentId: string, status: AttendanceStatus, studentShift: ShiftType) => {
-    const shiftToSave = studentShift || (selectedShift !== 'all' ? selectedShift : 'matutino_9_11');
-
-    // 1. Actualizar HoopStore local
-    HoopStore.recordDailyAttendance(
-      targetStudentId,
-      sessionDate,
-      shiftToSave,
-      status,
-      sessionTopic
-    );
-
-    // 2. Notificar callbacks de componente padre
-    if (onRecordDailyAttendance) {
-      onRecordDailyAttendance(targetStudentId, sessionDate, shiftToSave, status, sessionTopic);
-    }
-    if (onRecordAttendance) {
-      onRecordAttendance(targetStudentId, sessionDate, currentDayName, status !== 'falta', sessionTopic);
-    }
-
-    // 3. Actualizar estado local reactivo
-    setAttendanceMap((prev) => ({ ...prev, [targetStudentId]: status }));
-
-    const stObj = studentsList.find((s) => s.id === targetStudentId);
-    const firstName = stObj?.fullName?.split(' ')[0] || 'Atleta';
-    setSaveFeedback(`✓ ${firstName}: ${status.toUpperCase()} registrado`);
-    setTimeout(() => setSaveFeedback(null), 2500);
-
-    // 4. Feedback con confeti al registrar Presente
-    if (status === 'presente') {
-      try {
-        confetti({
-          particleCount: 20,
-          spread: 45,
-          origin: { y: 0.8 },
-          colors: ['#10b981', '#34d399', '#ea580c'],
-        });
-      } catch {}
-    }
-
-    // 5. Intentar inserción directa en Supabase
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('daily_attendance').upsert({
-          student_id: targetStudentId,
-          session_date: sessionDate,
-          shift: shiftToSave,
-          status: status,
-          notes: sessionTopic,
-        });
-      } catch (e) {
-        console.warn('Supabase daily_attendance direct save:', e);
-      }
-    }
+  const showNotification = (msg: string) => {
+    setFeedbackMsg(msg);
+    setTimeout(() => setFeedbackMsg(null), 3500);
   };
 
-  // Abrir Modal de Cobro Rápido
-  const handleOpenQuickPay = (st: StudentProfile) => {
-    setQuickPayStudent(st);
-    // Preseleccionar monto según frecuencia del alumno
-    const due = st.finances?.balanceDue || 50;
-    setQuickPayAmount(due > 0 ? due : 50);
-    setQuickPayMethod('Efectivo');
-    setQuickPayNotes(`Cobro en cancha para ${st.fullName} (${currentDayName} ${sessionDate})`);
-    setIsQuickPayOpen(true);
-  };
-
-  // Guardar Cobro Rápido en Cancha
-  const handleSaveQuickPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickPayStudent) return;
-
-    setIsSavingPay(true);
-    const paymentRecord: Omit<PaymentRecord, 'id'> = {
-      studentId: quickPayStudent.id,
-      studentName: quickPayStudent.fullName,
-      guardianName: quickPayStudent.guardianName || quickPayStudent.medicalNotes?.emergencyContact || 'Tutor Registrado',
-      guardianPhone: quickPayStudent.parentPhone || quickPayStudent.phone || '5522427769',
-      amount: Number(quickPayAmount),
-      date: sessionDate,
-      method: quickPayMethod,
-      status: 'Pagado',
-      notes: quickPayNotes,
-      shift: quickPayStudent.shift || (selectedShift !== 'all' ? selectedShift : 'matutino_9_11'),
-    };
-
-    // 1. Guardar en HoopStore con recibo y actualizar saldo
-    const savedReceipt = HoopStore.recordPaymentWithReceipt(paymentRecord);
-
-    // 2. Actualizar lista de alumnos local
-    const freshList = HoopStore.getStudents();
-    setStudentsList(freshList);
-
-    // 3. Emitir evento global de pago para actualizar las 4 tarjetas del Búnker al instante
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('payment_recorded'));
-    }
-
-    if (onPaymentRecorded) {
-      onPaymentRecorded(savedReceipt);
-    }
-
-    // 4. Intentar guardar en Supabase directamente
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('membership_payments').insert({
-          student_id: quickPayStudent.id,
-          amount: Number(quickPayAmount),
-          method: quickPayMethod,
-          payment_date: sessionDate,
-          status: 'Pagado',
-          notes: quickPayNotes,
-        });
-      } catch (e) {
-        console.warn('membership_payments direct insert:', e);
-      }
-      try {
-        await supabase.from('student_payments').insert({
-          student_id: quickPayStudent.id,
-          student_name: quickPayStudent.fullName,
-          amount: Number(quickPayAmount),
-          method: quickPayMethod,
-          payment_date: sessionDate,
-          status: 'Pagado',
-        });
-      } catch (e) {
-        console.warn('student_payments direct insert:', e);
-      }
-    }
-
-    setIsSavingPay(false);
-    setIsQuickPayOpen(false);
-
-    // Confeti de pago recibido
+  const fetchRoster = useCallback(async () => {
+    setLoading(true);
     try {
-      confetti({
-        particleCount: 60,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#10b981', '#fbbf24', '#ea580c'],
-      });
-    } catch {}
+      // 1. Obtener perfiles de estudiantes de Supabase
+      const { data: profilesData, error: profilesErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("role", "student");
 
-    setSaveFeedback(`✓ Cobro de $${quickPayAmount} registrado para ${quickPayStudent.fullName.split(' ')[0]}`);
-    setTimeout(() => setSaveFeedback(null), 3500);
+      // Si Supabase aún no tiene perfiles en la nube o hay error de conexión, usamos fallback local de HoopStore
+      if (profilesErr || !profilesData || profilesData.length === 0) {
+        const localList = HoopStore.getStudents();
+        if (localList.length > 0) {
+          const formattedLocal: StudentItem[] = localList.map((st) => {
+            const hasPaid = st.finances ? st.finances.balanceDue === 0 : false;
+            return {
+              id: st.id,
+              full_name: st.fullName,
+              email: st.email,
+              commitment: {
+                days_selected: st.trainingDays || ["Lunes", "Miércoles", "Viernes"],
+                shift: st.shift === "matutino_9_11" ? "matutino_9_11" : "vespertino_5_7",
+                frequency_type: st.finances?.frequency || "cada_3er_dia",
+              },
+              lastPayment: hasPaid ? {
+                payment_date: todayDateString,
+                status: "pagado",
+                concept: "mensualidad",
+                amount: st.finances?.lastPaymentAmount || 600,
+              } : undefined,
+              attendanceToday: undefined,
+            };
+          });
+          setStudents(formattedLocal);
+        } else {
+          setStudents([]);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Obtener compromisos de asistencia
+      const { data: commitmentsData } = await supabase
+        .from("attendance_commitments")
+        .select("user_id, days_selected, shift, frequency_type");
+
+      // 3. Obtener asistencias de hoy
+      const { data: attendanceData } = await supabase
+        .from("daily_attendance")
+        .select("id, student_id, status, shift")
+        .eq("date", todayDateString);
+
+      // 4. Obtener pagos históricos de membresía
+      const { data: paymentsData } = await supabase
+        .from("membership_payments")
+        .select("student_id, payment_date, status, concept, amount")
+        .order("payment_date", { ascending: false });
+
+      const formatted: StudentItem[] = profilesData.map((p) => {
+        const comm = commitmentsData?.find((c) => c.user_id === p.id);
+        const att = attendanceData?.find((a) => a.student_id === p.id && a.shift === selectedShift);
+        const pay = paymentsData?.find((pay) => pay.student_id === p.id);
+
+        return {
+          id: p.id,
+          full_name: p.full_name || "Sin Nombre",
+          email: p.email,
+          commitment: comm ? {
+            days_selected: comm.days_selected || [],
+            shift: comm.shift,
+            frequency_type: comm.frequency_type || "cada_3er_dia"
+          } : undefined,
+          attendanceToday: att ? { id: att.id, status: att.status } : undefined,
+          lastPayment: pay ? {
+            payment_date: pay.payment_date,
+            status: pay.status,
+            concept: pay.concept,
+            amount: pay.amount
+          } : undefined
+        };
+      });
+
+      setStudents(formatted);
+    } catch (err) {
+      console.error("Error al cargar lista de atletas:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedShift, todayDateString]);
+
+  useEffect(() => {
+    fetchRoster();
+  }, [fetchRoster]);
+
+  // Marcado rápido de asistencia
+  const markAttendance = async (studentId: string, status: "presente" | "falta" | "retardo") => {
+    if (readOnly) return;
+    try {
+      // Intentar persistencia en Supabase daily_attendance
+      const { error } = await supabase
+        .from("daily_attendance")
+        .upsert(
+          {
+            student_id: studentId,
+            date: todayDateString,
+            shift: selectedShift,
+            status: status
+          },
+          { onConflict: "student_id,date,shift" }
+        );
+
+      if (error) {
+        console.warn("Supabase upsert daily_attendance fallback:", error.message);
+      }
+
+      // Sincronizar en HoopStore local para continuidad offline
+      HoopStore.recordDailyAttendance(
+        studentId,
+        todayDateString,
+        selectedShift,
+        status,
+        "Pase de lista oficial en cancha"
+      );
+
+      if (onRecordDailyAttendance) {
+        onRecordDailyAttendance(
+          studentId,
+          todayDateString,
+          selectedShift,
+          status
+        );
+      }
+
+      // Celebración visual si está presente
+      if (status === "presente") {
+        confetti({
+          particleCount: 25,
+          spread: 60,
+          origin: { y: 0.8 },
+          colors: ["#22c55e", "#ea580c", "#38bdf8"]
+        });
+      }
+
+      showNotification(`Asistencia registrada: ${status.toUpperCase()}`);
+      fetchRoster();
+    } catch (err: any) {
+      alert("Error al marcar asistencia: " + err.message);
+    }
   };
 
-  // Filtrado de alumnos: Pestaña 1 (Programados hoy) vs Pestaña 2 (Todos)
-  const scheduledForTodayList = useMemo(() => {
-    return studentsList.filter((s) => {
-      // 1. Filtro de turno si aplica
-      if (selectedShift !== 'all') {
-        const sShift = s.shift || 'matutino_9_11';
-        if (sShift !== selectedShift) return false;
+  // Registro de cobro en cancha
+  const handleRegisterPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentModalUser) return;
+    setProcessingPayment(true);
+
+    try {
+      // 1. Inserción en Supabase membership_payments
+      const { error } = await supabase.from("membership_payments").insert({
+        student_id: paymentModalUser.id,
+        amount: paymentAmount,
+        payment_date: todayDateString,
+        payment_method: paymentMethod,
+        concept: paymentConcept,
+        status: "pagado"
+      });
+
+      if (error) {
+        console.warn("Supabase insert membership_payments fallback:", error.message);
       }
-      // 2. Filtro de día comprometido
-      const trainingDays = s.trainingDays || ['Lunes', 'Miércoles', 'Viernes'];
-      return trainingDays.includes(currentDayName);
-    });
-  }, [studentsList, selectedShift, currentDayName]);
 
-  const allFilteredList = useMemo(() => {
-    return studentsList.filter((s) => {
-      // 1. Filtro de turno si aplica
-      if (selectedShift !== 'all') {
-        const sShift = s.shift || 'matutino_9_11';
-        if (sShift !== selectedShift) return false;
-      }
-      // 2. Filtro de búsqueda predictiva
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchName = s.fullName?.toLowerCase().includes(q);
-        const matchJersey = s.jerseyNumber?.toString().includes(q);
-        const matchPos = s.position?.toLowerCase().includes(q);
-        const matchPhone = (s.phone || s.parentPhone || '').includes(q);
-        return matchName || matchJersey || matchPos || matchPhone;
-      }
-      return true;
-    });
-  }, [studentsList, selectedShift, searchQuery]);
+      // 2. Registrar en HoopStore local para actualizar semáforo y analíticas
+      const studentName = paymentModalUser.full_name;
+      const paymentRecord = {
+        id: `pay-${Date.now()}`,
+        studentId: paymentModalUser.id,
+        studentName: studentName,
+        guardianName: "Tutor de Atleta",
+        amount: paymentAmount,
+        date: todayDateString,
+        method: (paymentMethod === "efectivo" ? "Efectivo" : "Transferencia") as "Efectivo" | "Transferencia",
+        status: "Pagado" as const,
+        concept: paymentConcept === "clase_individual" ? "Por Clase (Día)" : paymentConcept === "semanal" ? "Semanal (3 Clases)" : "Mensualidad Completa",
+      };
 
-  // Lista a renderizar según pestaña activa
-  const displayList = activeTab === 'scheduled' ? scheduledForTodayList : allFilteredList;
-
-  // Estadísticas del estudiante individual (modo Alumno readOnly)
-  const history = student?.attendanceHistory || [];
-  const presentCount = history.filter((h) => h.present || h.status === 'presente' || h.status === 'retardo').length;
-  const retardoCount = history.filter((h) => h.status === 'retardo').length;
-  const faltaCount = history.filter((h) => !h.present || h.status === 'falta').length;
-  const attendanceRate = history.length > 0 ? Math.round((presentCount / history.length) * 100) : 100;
-
-  // ==========================================
-  // RENDER: MODO READONLY / PORTAL DEL ALUMNO
-  // ==========================================
-  if (readOnly) {
-    if (!student) {
-      return (
-        <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-8 text-center text-xs font-mono text-zinc-500">
-          No hay atleta seleccionado en este momento. La base de datos está limpia.
-        </div>
+      HoopStore.recordPayment(
+        paymentModalUser.id,
+        paymentAmount,
+        paymentMethod === "efectivo" ? "Efectivo" : "Transferencia"
       );
+
+      // 3. Disparar evento global para sincronizar el Búnker y Dashboards sin recargar
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("payment_recorded"));
+      }
+
+      if (onPaymentRecorded) {
+        onPaymentRecorded(paymentRecord);
+      }
+
+      // 4. Confeti festivo
+      confetti({
+        particleCount: 50,
+        spread: 70,
+        origin: { y: 0.7 },
+        colors: ["#ea580c", "#22c55e", "#fbbf24"]
+      });
+
+      showNotification(`Pago de $${paymentAmount} MXN registrado correctamente`);
+      setPaymentModalUser(null);
+      fetchRoster();
+    } catch (err: any) {
+      alert("Error registrando cobro: " + err.message);
+    } finally {
+      setProcessingPayment(false);
     }
+  };
+
+  const isScheduledToday = (s: StudentItem) => {
+    if (!s.commitment) return false;
     return (
-      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none font-sans">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                MI ASISTENCIA EN CANCHA
-              </span>
-              <span className="text-zinc-400 text-xs font-mono">Deportivo Carmen Serdán CDMX</span>
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <CalendarCheck className="w-5 h-5 text-emerald-400" />
-              <span>Registro de Asistencia &amp; Disciplina</span>
-            </h3>
-            <p className="text-xs text-zinc-400 font-mono">
-              Bitácora oficial de entrenamientos asistidos, retardos y cumplimiento
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 font-mono">
-            <div className="px-3.5 py-1.5 bg-[#0a0e17] rounded-xl border border-[#27272a] text-center">
-              <div className="text-[10px] text-zinc-400 uppercase">Asistencias</div>
-              <div className="text-xl font-black text-emerald-400">{presentCount}</div>
-            </div>
-            <div className="px-3.5 py-1.5 bg-[#0a0e17] rounded-xl border border-amber-500/30 text-center">
-              <div className="text-[10px] text-amber-400 uppercase">Retardos</div>
-              <div className="text-xl font-black text-amber-400">{retardoCount}</div>
-            </div>
-            <div className="px-3.5 py-1.5 bg-[#0a0e17] rounded-xl border border-rose-500/30 text-center">
-              <div className="text-[10px] text-rose-400 uppercase">Faltas</div>
-              <div className="text-xl font-black text-rose-400">{faltaCount}</div>
-            </div>
-            <div className="px-3.5 py-1.5 bg-[#0a0e17] rounded-xl border border-[#ea580c]/30 text-center">
-              <div className="text-[10px] text-[#f97316] uppercase">% Asistencia</div>
-              <div className="text-xl font-black text-[#ea580c]">{attendanceRate}%</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Turno y Días del Alumno */}
-        <div className="bg-[#0a0e17] border border-[#27272a] rounded-xl p-4 mb-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest block mb-1">
-                Turno &amp; Días Programados
-              </span>
-              <div className="text-xs text-zinc-300 flex items-center gap-2">
-                <span className="font-bold text-white">
-                  {student.shift === 'vespertino_5_7'
-                    ? 'Turno Vespertino: 17:00 a 19:00 hrs'
-                    : 'Turno Matutino: 09:00 a 11:00 hrs'}
-                </span>
-                <span className="text-zinc-500">•</span>
-                <span className="text-zinc-400">Sede: Deportivo Carmen Serdán</span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              {(student.trainingDays || ['Lunes', 'Miércoles', 'Viernes']).map((day) => (
-                <span
-                  key={day}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-orange-500/10 text-orange-300 border border-orange-500/30"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-orange-400" />
-                  <span>{day}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bitácora Histórica */}
-        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-          {history.length === 0 ? (
-            <div className="p-6 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a]">
-              Aún no hay registros de asistencia en el sistema.
-            </div>
-          ) : (
-            history.map((record) => {
-              const isPresent = record.status === 'presente' || (!record.status && record.present);
-              const isRetardo = record.status === 'retardo';
-
-              return (
-                <div
-                  key={record.id}
-                  className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-all ${
-                    isPresent
-                      ? 'bg-[#0a0e17] border-[#27272a] text-zinc-300'
-                      : isRetardo
-                      ? 'bg-amber-950/10 border-amber-500/20 text-amber-200'
-                      : 'bg-rose-950/10 border-rose-500/20 text-rose-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-1.5 rounded-lg ${
-                      isPresent
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : isRetardo
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}>
-                      {isPresent ? <CheckCircle2 className="w-4 h-4" /> : isRetardo ? <Clock className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-white">{record.date}</span>
-                        <span className="text-[11px] font-mono text-zinc-400">• {record.dayName}</span>
-                        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
-                          isPresent
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : isRetardo
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                        }`}>
-                          {isPresent ? 'PRESENTE' : isRetardo ? 'RETARDO' : 'FALTA'}
-                        </span>
-                      </div>
-                      {record.topic && (
-                        <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1 font-sans">
-                          {record.topic}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-[10px] font-mono text-zinc-500 text-right">
-                    {record.shift === 'vespertino_5_7' ? 'Vespertino (17-19 hrs)' : 'Matutino (09-11 hrs)'}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+      (s.commitment.days_selected || []).includes(currentDayName) &&
+      s.commitment.shift === selectedShift
     );
-  }
+  };
 
-  // ==========================================
-  // RENDER: MODO COACH / SUPERADMIN EN CANCHA
-  // ==========================================
+  const filteredStudents = students.filter((s) => {
+    const matchesSearch =
+      (s.full_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (s.email || "").toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (activeTab === "scheduled") return isScheduledToday(s);
+    return true;
+  });
+
   return (
-    <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none font-sans">
-      {/* Cabecera Técnica */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">
+    <div className="w-full bg-[#0d1017] border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl text-white">
+      {/* Toast Feedback */}
+      {feedbackMsg && (
+        <div className="mb-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between animate-fade-in">
+          <span>{feedbackMsg}</span>
+          <button onClick={() => setFeedbackMsg(null)} className="text-zinc-400 hover:text-white">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* HEADER DE CONTROL EN CANCHA */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
         <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              OPERACIONAL RBAC • CONTROL DE ASISTENCIA &amp; COBRANZA
-            </span>
-            <span className="text-zinc-400 text-xs font-mono">Sincronización en Vivo Supabase</span>
-          </div>
-          <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <CalendarCheck className="w-5 h-5 text-emerald-400" />
-            <span>Pase de Lista en Cancha &amp; Control de Cuotas</span>
-          </h3>
-          <p className="text-xs text-zinc-400 font-mono">
-            Marca asistencia rápida con 1 clic: Presente, Falta o Retardo. Valida semáforo de pago y cobra en cancha.
-          </p>
+          <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-[#ea580c]/15 text-[#ea580c] border border-[#ea580c]/30 px-3 py-1 rounded-full">
+            Control de Cancha en Vivo
+          </span>
+          <h2 className="text-2xl font-black uppercase mt-2 tracking-wide flex items-center gap-2">
+            Pase de Asistencia • <span className="text-[#38bdf8]">{currentDayName}</span>
+          </h2>
         </div>
 
-        {/* Feedback flotante */}
-        {saveFeedback && (
-          <div className="px-3.5 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-xs animate-fadeIn flex items-center gap-2 shadow-lg">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>{saveFeedback}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Controles de Sesión: Selector de Fecha & Filtro de Turno */}
-      <div className="bg-[#0a0e17] border border-[#27272a] rounded-xl p-4 mb-5 space-y-4 font-mono text-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Selector de Fecha */}
-          <div className="flex items-center gap-3">
-            <div>
-              <span className="text-[10px] text-zinc-400 uppercase block mb-1">Fecha de Sesión:</span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={sessionDate}
-                  onChange={(e) => setSessionDate(e.target.value)}
-                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-xs font-mono focus:outline-none focus:border-emerald-500 cursor-pointer"
-                />
-                <span className="px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/30 text-xs font-bold">
-                  {currentDayName}
-                </span>
-              </div>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-[#121724] p-1 rounded-xl border border-zinc-700 flex">
+            <button
+              onClick={() => setSelectedShift("matutino_9_11")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                selectedShift === "matutino_9_11" ? "bg-[#0284c7] text-white" : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Matutino (9-11)
+            </button>
+            <button
+              onClick={() => setSelectedShift("vespertino_5_7")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${
+                selectedShift === "vespertino_5_7" ? "bg-[#0284c7] text-white" : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Vespertino (5-7)
+            </button>
           </div>
 
-          {/* Filtro de Turnos */}
-          <div>
-            <span className="text-[10px] text-zinc-400 uppercase block mb-1">Filtro de Turno:</span>
-            <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
-              <button
-                type="button"
-                onClick={() => setSelectedShift('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  selectedShift === 'all'
-                    ? 'bg-[#ea580c] text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                Todos ({studentsList.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedShift('matutino_9_11')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  selectedShift === 'matutino_9_11'
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Sun className="w-3.5 h-3.5" />
-                <span>Matutino 09:00 - 11:00</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedShift('vespertino_5_7')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  selectedShift === 'vespertino_5_7'
-                    ? 'bg-sky-600 text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Moon className="w-3.5 h-3.5" />
-                <span>Vespertino 17:00 - 19:00</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Foco de la Sesión */}
-        <div>
-          <label className="text-[10px] text-zinc-400 uppercase block mb-1">Tema / Trabajo Técnico del Día:</label>
-          <input
-            type="text"
-            value={sessionTopic}
-            onChange={(e) => setSessionTopic(e.target.value)}
-            placeholder="Ej. Mecánica de tiro en suspensión, defensa de pick and roll y cardio"
-            className="w-full bg-zinc-800/90 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-xs font-sans focus:outline-none focus:border-emerald-500"
-          />
+          <button
+            onClick={fetchRoster}
+            title="Refrescar lista desde Supabase"
+            className="p-2.5 bg-[#161b26] hover:bg-[#1f2636] border border-zinc-700 rounded-xl text-zinc-300 transition cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* PESTAÑAS 1 Y 2: PROGRAMADOS HOY vs LISTA COMPLETA */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
-        {/* Selector de Pestañas */}
-        <div className="flex items-center gap-2 bg-[#0a0e17] p-1.5 rounded-2xl border border-[#27272a] self-start font-mono">
+      {/* PESTAÑAS Y BUSCADOR UNIVERSAL */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
-            type="button"
-            onClick={() => setActiveTab('scheduled')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'scheduled'
-                ? 'bg-[#ea580c] text-white shadow-md shadow-orange-600/30'
-                : 'text-zinc-400 hover:text-white'
+            onClick={() => setActiveTab("scheduled")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+              activeTab === "scheduled"
+                ? "bg-[#ea580c] border-[#ea580c] text-white shadow-lg shadow-[#ea580c]/20"
+                : "bg-[#121724] border-zinc-800 text-zinc-400 hover:text-white"
             }`}
           >
-            <CalendarCheck className="w-3.5 h-3.5" />
-            <span>Programados para Hoy ({scheduledForTodayList.length})</span>
+            Programados Hoy ({students.filter(isScheduledToday).length})
           </button>
-
           <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'all'
-                ? 'bg-zinc-800 text-white shadow-md'
-                : 'text-zinc-400 hover:text-white'
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+              activeTab === "all"
+                ? "bg-[#ea580c] border-[#ea580c] text-white shadow-lg shadow-[#ea580c]/20"
+                : "bg-[#121724] border-zinc-800 text-zinc-400 hover:text-white"
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>Lista Completa / Asistencia Libre ({studentsList.length})</span>
+            Todos los Alumnos ({students.length})
           </button>
         </div>
 
-        {/* Buscador Predictivo (Activo en ambas pestañas) */}
-        <div className="relative flex-1 sm:max-w-xs font-mono text-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
           <input
             type="text"
-            placeholder="Buscar atleta por nombre o dorsal..."
+            placeholder="Buscar por nombre o correo..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#0a0e17] border border-[#27272a] focus:border-orange-500 focus:outline-none rounded-xl py-2 pl-9 pr-3 text-xs text-white"
+            className="w-full bg-[#07090e] border border-zinc-800 focus:border-[#38bdf8] rounded-xl py-2 pl-10 pr-4 text-xs text-white outline-none"
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Lista de Atletas para Pase de Lista */}
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between text-xs font-mono text-zinc-400 pb-2 border-b border-[#27272a]">
-          <span className="uppercase text-[10px] font-bold">
-            {activeTab === 'scheduled'
-              ? `Atletas Programados para ${currentDayName} (${displayList.length})`
-              : `Todos los Atletas del Club (${displayList.length})`}
-          </span>
-          <span className="text-[10px] text-zinc-500">
-            Sede Oficial: Deportivo Carmen Serdán CDMX
-          </span>
-        </div>
-
-        {displayList.length === 0 ? (
-          <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a] space-y-2">
-            <div>
-              {activeTab === 'scheduled'
-                ? `No hay atletas programados para el día ${currentDayName} con el filtro actual.`
-                : 'No se encontraron atletas con el término de búsqueda proporcionado.'}
-            </div>
-            {activeTab === 'scheduled' && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className="px-3.5 py-1.5 rounded-lg bg-orange-600/20 text-orange-400 border border-orange-500/40 text-xs font-bold hover:bg-orange-600/30 transition cursor-pointer"
-              >
-                Ver Lista Completa para Marcar Asistencia Libre &rarr;
-              </button>
-            )}
+      {/* LISTADO DE ASISTENCIA Y COBRO */}
+      <div className="mt-6 space-y-3">
+        {loading ? (
+          <div className="p-8 text-center text-xs text-zinc-500 bg-[#07090e] border border-zinc-800 rounded-2xl">
+            Cargando atletas registrados...
+          </div>
+        ) : filteredStudents.length === 0 ? (
+          <div className="p-8 text-center text-xs text-zinc-500 bg-[#07090e] border border-zinc-800 rounded-2xl">
+            No se encontraron atletas {activeTab === "scheduled" ? "programados para hoy en este turno." : "registrados."}
           </div>
         ) : (
-          <div className="divide-y divide-[#27272a]">
-            {displayList.map((st) => {
-              const currentStatus = attendanceMap[st.id];
-              const isUpToDate = st.finances?.status === 'al_corriente';
-              const stShift = st.shift || 'matutino_9_11';
+          filteredStudents.map((st) => {
+            const hasPaid = Boolean(st.lastPayment && st.lastPayment.status === "pagado");
+            const attendanceStatus = st.attendanceToday?.status;
 
-              return (
-                <div
-                  key={st.id}
-                  className="py-3 px-2 rounded-xl hover:bg-[#0a0e17]/60 transition flex flex-col md:flex-row md:items-center justify-between gap-3 font-mono text-xs"
-                >
-                  {/* Info Atleta + Avatar + Pago Badge */}
+            return (
+              <div
+                key={st.id}
+                className="bg-[#121724] border border-zinc-800/80 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:border-zinc-700 transition"
+              >
+                <div>
                   <div className="flex items-center gap-3">
-                    <img
-                      src={st.avatarUrl || '/logo-official.png'}
-                      alt={st.fullName}
-                      className="w-10 h-10 rounded-xl object-cover border border-zinc-700 flex-shrink-0"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-white text-sm font-sans">{st.fullName}</span>
-                        {st.jerseyNumber && (
-                          <span className="text-[10px] bg-zinc-800 text-orange-400 font-bold px-1.5 py-0.2 rounded border border-zinc-700">
-                            #{st.jerseyNumber}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-zinc-400">
-                          {st.position} • {st.gender === 'M' ? 'Varonil' : 'Femenil'}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        {/* Turno Badge */}
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                          stShift === 'matutino_9_11'
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                            : 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
-                        }`}>
-                          {stShift === 'matutino_9_11' ? 'Matutino (09:00 - 11:00)' : 'Vespertino (17:00 - 19:00)'}
-                        </span>
-
-                        {/* Semáforo de Cobranza */}
-                        {isUpToDate ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Al corriente ($0)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 animate-pulse">
-                            <AlertCircle className="w-3 h-3" />
-                            Adeudo: ${st.finances?.balanceDue || 50} MXN
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    <h3 className="text-sm font-bold text-white">{st.full_name}</h3>
+                    {hasPaid ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        Al Corriente (${st.lastPayment?.amount || 0} MXN)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Pago Pendiente
+                      </span>
+                    )}
                   </div>
-
-                  {/* Acciones: Botón Rápido de Cobro + Botones de Asistencia */}
-                  <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-center flex-wrap">
-                    {/* Botón de Cobro Rápido en Cancha */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenQuickPay(st)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        !isUpToDate
-                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
-                          : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
-                      }`}
-                      title="Registrar cobro manual de clase o mensualidad"
-                    >
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-300" />
-                      <span>{!isUpToDate ? 'Cobrar Cuota' : 'Registrar Pago'}</span>
-                    </button>
-
-                    <div className="h-5 w-px bg-zinc-800 hidden sm:block" />
-
-                    {/* Botón Presente (Verde) */}
-                    <button
-                      type="button"
-                      onClick={() => handleMarkStatus(st.id, 'presente', stShift)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        currentStatus === 'presente'
-                          ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
-                          : 'bg-zinc-800/80 text-zinc-300 hover:bg-emerald-950/40 hover:text-emerald-300 border border-zinc-700'
-                      }`}
-                      title="Marcar Presente"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Presente</span>
-                    </button>
-
-                    {/* Botón Retardo (Amarillo) */}
-                    <button
-                      type="button"
-                      onClick={() => handleMarkStatus(st.id, 'retardo', stShift)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        currentStatus === 'retardo'
-                          ? 'bg-amber-600 text-white ring-2 ring-amber-400'
-                          : 'bg-zinc-800/80 text-zinc-300 hover:bg-amber-950/40 hover:text-amber-300 border border-zinc-700'
-                      }`}
-                      title="Marcar Retardo"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Retardo</span>
-                    </button>
-
-                    {/* Botón Falta (Rojo) */}
-                    <button
-                      type="button"
-                      onClick={() => handleMarkStatus(st.id, 'falta', stShift)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        currentStatus === 'falta'
-                          ? 'bg-rose-600 text-white ring-2 ring-rose-400'
-                          : 'bg-zinc-800/80 text-zinc-300 hover:bg-rose-950/40 hover:text-rose-300 border border-zinc-700'
-                      }`}
-                      title="Marcar Falta"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Falta</span>
-                    </button>
-                  </div>
+                  <p className="text-xs text-zinc-400 mt-1">{st.email}</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    Plan: <span className="text-zinc-300 font-medium">{st.commitment?.frequency_type || "cada_3er_dia"}</span> • Días: <span className="text-zinc-300 font-medium">{st.commitment?.days_selected?.join(", ") || "Lun, Mié, Vie"}</span>
+                  </p>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* BOTONES DE ASISTENCIA Y COBRO */}
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                  {/* Selector Asistencia */}
+                  <div className="flex items-center bg-[#07090e] p-1 rounded-xl border border-zinc-800">
+                    <button
+                      onClick={() => markAttendance(st.id, "presente")}
+                      disabled={readOnly}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                        attendanceStatus === "presente"
+                          ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" /> Presente
+                    </button>
+                    <button
+                      onClick={() => markAttendance(st.id, "retardo")}
+                      disabled={readOnly}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                        attendanceStatus === "retardo"
+                          ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5" /> Retardo
+                    </button>
+                    <button
+                      onClick={() => markAttendance(st.id, "falta")}
+                      disabled={readOnly}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                        attendanceStatus === "falta"
+                          ? "bg-red-600 text-white shadow-md shadow-red-600/30"
+                          : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <XCircle className="w-3.5 h-3.5" /> Falta
+                    </button>
+                  </div>
+
+                  {/* Botón Cobro Rápido */}
+                  {!readOnly && (
+                    <button
+                      onClick={() => {
+                        setPaymentModalUser(st);
+                        setPaymentAmount(50);
+                        setPaymentConcept("clase_individual");
+                      }}
+                      className="px-3.5 py-2 bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 hover:brightness-110 transition cursor-pointer"
+                    >
+                      <DollarSign className="w-3.5 h-3.5" /> Cobrar
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* MODAL DE COBRO RÁPIDO EN CANCHA */}
-      {isQuickPayOpen && quickPayStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#121724] border border-emerald-500/40 rounded-3xl p-6 sm:p-7 max-w-md w-full font-sans shadow-2xl relative">
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Cobro Rápido en Cancha</h3>
-                  <p className="text-xs text-zinc-400 font-mono">Deportivo Carmen Serdán CDMX</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsQuickPayOpen(false)}
-                className="p-1.5 text-zinc-400 hover:text-white rounded-lg bg-zinc-800 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* MODAL COBRO RÁPIDO EN CANCHA */}
+      {paymentModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0d1017] border border-zinc-700 max-w-sm w-full p-6 rounded-3xl shadow-2xl text-white">
+            <h3 className="text-lg font-black uppercase">Registrar Cobro en Cancha</h3>
+            <p className="text-xs text-zinc-400 mt-1">
+              Atleta: <span className="text-[#38bdf8] font-bold">{paymentModalUser.full_name}</span>
+            </p>
 
-            <form onSubmit={handleSaveQuickPayment} className="mt-4 space-y-4 font-mono text-xs">
-              {/* Resumen del Atleta */}
-              <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
-                <span className="text-[10px] text-zinc-500 uppercase block">Atleta / Tutor:</span>
-                <div className="font-bold text-white text-sm mt-0.5">{quickPayStudent.fullName}</div>
-                <div className="text-[11px] text-zinc-400 mt-0.5">
-                  Tutor: {quickPayStudent.guardianName || 'Tutor de Atleta'} • {quickPayStudent.parentPhone || quickPayStudent.phone}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-500">Saldo actual:</span>
-                  <span className="text-rose-400 font-bold">
-                    ${quickPayStudent.finances?.balanceDue || 50} MXN
-                  </span>
-                </div>
-              </div>
-
-              {/* Botones Rápidos de Monto */}
+            <form onSubmit={handleRegisterPayment} className="space-y-4 mt-5">
               <div>
-                <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">
-                  Seleccionar Cuota:
-                </label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Concepto y Tarifa Oficial</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setQuickPayAmount(50)}
-                    className={`py-2 px-1 rounded-xl text-center border cursor-pointer transition ${
-                      quickPayAmount === 50
-                        ? 'bg-emerald-600 border-emerald-400 text-white font-bold shadow-md'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
+                    onClick={() => { setPaymentAmount(50); setPaymentConcept("clase_individual"); }}
+                    className={`py-2 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      paymentAmount === 50 ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30" : "bg-[#121724] border-zinc-800 text-zinc-400 hover:text-white"
                     }`}
                   >
-                    <div className="text-sm font-black">$50</div>
-                    <div className="text-[9px] opacity-80">1 Clase (Día)</div>
+                    $50 Día
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => setQuickPayAmount(150)}
-                    className={`py-2 px-1 rounded-xl text-center border cursor-pointer transition ${
-                      quickPayAmount === 150
-                        ? 'bg-[#ea580c] border-orange-400 text-white font-bold shadow-md'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
+                    onClick={() => { setPaymentAmount(150); setPaymentConcept("semanal"); }}
+                    className={`py-2 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      paymentAmount === 150 ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30" : "bg-[#121724] border-zinc-800 text-zinc-400 hover:text-white"
                     }`}
                   >
-                    <div className="text-sm font-black">$150</div>
-                    <div className="text-[9px] opacity-80">Semanal (3 Clases)</div>
+                    $150 Sem
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => setQuickPayAmount(600)}
-                    className={`py-2 px-1 rounded-xl text-center border cursor-pointer transition ${
-                      quickPayAmount === 600
-                        ? 'bg-sky-600 border-sky-400 text-white font-bold shadow-md'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
+                    onClick={() => { setPaymentAmount(600); setPaymentConcept("mensualidad"); }}
+                    className={`py-2 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      paymentAmount === 600 ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30" : "bg-[#121724] border-zinc-800 text-zinc-400 hover:text-white"
                     }`}
                   >
-                    <div className="text-sm font-black">$600</div>
-                    <div className="text-[9px] opacity-80">Mes (12 Clases)</div>
+                    $600 Mes
                   </button>
                 </div>
               </div>
 
-              {/* Monto manual si es diferente */}
               <div>
-                <label className="text-[10px] text-zinc-400 uppercase block mb-1">
-                  Monto a Cobrar ($ MXN):
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={quickPayAmount}
-                  onChange={(e) => setQuickPayAmount(Number(e.target.value) || 0)}
-                  className="w-full bg-[#0a0e17] border border-zinc-700 rounded-xl px-3 py-2 text-white font-bold text-base focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Método de Pago */}
-              <div>
-                <label className="text-[10px] text-zinc-400 uppercase block mb-1">
-                  Método de Recepción:
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Efectivo', 'Transferencia', 'Stripe'] as const).map((m) => (
-                    <button
-                      type="button"
-                      key={m}
-                      onClick={() => setQuickPayMethod(m)}
-                      className={`py-1.5 px-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
-                        quickPayMethod === m
-                          ? 'bg-emerald-600 text-white border-emerald-400'
-                          : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:text-white'
-                      }`}
-                    >
-                      {m === 'Transferencia' ? 'SPEI' : m === 'Stripe' ? 'Tarjeta' : m}
-                    </button>
-                  ))}
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Método de Pago</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("efectivo")}
+                    className={`py-2 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      paymentMethod === "efectivo" ? "bg-[#0284c7] border-[#0284c7] text-white shadow-md shadow-[#0284c7]/30" : "bg-[#121724] border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    Efectivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("transferencia")}
+                    className={`py-2 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      paymentMethod === "transferencia" ? "bg-[#0284c7] border-[#0284c7] text-white shadow-md shadow-[#0284c7]/30" : "bg-[#121724] border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    Transferencia SPEI
+                  </button>
                 </div>
               </div>
 
-              {/* Botones de Acción */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsQuickPayOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs cursor-pointer"
+                  onClick={() => setPaymentModalUser(null)}
+                  className="flex-1 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-xs font-bold hover:text-white transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingPay}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/30 cursor-pointer active:scale-95 disabled:opacity-50"
+                  disabled={processingPayment}
+                  className="flex-1 py-2.5 bg-[#22c55e] hover:bg-[#16a34a] text-black font-black rounded-xl text-xs uppercase transition shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSavingPay ? 'Registrando...' : 'Registrar Cobro & Poner en Verde'}</span>
+                  {processingPayment ? "Guardando..." : "Confirmar Cobro"}
                 </button>
               </div>
             </form>
@@ -934,4 +588,4 @@ export function AttendanceTracker({
   );
 }
 
-export default AttendanceTracker;
+export { AttendanceTracker };

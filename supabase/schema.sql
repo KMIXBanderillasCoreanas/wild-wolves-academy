@@ -28,6 +28,7 @@ CREATE TABLE public.attendance_commitments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   days_selected TEXT[] NOT NULL DEFAULT '{"Lunes","Miércoles","Viernes"}',
+  frequency_type TEXT NOT NULL DEFAULT 'cada_3er_dia',
   shift TEXT NOT NULL CHECK (shift IN ('matutino_9_11', 'vespertino_5_7')),
   commitment_agreement BOOLEAN NOT NULL DEFAULT true,
   venue TEXT NOT NULL DEFAULT 'Deportivo Carmen Serdán (CDMX)',
@@ -116,40 +117,46 @@ USING (auth.uid() = user_id);
 -- 7. TABLA DE ASISTENCIA DIARIA EN CANCHA (daily_attendance)
 CREATE TABLE IF NOT EXISTS public.daily_attendance (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id TEXT NOT NULL,
-  session_date DATE NOT NULL,
+  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
   shift TEXT NOT NULL CHECK (shift IN ('matutino_9_11', 'vespertino_5_7')),
-  status TEXT NOT NULL CHECK (status IN ('presente', 'falta', 'retardo')),
+  status TEXT NOT NULL CHECK (status IN ('presente', 'falta', 'retardo', 'justificado')),
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  UNIQUE(student_id, session_date, shift)
+  CONSTRAINT unique_student_date_shift UNIQUE(student_id, date, shift)
 );
 
 ALTER TABLE public.daily_attendance ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Lectura y registro de asistencia diaria para coaches y superadmin"
+DROP POLICY IF EXISTS "Lectura y registro de daily_attendance" ON public.daily_attendance;
+CREATE POLICY "Lectura y registro de daily_attendance"
 ON public.daily_attendance FOR ALL
 USING (true)
 WITH CHECK (true);
 
--- 8. TABLA DE CONTROL DE COBRANZA Y PAGOS (student_payments)
-CREATE TABLE IF NOT EXISTS public.student_payments (
+-- 8. TABLA DE CONTROL DE COBRANZA Y PAGOS (membership_payments)
+CREATE TABLE IF NOT EXISTS public.membership_payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id TEXT NOT NULL,
-  student_name TEXT,
-  guardian_name TEXT,
-  amount NUMERIC NOT NULL,
-  payment_date DATE NOT NULL,
-  method TEXT NOT NULL CHECK (method IN ('Efectivo', 'Transferencia', 'Stripe')),
-  status TEXT NOT NULL CHECK (status IN ('Pagado', 'Adeudo')),
+  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  amount NUMERIC NOT NULL DEFAULT 50,
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  payment_method TEXT NOT NULL DEFAULT 'efectivo',
+  concept TEXT NOT NULL DEFAULT 'clase_individual',
+  status TEXT NOT NULL DEFAULT 'pagado',
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
-ALTER TABLE public.student_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.membership_payments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Lectura y registro de pagos para administradores y coaches"
-ON public.student_payments FOR ALL
+DROP POLICY IF EXISTS "Lectura y registro de membership_payments" ON public.membership_payments;
+CREATE POLICY "Lectura y registro de membership_payments"
+ON public.membership_payments FOR ALL
 USING (true)
 WITH CHECK (true);
+
+-- 9. ÍNDICES DE RENDIMIENTO
+CREATE INDEX IF NOT EXISTS idx_daily_attendance_lookup ON public.daily_attendance(student_id, date, shift);
+CREATE INDEX IF NOT EXISTS idx_membership_payments_student ON public.membership_payments(student_id, payment_date DESC);
+
 
