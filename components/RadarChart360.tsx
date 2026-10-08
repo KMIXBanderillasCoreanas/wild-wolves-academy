@@ -24,59 +24,77 @@ import {
 } from 'lucide-react';
 
 interface RadarChart360Props {
-  metricsCurrent: BasketballMetrics;
-  metricsPrevious: BasketballMetrics;
-  athleteName: string;
+  metricsCurrent?: BasketballMetrics;
+  metricsPrevious?: BasketballMetrics;
+  athleteName?: string;
 }
 
-export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName }: RadarChart360Props) {
+export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = 'Atleta' }: RadarChart360Props) {
   const [showPreviousMonth, setShowPreviousMonth] = useState(true);
+
+  const cur = metricsCurrent || {
+    freeThrow: 70,
+    midRange: 68,
+    threePoint: 65,
+    verticalJump: 72,
+    sprint100m: 75,
+    agilityTTest: 74,
+  };
+
+  const prev = metricsPrevious || {
+    freeThrow: 60,
+    midRange: 60,
+    threePoint: 55,
+    verticalJump: 65,
+    sprint100m: 70,
+    agilityTTest: 68,
+  };
 
   const radarData = [
     {
       subject: 'Tiros Libres (20T)',
-      actual: metricsCurrent.freeThrow,
-      anterior: metricsPrevious.freeThrow,
+      actual: cur.freeThrow,
+      anterior: prev.freeThrow,
       fullMark: 100,
       icon: Target,
       desc: '% Efectividad en tiros libres sobre base de 20 lanzamientos reglamentarios.',
     },
     {
       subject: 'Media Distancia',
-      actual: metricsCurrent.midRange,
-      anterior: metricsPrevious.midRange,
+      actual: cur.midRange,
+      anterior: prev.midRange,
       fullMark: 100,
       icon: Target,
       desc: '% Efectividad en tiro tras bote y suspensión en media distancia.',
     },
     {
       subject: 'Tiro de 3 / Larga',
-      actual: metricsCurrent.threePoint,
-      anterior: metricsPrevious.threePoint,
+      actual: cur.threePoint,
+      anterior: prev.threePoint,
       fullMark: 100,
       icon: Target,
       desc: '% Efectividad en lanzamientos de 3 puntos (spot-up y transición).',
     },
     {
       subject: 'Salto Vertical (cm)',
-      actual: metricsCurrent.verticalJump,
-      anterior: metricsPrevious.verticalJump,
+      actual: cur.verticalJump,
+      anterior: prev.verticalJump,
       fullMark: 100,
       icon: Zap,
       desc: 'Salto vertical máximo medido y normalizado a escala combine.',
     },
     {
       subject: 'Velocidad 100m',
-      actual: metricsCurrent.sprint100m,
-      anterior: metricsPrevious.sprint100m,
+      actual: cur.sprint100m,
+      anterior: prev.sprint100m,
       fullMark: 100,
       icon: Activity,
       desc: 'Sprint en 100m planos convertido a escala de rendimiento explosivo.',
     },
     {
       subject: 'Agilidad T-Test',
-      actual: metricsCurrent.agilityTTest,
-      anterior: metricsPrevious.agilityTTest,
+      actual: cur.agilityTTest,
+      anterior: prev.agilityTTest,
       fullMark: 100,
       icon: ShieldCheck,
       desc: 'Agilidad y desplazamientos laterales en circuito T-Test defensivo.',
@@ -84,10 +102,10 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName }: 
   ];
 
   const currentAverage = Math.round(
-    Object.values(metricsCurrent).reduce((a, b) => a + b, 0) / 6
+    Object.values(cur).reduce((a, b) => a + b, 0) / 6
   );
   const previousAverage = Math.round(
-    Object.values(metricsPrevious).reduce((a, b) => a + b, 0) / 6
+    Object.values(prev).reduce((a, b) => a + b, 0) / 6
   );
   const delta = currentAverage - previousAverage;
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { HoopStore } from '@/lib/store';
 import { 
   StudentProfile, 
@@ -41,7 +42,9 @@ import {
   Lock,
   Crown,
   AlertTriangle,
-  History
+  History,
+  KeyRound,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function CoachDashboardPage() {
@@ -62,6 +65,16 @@ export default function CoachDashboardPage() {
   const [isDeleteEvalModalOpen, setIsDeleteEvalModalOpen] = useState(false);
   const [evalToEdit, setEvalToEdit] = useState<Evaluation | null>(null);
   const [evalToDelete, setEvalToDelete] = useState<Evaluation | null>(null);
+
+  // Modal de Nuevo Atleta en Cancha
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentGender, setNewStudentGender] = useState<'M' | 'F'>('M');
+  const [newStudentAge, setNewStudentAge] = useState<number>(15);
+  const [newStudentPosition, setNewStudentPosition] = useState<Position>('Base');
+  const [newStudentShift, setNewStudentShift] = useState<ShiftType>('matutino_9_11');
+  const [newStudentPhone, setNewStudentPhone] = useState('5522427769');
+  const [newStudentGuardian, setNewStudentGuardian] = useState('Tutor de Atleta');
 
   // Formulario de Nueva Evaluación
   const [freeThrowMade, setFreeThrowMade] = useState<number>(17);
@@ -117,8 +130,53 @@ export default function CoachDashboardPage() {
     return true;
   });
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0];
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || (students.length > 0 ? students[0] : null);
   const isSuperAdmin = currentRole === 'superadmin';
+
+  // Alta de Atleta en Cancha por el Coach
+  const handleCreateNewStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStudentName.trim()) return;
+
+    const created = HoopStore.addStudent({
+      fullName: newStudentName.trim(),
+      email: `${newStudentName.toLowerCase().replace(/[^a-z0-9]/g, '')}@wildwolves.mx`,
+      phone: newStudentPhone || '5522427769',
+      parentPhone: newStudentPhone || '5522427769',
+      guardianName: newStudentGuardian || 'Tutor de Atleta',
+      gender: newStudentGender,
+      age: Number(newStudentAge) || 15,
+      position: newStudentPosition,
+      jerseyNumber: Math.floor(Math.random() * 90) + 10,
+      role: 'student',
+      shift: newStudentShift,
+      avatarUrl: '/logo-official.png',
+      stripeStatus: 'pending',
+      medicalNotes: {
+        bloodType: 'O+',
+        allergies: 'Ninguna',
+        emergencyContact: newStudentGuardian || 'Tutor de Atleta',
+        emergencyPhone: newStudentPhone || '5522427769',
+        medicalConditions: 'Apto para entrenamiento en cancha.',
+        lastCheckup: new Date().toLocaleDateString('es-MX'),
+      },
+    });
+
+    const updatedList = HoopStore.getStudents();
+    setStudents(updatedList);
+    setSelectedStudentId(created.id);
+    setIsAddStudentModalOpen(false);
+    setNewStudentName('');
+
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#ea580c', '#f97316', '#38bdf8']
+      });
+    } catch {}
+  };
 
   // Toggle para testing de RBAC por el administrador
   const toggleRole = () => {
@@ -364,23 +422,35 @@ export default function CoachDashboardPage() {
               <span>{isSuperAdmin ? 'Modo SuperAdmin' : 'Modo Coach'}</span>
             </button>
 
-            <button
-              onClick={() => setIsMedicalModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
-            >
-              <Heart className="w-3.5 h-3.5 text-rose-400" />
-              <span>Ficha Médica ({selectedStudent.fullName.split(' ')[0]})</span>
-            </button>
+            {selectedStudent && (
+              <button
+                onClick={() => setIsMedicalModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
+              >
+                <Heart className="w-3.5 h-3.5 text-rose-400" />
+                <span>Ficha Médica ({selectedStudent.fullName.split(' ')[0]})</span>
+              </button>
+            )}
 
             <button
-              onClick={() => setIsEvalModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md"
+              onClick={() => setIsAddStudentModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Nueva Evaluación</span>
+              <span>+ Nuevo Atleta</span>
             </button>
 
-            <WhatsAppReportButton student={selectedStudent} label="WhatsApp" />
+            {selectedStudent && (
+              <button
+                onClick={() => setIsEvalModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>+ Nueva Evaluación</span>
+              </button>
+            )}
+
+            {selectedStudent && <WhatsAppReportButton student={selectedStudent} label="WhatsApp" />}
           </div>
         </div>
 
@@ -438,61 +508,97 @@ export default function CoachDashboardPage() {
           </div>
 
           {/* Roster de Atletas (Selector con Tarjetas Rápidas) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-2">
-            {filteredStudents.map((st) => {
-              const isSelected = st.id === selectedStudent.id;
-              return (
-                <div
-                  key={st.id}
-                  onClick={() => setSelectedStudentId(st.id)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                    isSelected
-                      ? 'bg-orange-500/10 border-orange-500 text-white shadow-sm'
-                      : 'bg-[#0a0e17] border-[#27272a] text-zinc-400 hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <img
-                      src={st.avatarUrl || '/logo-official.png'}
-                      alt={st.fullName}
-                      className="w-9 h-9 rounded-lg object-cover border border-zinc-700 flex-shrink-0"
-                    />
-                    <div className="truncate">
-                      <div className="text-xs font-bold text-white truncate">
-                        {st.fullName}
-                      </div>
-                      <div className="text-[10px] font-mono text-zinc-400">
-                        {st.position} • #{st.jerseyNumber || '—'}
+          {filteredStudents.length === 0 ? (
+            <div className="p-6 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a] mt-2">
+              No hay atletas registrados o no coinciden con los filtros. Haz clic en &quot;+ Nuevo Atleta&quot; para dar de alta en cancha.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-2">
+              {filteredStudents.map((st) => {
+                const isSelected = selectedStudent ? st.id === selectedStudent.id : false;
+                return (
+                  <div
+                    key={st.id}
+                    onClick={() => setSelectedStudentId(st.id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? 'bg-orange-500/10 border-orange-500 text-white shadow-sm'
+                        : 'bg-[#0a0e17] border-[#27272a] text-zinc-400 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <img
+                        src={st.avatarUrl || '/logo-official.png'}
+                        alt={st.fullName}
+                        className="w-9 h-9 rounded-lg object-cover border border-zinc-700 flex-shrink-0"
+                      />
+                      <div className="truncate">
+                        <div className="text-xs font-bold text-white truncate">
+                          {st.fullName}
+                        </div>
+                        <div className="text-[10px] font-mono text-zinc-400">
+                          {st.position} • #{st.jerseyNumber || '—'}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                    st.finances?.status === 'al_corriente' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                  }`}>
-                    {st.finances?.status === 'al_corriente' ? '$0' : `$${st.finances?.balanceDue || 50}`}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                      st.finances?.status === 'al_corriente' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                    }`}>
+                      {st.finances?.status === 'al_corriente' ? '$0' : `$${st.finances?.balanceDue || 50}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 2. Pase de Lista y Asistencia Oficial de Atletas en Cancha */}
-      <AttendanceTracker
-        student={selectedStudent}
-        allStudents={students}
-        readOnly={false}
-        onRecordDailyAttendance={handleRecordDailyAttendance}
-      />
+      {!selectedStudent ? (
+        <div className="bg-[#121724] border border-zinc-800 rounded-3xl p-8 sm:p-12 text-center max-w-xl mx-auto shadow-2xl space-y-4 my-8 font-sans">
+          <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mx-auto text-orange-400">
+            <Users className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black uppercase text-white">
+            Plantel de Cancha Listo para Registro
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans">
+            La base de datos se encuentra limpia y en blanco. Puedes dar de alta al primer atleta que se presente a entrenamiento o esperar registros desde la web pública.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => setIsAddStudentModalOpen(true)}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-orange-600/30 cursor-pointer active:scale-95"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>+ Registrar Primer Atleta en Cancha</span>
+            </button>
+            <Link
+              href="/master-bunker-hq"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+            >
+              <KeyRound className="w-4 h-4 text-amber-400" />
+              <span>Ir a Búnker HQ</span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* 2. Pase de Lista y Asistencia Oficial de Atletas en Cancha */}
+          <AttendanceTracker
+            student={selectedStudent}
+            allStudents={students}
+            readOnly={false}
+            onRecordDailyAttendance={handleRecordDailyAttendance}
+          />
 
-      {/* 3. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
-      <RadarChart360
-        metricsCurrent={selectedStudent.metricsCurrent}
-        metricsPrevious={selectedStudent.metricsPrevious}
-        athleteName={selectedStudent.fullName}
-      />
+          {/* 3. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
+          <RadarChart360
+            metricsCurrent={selectedStudent.metricsCurrent}
+            metricsPrevious={selectedStudent.metricsPrevious}
+            athleteName={selectedStudent.fullName}
+          />
 
       {/* 4. PASO 3: SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
@@ -948,7 +1054,7 @@ export default function CoachDashboardPage() {
               ¿Eliminar Evaluación del Histórico?
             </h3>
             <p className="text-xs text-zinc-400 text-center mt-2 font-mono">
-              Estás a punto de borrar la evaluación del <strong className="text-white">{evalToDelete.date}</strong> para <strong className="text-white">{selectedStudent.fullName}</strong>.
+              Estás a punto de borrar la evaluación del <strong className="text-white">{evalToDelete.date}</strong> para <strong className="text-white">{selectedStudent?.fullName}</strong>.
               El radar 360° se recalibrará automáticamente con la prueba previa.
             </p>
 
@@ -969,6 +1075,155 @@ export default function CoachDashboardPage() {
                 <span>Confirmar Eliminación</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+        </>
+      )}
+
+      {/* 10. MODAL DE REGISTRO RÁPIDO DE ATLETA EN CANCHA (COACH & ADMIN) */}
+      {isAddStudentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
+          <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-6 sm:p-8 max-w-lg w-full relative my-8 font-sans shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-[#27272a]">
+              <div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  ALTA IN SITU • CANCHA DEPORTIVO CARMEN SERDÁN
+                </span>
+                <h3 className="text-xl font-bold text-white mt-1">Registrar Atleta en Cancha</h3>
+                <p className="text-xs font-mono text-zinc-400">Ingreso directo al roster y control de asistencia</p>
+              </div>
+              <button
+                onClick={() => setIsAddStudentModalOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewStudent} className="mt-5 space-y-4 font-mono text-xs">
+              <div>
+                <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                  Nombre Completo del Atleta *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Mateo González Morales"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                  className="w-full bg-[#0a0e17] border border-zinc-700 rounded-lg px-3 py-2 text-white font-sans text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                    Género
+                  </label>
+                  <select
+                    value={newStudentGender}
+                    onChange={(e) => setNewStudentGender(e.target.value as 'M' | 'F')}
+                    className="w-full bg-[#0a0e17] border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="M">Varonil</option>
+                    <option value="F">Femenil</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                    Edad (Años)
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="60"
+                    value={newStudentAge}
+                    onChange={(e) => setNewStudentAge(parseInt(e.target.value) || 15)}
+                    className="w-full bg-[#0a0e17] border border-zinc-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                    Posición
+                  </label>
+                  <select
+                    value={newStudentPosition}
+                    onChange={(e) => setNewStudentPosition(e.target.value as Position)}
+                    className="w-full bg-[#0a0e17] border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="Base">Base</option>
+                    <option value="Escolta">Escolta</option>
+                    <option value="Alero">Alero</option>
+                    <option value="Ala-Pívot">Ala-Pívot</option>
+                    <option value="Pívot">Pívot</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                    Turno Asignado
+                  </label>
+                  <select
+                    value={newStudentShift}
+                    onChange={(e) => setNewStudentShift(e.target.value as ShiftType)}
+                    className="w-full bg-[#0a0e17] border border-zinc-700 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="matutino_9_11">09:00 - 11:00 hrs</option>
+                    <option value="vespertino_17_19">17:00 - 19:00 hrs</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                    WhatsApp Atleta / Tutor
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="55 2242 7769"
+                    value={newStudentPhone}
+                    onChange={(e) => setNewStudentPhone(e.target.value)}
+                    className="w-full bg-[#0a0e17] border border-zinc-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase block mb-1">
+                    Nombre del Tutor
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Sofía Morales"
+                    value={newStudentGuardian}
+                    onChange={(e) => setNewStudentGuardian(e.target.value)}
+                    className="w-full bg-[#0a0e17] border border-zinc-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#27272a]">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStudentModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Dar de Alta &amp; Activar Ficha</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

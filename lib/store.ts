@@ -196,6 +196,10 @@ export const HoopStore = {
     return created;
   },
 
+  addStudent: (newStudent: Omit<StudentProfile, 'id' | 'training' | 'metricsCurrent' | 'metricsPrevious' | 'evaluations' | 'trainingDays' | 'totalDaysTrained' | 'attendanceHistory' | 'finances'>): StudentProfile => {
+    return HoopStore.registerStudent(newStudent);
+  },
+
   updateAttendance: (studentId: string, date: string, dayName: string, present: boolean, topic?: string) => {
     const students = HoopStore.getStudents();
     const updated = students.map((s) => {

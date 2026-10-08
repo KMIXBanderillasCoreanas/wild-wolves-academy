@@ -5,7 +5,7 @@ import { StudentProfile } from '@/lib/types';
 import { MessageCircle, Check, Copy } from 'lucide-react';
 
 interface WhatsAppReportButtonProps {
-  student: StudentProfile;
+  student?: StudentProfile | null;
   label?: string;
   className?: string;
 }
@@ -16,6 +16,18 @@ export function WhatsAppReportButton({
   className = '',
 }: WhatsAppReportButtonProps) {
   const [copied, setCopied] = useState(false);
+
+  if (!student) {
+    return (
+      <button
+        disabled
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-800 text-zinc-500 border border-zinc-700 text-xs font-mono font-bold opacity-50 cursor-not-allowed ${className}`}
+      >
+        <MessageCircle className="w-3.5 h-3.5" />
+        <span>{label}</span>
+      </button>
+    );
+  }
 
   // WhatsApp oficial: 01 55 2242 7769 -> 525522427769
   const defaultAcademyWhatsApp = '525522427769';

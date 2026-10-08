@@ -16,12 +16,12 @@ import {
 interface MedicalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  student: StudentProfile;
+  student?: StudentProfile | null;
   isCoach: boolean;
 }
 
 export function MedicalModal({ isOpen, onClose, student, isCoach }: MedicalModalProps) {
-  if (!isOpen) return null;
+  if (!isOpen || !student) return null;
 
   // Verificación estricta de RBAC: Ficha médica privada visible SOLO para Coach
   if (!isCoach) {

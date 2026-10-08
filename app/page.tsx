@@ -25,9 +25,14 @@ import {
   HelpCircle,
   ExternalLink,
   Zap,
-  Check
+  Check,
+  ShoppingBag,
+  Award,
+  TrendingUp,
+  ChevronUp
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
+import { RadarChart360 } from "@/components/RadarChart360";
 
 export default function WildWolvesHome() {
   const router = useRouter();
@@ -38,6 +43,7 @@ export default function WildWolvesHome() {
   const [activeCategory, setActiveCategory] = useState<number>(1);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [showRadarDemo, setShowRadarDemo] = useState(false);
 
   const liveUrl = "https://wild-wolves-academy.vercel.app";
   const venueMapsUrl = "https://maps.google.com/?q=Deportivo+Carmen+Serdan+CDMX";
@@ -569,6 +575,196 @@ export default function WildWolvesHome() {
             <p className="text-[11px] text-zinc-400 font-medium mt-3.5 leading-snug">
               Escanea para abrir en tu celular o compartir con otros atletas y familias.
             </p>
+          </div>
+        </div>
+
+        {/* BOTÓN Y VISOR DEL SIMULADOR INTERACTIVO RADAR 360° */}
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowRadarDemo(!showRadarDemo)}
+            className="w-full py-3.5 px-5 rounded-2xl bg-[#090d16] hover:bg-[#121724] border border-[#38bdf8]/40 hover:border-[#38bdf8] text-[#38bdf8] font-bold text-xs font-mono flex items-center justify-center gap-2 transition cursor-pointer shadow-lg active:scale-[0.99]"
+          >
+            <Target className="w-4 h-4 text-[#ea580c]" />
+            <span>{showRadarDemo ? "Ocultar Simulador de Radar" : "⚡ Probar Simulador Interactivo de Radar 360° en Vivo"}</span>
+            {showRadarDemo ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {showRadarDemo && (
+            <div className="mt-5 p-5 bg-[#090d16] border border-[#38bdf8]/30 rounded-3xl animate-fadeIn">
+              <div className="mb-4 text-center">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#ea580c] bg-[#ea580c]/10 border border-[#ea580c]/30 px-3 py-1 rounded-full">
+                  MÉTRICA REAL EN CANCHA • COMBINE MENSUAL
+                </span>
+                <p className="text-xs text-zinc-400 mt-1 font-mono">
+                  Visualización comparativa real: Mes Inicial (Día 1) vs. Trimestre Actual tras el entrenamiento de salto y tiro.
+                </p>
+              </div>
+
+              <RadarChart360
+                athleteName="Mateo González (Demostración Oficial)"
+                metricsCurrent={{
+                  freeThrow: 85,
+                  midRange: 80,
+                  threePoint: 75,
+                  verticalJump: 82,
+                  sprint100m: 88,
+                  agilityTTest: 84
+                }}
+                metricsPrevious={{
+                  freeThrow: 60,
+                  midRange: 55,
+                  threePoint: 50,
+                  verticalJump: 68,
+                  sprint100m: 72,
+                  agilityTTest: 70
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* SECCIÓN: DIRECCIÓN TÉCNICA & COACH RICARDO */}
+      <section className="relative z-10 py-12 px-4 max-w-5xl mx-auto w-full">
+        <div className="bg-gradient-to-br from-[#121724] via-[#0d1017] to-[#07090e] border border-orange-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col lg:flex-row items-center gap-8 relative z-10">
+            {/* Foto / Badge del Coach */}
+            <div className="flex flex-col items-center text-center flex-shrink-0">
+              <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-3xl bg-[#090d16] border-2 border-orange-500/50 p-2 shadow-xl shadow-orange-600/20 flex items-center justify-center">
+                <Image
+                  src="/logo-official.png"
+                  alt="Coach Ricardo Head Coach Wild Wolves"
+                  width={110}
+                  height={110}
+                  className="object-contain"
+                />
+                <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-black text-[10px] font-mono font-black px-2 py-0.5 rounded-full border border-black shadow">
+                  ACTIVO HOY
+                </div>
+              </div>
+              <h4 className="text-lg font-black text-white mt-3 uppercase">Coach Ricardo</h4>
+              <p className="text-xs font-mono text-orange-400 font-bold">Director Deportivo &amp; Head Coach</p>
+              <span className="text-[11px] text-zinc-500 font-mono mt-0.5">Deportivo Carmen Serdán CDMX</span>
+            </div>
+
+            {/* Credenciales y Filosofía Formativa */}
+            <div className="flex-1 text-left space-y-3">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/30">
+                Liderazgo de Cancha y Metodología Integral
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black uppercase text-white">
+                Entrenamiento con Propósito, Pasión y Respeto
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-sans">
+                En Wild Wolves CDMX no dejamos la preparación al azar. Al llegar a la cancha del Deportivo Carmen Serdán, el Coach Ricardo y el equipo te reciben personalmente y te integran a tu grupo adecuado según tu edad, estatura y nivel de condición física.
+              </p>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans">
+                ¿Tienes más de 20 años y jamás has practicado básquetbol ni hecho ejercicio? Contamos con un circuito especializado de adaptación inicial sin sobrecargas para que ganes condición y salud a tu propio ritmo, en un ambiente de compañerismo total.
+              </p>
+
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition shadow-lg shadow-emerald-600/30 active:scale-95 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4 text-black" />
+                  <span>Contactar a Coach Ricardo por WhatsApp</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={openRegisterModal}
+                  className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer"
+                >
+                  Agendar Clase Muestra ($0)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECCIÓN: INDUMENTARIA & EQUIPAMIENTO OFICIAL (PRO-SHOP EN CANCHA) */}
+      <section className="relative z-10 py-12 px-4 max-w-5xl mx-auto w-full">
+        <div className="text-center mb-10">
+          <span className="text-[11px] font-mono uppercase tracking-widest text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full border border-sky-500/30">
+            Tienda Oficial &amp; Accesorios
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black uppercase text-white mt-2">
+            Equipamiento Técnico Wild Wolves
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl mx-auto mt-2">
+            Todo lo necesario para tus entrenamientos en cancha: balones oficiales, cuerdas de velocidad, herramientas pliométricas e indumentaria. Disponible directamente en la academia.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Item 1: Balón */}
+          <div className="bg-[#0d1017] border border-zinc-800 hover:border-orange-500/50 rounded-3xl p-5 transition group">
+            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 mb-4 group-hover:scale-110 transition-transform">
+              <Target className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-mono text-orange-400 font-bold uppercase">Herramienta Esencial</span>
+            <h4 className="text-base font-bold text-white mt-1">Balón Oficial Wild Wolves</h4>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Grip profesional y cuero compuesto de alto rebote para entrenamiento técnico intensivo.
+            </p>
+            <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
+              <span className="text-zinc-500">Tallas: #6 y #7</span>
+              <span className="text-emerald-400 font-bold">En Cancha</span>
+            </div>
+          </div>
+
+          {/* Item 2: Cuerda de Velocidad */}
+          <div className="bg-[#0d1017] border border-zinc-800 hover:border-sky-500/50 rounded-3xl p-5 transition group">
+            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 mb-4 group-hover:scale-110 transition-transform">
+              <Activity className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-mono text-sky-400 font-bold uppercase">Plan de Resistencia</span>
+            <h4 className="text-base font-bold text-white mt-1">Cuerda de Salto Speed Pro</h4>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Baleros metálicos de alta velocidad para alcanzar las 500+ repeticiones y elevar el salto vertical.
+            </p>
+            <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
+              <span className="text-zinc-500">Cable de Acero</span>
+              <span className="text-emerald-400 font-bold">En Cancha</span>
+            </div>
+          </div>
+
+          {/* Item 3: Polainas y Paracaídas */}
+          <div className="bg-[#0d1017] border border-zinc-800 hover:border-amber-500/50 rounded-3xl p-5 transition group">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 group-hover:scale-110 transition-transform">
+              <Zap className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">Fuerza Explosiva</span>
+            <h4 className="text-base font-bold text-white mt-1">Kit de Potencia &amp; Pliometría</h4>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Polainas ajustables y paracaídas de velocidad para aceleración y explosión en el primer paso.
+            </p>
+            <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
+              <span className="text-zinc-500">Nivel Pro</span>
+              <span className="text-emerald-400 font-bold">En Cancha</span>
+            </div>
+          </div>
+
+          {/* Item 4: Jersey Oficial */}
+          <div className="bg-[#0d1017] border border-zinc-800 hover:border-emerald-500/50 rounded-3xl p-5 transition group">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase">Identidad de Manada</span>
+            <h4 className="text-base font-bold text-white mt-1">Jersey Oficial Wild Wolves</h4>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Tela transpirable con número personalizado, escudo bordado y tecnología anti-sudor.
+            </p>
+            <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
+              <span className="text-zinc-500">Todas las Tallas</span>
+              <span className="text-emerald-400 font-bold">En Cancha</span>
+            </div>
           </div>
         </div>
       </section>

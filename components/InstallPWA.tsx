@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { Download, Share, X, Smartphone, Monitor, Apple, CheckCircle2 } from "lucide-react";
 
 export default function InstallPWA() {
@@ -20,6 +21,9 @@ export default function InstallPWA() {
     setIsStandalone(inStandalone);
     if (inStandalone) return;
 
+    // Verificar si el usuario ya cerró el banner recientemente
+    const dismissed = localStorage.getItem("pwa_banner_dismissed");
+
     // 2. Registro de Service Worker para habilitar PWA
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch((err) => {
@@ -36,13 +40,15 @@ export default function InstallPWA() {
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowBanner(true);
+      if (!dismissed) {
+        setShowBanner(true);
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
-    // En iOS no existe beforeinstallprompt; mostramos banner para guiar al usuario
-    if (isAppleDevice) {
+    // En iOS no existe beforeinstallprompt; mostramos banner para guiar al usuario si no fue cerrado
+    if (isAppleDevice && !dismissed) {
       setShowBanner(true);
     }
 
@@ -61,6 +67,13 @@ export default function InstallPWA() {
       window.removeEventListener("open-pwa-install", handleManualOpen);
     };
   }, []);
+
+  const handleDismissBanner = () => {
+    setShowBanner(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pwa_banner_dismissed", "true");
+    }
+  };
 
   const handleInstallClick = async () => {
     if (isIOS) {
@@ -96,23 +109,29 @@ export default function InstallPWA() {
       {showBanner && !installedSuccess && (
         <aside
           aria-label="Instalación de la aplicación"
-          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 z-50 max-w-md bg-[#161b26]/95 backdrop-blur-md border border-[#ea580c]/50 p-4 rounded-2xl shadow-[0_0_30px_rgba(234,88,12,0.25)] flex items-center justify-between gap-4 font-sans animate-slideUp"
+          className="fixed bottom-24 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 z-40 max-w-md bg-[#161b26]/95 backdrop-blur-md border border-[#ea580c]/50 p-3.5 sm:p-4 rounded-2xl shadow-[0_0_30px_rgba(234,88,12,0.25)] flex items-center justify-between gap-3 font-sans animate-slideUp"
         >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ea580c] to-[#0284c7] flex items-center justify-center text-white font-black text-lg shadow-inner flex-shrink-0">
-              WW
+            <div className="w-11 h-11 rounded-xl bg-[#090d16] border border-[#ea580c]/40 flex items-center justify-center p-1 shadow-inner flex-shrink-0">
+              <Image
+                src="/logo-official.png"
+                alt="Wild Wolves App"
+                width={38}
+                height={38}
+                className="object-contain"
+              />
             </div>
             <div>
-              <h4 className="text-white text-sm font-bold tracking-wide flex items-center gap-1.5">
-                Instalar Wild Wolves OS
-                <span className="text-[10px] bg-[#ea580c]/20 text-[#ea580c] px-2 py-0.5 rounded-full border border-[#ea580c]/30 font-semibold font-mono">
-                  OFICIAL
+              <h4 className="text-white text-xs sm:text-sm font-bold tracking-wide flex items-center gap-1.5">
+                Instalar Wild Wolves App
+                <span className="text-[9px] bg-[#ea580c]/20 text-[#ea580c] px-1.5 py-0.2 rounded-full border border-[#ea580c]/30 font-semibold font-mono">
+                  PWA
                 </span>
               </h4>
-              <p className="text-zinc-400 text-xs mt-0.5 leading-snug">
+              <p className="text-zinc-400 text-[11px] mt-0.5 leading-snug">
                 {isIOS
-                  ? "Toca 'Compartir' (icono ⎋) y 'Añadir a pantalla de inicio'"
-                  : "Instala en Android, Windows o Mac con 1 clic"}
+                  ? "Toca 'Compartir' (icono ⎋) y 'Añadir a inicio'"
+                  : "Acceso rápido sin descargas de tienda"}
               </p>
             </div>
           </div>
@@ -129,13 +148,13 @@ export default function InstallPWA() {
             ) : (
               <button
                 onClick={handleInstallClick}
-                className="bg-gradient-to-r from-[#ea580c] to-[#f97316] hover:brightness-110 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-[#ea580c]/30 cursor-pointer active:scale-95"
+                className="bg-gradient-to-r from-[#ea580c] to-[#f97316] hover:brightness-110 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-[#ea580c]/30 cursor-pointer active:scale-95"
               >
-                <Download className="w-4 h-4" /> Instalar
+                <Download className="w-3.5 h-3.5" /> Instalar
               </button>
             )}
             <button
-              onClick={() => setShowBanner(false)}
+              onClick={handleDismissBanner}
               className="text-zinc-500 hover:text-white p-1 rounded-lg transition cursor-pointer"
               aria-label="Cerrar banner"
               title="Cerrar"

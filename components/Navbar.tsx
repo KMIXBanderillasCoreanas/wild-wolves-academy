@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { HoopStore } from '@/lib/store';
 import { User } from '@/lib/types';
@@ -163,15 +164,21 @@ export function Navbar() {
 
       {/* 2. Barra de Navegación Principal */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logotipo */}
+        {/* Logotipo Oficial */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black shadow-md">
-            <Flame className="w-5 h-5" />
+          <div className="relative w-9 h-9 flex items-center justify-center flex-shrink-0">
+            <Image
+              src="/logo-official.png"
+              alt="Wild Wolves Logo"
+              width={36}
+              height={36}
+              className="object-contain transition-transform group-hover:scale-105"
+            />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-base font-black tracking-tight text-white uppercase font-sans">
-                WILD WOLVES CDMX
+                WILD WOLVES <span className="text-orange-500">CDMX</span>
               </span>
               <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
                 OS v0.3.0

@@ -12,17 +12,35 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Wild Wolves CDMX - Basketball Academy',
-  description: 'Plataforma oficial de desarrollo, biomecánica 360° y métricas de básquetbol para Wild Wolves CDMX.',
+  metadataBase: new URL('https://wild-wolves-academy.vercel.app'),
+  title: 'Wild Wolves CDMX | Basketball Academy & Performance OS',
+  description: 'Academia formativa y de alto rendimiento en Deportivo Carmen Serdán (CDMX). Turnos matutino (9-11 hrs) y vespertino (17-19 hrs). Desde $50 MXN por clase.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'WildWolves',
+    title: 'Wild Wolves CDMX',
   },
   icons: {
-    icon: '/icon.svg',
-    apple: '/icons/icon-192x192.png',
+    icon: '/logo-official.png',
+    shortcut: '/logo-official.png',
+    apple: '/logo-official.png',
+  },
+  openGraph: {
+    title: 'Wild Wolves CDMX | Basketball Academy',
+    description: 'Academia formativa y de alto rendimiento en Deportivo Carmen Serdán (CDMX). Turnos matutino y vespertino desde $50 MXN.',
+    url: 'https://wild-wolves-academy.vercel.app',
+    siteName: 'Wild Wolves CDMX',
+    locale: 'es_MX',
+    type: 'website',
+    images: [
+      {
+        url: '/logo-official.png',
+        width: 800,
+        height: 800,
+        alt: 'Wild Wolves CDMX Basketball Academy',
+      },
+    ],
   },
 };
 

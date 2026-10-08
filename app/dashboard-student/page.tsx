@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { HoopStore } from '@/lib/store';
 import { StudentProfile, User, PaymentRecord } from '@/lib/types';
@@ -125,13 +126,70 @@ function StudentDashboardContent() {
     }, 1200);
   };
 
+  const handleCreateQuickProfile = () => {
+    const storedName = typeof window !== 'undefined' ? localStorage.getItem('ww_student_name') : null;
+    const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ww_user_email') : null;
+    const nameToUse = storedName || currentUser?.fullName || 'Atleta Wild Wolves';
+    const emailToUse = storedEmail || currentUser?.email || 'atleta@wildwolves.mx';
+    const idToUse = `stu_${Date.now()}`;
+
+    const syncedUser = HoopStore.loginAsStudent(idToUse, nameToUse, emailToUse);
+    const newStudent = HoopStore.getStudent(syncedUser.studentId || idToUse);
+    if (newStudent) {
+      setStudent(newStudent);
+      try {
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#ea580c', '#f97316', '#38bdf8']
+        });
+      } catch {}
+    }
+  };
+
   if (!student) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 space-y-4">
-        {/* Skeleton Loading State */}
-        <div className="h-32 bg-[#18181b]/70 rounded-2xl animate-pulse border border-[#27272a]" />
-        <div className="h-64 bg-[#18181b]/70 rounded-2xl animate-pulse border border-[#27272a]" />
-        <div className="h-80 bg-[#18181b]/70 rounded-2xl animate-pulse border border-[#27272a]" />
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center font-sans space-y-6">
+        <div className="bg-[#121724] border border-zinc-800 rounded-3xl p-8 sm:p-12 shadow-2xl backdrop-blur-xl">
+          <div className="relative w-24 h-24 mx-auto mb-4 flex items-center justify-center drop-shadow-[0_0_30px_rgba(234,88,12,0.35)]">
+            <Image
+              src="/logo-official.png"
+              alt="Wild Wolves CDMX"
+              width={96}
+              height={96}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-orange-500/10 text-orange-400 border border-orange-500/30 px-3.5 py-1 rounded-full">
+            PORTAL OFICIAL DE ATLETAS
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black uppercase text-white mt-3">
+            ¡Bienvenido a la Manada Wild Wolves!
+          </h2>
+          <p className="text-zinc-400 text-xs sm:text-sm max-w-lg mx-auto mt-2 leading-relaxed">
+            Tu sesión está activa. Aún no tienes una ficha de jugador vinculada en este dispositivo o base de datos. Completa tus datos para activar tu radar de tiro 360°, calendario de asistencia y recibos.
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={handleCreateQuickProfile}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 cursor-pointer hover:brightness-110 active:scale-95"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Activar mi Ficha de Atleta Ahora</span>
+            </button>
+            <a
+              href="https://wa.me/525522427769?text=Hola%20Coach%20Ricardo,%20ya%20inicié%20sesión%20en%20la%20plataforma%20y%20quiero%20confirmar%20mi%20ficha%20de%20atleta"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#161b26] border border-zinc-700 text-zinc-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-800 transition"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-400" />
+              <span>Hablar con Coach Ricardo</span>
+            </a>
+          </div>
+        </div>
       </div>
     );
   }
