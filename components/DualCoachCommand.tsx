@@ -18,9 +18,11 @@ import {
   TrendingUp,
   RotateCcw,
   Layers,
-  Award
+  Award,
+  Clock,
+  HeartPulse
 } from "lucide-react";
-import { enqueueOfflineAction, getOfflineQueueCount } from "@/lib/offlineSync";
+import { enqueueOfflineAction } from "@/lib/offlineSync";
 
 export default function DualCoachCommand() {
   const [students, setStudents] = useState<any[]>([]);
@@ -28,71 +30,76 @@ export default function DualCoachCommand() {
   const [activeTab, setActiveTab] = useState<"dia1" | "fisico" | "baloncesto">("dia1");
 
   // ==========================================
-  // 1. ESTADOS DÍA 1 (LÍNEA BASE / ENTRADA)
+  // 1. PESTAÑA 1: DIAGNÓSTICO DÍA 1 (LÍNEA BASE INICIAL)
   // ==========================================
   const [entryLaps, setEntryLaps] = useState<number>(2);
   const [entryRope, setEntryRope] = useState<number>(25);
   const [entryPushupsForm, setEntryPushupsForm] = useState<string>("hincado");
   const [entrySquats, setEntrySquats] = useState<number>(12);
   const [entryNotes, setEntryNotes] = useState<string>(
-    "Primer día: fatiga rápida tras trotar 2 vueltas continuas. Postura encorvada. Requiere adaptación progresiva sin impacto articular."
+    "Llegó con fatiga prematura tras trotar 2 vueltas continuas. Postura encorvada. Requiere adaptación biomecánica inicial sin sobrecargas."
   );
   const [hasExistingBaseline, setHasExistingBaseline] = useState<boolean>(false);
 
   // ==========================================
-  // 2. ESTADOS MÓDULO A: PREPARACIÓN FÍSICA
+  // 2. PESTAÑA 2: PREPARACIÓN FÍSICA Y CALISTENIA
   // ==========================================
-  // Interruptores táctiles del Coach (Toggles ON/OFF)
+  // Interruptores táctiles (toggles) de activación para la sesión
   const [enableLaps, setEnableLaps] = useState<boolean>(true);
   const [enableJumpRope, setEnableJumpRope] = useState<boolean>(true);
   const [enablePushups, setEnablePushups] = useState<boolean>(true);
-  const [enable3x25, setEnable3x25] = useState<boolean>(true);
   const [enableIsometrics, setEnableIsometrics] = useState<boolean>(false);
-  const [enableLunges, setEnableLunges] = useState<boolean>(false);
 
-  // Métricas Físicas
-  const [lapsDone, setLapsDone] = useState<number>(6);
-  const [joggingMin, setJoggingMin] = useState<number>(12);
-  const [ropeCount, setRopeCount] = useState<number>(150);
+  // Formulario reactivo: Batería 3x25 del documento base
   const [pushupVariation, setPushupVariation] = useState<string>("brazos_cerrados");
-  const [pushupReps, setPushupReps] = useState<number>(15);
+  const [pushupReps, setPushupReps] = useState<number>(25);
   const [squats3x25, setSquats3x25] = useState<boolean>(true);
   const [abs3x25, setAbs3x25] = useState<boolean>(true);
-  const [wallSitSec, setWallSitSec] = useState<number>(60);
-  const [plankSec, setPlankSec] = useState<number>(45);
+  const [calves3x25, setCalves3x25] = useState<boolean>(true);
   const [lungesLaps, setLungesLaps] = useState<number>(2);
-  const [hasAnkleWeights, setHasAnkleWeights] = useState<boolean>(false);
+
+  // Cronómetro trote continuo (25 min hasta 2 horas / 120 min)
+  const [lapsDone, setLapsDone] = useState<number>(12);
+  const [joggingMin, setJoggingMin] = useState<number>(25);
+  const [ropeCount, setRopeCount] = useState<number>(250);
+
+  // Sentadilla isométrica en pared (1 a 20 min) y plancha
+  const [wallSitMin, setWallSitMin] = useState<number>(2);
+  const [plankSec, setPlankSec] = useState<number>(60);
+
+  // Selector de estatus postural: [En Corrección] [Óptima] [Impecable Ultra Instinto]
+  const [postureStatus, setPostureStatus] = useState<"en_correccion" | "optima" | "ultra_instinto">("optima");
+  const [restSeconds, setRestSeconds] = useState<number>(45);
 
   // ==========================================
-  // 3. ESTADOS MÓDULO B: TÉCNICA DE BALONCESTO
+  // 3. PESTAÑA 3: PRUEBAS TÉCNICAS DE BALONCESTO
   // ==========================================
-  // Interruptores del Coach
-  const [enableShooting, setEnableShooting] = useState<boolean>(true);
-  const [enableSpeedLines, setEnableSpeedLines] = useState<boolean>(true);
-  const [enableFlight, setEnableFlight] = useState<boolean>(true);
-
-  // Métricas Baloncesto
+  // Selector de Base de Tiros: [5 Tiros] vs [10 Tiros]
   const [shootingBase, setShootingBase] = useState<5 | 10>(5);
-  const [ftMade, setFtMade] = useState<number>(3);
-  const [midMade, setMidMade] = useState<number>(2);
-  const [threeMade, setThreeMade] = useState<number>(1);
+  const [ftMade, setFtMade] = useState<number>(4);
+  const [midMade, setMidMade] = useState<number>(3);
+  const [threeMade, setThreeMade] = useState<number>(2);
   const [halfMade, setHalfMade] = useState<number>(0);
-  const [sprint100m, setSprint100m] = useState<number>(14.8);
-  const [linesOneWay, setLinesOneWay] = useState<number>(11.5);
-  const [linesRoundTrip, setLinesRoundTrip] = useState<number>(24.2);
-  const [defensiveTouch, setDefensiveTouch] = useState<boolean>(true);
-  const [verticalJumpCm, setVerticalJumpCm] = useState<number>(62);
+
+  // Campos de velocidad con milésimas (00.00s)
+  const [sprint100m, setSprint100m] = useState<string>("14.20");
+  const [linesOneWay, setLinesOneWay] = useState<string>("11.50");
+  const [linesRoundTrip, setLinesRoundTrip] = useState<string>("24.10");
+  const [defensiveTwoHands, setDefensiveTwoHands] = useState<boolean>(true);
+
+  // Pruebas de salto y drill de tablero
+  const [verticalJumpCm, setVerticalJumpCm] = useState<number>(64);
   const [broadJumpCm, setBroadJumpCm] = useState<number>(195);
   const [boardDrillDone, setBoardDrillDone] = useState<boolean>(true);
   const [basketNotes, setBasketNotes] = useState<string>(
-    "Excelente salto al tablero en suspensión. Buen ritmo en líneas defensivas ida y vuelta."
+    "Mecánica sólida en tiro en suspensión. Excelente amortiguación en el drill de rebote al tablero."
   );
 
-  // Estados de control
+  // Estados de control y feedback
   const [saving, setSaving] = useState<boolean>(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
 
-  // Carga de atletas
+  // Carga de atletas registrados
   const loadStudentsAndBaseline = useCallback(async () => {
     try {
       if (typeof window !== "undefined" && navigator.onLine) {
@@ -110,7 +117,7 @@ export default function DualCoachCommand() {
         }
       }
 
-      // Fallback a HoopStore
+      // Fallback local
       const local = HoopStore.getStudents();
       if (local && local.length > 0) {
         const mapped = local.map((s) => ({
@@ -202,7 +209,7 @@ export default function DualCoachCommand() {
       const coachId = authData?.user?.id || null;
 
       // ----------------------------------------------------
-      // CASO 1: DIAGNÓSTICO DÍA 1 (LÍNEA BASE)
+      // CASO 1: PESTAÑA 1 - DIAGNÓSTICO DÍA 1 (LÍNEA BASE)
       // ----------------------------------------------------
       if (activeTab === "dia1") {
         const baselinePayload = {
@@ -216,7 +223,6 @@ export default function DualCoachCommand() {
           initial_posture_notes: entryNotes
         };
 
-        // Respaldo local
         if (typeof window !== "undefined") {
           const stored = JSON.parse(localStorage.getItem("ww_student_baseline") || "{}");
           stored[selectedStudentId] = { ...baselinePayload, student_name: selectedStudent?.full_name };
@@ -231,11 +237,11 @@ export default function DualCoachCommand() {
         }
 
         setHasExistingBaseline(true);
-        setFeedbackSuccess("¡Línea base del Día 1 guardada! Se utilizará para calcular el Δ de rendimiento.");
+        setFeedbackSuccess("¡Línea base del Día 1 guardada! Servirá como referencia exacta para calcular el Δ de evolución.");
       }
 
       // ----------------------------------------------------
-      // CASO 2: PREPARACIÓN FÍSICA MODULAR
+      // CASO 2: PESTAÑA 2 - PREPARACIÓN FÍSICA Y CALISTENIA
       // ----------------------------------------------------
       else if (activeTab === "fisico") {
         const physicalPayload = {
@@ -250,15 +256,16 @@ export default function DualCoachCommand() {
           jump_rope_count: enableJumpRope ? ropeCount : 0,
           pushups_variation: enablePushups ? pushupVariation : null,
           pushups_reps: enablePushups ? pushupReps : 0,
-          squats_3x25_done: enable3x25 ? squats3x25 : false,
-          abs_3x25_done: enable3x25 ? abs3x25 : false,
-          wall_sit_seconds: enableIsometrics ? wallSitSec : 0,
+          squats_3x25_done: squats3x25,
+          abs_3x25_done: abs3x25,
+          calves_3x25_done: calves3x25,
+          wall_sit_seconds: enableIsometrics ? wallSitMin * 60 : 0,
           plank_seconds: enableIsometrics ? plankSec : 0,
-          lunges_laps: enableLunges ? lungesLaps : 0,
-          has_ankle_weights: hasAnkleWeights
+          lunges_laps: lungesLaps,
+          posture_status: postureStatus,
+          rest_seconds: restSeconds
         };
 
-        // Respaldo local
         if (typeof window !== "undefined") {
           const stored = JSON.parse(localStorage.getItem("ww_physical_logs") || "{}");
           if (!stored[selectedStudentId]) stored[selectedStudentId] = [];
@@ -268,41 +275,54 @@ export default function DualCoachCommand() {
         }
 
         if (navigator.onLine) {
-          await supabase.from("physical_training_logs").insert(physicalPayload);
+          await supabase.from("physical_training_logs").insert({
+            student_id: selectedStudentId,
+            coach_id: coachId,
+            training_date: todayDate,
+            is_cardio_active: enableLaps,
+            is_strength_active: enablePushups,
+            is_isometric_active: enableIsometrics,
+            court_laps_done: enableLaps ? lapsDone : 0,
+            jogging_minutes: enableLaps ? joggingMin : 0,
+            jump_rope_count: enableJumpRope ? ropeCount : 0,
+            pushups_variation: enablePushups ? pushupVariation : null,
+            pushups_reps: enablePushups ? pushupReps : 0,
+            squats_3x25_done: squats3x25,
+            abs_3x25_done: abs3x25,
+            wall_sit_seconds: enableIsometrics ? wallSitMin * 60 : 0,
+            plank_seconds: enableIsometrics ? plankSec : 0,
+            lunges_laps: lungesLaps
+          });
         } else {
           enqueueOfflineAction("PHYSICAL_LOG", physicalPayload);
         }
 
-        setFeedbackSuccess("¡Sesión de Preparación Física registrada exitosamente en el expediente!");
+        setFeedbackSuccess(`¡Sesión de Preparación Física registrada! Postura: [${postureStatus === "ultra_instinto" ? "Impecable Ultra Instinto" : postureStatus === "optima" ? "Óptima" : "En Corrección"}]`);
       }
 
       // ----------------------------------------------------
-      // CASO 3: TÉCNICA DE BALONCESTO
+      // CASO 3: PESTAÑA 3 - PRUEBAS TÉCNICAS DE BALONCESTO
       // ----------------------------------------------------
       else if (activeTab === "baloncesto") {
         const basketballPayload = {
           student_id: selectedStudentId,
           coach_id: coachId,
           test_date: todayDate,
-          is_shooting_active: enableShooting,
-          is_speed_lines_active: enableSpeedLines,
-          is_flight_active: enableFlight,
           shooting_base_attempts: shootingBase,
-          free_throws_made: enableShooting ? ftMade : 0,
-          mid_range_made: enableShooting ? midMade : 0,
-          three_point_made: enableShooting ? threeMade : 0,
-          half_court_made: enableShooting ? halfMade : 0,
-          sprint_100m_seconds: enableSpeedLines ? sprint100m : null,
-          lines_one_way_seconds: enableSpeedLines ? linesOneWay : null,
-          lines_round_trip_seconds: enableSpeedLines ? linesRoundTrip : null,
-          defensive_touch_verified: defensiveTouch,
-          vertical_jump_cm: enableFlight ? verticalJumpCm : null,
-          broad_jump_cm: enableFlight ? broadJumpCm : null,
+          free_throws_made: ftMade,
+          mid_range_made: midMade,
+          three_point_made: threeMade,
+          half_court_made: halfMade,
+          sprint_100m_seconds: parseFloat(sprint100m) || 14.20,
+          lines_one_way_seconds: parseFloat(linesOneWay) || 11.50,
+          lines_round_trip_seconds: parseFloat(linesRoundTrip) || 24.10,
+          defensive_touch_verified: defensiveTwoHands,
+          vertical_jump_cm: verticalJumpCm,
+          broad_jump_cm: broadJumpCm,
           board_rebound_drill_done: boardDrillDone,
           coach_notes: basketNotes
         };
 
-        // Respaldo local
         if (typeof window !== "undefined") {
           const stored = JSON.parse(localStorage.getItem("ww_basketball_logs") || "{}");
           if (!stored[selectedStudentId]) stored[selectedStudentId] = [];
@@ -317,7 +337,7 @@ export default function DualCoachCommand() {
           enqueueOfflineAction("BASKETBALL_LOG", basketballPayload);
         }
 
-        setFeedbackSuccess("¡Pruebas Técnicas de Baloncesto registradas y publicadas!");
+        setFeedbackSuccess("¡Pruebas Técnicas de Baloncesto registradas y publicadas en el expediente del atleta!");
       }
 
       setTimeout(() => setFeedbackSuccess(null), 4500);
@@ -328,44 +348,42 @@ export default function DualCoachCommand() {
     }
   };
 
-  const currentStudent = students.find((s) => s.id === selectedStudentId);
-
   return (
-    <div className="w-full bg-surface-container-low border border-surface-container rounded-3xl p-5 sm:p-7 text-on-surface shadow-2xl transition-all">
+    <div className="w-full bg-[#10131a] border border-[#272a32] rounded-3xl p-5 sm:p-7 text-[#e0e2ec] shadow-2xl transition-all">
       
       {/* 1. HEADER DE COMANDO DUAL */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between pb-6 border-b border-surface-container gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between pb-6 border-b border-[#272a32] gap-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-mono tracking-widest uppercase bg-primary-container/20 text-primary border border-primary-container/30 px-3 py-1 rounded-full font-bold">
+            <span className="text-[10px] font-mono tracking-widest uppercase bg-[#f66018]/20 text-[#ffb599] border border-[#f66018]/30 px-3 py-1 rounded-full font-bold">
               Wild Wolves CDMX • Sede Carmen Serdán
             </span>
-            <span className="text-[10px] font-mono tracking-widest uppercase bg-surface-container text-secondary border border-secondary/20 px-2.5 py-1 rounded-full font-bold">
-              Arquitectura Dual de Entrenamiento
+            <span className="text-[10px] font-mono tracking-widest uppercase bg-[#1d2027] text-[#7bd0ff] border border-[#7bd0ff]/20 px-2.5 py-1 rounded-full font-bold">
+              Sistema Modular Dual de Entrenamiento
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black uppercase text-white mt-2 tracking-tight flex items-center gap-2">
-            <Sliders className="w-6 h-6 text-primary-container" />
-            <span>Control Táctico Dual: Físico vs. Baloncesto</span>
+          <h2 className="text-xl sm:text-2xl font-black uppercase text-white mt-2 tracking-tight flex items-center gap-2.5">
+            <Sliders className="w-6 h-6 text-[#f66018]" />
+            <span>Módulo de Comando del Coach</span>
           </h2>
-          <p className="text-xs text-on-surface-variant mt-0.5">
-            Separación estricta de dominios con línea base del Día 1 e interruptores ON/OFF por sesión.
+          <p className="text-xs text-[#e2bfb2] mt-0.5 font-sans">
+            Separación de raíz: Preparación Física (Motor Biológico) vs. Técnica de Baloncesto (Fundamentos).
           </p>
         </div>
 
-        {/* SELECTOR DE ATLETA */}
+        {/* SELECTOR DE ATLETA REGISTRADO */}
         <div className="w-full lg:w-80 shrink-0">
-          <label className="text-[10px] font-mono text-on-surface-variant uppercase font-bold block mb-1.5">
-            Atleta a Evaluar en Cancha:
+          <label className="text-[10px] font-mono text-[#e2bfb2] uppercase font-bold block mb-1.5">
+            Seleccionar Atleta Registrado:
           </label>
           <div className="relative">
             <select
               value={selectedStudentId}
               onChange={(e) => handleStudentSelect(e.target.value)}
-              className="w-full h-11 px-3.5 pr-10 bg-surface-container border border-surface-container-high rounded-xl text-xs font-bold text-white outline-none focus:border-secondary transition cursor-pointer"
+              className="w-full h-11 px-3.5 pr-10 bg-[#1d2027] border border-[#32353d] rounded-xl text-xs font-bold text-white outline-none focus:border-[#7bd0ff] transition cursor-pointer"
             >
               {students.map((s) => (
-                <option key={s.id} value={s.id} className="bg-[#121724] text-white">
+                <option key={s.id} value={s.id} className="bg-[#10131a] text-white">
                   {s.full_name} ({s.email})
                 </option>
               ))}
@@ -375,19 +393,19 @@ export default function DualCoachCommand() {
       </div>
 
       {/* 2. PESTAÑAS PRINCIPALES DEL SISTEMA DUAL */}
-      <div className="flex flex-wrap gap-2.5 my-6 border-b border-surface-container pb-3">
+      <div className="flex flex-wrap gap-2.5 my-6 border-b border-[#272a32] pb-3">
         <button
           type="button"
           onClick={() => setActiveTab("dia1")}
           className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition flex items-center gap-2 cursor-pointer ${
             activeTab === "dia1"
               ? "bg-amber-600 text-white shadow-lg shadow-amber-600/30 scale-102"
-              : "bg-surface-container text-on-surface-variant hover:text-on-surface border border-surface-container-high/50"
+              : "bg-[#1d2027] text-[#e0e2ec] hover:text-white border border-[#32353d]"
           }`}
         >
-          <UserCheck className="w-4 h-4" /> 1. Diagnóstico Día 1 (Llegada)
+          <UserCheck className="w-4 h-4" /> 1. Diagnóstico Día 1 (Línea Base)
           {hasExistingBaseline && (
-            <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" title="Línea base registrada" />
+            <span className="w-2 h-2 rounded-full bg-[#4ae176] ml-1" title="Línea base registrada" />
           )}
         </button>
 
@@ -396,11 +414,11 @@ export default function DualCoachCommand() {
           onClick={() => setActiveTab("fisico")}
           className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition flex items-center gap-2 cursor-pointer ${
             activeTab === "fisico"
-              ? "bg-primary-container text-on-primary shadow-lg shadow-primary-container/30 scale-102"
-              : "bg-surface-container text-on-surface-variant hover:text-on-surface border border-surface-container-high/50"
+              ? "bg-[#f66018] text-white shadow-lg shadow-[#f66018]/30 scale-102"
+              : "bg-[#1d2027] text-[#e0e2ec] hover:text-white border border-[#32353d]"
           }`}
         >
-          <Activity className="w-4 h-4" /> 2. Preparación Física (Motor Biológico)
+          <Activity className="w-4 h-4" /> 2. Preparación Física & Calistenia
         </button>
 
         <button
@@ -408,28 +426,28 @@ export default function DualCoachCommand() {
           onClick={() => setActiveTab("baloncesto")}
           className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition flex items-center gap-2 cursor-pointer ${
             activeTab === "baloncesto"
-              ? "bg-secondary-container text-on-secondary-container shadow-lg shadow-secondary-container/30 scale-102"
-              : "bg-surface-container text-on-surface-variant hover:text-on-surface border border-surface-container-high/50"
+              ? "bg-[#00a6e0] text-white shadow-lg shadow-[#00a6e0]/30 scale-102"
+              : "bg-[#1d2027] text-[#e0e2ec] hover:text-white border border-[#32353d]"
           }`}
         >
-          <Target className="w-4 h-4" /> 3. Técnica de Baloncesto (Fundamentos)
+          <Target className="w-4 h-4" /> 3. Pruebas Técnicas de Baloncesto
         </button>
       </div>
 
       <form onSubmit={handleSaveData} className="space-y-6">
 
         {/* ========================================================================= */}
-        {/* VISTA 1: DIAGNÓSTICO DÍA 1 (LÍNEA BASE / ENTRADA)                         */}
+        {/* PESTAÑA 1: DIAGNÓSTICO DÍA 1 (LÍNEA BASE INICIAL)                         */}
         {/* ========================================================================= */}
         {activeTab === "dia1" && (
-          <div className="bg-surface-container/60 border border-amber-500/30 rounded-2xl p-5 sm:p-6 space-y-5 animate-fade-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-surface-container gap-2">
+          <div className="bg-[#191b23] border border-amber-500/30 rounded-2xl p-5 sm:p-6 space-y-5 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#272a32] gap-2">
               <div>
                 <h3 className="text-sm sm:text-base font-black uppercase text-amber-400 flex items-center gap-2">
                   <UserCheck className="w-5 h-5" /> Foto Inicial del Atleta (¿Cómo llegó al club?)
                 </h3>
-                <p className="text-xs text-on-surface-variant mt-0.5">
-                  Registra el punto de partida real del alumno para calcular la gráfica de evolución: Δ Rendimiento = Registro Actual - Día 1.
+                <p className="text-xs text-[#e2bfb2] mt-0.5">
+                  Registra el punto de partida real del alumno para que el sistema grafique su avance semana con semana.
                 </p>
               </div>
               <span className="text-[10px] font-mono px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 self-start sm:self-auto font-bold">
@@ -439,9 +457,9 @@ export default function DualCoachCommand() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Vueltas Soportadas */}
-              <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                <label className="text-[11px] font-bold text-on-surface-variant uppercase block mb-1">
-                  Vueltas Iniciales (antes de parar):
+              <div className="bg-[#1d2027] p-4 rounded-xl border border-[#32353d]">
+                <label className="text-[11px] font-bold text-[#e2bfb2] uppercase block mb-1">
+                  Vueltas a la Cancha:
                 </label>
                 <input
                   type="number"
@@ -449,15 +467,15 @@ export default function DualCoachCommand() {
                   max="30"
                   value={entryLaps}
                   onChange={(e) => setEntryLaps(Number(e.target.value))}
-                  className="w-full h-11 px-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-base font-black text-amber-400"
-                  placeholder="Ej. 2"
+                  className="w-full h-11 px-3 bg-[#0b0e15] border border-[#32353d] rounded-xl text-lg font-black text-amber-400 font-mono"
+                  placeholder="Ej. 2 vueltas"
                 />
-                <span className="text-[10px] text-on-surface-variant mt-1 block">Trote continuo soportado</span>
+                <span className="text-[10px] text-zinc-500 mt-1 block">Aguante antes de fatigarse</span>
               </div>
 
-              {/* Saltos de Cuerda Máximos */}
-              <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                <label className="text-[11px] font-bold text-on-surface-variant uppercase block mb-1">
+              {/* Saltos de Cuerda Continuos */}
+              <div className="bg-[#1d2027] p-4 rounded-xl border border-[#32353d]">
+                <label className="text-[11px] font-bold text-[#e2bfb2] uppercase block mb-1">
                   Saltos Continuos de Cuerda:
                 </label>
                 <input
@@ -466,34 +484,34 @@ export default function DualCoachCommand() {
                   max="500"
                   value={entryRope}
                   onChange={(e) => setEntryRope(Number(e.target.value))}
-                  className="w-full h-11 px-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-base font-black text-amber-400"
-                  placeholder="Ej. 25"
+                  className="w-full h-11 px-3 bg-[#0b0e15] border border-[#32353d] rounded-xl text-lg font-black text-amber-400 font-mono"
+                  placeholder="Ej. 25 saltos"
                 />
-                <span className="text-[10px] text-on-surface-variant mt-1 block">Sin tropezar a pies juntos</span>
+                <span className="text-[10px] text-zinc-500 mt-1 block">Sin tropezar a pies juntos</span>
               </div>
 
-              {/* Forma de Lagartija */}
-              <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                <label className="text-[11px] font-bold text-on-surface-variant uppercase block mb-1">
-                  Forma Inicial de Flexión:
+              {/* Selector de Variante Inicial de Lagartija */}
+              <div className="bg-[#1d2027] p-4 rounded-xl border border-[#32353d]">
+                <label className="text-[11px] font-bold text-[#e2bfb2] uppercase block mb-1">
+                  Variante Inicial de Lagartija:
                 </label>
                 <select
                   value={entryPushupsForm}
                   onChange={(e) => setEntryPushupsForm(e.target.value)}
-                  className="w-full h-11 px-2.5 bg-surface-container-lowest border border-surface-container-high rounded-xl text-xs font-bold text-white outline-none"
+                  className="w-full h-11 px-2.5 bg-[#0b0e15] border border-[#32353d] rounded-xl text-xs font-bold text-white outline-none cursor-pointer"
                 >
-                  <option value="hincado">1. Con apoyo hincado / rodillas</option>
-                  <option value="inclinada">2. Inclinada en barra / banca</option>
-                  <option value="brazos_cerrados">3. En suelo (Brazos cerrados)</option>
-                  <option value="completa">4. Completa estricta</option>
+                  <option value="hincado">Hincado / Rodillas en piso</option>
+                  <option value="brazos_cerrados">Brazos Cerrados (Tríceps)</option>
+                  <option value="brazos_abiertos">Brazos Abiertos (Pectoral)</option>
+                  <option value="pie_sobre_pie">Pie sobre Pie (Alternado)</option>
                 </select>
-                <span className="text-[10px] text-on-surface-variant mt-1 block">Nivel de fuerza en empuje</span>
+                <span className="text-[10px] text-zinc-500 mt-1 block">Postura de empuje inicial</span>
               </div>
 
-              {/* Sentadillas Iniciales */}
-              <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                <label className="text-[11px] font-bold text-on-surface-variant uppercase block mb-1">
-                  Sentadillas al Aire Iniciales:
+              {/* Sentadillas al Aire Iniciales */}
+              <div className="bg-[#1d2027] p-4 rounded-xl border border-[#32353d]">
+                <label className="text-[11px] font-bold text-[#e2bfb2] uppercase block mb-1">
+                  Sentadillas al Aire:
                 </label>
                 <input
                   type="number"
@@ -501,39 +519,40 @@ export default function DualCoachCommand() {
                   max="50"
                   value={entrySquats}
                   onChange={(e) => setEntrySquats(Number(e.target.value))}
-                  className="w-full h-11 px-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-base font-black text-amber-400"
+                  className="w-full h-11 px-3 bg-[#0b0e15] border border-[#32353d] rounded-xl text-lg font-black text-amber-400 font-mono"
                   placeholder="Ej. 12"
                 />
-                <span className="text-[10px] text-on-surface-variant mt-1 block">Espalda neutral y control</span>
+                <span className="text-[10px] text-zinc-500 mt-1 block">Control neutral sin peso</span>
               </div>
             </div>
 
-            {/* Notas Biomecánicas de Llegada */}
+            {/* Diagnóstico Biomecánico y Postural de Entrada */}
             <div>
-              <label className="text-xs font-bold text-on-surface-variant uppercase block mb-1.5">
-                Diagnóstico Postural y Biomecánico de Entrada:
+              <label className="text-xs font-bold text-[#e2bfb2] uppercase block mb-1.5">
+                Diagnóstico Biomecánico y Postural de Entrada:
               </label>
               <textarea
                 rows={3}
                 value={entryNotes}
                 onChange={(e) => setEntryNotes(e.target.value)}
-                className="w-full p-3.5 bg-surface-container-lowest border border-surface-container-high rounded-xl text-xs text-white outline-none focus:border-amber-500 transition resize-none leading-relaxed"
-                placeholder="Anotar si se encorva, si mete rodillas (valgo), si le falta flexibilidad o si se fatiga prematuramente..."
+                className="w-full p-3.5 bg-[#0b0e15] border border-[#32353d] rounded-xl text-xs text-white outline-none focus:border-amber-500 transition resize-none leading-relaxed"
+                placeholder="Anotar si se encorva, si mete rodillas (valgo), fatiga rápida o rigidez en tobillos..."
               />
             </div>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* VISTA 2: MÓDULO A - PREPARACIÓN FÍSICA & MOTOR BIOLÓGICO                  */}
+        {/* PESTAÑA 2: PREPARACIÓN FÍSICA Y CALISTENIA (MOTOR BIOLÓGICO)              */}
         {/* ========================================================================= */}
         {activeTab === "fisico" && (
           <div className="space-y-5 animate-fade-in">
+            
             {/* INTERRUPTORES TÁCTILES DEL COACH */}
-            <div className="bg-surface-container/80 border border-surface-container-high p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            <div className="bg-[#191b23] border border-[#272a32] p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
               <span className="font-extrabold text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-primary-container" />
-                <span>Interruptores de Sesión (Activar qué entrena hoy):</span>
+                <Sliders className="w-4 h-4 text-[#f66018]" />
+                <span>Interruptores de Sesión: Activar / Desactivar Ejercicios:</span>
               </span>
 
               <div className="flex flex-wrap gap-2">
@@ -541,7 +560,7 @@ export default function DualCoachCommand() {
                   type="button"
                   onClick={() => setEnableLaps(!enableLaps)}
                   className={`px-3 py-1.5 rounded-xl font-bold border transition cursor-pointer ${
-                    enableLaps ? "bg-primary-container/30 border-primary-container text-primary" : "bg-surface-container border-transparent text-outline"
+                    enableLaps ? "bg-[#f66018]/25 border-[#f66018] text-[#ffb599]" : "bg-[#1d2027] border-transparent text-zinc-500"
                   }`}
                 >
                   {enableLaps ? "✓ Vueltas/Trote ON" : "Vueltas OFF"}
@@ -551,7 +570,7 @@ export default function DualCoachCommand() {
                   type="button"
                   onClick={() => setEnableJumpRope(!enableJumpRope)}
                   className={`px-3 py-1.5 rounded-xl font-bold border transition cursor-pointer ${
-                    enableJumpRope ? "bg-primary-container/30 border-primary-container text-primary" : "bg-surface-container border-transparent text-outline"
+                    enableJumpRope ? "bg-[#f66018]/25 border-[#f66018] text-[#ffb599]" : "bg-[#1d2027] border-transparent text-zinc-500"
                   }`}
                 >
                   {enableJumpRope ? "✓ Cuerda ON" : "Cuerda OFF"}
@@ -561,7 +580,7 @@ export default function DualCoachCommand() {
                   type="button"
                   onClick={() => setEnablePushups(!enablePushups)}
                   className={`px-3 py-1.5 rounded-xl font-bold border transition cursor-pointer ${
-                    enablePushups ? "bg-primary-container/30 border-primary-container text-primary" : "bg-surface-container border-transparent text-outline"
+                    enablePushups ? "bg-[#f66018]/25 border-[#f66018] text-[#ffb599]" : "bg-[#1d2027] border-transparent text-zinc-500"
                   }`}
                 >
                   {enablePushups ? "✓ Lagartijas ON" : "Lagartijas OFF"}
@@ -569,19 +588,9 @@ export default function DualCoachCommand() {
 
                 <button
                   type="button"
-                  onClick={() => setEnable3x25(!enable3x25)}
-                  className={`px-3 py-1.5 rounded-xl font-bold border transition cursor-pointer ${
-                    enable3x25 ? "bg-primary-container/30 border-primary-container text-primary" : "bg-surface-container border-transparent text-outline"
-                  }`}
-                >
-                  {enable3x25 ? "✓ Batería 3x25 ON" : "3x25 OFF"}
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => setEnableIsometrics(!enableIsometrics)}
                   className={`px-3 py-1.5 rounded-xl font-bold border transition cursor-pointer ${
-                    enableIsometrics ? "bg-primary-container/30 border-primary-container text-primary" : "bg-surface-container border-transparent text-outline"
+                    enableIsometrics ? "bg-[#f66018]/25 border-[#f66018] text-[#ffb599]" : "bg-[#1d2027] border-transparent text-zinc-500"
                   }`}
                 >
                   {enableIsometrics ? "✓ Isometría ON" : "Isometría OFF"}
@@ -589,359 +598,473 @@ export default function DualCoachCommand() {
               </div>
             </div>
 
-            {/* CAMPOS CONDICIONALES ACTIVOS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            {/* BATERÍA 3X25 DEL DOCUMENTO BASE */}
+            <div className="bg-[#191b23] border border-[#272a32] p-5 rounded-2xl space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-[#272a32]">
+                <h4 className="text-xs font-black uppercase text-[#ffb599] flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-[#f66018]" />
+                  <span>Batería de Autocarga 3x25 (Documento Base Wild Wolves)</span>
+                </h4>
+                <span className="text-[10px] font-mono text-zinc-400">3 series de 25 repeticiones</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <label className="flex items-center justify-between p-3 rounded-xl bg-[#1d2027] border border-[#32353d] cursor-pointer text-xs">
+                  <span className="font-bold text-white">Sentadillas (3x25)</span>
+                  <input
+                    type="checkbox"
+                    checked={squats3x25}
+                    onChange={(e) => setSquats3x25(e.target.checked)}
+                    className="w-4 h-4 accent-[#f66018]"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between p-3 rounded-xl bg-[#1d2027] border border-[#32353d] cursor-pointer text-xs">
+                  <span className="font-bold text-white">Abdominales 3 Fases (3x25)</span>
+                  <input
+                    type="checkbox"
+                    checked={abs3x25}
+                    onChange={(e) => setAbs3x25(e.target.checked)}
+                    className="w-4 h-4 accent-[#f66018]"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between p-3 rounded-xl bg-[#1d2027] border border-[#32353d] cursor-pointer text-xs">
+                  <span className="font-bold text-white">Pantorrillas (3x25)</span>
+                  <input
+                    type="checkbox"
+                    checked={calves3x25}
+                    onChange={(e) => setCalves3x25(e.target.checked)}
+                    className="w-4 h-4 accent-[#f66018]"
+                  />
+                </label>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#1d2027] border border-[#32353d] text-xs">
+                  <span className="font-bold text-white">Vueltas Desplantes:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={lungesLaps}
+                    onChange={(e) => setLungesLaps(Number(e.target.value))}
+                    className="w-14 h-8 bg-[#0b0e15] border border-[#32353d] rounded text-center font-bold text-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* CRONÓMETRO DE TROTE Y RESISTENCIA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
-              {/* 1. Vueltas a la cancha */}
+              {/* Trote Continuo: 25 min hasta 2 horas */}
               {enableLaps && (
-                <div className="bg-surface-container p-4 rounded-2xl border border-surface-container-high space-y-2">
+                <div className="bg-[#191b23] border border-[#272a32] p-4 rounded-2xl space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-white">Vueltas a la Cancha Hoy:</span>
-                    <span className="font-mono text-base font-black text-primary">{lapsDone} vueltas</span>
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Timer className="w-4 h-4 text-[#f66018]" />
+                      Trote Continuo (25 min a 2 horas):
+                    </span>
+                    <span className="font-mono text-base font-black text-[#ffb599]">
+                      {joggingMin} minutos
+                    </span>
                   </div>
                   <input
                     type="range"
-                    min="1"
-                    max="25"
-                    value={lapsDone}
-                    onChange={(e) => setLapsDone(Number(e.target.value))}
-                    className="w-full accent-primary-container cursor-pointer"
+                    min="10"
+                    max="120"
+                    step="5"
+                    value={joggingMin}
+                    onChange={(e) => setJoggingMin(Number(e.target.value))}
+                    className="w-full accent-[#f66018] cursor-pointer"
                   />
-                  <div className="flex items-center justify-between text-[11px] text-on-surface-variant pt-1 border-t border-surface-container-high">
-                    <span>Minutos continuos:</span>
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
+                    <span>10 min</span>
+                    <span>25 min (Meta Base)</span>
+                    <span>60 min (1h)</span>
+                    <span>120 min (2h Ultra)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-[#272a32]">
+                    <span className="text-zinc-400">Vueltas completadas hoy:</span>
                     <input
                       type="number"
-                      value={joggingMin}
-                      onChange={(e) => setJoggingMin(Number(e.target.value))}
-                      className="w-16 h-8 bg-surface-container-lowest border border-surface-container-high rounded text-center font-bold text-white"
+                      value={lapsDone}
+                      onChange={(e) => setLapsDone(Number(e.target.value))}
+                      className="w-18 h-8 bg-[#0b0e15] border border-[#32353d] rounded-lg text-center font-bold text-white"
                     />
                   </div>
                 </div>
               )}
 
-              {/* 2. Cuerda */}
+              {/* Salto de Cuerda y Lagartijas */}
               {enableJumpRope && (
-                <div className="bg-surface-container p-4 rounded-2xl border border-surface-container-high space-y-2">
+                <div className="bg-[#191b23] border border-[#272a32] p-4 rounded-2xl space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-white">Saltos de Cuerda:</span>
-                    <span className="font-mono text-base font-black text-tertiary">{ropeCount} saltos</span>
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <HeartPulse className="w-4 h-4 text-[#4ae176]" />
+                      Saltos de Cuerda en Sesión:
+                    </span>
+                    <span className="font-mono text-base font-black text-[#4ae176]">
+                      {ropeCount} saltos
+                    </span>
                   </div>
                   <input
                     type="range"
-                    min="20"
+                    min="50"
                     max="1000"
-                    step="20"
+                    step="50"
                     value={ropeCount}
                     onChange={(e) => setRopeCount(Number(e.target.value))}
-                    className="w-full accent-tertiary cursor-pointer"
+                    className="w-full accent-[#4ae176] cursor-pointer"
                   />
-                  <div className="text-[10px] text-on-surface-variant pt-1 border-t border-surface-container-high">
-                    Progresión: 50 a dos pies, 25 pierna izquierda, 25 derecha.
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
+                    <span>50</span>
+                    <span>250</span>
+                    <span>500</span>
+                    <span>1,000 Diario</span>
                   </div>
+                  {enablePushups && (
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-[#272a32]">
+                      <span className="text-zinc-400">Variante lagartija:</span>
+                      <select
+                        value={pushupVariation}
+                        onChange={(e) => setPushupVariation(e.target.value)}
+                        className="h-8 px-2 bg-[#0b0e15] border border-[#32353d] rounded-lg text-xs font-bold text-white outline-none"
+                      >
+                        <option value="hincado">Hincado</option>
+                        <option value="brazos_cerrados">Brazos Cerrados</option>
+                        <option value="brazos_abiertos">Brazos Abiertos</option>
+                        <option value="pie_sobre_pie">Pie sobre Pie</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
-
-              {/* 3. Lagartijas */}
-              {enablePushups && (
-                <div className="bg-surface-container p-4 rounded-2xl border border-surface-container-high space-y-2">
-                  <span className="font-bold text-white block">Fase de Lagartija:</span>
-                  <select
-                    value={pushupVariation}
-                    onChange={(e) => setPushupVariation(e.target.value)}
-                    className="w-full h-9 px-2 bg-surface-container-lowest border border-surface-container-high rounded-lg text-xs font-bold text-white outline-none"
-                  >
-                    <option value="hincado">1. Con apoyo hincado / rodillas</option>
-                    <option value="brazos_cerrados">2. Brazos cerrados (tríceps)</option>
-                    <option value="brazos_abiertos">3. Brazos abiertos (pectoral)</option>
-                    <option value="pie_sobre_pie">4. Pie sobre pie alternado</option>
-                  </select>
-                  <div className="flex justify-between items-center pt-1 text-[11px] text-on-surface-variant">
-                    <span>Repeticiones logradas:</span>
-                    <input
-                      type="number"
-                      value={pushupReps}
-                      onChange={(e) => setPushupReps(Number(e.target.value))}
-                      className="w-16 h-8 bg-surface-container-lowest border border-surface-container-high rounded text-center font-bold text-white"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* 4. Batería 3x25 */}
-              {enable3x25 && (
-                <div className="bg-surface-container p-4 rounded-2xl border border-surface-container-high space-y-2.5">
-                  <span className="font-bold text-white block">Batería de Autocarga 3x25:</span>
-                  <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg bg-surface-container-lowest">
-                    <span className="text-xs text-on-surface">Sentadillas (3 series de 25)</span>
-                    <input
-                      type="checkbox"
-                      checked={squats3x25}
-                      onChange={(e) => setSquats3x25(e.target.checked)}
-                      className="w-4 h-4 accent-primary-container"
-                    />
-                  </label>
-                  <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg bg-surface-container-lowest">
-                    <span className="text-xs text-on-surface">Abdominales (3 series de 25)</span>
-                    <input
-                      type="checkbox"
-                      checked={abs3x25}
-                      onChange={(e) => setAbs3x25(e.target.checked)}
-                      className="w-4 h-4 accent-primary-container"
-                    />
-                  </label>
-                </div>
-              )}
-
-              {/* 5. Isometría */}
-              {enableIsometrics && (
-                <div className="bg-surface-container p-4 rounded-2xl border border-surface-container-high space-y-2">
-                  <span className="font-bold text-white block">Isometría Postural:</span>
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-on-surface-variant">Silla en pared:</span>
-                    <span className="font-mono font-bold text-white">{wallSitSec} seg</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="15"
-                    max="180"
-                    step="15"
-                    value={wallSitSec}
-                    onChange={(e) => setWallSitSec(Number(e.target.value))}
-                    className="w-full accent-secondary cursor-pointer"
-                  />
-                  <div className="flex justify-between items-center text-[11px] pt-1">
-                    <span className="text-on-surface-variant">Plancha isométrica:</span>
-                    <span className="font-mono font-bold text-white">{plankSec} seg</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="15"
-                    max="180"
-                    step="15"
-                    value={plankSec}
-                    onChange={(e) => setPlankSec(Number(e.target.value))}
-                    className="w-full accent-secondary cursor-pointer"
-                  />
-                </div>
-              )}
-
             </div>
+
+            {/* ISOMETRÍA EN PARED & SELECTORES POSTURALES */}
+            <div className="bg-[#191b23] border border-[#272a32] p-5 rounded-2xl space-y-4">
+              {enableIsometrics && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-[#272a32]">
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-white">Sentadilla Isométrica en Pared (1 a 20 min):</span>
+                      <span className="font-mono text-[#7bd0ff]">{wallSitMin} minutos</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      step="1"
+                      value={wallSitMin}
+                      onChange={(e) => setWallSitMin(Number(e.target.value))}
+                      className="w-full accent-[#7bd0ff] cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-white">Plancha Isométrica:</span>
+                      <span className="font-mono text-[#7bd0ff]">{plankSec} segundos</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="15"
+                      max="300"
+                      step="15"
+                      value={plankSec}
+                      onChange={(e) => setPlankSec(Number(e.target.value))}
+                      className="w-full accent-[#7bd0ff] cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* SELECTOR DE ESTATUS POSTURAL Y SEGUNDOS DE DESCANSO */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label className="text-[11px] font-bold uppercase text-[#e2bfb2] block mb-2">
+                    Estatus Postural del Atleta (Evaluación del Coach):
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPostureStatus("en_correccion")}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                        postureStatus === "en_correccion"
+                          ? "bg-amber-500/20 border-amber-500 text-amber-400 shadow"
+                          : "bg-[#1d2027] border-transparent text-zinc-500"
+                      }`}
+                    >
+                      En Corrección
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostureStatus("optima")}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                        postureStatus === "optima"
+                          ? "bg-[#4ae176]/20 border-[#4ae176] text-[#4ae176] shadow"
+                          : "bg-[#1d2027] border-transparent text-zinc-500"
+                      }`}
+                    >
+                      Óptima
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostureStatus("ultra_instinto")}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                        postureStatus === "ultra_instinto"
+                          ? "bg-[#7bd0ff]/20 border-[#7bd0ff] text-[#7bd0ff] shadow-md shadow-[#7bd0ff]/20 font-black"
+                          : "bg-[#1d2027] border-transparent text-zinc-500"
+                      }`}
+                    >
+                      Ultra Instinto
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold uppercase text-[#e2bfb2] block mb-2">
+                    Segundos de Descanso Asignados entre Series:
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[30, 45, 60, 90].map((sec) => (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={() => setRestSeconds(sec)}
+                        className={`py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border ${
+                          restSeconds === sec
+                            ? "bg-[#f66018] border-[#f66018] text-white shadow"
+                            : "bg-[#1d2027] border-transparent text-zinc-400"
+                        }`}
+                      >
+                        {sec}s
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* VISTA 3: MÓDULO B - TÉCNICA DE BALONCESTO (FUNDAMENTOS)                   */}
+        {/* PESTAÑA 3: PRUEBAS TÉCNICAS DE BALONCESTO (FUNDAMENTOS)                   */}
         {/* ========================================================================= */}
         {activeTab === "baloncesto" && (
           <div className="space-y-5 animate-fade-in">
-            {/* BATERÍA DE TIRO ESCALONADO (5 vs 10 TIROS) */}
-            <div className="bg-surface-container/80 border border-surface-container-high rounded-2xl p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-surface-container gap-2">
+            
+            {/* 1. SELECTOR DE BASE DE TIROS (5 VS 10 TIROS) */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#272a32] gap-2">
                 <div>
-                  <h3 className="text-sm font-black uppercase text-secondary flex items-center gap-2">
-                    <Target className="w-5 h-5 text-secondary" /> Batería de Tiro Escalonado
+                  <h3 className="text-sm font-black uppercase text-[#7bd0ff] flex items-center gap-2">
+                    <Target className="w-5 h-5 text-[#7bd0ff]" /> Batería de Tiro Escalonado
                   </h3>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    Fase inicial de 5 tiros por zona, escalando a 10 tiros con suspensión.
+                  <p className="text-xs text-[#e2bfb2] mt-0.5">
+                    Contadores de aciertos en Tiro Libre, Media Distancia, Triples y Media Cancha.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface-container-lowest border border-surface-container-high self-start sm:self-auto">
+                <div className="flex items-center gap-2 p-1 rounded-xl bg-[#0b0e15] border border-[#32353d]">
                   <button
                     type="button"
                     onClick={() => setShootingBase(5)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      shootingBase === 5 ? "bg-secondary text-on-secondary shadow" : "text-on-surface-variant hover:text-white"
+                      shootingBase === 5 ? "bg-[#00a6e0] text-white shadow" : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    Fase 5 Tiros
+                    Base 5 Tiros
                   </button>
                   <button
                     type="button"
                     onClick={() => setShootingBase(10)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      shootingBase === 10 ? "bg-secondary text-on-secondary shadow" : "text-on-surface-variant hover:text-white"
+                      shootingBase === 10 ? "bg-[#00a6e0] text-white shadow" : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    Fase 10 Tiros
+                    Base 10 Tiros
                   </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
                 {/* Tiro Libre */}
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <span className="text-on-surface-variant block mb-1 font-bold">Tiro Libre</span>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <span className="text-zinc-400 block mb-1 font-bold">Tiro Libre</span>
                   <input
                     type="number"
                     min="0"
                     max={shootingBase}
                     value={ftMade}
                     onChange={(e) => setFtMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-surface-container-lowest border border-surface-container-high rounded-xl text-center font-black text-lg text-tertiary mx-auto"
+                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#4ae176] mx-auto font-mono"
                   />
-                  <span className="text-[10px] text-outline mt-1 block">de {shootingBase} intentos</span>
+                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
                 </div>
 
                 {/* Media Distancia */}
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <span className="text-on-surface-variant block mb-1 font-bold">Media Distancia</span>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <span className="text-zinc-400 block mb-1 font-bold">Media Distancia</span>
                   <input
                     type="number"
                     min="0"
                     max={shootingBase}
                     value={midMade}
                     onChange={(e) => setMidMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-surface-container-lowest border border-surface-container-high rounded-xl text-center font-black text-lg text-secondary mx-auto"
+                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#7bd0ff] mx-auto font-mono"
                   />
-                  <span className="text-[10px] text-outline mt-1 block">de {shootingBase} intentos</span>
+                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
                 </div>
 
                 {/* Triples */}
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <span className="text-on-surface-variant block mb-1 font-bold">Triples</span>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <span className="text-zinc-400 block mb-1 font-bold">Triples</span>
                   <input
                     type="number"
                     min="0"
                     max={shootingBase}
                     value={threeMade}
                     onChange={(e) => setThreeMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-surface-container-lowest border border-surface-container-high rounded-xl text-center font-black text-lg text-primary mx-auto"
+                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#ffb599] mx-auto font-mono"
                   />
-                  <span className="text-[10px] text-outline mt-1 block">de {shootingBase} intentos</span>
+                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
                 </div>
 
                 {/* Media Cancha */}
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <span className="text-on-surface-variant block mb-1 font-bold">Media Cancha</span>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <span className="text-zinc-400 block mb-1 font-bold">Media Cancha</span>
                   <input
                     type="number"
                     min="0"
                     max={shootingBase}
                     value={halfMade}
                     onChange={(e) => setHalfMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-surface-container-lowest border border-surface-container-high rounded-xl text-center font-black text-lg text-purple-400 mx-auto"
+                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-purple-400 mx-auto font-mono"
                   />
-                  <span className="text-[10px] text-outline mt-1 block">de {shootingBase} intentos</span>
+                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
                 </div>
               </div>
             </div>
 
-            {/* VELOCIDAD Y LÍNEAS DEFENSIVAS */}
-            <div className="bg-surface-container/80 border border-surface-container-high rounded-2xl p-5 space-y-4">
+            {/* 2. CAMPOS DE VELOCIDAD CON MILÉSIMAS (00.00S) Y LÍNEAS */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 space-y-4">
               <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Timer className="w-5 h-5 text-primary-container" /> Velocidad de Desplazamiento y Líneas
+                <Timer className="w-5 h-5 text-[#f66018]" /> Velocidad de Desplazamiento y Líneas Defensivas
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <label className="text-on-surface-variant font-bold block mb-1">Sprint 100m Planos (s):</label>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <label className="text-zinc-400 font-bold block mb-1">Sprint 100m (00.00s):</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     value={sprint100m}
-                    onChange={(e) => setSprint100m(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-surface-container-lowest border border-surface-container-high rounded-lg font-mono font-bold text-white"
+                    onChange={(e) => setSprint100m(e.target.value)}
+                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-bold text-white text-center text-base"
+                    placeholder="14.20"
                   />
                 </div>
 
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <label className="text-on-surface-variant font-bold block mb-1">Línea: Solo Ida (s):</label>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <label className="text-zinc-400 font-bold block mb-1">Línea Solo Ida (00.00s):</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     value={linesOneWay}
-                    onChange={(e) => setLinesOneWay(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-surface-container-lowest border border-surface-container-high rounded-lg font-mono font-bold text-secondary"
+                    onChange={(e) => setLinesOneWay(e.target.value)}
+                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-bold text-[#7bd0ff] text-center text-base"
+                    placeholder="11.50"
                   />
                 </div>
 
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <label className="text-on-surface-variant font-bold block mb-1">Línea: Ida y Vuelta (s):</label>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <label className="text-zinc-400 font-bold block mb-1">Línea Ida y Vuelta (00.00s):</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     value={linesRoundTrip}
-                    onChange={(e) => setLinesRoundTrip(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-surface-container-lowest border border-surface-container-high rounded-lg font-mono font-bold text-primary"
+                    onChange={(e) => setLinesRoundTrip(e.target.value)}
+                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-bold text-[#ffb599] text-center text-base"
+                    placeholder="24.10"
                   />
                 </div>
               </div>
 
-              {/* POSTURA DEFENSIVA BAJA TOCANDO PISO */}
-              <label className="flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border border-surface-container-high/60 cursor-pointer text-xs">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-tertiary" />
-                  <span className="text-white font-medium">Verificación: Toca el piso con la mano en cada línea (Postura Baja)</span>
+              {/* VERIFICACIÓN TOQUE DE PISO DEFENSIVO CON DOS MANOS */}
+              <label className="flex items-center justify-between p-3.5 rounded-xl bg-[#0b0e15] border border-[#32353d] cursor-pointer text-xs">
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-5 h-5 text-[#4ae176]" />
+                  <div>
+                    <span className="text-white font-bold block">Verificación de Toque de Piso Defensivo</span>
+                    <span className="text-[10px] text-zinc-400">El atleta toca la duela/cancha con ambas manos en cada línea antes de girar.</span>
+                  </div>
                 </div>
                 <input
                   type="checkbox"
-                  checked={defensiveTouch}
-                  onChange={(e) => setDefensiveTouch(e.target.checked)}
-                  className="w-4 h-4 accent-tertiary"
+                  checked={defensiveTwoHands}
+                  onChange={(e) => setDefensiveTwoHands(e.target.checked)}
+                  className="w-4 h-4 accent-[#4ae176]"
                 />
               </label>
             </div>
 
-            {/* VUELO Y DRILL DE TABLERO */}
-            <div className="bg-surface-container/80 border border-surface-container-high rounded-2xl p-5 space-y-4">
+            {/* 3. PRUEBAS DE SALTO Y SWITCH DRILL DE TABLERO */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 space-y-4">
               <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Flame className="w-5 h-5 text-tertiary" /> Salto, Vuelo y Drill de Rebote en Tablero
+                <Flame className="w-5 h-5 text-[#4ae176]" /> Salto Estático y Drill de Tablero
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <label className="text-on-surface-variant font-bold block mb-1">Salto Vertical de Despegue (cm):</label>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <label className="text-zinc-400 font-bold block mb-1">Salto Vertical Estático (cm):</label>
                   <input
                     type="number"
                     value={verticalJumpCm}
                     onChange={(e) => setVerticalJumpCm(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-surface-container-lowest border border-surface-container-high rounded-lg font-mono font-black text-white"
+                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-black text-white text-base"
                   />
                 </div>
 
-                <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high">
-                  <label className="text-on-surface-variant font-bold block mb-1">Salto Horizontal de Longitud (cm):</label>
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <label className="text-zinc-400 font-bold block mb-1">Salto de Longitud (cm):</label>
                   <input
                     type="number"
                     value={broadJumpCm}
                     onChange={(e) => setBroadJumpCm(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-surface-container-lowest border border-surface-container-high rounded-lg font-mono font-black text-white"
+                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-black text-white text-base"
                   />
                 </div>
               </div>
 
-              {/* DRILL TABLERO */}
-              <label className="flex items-center justify-between p-3.5 rounded-xl bg-surface-container-lowest border border-surface-container-high cursor-pointer text-xs">
-                <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-primary-container" />
+              {/* SWITCH DRILL TABLERO */}
+              <label className="flex items-center justify-between p-3.5 rounded-xl bg-[#0b0e15] border border-[#32353d] cursor-pointer text-xs">
+                <div className="flex items-center gap-2.5">
+                  <Award className="w-5 h-5 text-[#f66018]" />
                   <div>
-                    <span className="text-white font-bold block">Drill Tablero: Lanzar, atrapar en lo más alto y encestar</span>
-                    <span className="text-[10px] text-on-surface-variant">Evalúa coordinación ojo-mano en el punto más alto del salto.</span>
+                    <span className="text-white font-bold block">Drill de Tablero: Lanzar, saltar en punto más alto, atrapar y tirar</span>
+                    <span className="text-[10px] text-zinc-400">Coordinación de rebote ofensivo y suspensión antes de caer.</span>
                   </div>
                 </div>
                 <input
                   type="checkbox"
                   checked={boardDrillDone}
                   onChange={(e) => setBoardDrillDone(e.target.checked)}
-                  className="w-5 h-5 accent-primary-container"
+                  className="w-5 h-5 accent-[#f66018]"
                 />
               </label>
             </div>
           </div>
         )}
 
-        {/* FEEDBACK DEL COACH */}
+        {/* FEEDBACK DEL HEAD COACH */}
         <div>
-          <label className="text-xs font-bold text-on-surface-variant uppercase block mb-1.5">
-            Observaciones y Feedback del Head Coach:
+          <label className="text-xs font-bold text-[#e2bfb2] uppercase block mb-1.5">
+            Observaciones Técnicas y Diagnóstico del Coach:
           </label>
           <textarea
             rows={2}
             value={basketNotes}
             onChange={(e) => setBasketNotes(e.target.value)}
-            className="w-full p-3.5 bg-surface-container border border-surface-container-high rounded-xl text-xs text-white outline-none focus:border-secondary transition resize-none leading-relaxed"
-            placeholder="Anotar recomendaciones técnicas, correcciones de codo o felicitaciones por esfuerzo..."
+            className="w-full p-3.5 bg-[#191b23] border border-[#272a32] rounded-xl text-xs text-white outline-none focus:border-[#7bd0ff] transition resize-none leading-relaxed"
+            placeholder="Anotar recomendaciones biomecánicas, postura defensiva, descanso o correcciones..."
           />
         </div>
 
@@ -949,7 +1072,7 @@ export default function DualCoachCommand() {
         <button
           type="submit"
           disabled={saving || !selectedStudentId}
-          className="w-full h-13 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-500 to-sky-600 text-black font-black uppercase text-xs sm:text-sm tracking-wider flex items-center justify-center gap-2 hover:brightness-110 active:scale-98 transition shadow-2xl cursor-pointer disabled:opacity-50"
+          className="w-full h-13 rounded-2xl bg-gradient-to-r from-[#f66018] via-amber-500 to-[#00a6e0] text-black font-black uppercase text-xs sm:text-sm tracking-wider flex items-center justify-center gap-2 hover:brightness-110 active:scale-98 transition shadow-2xl cursor-pointer disabled:opacity-50"
         >
           <Zap className="w-5 h-5 fill-black" />
           <span>
@@ -958,14 +1081,14 @@ export default function DualCoachCommand() {
               : activeTab === "dia1"
               ? "Guardar Línea Base (Día 1) del Atleta"
               : activeTab === "fisico"
-              ? "Guardar Sesión de Preparación Física"
+              ? "Guardar Sesión de Preparación Física & Calistenia"
               : "Guardar Pruebas Técnicas de Baloncesto"}
           </span>
         </button>
 
-        {/* FEEDBACK TOAST */}
+        {/* TOAST CONFIRMACIÓN */}
         {feedbackSuccess && (
-          <div className="p-4 rounded-xl bg-tertiary/20 text-tertiary text-xs font-bold text-center border border-tertiary/30 animate-fade-in flex items-center justify-center gap-2">
+          <div className="p-4 rounded-xl bg-[#4ae176]/20 text-[#4ae176] text-xs font-bold text-center border border-[#4ae176]/30 animate-fade-in flex items-center justify-center gap-2">
             <CheckCircle2 className="w-5 h-5" />
             <span>{feedbackSuccess}</span>
           </div>
