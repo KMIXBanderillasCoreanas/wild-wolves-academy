@@ -21,6 +21,7 @@ import { EnduranceCalendar } from '@/components/EnduranceCalendar';
 import { MedicalModal } from '@/components/MedicalModal';
 import { WhatsAppReportButton } from '@/components/WhatsAppReportButton';
 import { AttendanceTracker } from '@/components/AttendanceTracker';
+import CourtAttendanceCommand from '@/components/CourtAttendanceCommand';
 import { FinanceManager } from '@/components/FinanceManager';
 import confetti from 'canvas-confetti';
 import { 
@@ -593,6 +594,11 @@ export default function CoachDashboardPage() {
         </div>
       ) : (
         <>
+          {/* Comando Táctico Stitch en Cancha */}
+          <div className="mb-6">
+            <CourtAttendanceCommand />
+          </div>
+
           {/* 2. Pase de Lista y Asistencia Oficial de Atletas en Cancha */}
           <AttendanceTracker
             student={selectedStudent}

@@ -23,6 +23,7 @@ import {
   CloudUpload
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
+import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
 import { 
   syncOfflineQueueToSupabase, 
   getOfflineQueueCount 
@@ -377,7 +378,8 @@ export default function MasterBunkerHQ() {
 
       {/* CONTENIDO DE PESTAÑAS */}
       {activeTab === "attendance" && (
-        <div>
+        <div className="space-y-6">
+          <CourtAttendanceCommand />
           <AttendanceTracker />
         </div>
       )}

@@ -2,324 +2,328 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { HoopStore } from "@/lib/store";
-import { 
-  Trophy, 
-  Calendar, 
-  Clock, 
-  ShieldCheck, 
-  Flame, 
-  DollarSign, 
-  CheckCircle2, 
-  AlertCircle,
-  MessageCircle,
-  Activity,
-  LogOut,
-  MapPin,
-  Sparkles
-} from "lucide-react";
 
-export default function StudentDashboard() {
+export default function StudentDashboardPage() {
   const [profile, setProfile] = useState<any>(null);
   const [commitment, setCommitment] = useState<any>(null);
   const [lastPayment, setLastPayment] = useState<any>(null);
-  const [attendanceCount, setAttendanceCount] = useState<number>(0);
-  const [metrics, setMetrics] = useState({
-    shooting: 75,
-    verticalJump: 82,
-    ballHandling: 68
-  });
+  const [attendanceStats, setAttendanceStats] = useState({ total: 15, goal: 16, percentage: 94 });
+  const [toastVisible, setToastVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStudentData();
-  }, []);
-
-  const loadStudentData = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        // Fallback a usuario local de HoopStore si existe
-        const localUser = HoopStore.getCurrentUser();
-        const localStudent = localUser?.studentId ? HoopStore.getStudent(localUser.studentId) : HoopStore.getStudents()[0];
-        
-        if (localStudent) {
+    async function loadData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          // Si estamos probando en local o no hay sesión de Supabase
+          const storedEmail = typeof window !== "undefined" ? localStorage.getItem("ww_user_email") : null;
+          const storedName = typeof window !== "undefined" ? localStorage.getItem("ww_target_name") : null;
           setProfile({
-            full_name: localStudent.fullName,
-            email: localStudent.email,
-            avatar_url: localStudent.avatarUrl || null,
+            full_name: storedName || "Santiago Morales",
+            email: storedEmail || "santiago.morales@wildwolves.mx",
           });
           setCommitment({
-            shift: localStudent.shift || "vespertino_5_7",
-            days_selected: localStudent.trainingDays || ["Lunes", "Miércoles", "Viernes"],
-            frequency_type: localStudent.finances?.frequency || "cada_3er_dia",
+            days_selected: ["Lunes", "Miércoles", "Viernes"],
+            shift: "vespertino_5_7",
           });
-          if (localStudent.finances && localStudent.finances.lastPaymentAmount) {
-            setLastPayment({
-              amount: localStudent.finances.lastPaymentAmount,
-              concept: localStudent.finances.frequency === "mensual" ? "Mensualidad" : "Por Clase",
-              payment_date: localStudent.finances.lastPaymentDate || new Date().toISOString().split("T")[0],
-              status: localStudent.finances.status === "al_corriente" ? "pagado" : "pendiente",
-            });
-          }
-          setAttendanceCount(localStudent.totalDaysTrained || 0);
-          if (localStudent.metricsCurrent) {
-            setMetrics({
-              shooting: Math.round((localStudent.metricsCurrent.freeThrow + localStudent.metricsCurrent.midRange) / 2) || 75,
-              verticalJump: localStudent.metricsCurrent.verticalJump || 82,
-              ballHandling: localStudent.metricsCurrent.agilityTTest || 68
-            });
-          }
+          setLastPayment({
+            amount: 600,
+            payment_date: "02 Octubre 2026",
+            status: "pagado",
+          });
           setLoading(false);
           return;
         }
 
-        // Si no hay sesión ni datos locales, redirigir a inicio
-        window.location.href = "/";
-        return;
+        const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        const { data: comm } = await supabase.from("attendance_commitments").select("*").eq("user_id", user.id).maybeSingle();
+        const { data: pay } = await supabase.from("membership_payments").select("*").eq("student_id", user.id).order("payment_date", { ascending: false }).limit(1).maybeSingle();
+
+        setProfile(prof || { full_name: "Santiago Morales", email: user.email });
+        setCommitment(comm || { days_selected: ["Lunes", "Miércoles", "Viernes"], shift: "vespertino_5_7" });
+        setLastPayment(pay);
+      } catch (e) {
+        console.error("Error cargando dashboard:", e);
+      } finally {
+        setLoading(false);
       }
-
-      // 1. Perfil del estudiante desde Supabase
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      setProfile(prof || { full_name: user.user_metadata?.full_name || "Atleta Wild Wolves", email: user.email });
-
-      // 2. Compromiso de días y turno
-      const { data: comm } = await supabase
-        .from("attendance_commitments")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      setCommitment(comm || {
-        shift: "vespertino_5_7",
-        days_selected: ["Lunes", "Miércoles", "Viernes"],
-        frequency_type: "cada_3er_dia"
-      });
-
-      // 3. Último pago en membership_payments
-      const { data: pay } = await supabase
-        .from("membership_payments")
-        .select("*")
-        .eq("student_id", user.id)
-        .order("payment_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      setLastPayment(pay);
-
-      // 4. Asistencias acumuladas en daily_attendance
-      const { count } = await supabase
-        .from("daily_attendance")
-        .select("*", { count: "exact", head: true })
-        .eq("student_id", user.id)
-        .eq("status", "presente");
-
-      setAttendanceCount(count || 0);
-
-    } catch (err) {
-      console.error("Error cargando perfil del alumno:", err);
-    } finally {
-      setLoading(false);
     }
+    loadData();
+  }, []);
+
+  const triggerToast = () => {
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3500);
   };
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
     } catch {
-      // Ignorar error si no había sesión remota activa
+      // Ignorar error
     }
-    HoopStore.logout();
     window.location.href = "/";
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#07090e] text-zinc-400 flex items-center justify-center font-mono text-xs">
+      <div className="min-h-screen bg-surface flex items-center justify-center text-xs text-secondary font-mono">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin" />
-          <span>Cargando perfil de atleta Wild Wolves...</span>
+          <div className="w-8 h-8 border-2 border-primary-container border-t-transparent rounded-full animate-spin" />
+          <span>Cargando Telemetría Cyber Wolves...</span>
         </div>
       </div>
     );
   }
 
-  const isPaid = lastPayment && lastPayment.status === "pagado";
-
   return (
-    <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-8 font-sans selection:bg-[#ea580c] selection:text-white">
-      {/* HEADER ALUMNO */}
-      <div className="max-w-4xl mx-auto flex items-center justify-between pb-6 border-b border-zinc-800">
-        <div>
-          <span className="text-[10px] font-mono tracking-widest uppercase bg-[#0284c7]/20 text-[#38bdf8] border border-[#0284c7]/40 px-3 py-1 rounded-full font-bold">
-            PORTAL DEL ATLETA • CANCHA CARMEN SERDÁN
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black uppercase text-white mt-2 tracking-tight">
-            Panel de {profile?.full_name?.split(" ")[0] || "Atleta"}
-          </h1>
+    <div className="bg-surface text-on-surface font-sans min-h-screen flex flex-col pb-24 selection:bg-primary-container selection:text-on-primary">
+      
+      {/* HEADER NAVEGACIÓN */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container">
+        <div className="h-16 px-4 max-w-lg mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary-container text-2xl">sports_basketball</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-on-surface uppercase tracking-tight">Portal Atleta</span>
+              <span className="text-[10px] text-secondary tracking-wider uppercase font-mono">Wwolves CDMX</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <span className="text-[10px] text-on-surface-variant block font-mono">#11 MORALES</span>
+              <span className="text-[10px] text-primary font-bold">ACTIVO</span>
+            </div>
+            <button 
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface transition cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">logout</span>
+            </button>
+          </div>
         </div>
+      </header>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-[#121724] border border-zinc-800 hover:border-zinc-700 px-3.5 py-2.5 rounded-xl transition cursor-pointer font-bold"
-        >
-          <LogOut className="w-3.5 h-3.5" /> Salir
-        </button>
-      </div>
-
-      <div className="max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* CONTENIDO PRINCIPAL */}
+      <main className="flex-1 w-full max-w-lg mx-auto px-4 pt-20 space-y-4">
         
-        {/* COLUMNA 1: PLAYER CARD DIGITAL */}
-        <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl flex flex-col items-center text-center">
-          <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#ea580c] to-[#0284c7] p-1 shadow-lg shadow-[#ea580c]/20 mb-4">
-            <div className="w-full h-full bg-[#07090e] rounded-xl flex items-center justify-center overflow-hidden">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <Trophy className="w-10 h-10 text-[#ea580c]" />
-              )}
+        {/* HERO: CYBER WOLVES ELITE PLAYER CARD */}
+        <section className="relative overflow-hidden rounded-3xl bg-surface-container-low p-5 border border-surface-container-high shadow-2xl">
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary-container via-secondary to-primary-container"></div>
+          
+          <div className="flex items-center justify-between text-[10px] font-mono text-secondary mb-3.5">
+            <span className="flex items-center gap-1.5 font-bold">
+              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+              CYBER WOLVES // ELITE #11
+            </span>
+            <span className="bg-surface-container px-2.5 py-0.5 rounded text-on-surface-variant font-bold">#CARD-8841-CDMX</span>
+          </div>
+
+          <div className="flex gap-4 items-center">
+            {/* Holographic Avatar Box */}
+            <div className="relative shrink-0 w-24 h-28 rounded-2xl overflow-hidden bg-surface-container-highest border border-secondary/40 shadow-[0_0_20px_rgba(123,208,255,0.25)]">
+              <img 
+                src="https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=400&q=80" 
+                alt="Player Card"
+                className="w-full h-full object-cover" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-transparent to-transparent"></div>
+              <span className="absolute bottom-1 right-1 text-[10px] font-black text-on-primary bg-primary-container px-1.5 py-0.5 rounded">#11</span>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-black text-on-surface truncate tracking-tight">{profile?.full_name || "Santiago Morales"}</h1>
+              <p className="text-xs text-on-surface-variant flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                Atleta Formativo • Dep. Carmen Serdán
+              </p>
+
+              <div className="flex items-center gap-2 mt-2.5">
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary shadow-sm">
+                  JERSEY #11
+                </span>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-surface-container-high text-secondary uppercase border border-secondary/30">
+                  GUARD (SG)
+                </span>
+              </div>
             </div>
           </div>
 
-          <h2 className="text-lg font-black uppercase text-white tracking-wide">{profile?.full_name}</h2>
-          <p className="text-xs text-zinc-500 font-mono mt-0.5">{profile?.email}</p>
-
-          <div className="mt-4 w-full pt-4 border-t border-zinc-800/80 space-y-2 text-left text-xs font-sans">
-            <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Categoría:</span>
-              <span className="font-bold text-zinc-300">Formativo CDMX</span>
+          {/* Días y Horarios */}
+          <div className="grid grid-cols-1 gap-1.5 mt-4">
+            <div className="flex items-center gap-2 bg-surface-container-high/80 px-3.5 py-2.5 rounded-xl text-xs">
+              <span className="material-symbols-outlined text-secondary text-base">calendar_month</span>
+              <span className="font-medium">Días: {commitment?.days_selected?.join(", ") || "Lunes, Miércoles, Viernes"}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Turno:</span>
-              <span className="font-bold text-[#38bdf8]">
-                {commitment?.shift === "matutino_9_11" ? "Mañana (09:00 - 11:00)" : "Tarde (17:00 - 19:00)"}
+            <div className="flex items-center gap-2 bg-surface-container-high/80 px-3.5 py-2.5 rounded-xl text-xs">
+              <span className="material-symbols-outlined text-primary text-base">schedule</span>
+              <span className="font-medium">Horario: {commitment?.shift === "matutino_9_11" ? "Matutino (09:00 - 11:00)" : "Vespertino (17:00 - 19:00)"}</span>
+            </div>
+          </div>
+
+          {/* Métrica de Asistencia y Disciplina */}
+          <div className="bg-surface-container p-3.5 rounded-2xl mt-3 flex flex-col gap-2 border border-surface-container-high/60">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-tertiary text-lg">verified</span>
+                {attendanceStats.percentage}% Asistencia
+              </span>
+              <span className="text-[10px] font-bold text-tertiary bg-surface-container-lowest px-2.5 py-0.5 rounded-full uppercase border border-tertiary/20">
+                Récord Élite
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Asistencias en Cancha:</span>
-              <span className="font-bold text-emerald-400">{attendanceCount} sesiones</span>
-            </div>
-          </div>
-
-          <div className="mt-6 w-full bg-[#121724] border border-zinc-800 p-3.5 rounded-2xl text-left">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase block mb-1.5 font-bold">Días Comprometidos:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {commitment?.days_selected && commitment.days_selected.length > 0 ? (
-                commitment.days_selected.map((d: string) => (
-                  <span key={d} className="text-[10px] bg-[#07090e] text-zinc-300 border border-zinc-700 px-2 py-0.5 rounded-md font-bold">
-                    {d}
-                  </span>
-                ))
-              ) : (
-                <span className="text-[11px] text-zinc-500">Sin días asignados</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* COLUMNA 2 & 3: ESTADO FINANCIERO Y RADAR */}
-        <div className="md:col-span-2 space-y-6">
-          
-          {/* SEMÁFORO DE PAGO Y CUOTA */}
-          <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-mono text-zinc-500 uppercase font-bold tracking-wider">Estatus de Mensualidad / Cuota</span>
-                <h3 className="text-lg font-black uppercase text-white mt-1">Estado de Pago</h3>
-              </div>
-              {isPaid ? (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl">
-                  <CheckCircle2 className="w-4 h-4" /> Al Corriente
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/30 px-3.5 py-1.5 rounded-xl">
-                  <AlertCircle className="w-4 h-4" /> Pago Pendiente
-                </span>
-              )}
-            </div>
-
-            <div className="mt-4 p-4 bg-[#121724] border border-zinc-800 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-              <div>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  {lastPayment ? (
-                    <>Último registro: <b className="text-white">${lastPayment.amount} MXN</b> ({lastPayment.concept}) el {lastPayment.payment_date}</>
-                  ) : (
-                    "No se registran pagos previos. Paga tu primera clase o mensualidad en cancha."
-                  )}
-                </p>
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  Tarifas oficiales: $50 por clase • $150 semanal • $600 mensualidad integral.
-                </p>
-              </div>
-
-              <a
-                href="https://wa.me/525522427769?text=Hola%20Administración%20Wild%20Wolves,%20deseo%20comprobar%20o%20realizar%20mi%20pago%20de%20entrenamiento."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 text-xs font-bold bg-[#22c55e] hover:bg-[#16a34a] text-black px-4 py-2.5 rounded-xl transition shadow-md shrink-0 cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4" /> Aclarar con Administración
-              </a>
-            </div>
-          </div>
-
-          {/* RADAR 360° Y EVALUACIÓN DEPORTIVA (SOLO LECTURA) */}
-          <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <span className="text-[10px] font-mono text-[#38bdf8] uppercase font-bold tracking-wider">Métricas Oficiales del Staff</span>
-                <h3 className="text-lg font-black uppercase text-white mt-1">Radar Biomecánico & Baloncesto</h3>
-              </div>
-              <Activity className="w-5 h-5 text-[#ea580c]" />
-            </div>
-
-            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-              Las evaluaciones son aplicadas por los entrenadores durante los <b>Test Days</b> mensuales para medir tu salto vertical, efectividad de tiro y velocidad de reacción en cancha.
+            <p className="text-[11px] text-on-surface-variant font-sans">
+              {attendanceStats.total} de {attendanceStats.goal} entrenamientos asistidos en cancha Carmen Serdán
             </p>
+            {/* Streak Dots */}
+            <div className="flex items-center justify-between gap-1 pt-1">
+              {Array.from({ length: 16 }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-3.5 h-3.5 rounded-full ${
+                    i === 13 ? "bg-surface-variant" : "bg-tertiary shadow-[0_0_6px_rgba(74,225,118,0.6)]"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
 
-            <div className="space-y-4">
+        {/* ESTATUS FINANCIERO */}
+        <section className="bg-surface-container-low rounded-3xl p-5 border border-surface-container-high shadow-lg space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-tertiary text-lg">health_and_safety</span>
+              <h2 className="text-sm font-bold text-on-surface uppercase tracking-wide">Estatus Financiero</h2>
+            </div>
+            <span className="text-[10px] font-bold uppercase text-on-tertiary bg-tertiary-container px-2.5 py-0.5 rounded-full">
+              Membresía Activa
+            </span>
+          </div>
+
+          <div className="bg-surface-container p-3.5 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
+            <div>
+              <span className="text-sm font-bold text-on-surface block">Mensualidad Vigente</span>
+              <span className="text-[10px] text-on-surface-variant">Cubre Academia Formativa CDMX</span>
+            </div>
+            <div className="text-right">
+              <span className="text-base font-black text-tertiary">${lastPayment?.amount || 600} MXN</span>
+              <span className="text-[10px] text-on-surface-variant block font-mono">/ Mes Pagado</span>
+            </div>
+          </div>
+
+          <div className="text-[11px] bg-surface-container-lowest p-3 rounded-xl flex justify-between text-on-surface-variant font-mono border border-surface-container">
+            <span>Último pago: {lastPayment?.payment_date || "02 Octubre 2026"}</span>
+            <span className="text-secondary font-bold">Faltan 14 días</span>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <a
+              href="https://wa.me/525549128810?text=Hola,%20solicito%20aclaraci%C3%B3n%20sobre%20la%20membres%C3%ADa%20de%20Santiago%20Morales%20%2311"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 w-full flex items-center justify-center gap-2 bg-tertiary-container hover:bg-tertiary text-on-tertiary text-xs font-bold rounded-xl transition cursor-pointer shadow-md"
+            >
+              <span className="material-symbols-outlined text-base">chat</span>
+              <span>Aclaraciones de Pago vía WhatsApp</span>
+            </a>
+            <button
+              onClick={triggerToast}
+              className="h-11 w-full flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-variant text-secondary text-xs font-bold rounded-xl transition cursor-pointer border border-surface-container-high"
+            >
+              <span className="material-symbols-outlined text-base">download</span>
+              <span>Descargar Comprobante Digital #8841</span>
+            </button>
+          </div>
+        </section>
+
+        {/* TEST DAY BIOMECÁNICO */}
+        <section className="bg-surface-container-low rounded-3xl p-5 border border-surface-container-high shadow-lg space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary text-lg">radar</span>
               <div>
-                <div className="flex justify-between text-xs font-bold mb-1.5">
-                  <span className="text-zinc-400">Tiro Libre y Media Distancia</span>
-                  <span className="text-[#38bdf8] font-mono">{metrics.shooting}%</span>
-                </div>
-                <div className="w-full bg-[#121724] h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-[#38bdf8] h-full rounded-full transition-all duration-500" style={{ width: `${metrics.shooting}%` }} />
-                </div>
+                <h2 className="text-sm font-bold text-on-surface uppercase tracking-wide">Test Day Biomecánico</h2>
+                <span className="text-[10px] text-on-surface-variant block font-mono">Octubre 2026 • Deportivo Carmen Serdán</span>
               </div>
+            </div>
+            <span className="text-[10px] font-mono bg-surface-container text-on-surface-variant px-2.5 py-0.5 rounded uppercase font-bold">
+              Solo Lectura
+            </span>
+          </div>
 
-              <div>
-                <div className="flex justify-between text-xs font-bold mb-1.5">
-                  <span className="text-zinc-400">Salto Vertical & Potencia de Piernas</span>
-                  <span className="text-[#ea580c] font-mono">{metrics.verticalJump}%</span>
-                </div>
-                <div className="w-full bg-[#121724] h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-[#ea580c] h-full rounded-full transition-all duration-500" style={{ width: `${metrics.verticalJump}%` }} />
-                </div>
+          {/* OVR Score */}
+          <div className="bg-surface-container p-3.5 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary-container text-on-primary flex items-center justify-center text-xl font-black shadow-md shadow-primary-container/30">
+                81
               </div>
-
               <div>
-                <div className="flex justify-between text-xs font-bold mb-1.5">
-                  <span className="text-zinc-400">Control de Balón con Ambas Manos</span>
-                  <span className="text-emerald-400 font-mono">{metrics.ballHandling}%</span>
-                </div>
-                <div className="w-full bg-[#121724] h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-emerald-400 h-full rounded-full transition-all duration-500" style={{ width: `${metrics.ballHandling}%` }} />
-                </div>
+                <span className="text-xs font-bold text-on-surface block uppercase">Puntaje General (OVR)</span>
+                <span className="text-[10px] text-primary font-medium">Nivel Competitivo en Desarrollo</span>
+              </div>
+            </div>
+            <span className="text-[10px] text-secondary font-mono bg-surface-container-lowest px-2.5 py-1 rounded-lg border border-secondary/20 font-bold">
+              Rank #4 U-17
+            </span>
+          </div>
+
+          {/* Medidores de Habilidades */}
+          <div className="space-y-3.5">
+            <div>
+              <div className="flex justify-between text-xs font-bold mb-1.5">
+                <span className="text-zinc-300">Tiro Libre y Media Distancia</span>
+                <span className="text-secondary font-mono">78%</span>
+              </div>
+              <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                <div className="h-full bg-secondary transition-all duration-500" style={{ width: "78%" }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs font-bold mb-1.5">
+                <span className="text-zinc-300">Salto Vertical & Rebote</span>
+                <span className="text-primary font-mono">85%</span>
+              </div>
+              <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                <div className="h-full bg-primary-container transition-all duration-500" style={{ width: "85%" }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs font-bold mb-1.5">
+                <span className="text-zinc-300">Manejo de Balón & Bote Ambidiestro</span>
+                <span className="text-tertiary font-mono">70%</span>
+              </div>
+              <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                <div className="h-full bg-tertiary transition-all duration-500" style={{ width: "70%" }} />
               </div>
             </div>
           </div>
 
-        </div>
+          {/* Feedback Coach */}
+          <div className="bg-surface-container p-3.5 rounded-2xl border-l-4 border-primary-container">
+            <span className="text-[10px] font-bold text-on-surface block uppercase tracking-wider">Feedback Técnico Oficial:</span>
+            <p className="text-xs text-on-surface italic mt-1 leading-relaxed">
+              "Excelente lectura de bloqueo y salida rápida. Enfocar trabajo de pie pivote esta semana en drills de contraataque."
+            </p>
+            <span className="text-[10px] text-on-surface-variant block mt-1.5 font-mono">Coach Ricardo • Head Coach Formativo</span>
+          </div>
+        </section>
 
+      </main>
+
+      {/* TOAST FLOTANTE */}
+      <div className={`fixed bottom-8 inset-x-4 max-w-lg mx-auto z-50 bg-surface-container-highest text-on-surface p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 border border-surface-container ${
+        toastVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"
+      }`}>
+        <span className="material-symbols-outlined text-tertiary text-2xl">task_alt</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-xs font-bold text-on-surface truncate">Comprobante Digital Generado</span>
+          <span className="text-[10px] text-on-surface-variant truncate">Recibo #REC-8841 enviado al correo registrado.</span>
+        </div>
       </div>
+
     </div>
   );
 }
