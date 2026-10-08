@@ -172,6 +172,7 @@ export function Navbar() {
         </Link>
 
         {/* Enlaces de Navegación */}
+        {/* Enlaces de Navegación Seguros */}
         <div className="hidden md:flex items-center gap-1.5 font-mono text-xs">
           <Link
             href="/"
@@ -193,16 +194,18 @@ export function Navbar() {
           >
             Portal Alumno (Lectura)
           </Link>
-          <Link
-            href="/dashboard-coach"
-            className={`px-3 py-1.5 rounded-lg transition-colors ${
-              pathname.startsWith('/dashboard-coach')
-                ? 'bg-orange-500/10 text-orange-300 border border-orange-500/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-            }`}
-          >
-            Panel Coach (Admin)
-          </Link>
+          {isCoach && (
+            <Link
+              href="/dashboard-coach"
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                pathname.startsWith('/dashboard-coach')
+                  ? 'bg-orange-500/10 text-orange-300 border border-orange-500/30'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              }`}
+            >
+              Panel Coach (Admin)
+            </Link>
+          )}
         </div>
 
         {/* Conmutador Rápido de Sesión */}
@@ -254,10 +257,10 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-mono font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-mono font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-sky-600/20"
             >
               <KeyRound className="w-3.5 h-3.5" />
-              <span>Entrar / Roles</span>
+              <span>Acceso Familias</span>
             </Link>
           )}
         </div>
