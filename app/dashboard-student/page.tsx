@@ -1,598 +1,325 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, Suspense } from 'react';
-import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
-import { HoopStore } from '@/lib/store';
-import { StudentProfile, User, PaymentRecord } from '@/lib/types';
-import { RadarChart360 } from '@/components/RadarChart360';
-import { AttendanceTracker } from '@/components/AttendanceTracker';
-import { RopeTracker } from '@/components/RopeTracker';
-import { EnduranceCalendar } from '@/components/EnduranceCalendar';
-import { WhatsAppReportButton } from '@/components/WhatsAppReportButton';
-import confetti from 'canvas-confetti';
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { HoopStore } from "@/lib/store";
 import { 
-  Lock, 
-  ShieldAlert, 
-  CreditCard, 
+  Trophy, 
+  Calendar, 
+  Clock, 
+  ShieldCheck, 
+  Flame, 
+  DollarSign, 
   CheckCircle2, 
-  AlertCircle, 
-  CalendarCheck,
-  BadgeDollarSign,
+  AlertCircle,
   MessageCircle,
-  HeartPulse,
-  ShieldCheck,
-  Receipt,
+  Activity,
+  LogOut,
   MapPin,
-  Clock,
-  Sparkles,
-  Check,
-  X,
-  Calendar
-} from 'lucide-react';
+  Sparkles
+} from "lucide-react";
 
-function StudentDashboardContent() {
-  const searchParams = useSearchParams();
-  const deniedParam = searchParams.get('denied');
-
-  const [student, setStudent] = useState<StudentProfile | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [showRbacWarning, setShowRbacWarning] = useState(false);
-  
-  // Modal de pago directo
-  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [payMethod, setPayMethod] = useState<'Stripe' | 'Transferencia'>('Stripe');
+export default function StudentDashboard() {
+  const [profile, setProfile] = useState<any>(null);
+  const [commitment, setCommitment] = useState<any>(null);
+  const [lastPayment, setLastPayment] = useState<any>(null);
+  const [attendanceCount, setAttendanceCount] = useState<number>(0);
+  const [metrics, setMetrics] = useState({
+    shooting: 75,
+    verticalJump: 82,
+    ballHandling: 68
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = HoopStore.getCurrentUser();
-    setCurrentUser(user);
+    loadStudentData();
+  }, []);
 
-    // Cargar perfil del estudiante
-    const studentIdToSearch = user.studentId || (typeof window !== 'undefined' ? localStorage.getItem('ww_user_id') : '') || '';
-    let studentData = studentIdToSearch ? HoopStore.getStudent(studentIdToSearch) : null;
-    
-    if (!studentData && (user.role === 'student' || user.role === 'parent')) {
-      const storedName = typeof window !== 'undefined' ? localStorage.getItem('ww_student_name') : null;
-      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ww_user_email') : null;
-      if (storedName || storedEmail) {
-        const syncedUser = HoopStore.loginAsStudent(
-          studentIdToSearch || `stu_${Date.now()}`,
-          storedName || user.fullName || 'Atleta Wild Wolves',
-          storedEmail || user.email || 'atleta@wildwolves.mx'
-        );
-        studentData = HoopStore.getStudent(syncedUser.studentId || '');
+  const loadStudentData = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        // Fallback a usuario local de HoopStore si existe
+        const localUser = HoopStore.getCurrentUser();
+        const localStudent = localUser?.studentId ? HoopStore.getStudent(localUser.studentId) : HoopStore.getStudents()[0];
+        
+        if (localStudent) {
+          setProfile({
+            full_name: localStudent.fullName,
+            email: localStudent.email,
+            avatar_url: localStudent.avatarUrl || null,
+          });
+          setCommitment({
+            shift: localStudent.shift || "vespertino_5_7",
+            days_selected: localStudent.trainingDays || ["Lunes", "Miércoles", "Viernes"],
+            frequency_type: localStudent.finances?.frequency || "cada_3er_dia",
+          });
+          if (localStudent.finances && localStudent.finances.lastPaymentAmount) {
+            setLastPayment({
+              amount: localStudent.finances.lastPaymentAmount,
+              concept: localStudent.finances.frequency === "mensual" ? "Mensualidad" : "Por Clase",
+              payment_date: localStudent.finances.lastPaymentDate || new Date().toISOString().split("T")[0],
+              status: localStudent.finances.status === "al_corriente" ? "pagado" : "pendiente",
+            });
+          }
+          setAttendanceCount(localStudent.totalDaysTrained || 0);
+          if (localStudent.metricsCurrent) {
+            setMetrics({
+              shooting: Math.round((localStudent.metricsCurrent.freeThrow + localStudent.metricsCurrent.midRange) / 2) || 75,
+              verticalJump: localStudent.metricsCurrent.verticalJump || 82,
+              ballHandling: localStudent.metricsCurrent.agilityTTest || 68
+            });
+          }
+          setLoading(false);
+          return;
+        }
+
+        // Si no hay sesión ni datos locales, redirigir a inicio
+        window.location.href = "/";
+        return;
       }
-    }
-    setStudent(studentData);
 
-    // Sincronización en vivo con Supabase
-    HoopStore.syncWithSupabase().then(() => {
-      if (studentIdToSearch) {
-        const refreshed = HoopStore.getStudent(studentIdToSearch);
-        if (refreshed) setStudent(refreshed);
-      }
-    });
+      // 1. Perfil del estudiante desde Supabase
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
 
-    if (deniedParam) {
-      setShowRbacWarning(true);
-    }
-  }, [deniedParam]);
+      setProfile(prof || { full_name: user.user_metadata?.full_name || "Atleta Wild Wolves", email: user.email });
 
-  // Manejador de pago en línea / pasarela
-  const handleProcessPayment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!student) return;
+      // 2. Compromiso de días y turno
+      const { data: comm } = await supabase
+        .from("attendance_commitments")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      const amountToPay = student.finances.balanceDue > 0 ? student.finances.balanceDue : student.finances.costPerClass;
-      const todayStr = new Date().toISOString().split('T')[0];
-
-      // Registrar recibo y actualizar estatus
-      HoopStore.recordPaymentWithReceipt({
-        studentId: student.id,
-        studentName: student.fullName,
-        guardianName: student.guardianName || student.medicalNotes?.emergencyContact || 'Tutor de Atleta',
-        guardianPhone: student.parentPhone || student.phone || '5522427769',
-        amount: amountToPay,
-        date: todayStr,
-        method: payMethod,
-        status: 'Pagado',
-        notes: `Pago en línea (${payMethod}) por cuota Wild Wolves`,
-        shift: student.shift || 'matutino_9_11',
+      setCommitment(comm || {
+        shift: "vespertino_5_7",
+        days_selected: ["Lunes", "Miércoles", "Viernes"],
+        frequency_type: "cada_3er_dia"
       });
 
-      const updated = HoopStore.getStudent(student.id);
-      if (updated) setStudent({ ...updated });
+      // 3. Último pago en membership_payments
+      const { data: pay } = await supabase
+        .from("membership_payments")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("payment_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      setIsProcessingPayment(false);
-      setPaymentSuccess(true);
+      setLastPayment(pay);
 
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ['#10b981', '#f97316', '#38bdf8']
-        });
-      } catch {}
+      // 4. Asistencias acumuladas en daily_attendance
+      const { count } = await supabase
+        .from("daily_attendance")
+        .select("*", { count: "exact", head: true })
+        .eq("student_id", user.id)
+        .eq("status", "presente");
 
-      setTimeout(() => {
-        setPaymentSuccess(false);
-        setIsPayModalOpen(false);
-      }, 1800);
-    }, 1200);
-  };
+      setAttendanceCount(count || 0);
 
-  const handleCreateQuickProfile = () => {
-    const storedName = typeof window !== 'undefined' ? localStorage.getItem('ww_student_name') : null;
-    const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ww_user_email') : null;
-    const nameToUse = storedName || currentUser?.fullName || 'Atleta Wild Wolves';
-    const emailToUse = storedEmail || currentUser?.email || 'atleta@wildwolves.mx';
-    const idToUse = `stu_${Date.now()}`;
-
-    const syncedUser = HoopStore.loginAsStudent(idToUse, nameToUse, emailToUse);
-    const newStudent = HoopStore.getStudent(syncedUser.studentId || idToUse);
-    if (newStudent) {
-      setStudent(newStudent);
-      try {
-        confetti({
-          particleCount: 70,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ['#ea580c', '#f97316', '#38bdf8']
-        });
-      } catch {}
+    } catch (err) {
+      console.error("Error cargando perfil del alumno:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!student) {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Ignorar error si no había sesión remota activa
+    }
+    HoopStore.logout();
+    window.location.href = "/";
+  };
+
+  if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center font-sans space-y-6">
-        <div className="bg-[#121724] border border-zinc-800 rounded-3xl p-8 sm:p-12 shadow-2xl backdrop-blur-xl">
-          <div className="relative w-24 h-24 mx-auto mb-4 flex items-center justify-center drop-shadow-[0_0_30px_rgba(234,88,12,0.35)]">
-            <Image
-              src="/logo-official.png"
-              alt="Wild Wolves CDMX"
-              width={96}
-              height={96}
-              className="object-contain"
-              priority
-            />
-          </div>
-          <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-orange-500/10 text-orange-400 border border-orange-500/30 px-3.5 py-1 rounded-full">
-            PORTAL OFICIAL DE ATLETAS
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black uppercase text-white mt-3">
-            ¡Bienvenido a la Manada Wild Wolves!
-          </h2>
-          <p className="text-zinc-400 text-xs sm:text-sm max-w-lg mx-auto mt-2 leading-relaxed">
-            Tu sesión está activa. Aún no tienes una ficha de jugador vinculada en este dispositivo o base de datos. Completa tus datos para activar tu radar de tiro 360°, calendario de asistencia y recibos.
-          </p>
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={handleCreateQuickProfile}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#ea580c] to-[#f97316] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 cursor-pointer hover:brightness-110 active:scale-95"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Activar mi Ficha de Atleta Ahora</span>
-            </button>
-            <a
-              href="https://wa.me/525522427769?text=Hola%20Coach%20Ricardo,%20ya%20inicié%20sesión%20en%20la%20plataforma%20y%20quiero%20confirmar%20mi%20ficha%20de%20atleta"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#161b26] border border-zinc-700 text-zinc-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-800 transition"
-            >
-              <MessageCircle className="w-4 h-4 text-emerald-400" />
-              <span>Hablar con Coach Ricardo</span>
-            </a>
-          </div>
+      <div className="min-h-screen bg-[#07090e] text-zinc-400 flex items-center justify-center font-mono text-xs">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#ea580c] border-t-transparent rounded-full animate-spin" />
+          <span>Cargando perfil de atleta Wild Wolves...</span>
         </div>
       </div>
     );
   }
 
-  const isUpToDate = student.finances.status === 'al_corriente';
-  const assignedShift = student.shift || 'matutino_9_11';
-  const shiftLabel = assignedShift === 'matutino_9_11' ? 'Matutino: 09:00 a 11:00 hrs' : 'Vespertino: 17:00 a 19:00 hrs';
-
-  const getFrequencyText = () => {
-    switch (student.finances.frequency) {
-      case 'al_dia':
-        return 'Al Día ($50 MXN por clase)';
-      case 'semanal':
-        return 'A la Semana ($150 MXN / 3 clases)';
-      case 'mensual':
-        return 'Al Mes ($600 MXN / 12 clases)';
-      default:
-        return 'Al Día ($50 MXN)';
-    }
-  };
-
-  const receiptsList: PaymentRecord[] = student.finances?.paymentHistory || [];
+  const isPaid = lastPayment && lastPayment.status === "pagado";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
-      {/* 1. Alerta de RBAC si intentó acceder a área de entrenador */}
-      {showRbacWarning && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-300 font-mono animate-fadeIn">
-          <div className="flex items-center gap-2.5">
-            <ShieldAlert className="w-5 h-5 text-amber-400 flex-shrink-0" />
-            <div>
-              <strong className="font-bold">RBAC: ACCESO TRANSPARENTE DE CONSULTA. </strong>
-              Estás en tu portal oficial de atleta/tutor con acceso de solo lectura a tus métricas y recibos.
-            </div>
-          </div>
-          <button
-            onClick={() => setShowRbacWarning(false)}
-            className="text-amber-400 hover:text-white font-bold px-2 py-1 rounded cursor-pointer"
-          >
-            Entendido
-          </button>
+    <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-8 font-sans selection:bg-[#ea580c] selection:text-white">
+      {/* HEADER ALUMNO */}
+      <div className="max-w-4xl mx-auto flex items-center justify-between pb-6 border-b border-zinc-800">
+        <div>
+          <span className="text-[10px] font-mono tracking-widest uppercase bg-[#0284c7]/20 text-[#38bdf8] border border-[#0284c7]/40 px-3 py-1 rounded-full font-bold">
+            PORTAL DEL ATLETA • CANCHA CARMEN SERDÁN
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase text-white mt-2 tracking-tight">
+            Panel de {profile?.full_name?.split(" ")[0] || "Atleta"}
+          </h1>
         </div>
-      )}
 
-      {/* 2. Banner de Tutor si es un Padre de Familia */}
-      {currentUser?.role === 'parent' && (
-        <div className="bg-gradient-to-r from-purple-950/40 via-zinc-900 to-[#18181b] border border-purple-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-mono text-xs animate-fadeIn">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 font-bold flex-shrink-0">
-              👨‍👦
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-purple-300 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20">
-                  PORTAL DEL TUTOR / PADRE DE FAMILIA
-                </span>
-                <span className="text-zinc-400 text-[11px]">
-                  Supervisando a: <strong className="text-white">{student.fullName}</strong>
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 mt-0.5 font-sans">
-                Acceso de consulta a asistencias, estado de cuenta oficial y radar biomecánico.
-              </p>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-[#121724] border border-zinc-800 hover:border-zinc-700 px-3.5 py-2.5 rounded-xl transition cursor-pointer font-bold"
+        >
+          <LogOut className="w-3.5 h-3.5" /> Salir
+        </button>
+      </div>
+
+      <div className="max-w-4xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* COLUMNA 1: PLAYER CARD DIGITAL */}
+        <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl flex flex-col items-center text-center">
+          <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#ea580c] to-[#0284c7] p-1 shadow-lg shadow-[#ea580c]/20 mb-4">
+            <div className="w-full h-full bg-[#07090e] rounded-xl flex items-center justify-center overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <Trophy className="w-10 h-10 text-[#ea580c]" />
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <a
-              href={`https://wa.me/525522427769?text=${encodeURIComponent(`Hola Coach Ricardo, le escribe el tutor de ${student.fullName}. Quisiera comunicarme sobre sus entrenamientos en Wild Wolves.`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer w-full sm:w-auto justify-center"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Contactar a Coach Ricardo</span>
-            </a>
+          <h2 className="text-lg font-black uppercase text-white tracking-wide">{profile?.full_name}</h2>
+          <p className="text-xs text-zinc-500 font-mono mt-0.5">{profile?.email}</p>
+
+          <div className="mt-4 w-full pt-4 border-t border-zinc-800/80 space-y-2 text-left text-xs font-sans">
+            <div className="flex justify-between items-center">
+              <span className="text-zinc-500">Categoría:</span>
+              <span className="font-bold text-zinc-300">Formativo CDMX</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-zinc-500">Turno:</span>
+              <span className="font-bold text-[#38bdf8]">
+                {commitment?.shift === "matutino_9_11" ? "Mañana (09:00 - 11:00)" : "Tarde (17:00 - 19:00)"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-zinc-500">Asistencias en Cancha:</span>
+              <span className="font-bold text-emerald-400">{attendanceCount} sesiones</span>
+            </div>
+          </div>
+
+          <div className="mt-6 w-full bg-[#121724] border border-zinc-800 p-3.5 rounded-2xl text-left">
+            <span className="text-[10px] font-mono text-zinc-400 uppercase block mb-1.5 font-bold">Días Comprometidos:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {commitment?.days_selected && commitment.days_selected.length > 0 ? (
+                commitment.days_selected.map((d: string) => (
+                  <span key={d} className="text-[10px] bg-[#07090e] text-zinc-300 border border-zinc-700 px-2 py-0.5 rounded-md font-bold">
+                    {d}
+                  </span>
+                ))
+              ) : (
+                <span className="text-[11px] text-zinc-500">Sin días asignados</span>
+              )}
+            </div>
           </div>
         </div>
-      )}
 
-      {/* 3. TARJETA OFICIAL DE ATLETA (Dorsal, Posición, Turno Asignado & Sede) */}
-      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none relative overflow-hidden">
-        {/* Glow de fondo */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#ea580c]/10 blur-[80px] rounded-full pointer-events-none" />
-
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div className="flex items-center gap-4 sm:gap-5">
-            {/* Avatar & Dorsal Badge */}
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-orange-500 bg-zinc-900 shadow-xl">
-                <img
-                  src={student.avatarUrl || '/logo-official.png'}
-                  alt={student.fullName}
-                  className="w-full h-full object-cover"
-                />
+        {/* COLUMNA 2 & 3: ESTADO FINANCIERO Y RADAR */}
+        <div className="md:col-span-2 space-y-6">
+          
+          {/* SEMÁFORO DE PAGO Y CUOTA */}
+          <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase font-bold tracking-wider">Estatus de Mensualidad / Cuota</span>
+                <h3 className="text-lg font-black uppercase text-white mt-1">Estado de Pago</h3>
               </div>
-              {student.jerseyNumber && (
-                <div className="absolute -bottom-2 -right-2 bg-[#ea580c] text-white font-mono font-black text-xs px-2 py-0.5 rounded-lg border-2 border-[#18181b] shadow-md">
-                  #{student.jerseyNumber}
-                </div>
+              {isPaid ? (
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl">
+                  <CheckCircle2 className="w-4 h-4" /> Al Corriente
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/30 px-3.5 py-1.5 rounded-xl">
+                  <AlertCircle className="w-4 h-4" /> Pago Pendiente
+                </span>
               )}
             </div>
 
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1.5 font-mono">
-                {/* Posición */}
-                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/30 uppercase">
-                  {student.position}
-                </span>
-                {/* Género & Edad */}
-                <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 border border-zinc-700">
-                  {student.gender === 'M' ? 'Varonil' : 'Femenil'} • {student.age} años
-                </span>
-                {/* Modo Solo Lectura */}
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                  <Lock className="w-3 h-3" />
-                  Consulta Privada (Solo Lectura)
-                </span>
-              </div>
-
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {student.fullName}
-              </h1>
-
-              {/* Turno Asignado & Sede Oficial */}
-              <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-zinc-400 mt-1">
-                <div className="flex items-center gap-1 text-zinc-300">
-                  <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                  <span>Turno: <strong className="text-white">{shiftLabel}</strong></span>
-                </div>
-                <span className="text-zinc-600">•</span>
-                <div className="flex items-center gap-1 text-zinc-300">
-                  <MapPin className="w-3.5 h-3.5 text-[#ea580c] flex-shrink-0" />
-                  <span>Sede: <strong className="text-white">Deportivo Carmen Serdán (CDMX)</strong></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
-            <WhatsAppReportButton student={student} label="Mi Reporte Técnico" />
-          </div>
-        </div>
-      </div>
-
-      {/* 4. SECCIÓN ESTADO DE CUENTA & COBRANZA OFICIAL */}
-      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none font-sans">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
-                FINANZAS &amp; MENSUALIDAD
-              </span>
-              <span className="text-zinc-400 text-xs font-mono">Cuota Oficial: $50 Pesos / Clase</span>
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <BadgeDollarSign className="w-5 h-5 text-orange-500" />
-              <span>Estado de Cuenta del Atleta</span>
-            </h3>
-            <p className="text-xs text-zinc-400 font-mono">
-              Modalidad de pago: <strong className="text-white">{getFrequencyText()}</strong>
-            </p>
-          </div>
-
-          {/* Semáforo & Botón de Pago */}
-          <div className="flex items-center gap-3">
-            <div className={`px-4 py-2 rounded-xl border font-mono text-center ${
-              isUpToDate
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-            }`}>
-              <div className="text-[10px] uppercase font-bold">Estatus del Mes</div>
-              <div className="text-base font-black flex items-center justify-center gap-1.5">
-                {isUpToDate ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                <span>{isUpToDate ? 'Al Corriente ($0)' : `Adeudo: $${student.finances.balanceDue} MXN`}</span>
-              </div>
-            </div>
-
-            {!isUpToDate && (
-              <button
-                type="button"
-                onClick={() => setIsPayModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-mono font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-orange-600/30 cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Pagar Cuota Pendiente</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Historial de Recibos de Pago */}
-        <div>
-          <div className="flex items-center justify-between mb-3 text-xs font-mono">
-            <span className="text-zinc-400 uppercase text-[10px] font-bold">
-              Historial de Recibos y Pagos Registrados ({receiptsList.length}):
-            </span>
-            <span className="text-[10px] text-zinc-500">
-              Emitidos por Wild Wolves CDMX
-            </span>
-          </div>
-
-          {receiptsList.length === 0 ? (
-            <div className="p-6 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a]">
-              No hay recibos anteriores registrados para este atleta.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {receiptsList.map((rec) => (
-                <div
-                  key={rec.id}
-                  className="p-3 bg-[#0a0e17] border border-[#27272a] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 font-mono text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      <Receipt className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white">${rec.amount} MXN</span>
-                        <span className="text-zinc-500">•</span>
-                        <span className="text-zinc-300">{rec.date}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
-                          {rec.method}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
-                        {rec.notes || 'Pago de cuota de entrenamiento'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Pagado
-                    </span>
-                    <span className="text-[10px] text-zinc-600">ID: {rec.id.substring(0, 10)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 5. SECCIÓN MI ASISTENCIA EN CANCHA */}
-      <AttendanceTracker
-        student={student}
-        readOnly={true}
-      />
-
-      {/* 6. RADAR 360° DE HABILIDADES (READ-ONLY) */}
-      <RadarChart360
-        metricsCurrent={student.metricsCurrent}
-        metricsPrevious={student.metricsPrevious}
-        athleteName={student.fullName}
-      />
-
-      {/* 7. CALENDARIO DE RESISTENCIA & PROGRESO DE CUERDA (100% LECTURA) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RopeTracker
-          training={student.training}
-          readOnly={true}
-        />
-
-        <EnduranceCalendar
-          training={student.training}
-          readOnly={true}
-        />
-      </div>
-
-      {/* 8. FICHA MÉDICA DE CONSULTA */}
-      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 sm:p-5 font-mono text-xs">
-        <div className="flex items-center justify-between pb-3 border-b border-[#27272a] mb-3">
-          <div className="flex items-center gap-2">
-            <HeartPulse className="w-4 h-4 text-rose-500" />
-            <h4 className="font-bold text-white uppercase tracking-wider text-[11px]">
-              Ficha Médica y Seguridad en Cancha
-            </h4>
-          </div>
-          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-            Apto para Alto Rendimiento
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
-            <span className="text-[10px] text-zinc-400 uppercase block">Grupo Sanguíneo:</span>
-            <strong className="text-white text-xs">{student.medicalNotes?.bloodType || 'O+'}</strong>
-          </div>
-          <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
-            <span className="text-[10px] text-zinc-400 uppercase block">Alergias Registradas:</span>
-            <strong className="text-orange-400 text-xs">{student.medicalNotes?.allergies || 'Ninguna conocida'}</strong>
-          </div>
-          <div className="bg-[#0a0e17] p-3 rounded-xl border border-zinc-800">
-            <span className="text-[10px] text-zinc-400 uppercase block">Contacto de Emergencia:</span>
-            <strong className="text-sky-400 text-xs">{student.medicalNotes?.emergencyContact} ({student.medicalNotes?.emergencyPhone})</strong>
-          </div>
-        </div>
-      </div>
-
-      {/* 9. MODAL INTERACTIVO DE PAGO DIRECTO */}
-      {isPayModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#18181b] border border-[#27272a] rounded-3xl p-6 sm:p-7 max-w-sm w-full font-sans shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-[#27272a] mb-4">
+            <div className="mt-4 p-4 bg-[#121724] border border-zinc-800 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded">
-                  PASARELA DE PAGO EN LÍNEA
-                </span>
-                <h3 className="text-lg font-bold text-white mt-1">Pagar Cuota Wild Wolves</h3>
-                <p className="text-xs text-zinc-400 font-mono">Atleta: {student.fullName}</p>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  {lastPayment ? (
+                    <>Último registro: <b className="text-white">${lastPayment.amount} MXN</b> ({lastPayment.concept}) el {lastPayment.payment_date}</>
+                  ) : (
+                    "No se registran pagos previos. Paga tu primera clase o mensualidad en cancha."
+                  )}
+                </p>
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  Tarifas oficiales: $50 por clase • $150 semanal • $600 mensualidad integral.
+                </p>
               </div>
-              <button
-                onClick={() => setIsPayModalOpen(false)}
-                className="text-zinc-400 hover:text-white p-1 rounded-lg bg-zinc-800 cursor-pointer"
+
+              <a
+                href="https://wa.me/525522427769?text=Hola%20Administración%20Wild%20Wolves,%20deseo%20comprobar%20o%20realizar%20mi%20pago%20de%20entrenamiento."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 text-xs font-bold bg-[#22c55e] hover:bg-[#16a34a] text-black px-4 py-2.5 rounded-xl transition shadow-md shrink-0 cursor-pointer"
               >
-                <X className="w-4 h-4" />
-              </button>
+                <MessageCircle className="w-4 h-4" /> Aclarar con Administración
+              </a>
+            </div>
+          </div>
+
+          {/* RADAR 360° Y EVALUACIÓN DEPORTIVA (SOLO LECTURA) */}
+          <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <span className="text-[10px] font-mono text-[#38bdf8] uppercase font-bold tracking-wider">Métricas Oficiales del Staff</span>
+                <h3 className="text-lg font-black uppercase text-white mt-1">Radar Biomecánico & Baloncesto</h3>
+              </div>
+              <Activity className="w-5 h-5 text-[#ea580c]" />
             </div>
 
-            {paymentSuccess ? (
-              <div className="py-8 text-center space-y-3 font-mono">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold animate-bounce">
-                  ✓
+            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+              Las evaluaciones son aplicadas por los entrenadores durante los <b>Test Days</b> mensuales para medir tu salto vertical, efectividad de tiro y velocidad de reacción en cancha.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-xs font-bold mb-1.5">
+                  <span className="text-zinc-400">Tiro Libre y Media Distancia</span>
+                  <span className="text-[#38bdf8] font-mono">{metrics.shooting}%</span>
                 </div>
-                <h4 className="text-base font-bold text-white">¡Pago Procesado con Éxito!</h4>
-                <p className="text-xs text-zinc-400">Tu recibo ha sido generado y el saldo está en $0 MXN.</p>
+                <div className="w-full bg-[#121724] h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-[#38bdf8] h-full rounded-full transition-all duration-500" style={{ width: `${metrics.shooting}%` }} />
+                </div>
               </div>
-            ) : (
-              <form onSubmit={handleProcessPayment} className="space-y-4 font-mono text-xs">
-                <div className="p-3 bg-[#0a0e17] rounded-xl border border-[#27272a] text-center">
-                  <span className="text-[10px] text-zinc-400 uppercase">Total a Liquidar:</span>
-                  <div className="text-2xl font-black text-white mt-1">
-                    ${student.finances.balanceDue > 0 ? student.finances.balanceDue : student.finances.costPerClass}{' '}
-                    <span className="text-xs font-normal text-zinc-500">MXN</span>
-                  </div>
-                </div>
 
-                <div>
-                  <label className="text-[10px] text-zinc-400 uppercase block mb-1.5">Seleccionar Método:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPayMethod('Stripe')}
-                      className={`py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                        payMethod === 'Stripe'
-                          ? 'bg-orange-600 text-white ring-2 ring-orange-400'
-                          : 'bg-zinc-800 text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Tarjeta / Stripe</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPayMethod('Transferencia')}
-                      className={`py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                        payMethod === 'Transferencia'
-                          ? 'bg-sky-600 text-white ring-2 ring-sky-400'
-                          : 'bg-zinc-800 text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span>SPEI</span>
-                    </button>
-                  </div>
+              <div>
+                <div className="flex justify-between text-xs font-bold mb-1.5">
+                  <span className="text-zinc-400">Salto Vertical & Potencia de Piernas</span>
+                  <span className="text-[#ea580c] font-mono">{metrics.verticalJump}%</span>
                 </div>
+                <div className="w-full bg-[#121724] h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-[#ea580c] h-full rounded-full transition-all duration-500" style={{ width: `${metrics.verticalJump}%` }} />
+                </div>
+              </div>
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isProcessingPayment}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/30 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isProcessingPayment ? (
-                      <span>Procesando pago seguro...</span>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4" />
-                        <span>Confirmar Pago de Cuota</span>
-                      </>
-                    )}
-                  </button>
+              <div>
+                <div className="flex justify-between text-xs font-bold mb-1.5">
+                  <span className="text-zinc-400">Control de Balón con Ambas Manos</span>
+                  <span className="text-emerald-400 font-mono">{metrics.ballHandling}%</span>
                 </div>
-              </form>
-            )}
+                <div className="w-full bg-[#121724] h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-400 h-full rounded-full transition-all duration-500" style={{ width: `${metrics.ballHandling}%` }} />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-export default function StudentDashboardPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-[70vh] flex items-center justify-center font-mono text-zinc-400 text-xs">
-        Cargando portal privado del alumno...
+        </div>
+
       </div>
-    }>
-      <StudentDashboardContent />
-    </Suspense>
+    </div>
   );
 }

@@ -36,9 +36,18 @@ export async function GET(request: Request) {
           return res;
         }
 
-        if (role === "coach" || role === "superadmin") {
+        if (role === "superadmin") {
+          const res = NextResponse.redirect(`${origin}/master-bunker-hq`);
+          res.cookies.set("user_role", "superadmin", { path: "/", maxAge: 86400, sameSite: "lax" });
+          if (data.user.email) {
+            res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 86400, sameSite: "lax" });
+          }
+          return res;
+        }
+
+        if (role === "coach") {
           const res = NextResponse.redirect(`${origin}/dashboard-coach`);
-          res.cookies.set("user_role", role, { path: "/", maxAge: 86400, sameSite: "lax" });
+          res.cookies.set("user_role", "coach", { path: "/", maxAge: 86400, sameSite: "lax" });
           if (data.user.email) {
             res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 86400, sameSite: "lax" });
           }
