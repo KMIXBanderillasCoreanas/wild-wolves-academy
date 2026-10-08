@@ -58,7 +58,7 @@ export default function ApplyCoachPage() {
           </div>
           <div className="flex items-start gap-3 text-xs text-zinc-300">
             <CheckCircle2 className="w-4 h-4 text-[#ea580c] flex-shrink-0 mt-0.5" />
-            <span>Captura de métricas de tiro, salto vertical, sprint y preparación física en pavimento.</span>
+            <span>Captura de métricas de tiro, salto vertical, sprint y preparación física integral.</span>
           </div>
           <div className="flex items-start gap-3 text-xs text-zinc-300">
             <CheckCircle2 className="w-4 h-4 text-[#ea580c] flex-shrink-0 mt-0.5" />

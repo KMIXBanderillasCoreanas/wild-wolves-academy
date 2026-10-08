@@ -66,29 +66,32 @@ export default function MasterBunkerHQ() {
   const fetchPendingCoaches = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("role", ["coach_pending", "coach"])
-        .order("created_at", { ascending: false });
+      // Intentar primero mediante API de administración con llave maestra
+      const res = await fetch(`/api/master-bunker?secret=${encodeURIComponent(secretKey)}`);
+      if (res.ok) {
+        const json = await res.json();
+        setCoaches(json.coaches || []);
+        setCommitments(json.commitments || []);
+      } else {
+        // Fallback a cliente Supabase
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("role", ["coach_pending", "coach"])
+          .order("created_at", { ascending: false });
+        setCoaches(data || []);
 
-      if (error) {
-        console.warn("Supabase profiles query error:", error);
+        const { data: commitData } = await supabase
+          .from("attendance_commitments")
+          .select("*, profiles:user_id(email, full_name)");
+        setCommitments(commitData || []);
       }
-      setCoaches(data || []);
-
-      // Also fetch attendance commitments for full visibility
-      const { data: commitData } = await supabase
-        .from("attendance_commitments")
-        .select("*, profiles:user_id(email, full_name)");
-
-      setCommitments(commitData || []);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [secretKey]);
 
   useEffect(() => {
     if (authenticated) {
@@ -98,12 +101,13 @@ export default function MasterBunkerHQ() {
 
   const approveCoach = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: "coach", status: "active" })
-        .eq("id", userId);
-
-      if (error) throw error;
+      const res = await fetch("/api/master-bunker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: secretKey, action: "approve", userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al aprobar");
       fetchPendingCoaches();
     } catch (err: any) {
       alert("Error al aprobar coach: " + err.message);
@@ -113,8 +117,13 @@ export default function MasterBunkerHQ() {
   const rejectOrDelete = async (userId: string) => {
     if (!confirm("¿Seguro que deseas eliminar a este usuario de la base de datos?")) return;
     try {
-      const { error } = await supabase.from("profiles").delete().eq("id", userId);
-      if (error) throw error;
+      const res = await fetch("/api/master-bunker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: secretKey, action: "reject", userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al eliminar");
       fetchPendingCoaches();
     } catch (err: any) {
       alert("Error al eliminar usuario: " + err.message);
@@ -273,7 +282,7 @@ export default function MasterBunkerHQ() {
             <span className="text-xs text-zinc-400">Sede Oficial</span>
             <div className="text-xs font-bold text-zinc-200 mt-1.5 flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-[#ea580c] flex-shrink-0" />
-              <span>Pavimento • Dep. Carmen Serdán</span>
+              <span>Deportivo Carmen Serdán</span>
             </div>
           </div>
         </div>
@@ -423,7 +432,7 @@ export default function MasterBunkerHQ() {
                       ))}
                     </div>
                     <p className="text-[10px] text-zinc-500">
-                      Sede: Canchas de Pavimento • Deportivo Carmen Serdán
+                      Sede: Deportivo Carmen Serdán (CDMX)
                     </p>
                   </div>
                 ))}

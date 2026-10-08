@@ -1,7 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, Mail, Lock, CheckCircle2, Calendar, Clock, AlertCircle, Eye, EyeOff, MapPin } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Mail,
+  Lock,
+  CheckCircle2,
+  Calendar,
+  Clock,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  MapPin,
+  Sparkles,
+  Shield,
+  UserCheck
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
 
@@ -9,6 +23,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetRole?: "student" | "coach_pending";
+  initialMode?: "register" | "login";
   onSuccess?: (role: string) => void;
 }
 
@@ -18,9 +33,10 @@ export default function AuthModal({
   isOpen,
   onClose,
   targetRole = "student",
+  initialMode = "register",
   onSuccess,
 }: AuthModalProps) {
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(initialMode === "register");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -32,6 +48,12 @@ export default function AuthModal({
   // Estado del compromiso de entrenamiento (de lunes a sábado)
   const [selectedDays, setSelectedDays] = useState<string[]>(["Lunes", "Miércoles", "Viernes"]);
   const [shift, setShift] = useState<"matutino_9_11" | "vespertino_5_7">("vespertino_5_7");
+
+  useEffect(() => {
+    setIsRegister(initialMode === "register");
+    setErrorMsg("");
+    setSuccessMsg("");
+  }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
@@ -51,6 +73,8 @@ export default function AuthModal({
       if (typeof window !== "undefined") {
         localStorage.setItem("ww_target_role", targetRole);
         if (fullName) localStorage.setItem("ww_target_name", fullName);
+        localStorage.setItem("ww_selected_days", JSON.stringify(selectedDays));
+        localStorage.setItem("ww_selected_shift", shift);
       }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -71,7 +95,7 @@ export default function AuthModal({
     }
   };
 
-  // 2. REGISTRO / LOGIN CON EMAIL REAL
+  // 2. REGISTRO / LOGIN CON EMAIL
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -80,21 +104,52 @@ export default function AuthModal({
 
     try {
       if (isRegister) {
-        // Registro en Supabase Auth
+        // Modo Registro
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              full_name: fullName || "Atleta Wild Wolves",
+              full_name: fullName || (targetRole === "coach_pending" ? "Aspirante Coach" : "Atleta Wild Wolves"),
               assigned_role: targetRole,
             },
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          // Si el usuario ya existe, sugerir iniciar sesión
+          if (error.message.includes("already registered") || error.message.includes("User already")) {
+            setErrorMsg("Este correo ya se encuentra registrado. Cambia a 'Iniciar Sesión' para entrar.");
+            setLoading(false);
+            return;
+          }
+          throw error;
+        }
 
-        // Guardar compromiso de entrenamiento si es alumno
+        if (targetRole === "coach_pending") {
+          // Guardar estado de coach pendiente
+          try {
+            if (data.user) {
+              await supabase.from("profiles").upsert({
+                id: data.user.id,
+                email: email,
+                full_name: fullName || "Aspirante Coach",
+                role: "coach_pending",
+                status: "pending",
+              });
+            }
+          } catch (upsertErr) {
+            console.warn("Aviso profiles:", upsertErr);
+          }
+
+          setSuccessMsg(
+            "✅ ¡Postulación como Coach Recibida! Tu cuenta está en revisión. El Super Administrador la aprobará desde el Búnker Central antes de que puedas acceder al panel."
+          );
+          setLoading(false);
+          return;
+        }
+
+        // Si es alumno, guardar compromiso de entrenamiento
         if (data.user && targetRole === "student") {
           try {
             await supabase.from("attendance_commitments").insert({
@@ -104,30 +159,30 @@ export default function AuthModal({
               commitment_agreement: true,
             });
           } catch (commitmentErr) {
-            console.warn("Nota: No se pudo guardar compromiso directo:", commitmentErr);
+            console.warn("Aviso compromiso:", commitmentErr);
           }
-
-          // Sincronizar estado local
-          if (typeof window !== "undefined") {
-            localStorage.setItem("ww_user_role", "student");
-            localStorage.setItem("ww_user_email", email);
-            if (fullName) localStorage.setItem("ww_student_name", fullName);
-            document.cookie = "user_role=student; path=/; max-age=86400; SameSite=Lax";
-            document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
-            window.dispatchEvent(new Event("auth_changed"));
-          }
-          HoopStore.loginAsStudent("student_" + Date.now(), fullName || "Atleta Wild Wolves", email);
         }
 
-        setSuccessMsg(
-          targetRole === "coach_pending"
-            ? "¡Solicitud de Coach enviada con éxito! Tu acceso está en revisión por el Super Administrador."
-            : "¡Registro exitoso en Wild Wolves CDMX! Revisa tu correo o inicia sesión para acceder a tu entrenamiento."
-        );
+        // Sincronización inmediata de sesión para Alumno
+        if (typeof window !== "undefined") {
+          localStorage.setItem("ww_user_role", "student");
+          localStorage.setItem("ww_user_email", email);
+          if (fullName) localStorage.setItem("ww_student_name", fullName);
+          localStorage.setItem("ww_selected_days", JSON.stringify(selectedDays));
+          localStorage.setItem("ww_selected_shift", shift);
+          document.cookie = "user_role=student; path=/; max-age=86400; SameSite=Lax";
+          document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
+          window.dispatchEvent(new Event("auth_changed"));
+        }
+        HoopStore.loginAsStudent("student_" + Date.now(), fullName || "Atleta Wild Wolves", email);
 
-        if (onSuccess) onSuccess(targetRole);
+        setSuccessMsg("¡Registro exitoso! Accediendo a tu plataforma...");
+        setTimeout(() => {
+          if (onSuccess) onSuccess("student");
+          window.location.href = "/dashboard-student";
+        }, 1200);
       } else {
-        // Inicio de sesión
+        // Modo Inicio de Sesión
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -135,7 +190,7 @@ export default function AuthModal({
 
         if (error) throw error;
 
-        // Redirección según rol
+        // Validar perfil en Supabase
         let userRole: string = targetRole;
         try {
           const { data: profile } = await supabase
@@ -145,20 +200,19 @@ export default function AuthModal({
             .single();
 
           if (profile?.role === "coach_pending" || profile?.status === "pending") {
-            setErrorMsg("Tu solicitud de Coach sigue en revisión por el Super Administrador.");
+            setErrorMsg("Tu solicitud de Coach sigue en revisión por el Super Administrador en el Búnker Central.");
             await supabase.auth.signOut();
             setLoading(false);
             return;
           }
 
           if (profile?.role) {
-            userRole = profile.role as any;
+            userRole = profile.role;
           }
         } catch (profileErr) {
-          console.warn("Perfil en Supabase:", profileErr);
+          console.warn("Perfil Supabase:", profileErr);
         }
 
-        // Sincronización de cookies y localStorage
         if (typeof window !== "undefined") {
           localStorage.setItem("ww_user_role", userRole);
           localStorage.setItem("ww_user_email", email);
@@ -174,7 +228,7 @@ export default function AuthModal({
         }
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Error de autenticación con la base de datos.");
+      setErrorMsg(err.message || "Error al procesar solicitud.");
     } finally {
       setLoading(false);
     }
@@ -190,19 +244,59 @@ export default function AuthModal({
           <X className="w-5 h-5" />
         </button>
 
-        <div className="text-center mb-6">
-          <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-[#ea580c]/20 text-[#f97316] border border-[#ea580c]/40 px-3.5 py-1 rounded-full">
+        <div className="text-center mb-5">
+          <span className="text-[10px] font-mono font-bold tracking-widest uppercase bg-[#ea580c]/15 text-[#f97316] border border-[#ea580c]/30 px-3.5 py-1 rounded-full">
             {targetRole === "coach_pending"
               ? "Postulación Staff Técnico"
               : "Portal Oficial • Alumnos & Padres"}
           </span>
           <h2 className="text-2xl font-black uppercase mt-3 tracking-wide text-white">
-            {isRegister ? "Crear Cuenta Oficial" : "Iniciar Sesión"}
+            {targetRole === "coach_pending"
+              ? isRegister
+                ? "Registro de Entrenador"
+                : "Acceso Staff Técnico"
+              : isRegister
+              ? "Registro de Atleta o Tutor"
+              : "Iniciar Sesión"}
           </h2>
           <p className="text-xs text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-[#ea580c]" />
-            Canchas de Pavimento • Deportivo Carmen Serdán (CDMX)
+            Deportivo Carmen Serdán (CDMX)
           </p>
+        </div>
+
+        {/* PESTAÑAS CLARAS: REGISTRARSE / INICIAR SESIÓN */}
+        <div className="grid grid-cols-2 gap-2 p-1 bg-[#07090e] border border-zinc-800 rounded-2xl mb-5">
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(true);
+              setErrorMsg("");
+              setSuccessMsg("");
+            }}
+            className={`py-2 text-xs font-bold rounded-xl transition ${
+              isRegister
+                ? "bg-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            {targetRole === "coach_pending" ? "1. Postularme (Nuevo)" : "1. Crear Cuenta (Nuevo)"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(false);
+              setErrorMsg("");
+              setSuccessMsg("");
+            }}
+            className={`py-2 text-xs font-bold rounded-xl transition ${
+              !isRegister
+                ? "bg-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            2. Iniciar Sesión
+          </button>
         </div>
 
         {errorMsg && (
@@ -213,9 +307,9 @@ export default function AuthModal({
         )}
 
         {successMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>{successMsg}</span>
+          <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2.5">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-400" />
+            <span className="leading-relaxed">{successMsg}</span>
           </div>
         )}
 
@@ -244,13 +338,13 @@ export default function AuthModal({
               d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"
             />
           </svg>
-          Continuar con Google
+          {isRegister ? "Registrarme con Google" : "Continuar con Google"}
         </button>
 
         <div className="relative flex py-2 items-center mb-5">
           <div className="flex-grow border-t border-zinc-800"></div>
           <span className="flex-shrink mx-4 text-zinc-500 text-[11px] uppercase font-bold tracking-wider">
-            o mediante correo institucional
+            o con tu correo
           </span>
           <div className="flex-grow border-t border-zinc-800"></div>
         </div>
@@ -308,7 +402,7 @@ export default function AuthModal({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -327,7 +421,7 @@ export default function AuthModal({
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400">
-                Selecciona los días en que el atleta entrenará en las canchas de pavimento (Lunes a Sábado):
+                Selecciona los días en que el atleta asistirá (Lunes a Sábado):
               </p>
 
               <div className="grid grid-cols-3 gap-2">
@@ -338,7 +432,7 @@ export default function AuthModal({
                       type="button"
                       key={day}
                       onClick={() => toggleDay(day)}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold transition border ${
+                      className={`py-2 px-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
                         active
                           ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
                           : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
@@ -358,7 +452,7 @@ export default function AuthModal({
                   <button
                     type="button"
                     onClick={() => setShift("matutino_9_11")}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
                       shift === "matutino_9_11"
                         ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
                         : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
@@ -370,7 +464,7 @@ export default function AuthModal({
                   <button
                     type="button"
                     onClick={() => setShift("vespertino_5_7")}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
                       shift === "vespertino_5_7"
                         ? "bg-[#ea580c] border-[#ea580c] text-white shadow-md shadow-[#ea580c]/30"
                         : "bg-[#07090e] border-zinc-800 text-zinc-400 hover:border-zinc-700"
@@ -383,7 +477,7 @@ export default function AuthModal({
               </div>
 
               <div className="text-[10px] text-zinc-500 bg-[#07090e] p-2.5 rounded-xl border border-zinc-800/80">
-                📍 Sede: Canchas de Pavimento • Deportivo Carmen Serdán. Asistencia requerida con ropa deportiva e hidratación.
+                📍 Sede: Deportivo Carmen Serdán (CDMX). Presentarse con ropa deportiva e hidratación.
               </div>
             </div>
           )}
@@ -406,13 +500,17 @@ export default function AuthModal({
         <div className="mt-5 text-center">
           <button
             type="button"
-            onClick={() => setIsRegister(!isRegister)}
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setErrorMsg("");
+              setSuccessMsg("");
+            }}
             className="text-xs text-zinc-400 hover:text-white underline cursor-pointer"
           >
             {isRegister
               ? "¿Ya tienes cuenta? Inicia sesión aquí"
               : targetRole === "coach_pending"
-              ? "¿Ya te postulaste? Inicia sesión aquí"
+              ? "¿Aspirante a coach? Regístrate aquí"
               : "¿Eres nuevo atleta o padre? Regístrate aquí"}
           </button>
         </div>

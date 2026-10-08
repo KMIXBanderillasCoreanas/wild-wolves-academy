@@ -62,7 +62,9 @@ export function Navbar() {
     pathname === '/' || 
     pathname === '/login' || 
     pathname === '/staff-portal-ww' || 
-    pathname === '/head-coach-master-hq'
+    pathname === '/head-coach-master-hq' ||
+    pathname === '/apply-coach-ww' ||
+    pathname === '/master-bunker-hq'
   ) {
     return null;
   }

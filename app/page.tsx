@@ -27,12 +27,23 @@ import AuthModal from "@/components/AuthModal";
 export default function WildWolvesHome() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"register" | "login">("register");
   const [selectedBranch, setSelectedBranch] = useState<"femenil" | "varonil">("femenil");
   const [activeTab, setActiveTab] = useState<number>(1);
 
   const liveUrl = "https://wild-wolves-academy.vercel.app";
   // WhatsApp oficial con Coach Ricardo en Wild Wolves CDMX: 55 2242 7769
   const whatsappUrl = `https://wa.me/525522427769?text=Hola%20Coach%20Ricardo,%20quiero%20agendar%20mi%20Clase%20Muestra%20Gratuita%20(${selectedBranch.toUpperCase()})%20en%20Wild%20Wolves%20CDMX%20(Deportivo%20Carmen%20Serdán)`;
+
+  const openRegisterModal = () => {
+    setAuthMode("register");
+    setIsModalOpen(true);
+  };
+
+  const openLoginModal = () => {
+    setAuthMode("login");
+    setIsModalOpen(true);
+  };
 
   const categories = [
     {
@@ -47,7 +58,7 @@ export default function WildWolvesHome() {
       id: 1,
       name: "Desarrollo Competitivo",
       age: "11 a 15 Años",
-      focus: "Mecánica de suspensión, salto vertical con cuerda, defensa y lectura táctica en pavimento.",
+      focus: "Mecánica de suspensión, salto vertical con cuerda, defensa y lectura táctica integral.",
       schedule: "Lun a Sáb • Turno Matutino (09:00 - 11:00) o Vespertino (17:00 - 19:00)",
       tag: "Categoría Estrella"
     },
@@ -68,14 +79,14 @@ export default function WildWolvesHome() {
       <div className="fixed top-1/3 -right-24 w-[600px] h-[600px] bg-[#ea580c]/15 blur-[160px] pointer-events-none rounded-full" />
 
       {/* Header Oficial */}
-      <header className="sticky top-0 z-40 w-full bg-[#07090e]/90 backdrop-blur-xl border-b border-zinc-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between">
+      <header className="sticky top-0 z-40 w-full bg-[#07090e]/90 backdrop-blur-xl border-b border-zinc-800/80 px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative w-11 h-11 bg-[#090d16] rounded-xl border border-[#ea580c]/40 flex items-center justify-center p-1 shadow-inner">
+          <div className="relative w-11 h-11 flex items-center justify-center">
             <Image
               src="/logo-official.png"
               alt="Wild Wolves Logo"
-              width={38}
-              height={38}
+              width={42}
+              height={42}
               className="object-contain"
               priority
             />
@@ -100,15 +111,21 @@ export default function WildWolvesHome() {
             <MessageCircle className="w-4 h-4" /> Coach Ricardo
           </a>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={openLoginModal}
+            className="text-zinc-300 hover:text-white text-xs font-semibold px-3 py-2 transition"
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            onClick={openRegisterModal}
             className="bg-gradient-to-r from-[#ea580c] to-[#f97316] hover:brightness-110 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-[#ea580c]/25 flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <span>Ingreso Alumnos</span> <ArrowRight className="w-3.5 h-3.5" />
+            <span>Crear Cuenta</span> <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </header>
 
-      {/* HERO SECTION: Logo Oficial Prominente al Inicio + Identidad de Marca */}
+      {/* HERO SECTION: Logo Oficial Prominente Transparente */}
       <section className="relative z-10 pt-8 sm:pt-12 pb-12 px-4 flex flex-col items-center text-center max-w-5xl mx-auto">
         {/* Badge de Sede y Temporada */}
         <div className="inline-flex flex-wrap items-center justify-center gap-2 bg-[#121724] border border-[#ea580c]/40 px-4 py-1.5 rounded-full text-xs font-bold text-[#ea580c] mb-6 shadow-inner">
@@ -116,11 +133,11 @@ export default function WildWolvesHome() {
           <span>TEMPORADA 2026 • CLASE DE PRUEBA Y DIAGNÓSTICO GRATUITO</span>
           <span className="hidden md:inline text-zinc-500">•</span>
           <span className="text-zinc-300 flex items-center gap-1 font-mono text-[11px]">
-            <MapPin className="w-3.5 h-3.5 text-[#ea580c]" /> Dep. Carmen Serdán
+            <MapPin className="w-3.5 h-3.5 text-[#ea580c]" /> Deportivo Carmen Serdán
           </span>
         </div>
 
-        {/* LOGO OFICIAL WILD WOLVES: Inmediato y Protagonista al escanear el QR */}
+        {/* LOGO OFICIAL WILD WOLVES: Transparente y Protagonista */}
         <div className="relative w-64 h-64 sm:w-80 sm:h-80 mb-4 flex items-center justify-center drop-shadow-[0_0_40px_rgba(234,88,12,0.35)]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(234,88,12,0.2)_0%,transparent_70%)] blur-2xl rounded-full pointer-events-none" />
           <Image
@@ -140,7 +157,7 @@ export default function WildWolvesHome() {
           </span>
         </h1>
         <p className="text-zinc-300 text-sm sm:text-base max-w-2xl mt-4 font-medium leading-relaxed">
-          En <strong className="text-white">Wild Wolves CDMX</strong> formamos atletas de alto rendimiento en las canchas de pavimento del <span className="text-[#f97316] font-bold">Deportivo Carmen Serdán</span>. Preparación física integral, salto vertical con cuerda, mecánica de tiro y radar 360°.
+          En <strong className="text-white">Wild Wolves CDMX</strong> formamos atletas de alto rendimiento en el <span className="text-[#f97316] font-bold">Deportivo Carmen Serdán</span>. Preparación física integral, salto vertical con cuerda, biomecánica de tiro y seguimiento personalizado.
         </p>
 
         {/* HORARIOS DESTACADOS OFICIALES */}
@@ -187,7 +204,7 @@ export default function WildWolvesHome() {
         {/* CTAs PRINCIPALES */}
         <div className="flex flex-col sm:flex-row items-center gap-3 mt-6 w-full max-w-md">
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={openRegisterModal}
             className="w-full sm:flex-1 py-4 bg-gradient-to-r from-[#ea580c] to-[#f97316] hover:brightness-110 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-[#ea580c]/30 flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
           >
             <Sparkles className="w-4 h-4" /> Registrarme para Clase Gratis
@@ -216,7 +233,7 @@ export default function WildWolvesHome() {
           </div>
           <div className="text-xs text-zinc-400 font-mono flex items-center gap-1.5 bg-[#121724] px-3 py-1.5 rounded-xl border border-zinc-800">
             <MapPin className="w-4 h-4 text-[#ea580c]" />
-            <span>Canchas de Pavimento • Deportivo Carmen Serdán</span>
+            <span>Deportivo Carmen Serdán (CDMX)</span>
           </div>
         </div>
 
@@ -278,33 +295,32 @@ export default function WildWolvesHome() {
 
             <div className="mt-6 pt-5 border-t border-zinc-800/80 flex items-center gap-3 text-xs text-zinc-400 font-mono">
               <MapPin className="w-4 h-4 text-[#ea580c] flex-shrink-0" />
-              <span>Sede: Deportivo Carmen Serdán • Canchas de Pavimento</span>
+              <span>Sede Oficial: Deportivo Carmen Serdán (CDMX)</span>
             </div>
           </div>
 
-          {/* PASE DIGITAL CON QR REAL DE CANCHA + LOGO OFICIAL EMBEBIDO EN EL CENTRO */}
-          <div className="bg-[#090d16] border border-zinc-700/80 p-6 rounded-3xl flex flex-col items-center text-center shadow-xl w-full md:w-72">
-            <span className="text-[10px] font-mono font-bold text-[#ea580c] uppercase mb-3 bg-[#ea580c]/10 border border-[#ea580c]/30 px-3 py-1 rounded-full">
+          {/* PASE DIGITAL CON QR REAL MÁS GRANDE + LOGO OFICIAL EMBEBIDO EN EL CENTRO */}
+          <div className="bg-[#090d16] border border-zinc-700/80 p-6 rounded-3xl flex flex-col items-center text-center shadow-xl w-full md:w-80">
+            <span className="text-[10px] font-mono font-bold text-[#ea580c] uppercase mb-3 bg-[#ea580c]/10 border border-[#ea580c]/30 px-3.5 py-1 rounded-full">
               Pase Digital Directo
             </span>
 
-            {/* CONTENEDOR QR CON LOGO EMBEBIDO */}
-            <div className="relative p-3.5 bg-white rounded-2xl shadow-inner inline-flex items-center justify-center">
+            {/* CONTENEDOR QR AMPLIADO A 200px CON CORRECCIÓN ALTA */}
+            <div className="relative p-4 bg-white rounded-2xl shadow-inner inline-flex items-center justify-center">
               <QRCode
                 value={liveUrl}
-                size={160}
+                size={200}
                 level="H"
                 style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                viewBox="0 0 160 160"
               />
-              {/* Badge con el Logo Oficial en el Centro del QR */}
+              {/* Badge Circular con el Logo Oficial en el Centro */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-11 h-11 bg-white rounded-full p-1 shadow-md border border-zinc-200 flex items-center justify-center">
+                <div className="w-14 h-14 bg-white rounded-full p-1.5 shadow-md border-2 border-white flex items-center justify-center">
                   <Image
                     src="/logo-official.png"
                     alt="Wild Wolves Icon"
-                    width={36}
-                    height={36}
+                    width={44}
+                    height={44}
                     className="object-contain"
                   />
                 </div>
@@ -312,7 +328,7 @@ export default function WildWolvesHome() {
             </div>
 
             <p className="text-[11px] text-zinc-400 font-medium mt-3.5 leading-snug">
-              Escanea con tu celular para obtener tu clase muestra gratuita en nuestras canchas de pavimento en Deportivo Carmen Serdán.
+              Escanea con tu celular para obtener tu clase muestra gratuita en Deportivo Carmen Serdán.
             </p>
           </div>
         </div>
@@ -322,7 +338,7 @@ export default function WildWolvesHome() {
       <footer className="relative z-10 border-t border-zinc-800/80 py-10 px-6 text-xs text-zinc-500 mt-auto font-mono">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="relative w-8 h-8">
+            <div className="relative w-8 h-8 flex items-center justify-center">
               <Image
                 src="/logo-official.png"
                 alt="Wild Wolves Logo"
@@ -334,15 +350,15 @@ export default function WildWolvesHome() {
             <div className="text-left">
               <p className="font-bold text-zinc-300">Wild Wolves CDMX Basketball Academy &copy; 2026</p>
               <p className="text-[11px] text-zinc-500">
-                Canchas de Pavimento • Deportivo Carmen Serdán (CDMX)
+                Deportivo Carmen Serdán (CDMX)
               </p>
             </div>
           </div>
 
-          {/* Accesos Rápidos de Puertas */}
+          {/* Accesos Directos a las 3 Puertas */}
           <div className="flex flex-wrap items-center gap-4 text-[11px]">
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={openRegisterModal}
               className="text-zinc-400 hover:text-white transition flex items-center gap-1 cursor-pointer"
             >
               <Users className="w-3.5 h-3.5 text-[#38bdf8]" /> Alumnos & Padres
@@ -370,6 +386,7 @@ export default function WildWolvesHome() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         targetRole="student"
+        initialMode={authMode}
         onSuccess={() => router.push("/dashboard-student")}
       />
     </div>
