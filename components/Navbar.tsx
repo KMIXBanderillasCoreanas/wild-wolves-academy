@@ -62,6 +62,7 @@ export function Navbar() {
   if (
     pathname === '/' || 
     pathname === '/login' || 
+    pathname === '/dashboard-student' ||
     pathname === '/staff-portal-ww' || 
     pathname === '/head-coach-master-hq' ||
     pathname === '/apply-coach-ww' ||
