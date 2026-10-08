@@ -21,7 +21,9 @@ import {
   KeyRound,
   ShieldCheck,
   Activity,
-  UserCheck
+  UserCheck,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 interface CoachProfile {
@@ -47,6 +49,8 @@ interface StudentCommitment {
 export default function MasterBunkerHQ() {
   const [authenticated, setAuthenticated] = useState(false);
   const [secretKey, setSecretKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [adminName, setAdminName] = useState("Super Administrador");
   const [errorMessage, setErrorMessage] = useState("");
   const [coaches, setCoaches] = useState<CoachProfile[]>([]);
   const [commitments, setCommitments] = useState<any[]>([]);
@@ -55,11 +59,21 @@ export default function MasterBunkerHQ() {
 
   const checkSecret = (e: React.FormEvent) => {
     e.preventDefault();
-    if (secretKey.trim() === "WW-SUPERADMIN-FULL-2026") {
+    const normalized = secretKey.trim().toUpperCase();
+    if (normalized === "RICARDO-WOLVES-2026") {
+      setAdminName("Coach Ricardo");
+      setAuthenticated(true);
+      setErrorMessage("");
+    } else if (normalized === "CARLOS-WOLVES-2026") {
+      setAdminName("Carlos");
+      setAuthenticated(true);
+      setErrorMessage("");
+    } else if (normalized === "WW-SUPERADMIN-FULL-2026") {
+      setAdminName("Super Administrador");
       setAuthenticated(true);
       setErrorMessage("");
     } else {
-      setErrorMessage("Clave Maestra de Hardware Incorrecta. Acceso Denegado.");
+      setErrorMessage("Clave Maestra Incorrecta. Acceso Denegado.");
     }
   };
 
@@ -175,14 +189,24 @@ export default function MasterBunkerHQ() {
               </div>
             )}
 
-            <input
-              type="password"
-              placeholder="WW-SUPERADMIN-FULL-2026"
-              value={secretKey}
-              onChange={(e) => setSecretKey(e.target.value)}
-              className="w-full bg-[#05070a] border border-zinc-700 focus:border-amber-500 rounded-xl py-3 px-4 text-sm text-center font-mono text-white mb-4 outline-none transition"
-              autoFocus
-            />
+            <div className="relative mb-4">
+              <input
+                type={showKey ? "text" : "password"}
+                placeholder="••••••••••••"
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                className="w-full bg-[#05070a] border border-zinc-700 focus:border-amber-500 rounded-xl py-3 px-4 pr-11 text-sm text-center font-mono text-white outline-none transition tracking-widest"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
+                title={showKey ? "Ocultar clave" : "Mostrar clave"}
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
 
             <button
               type="submit"
@@ -222,8 +246,9 @@ export default function MasterBunkerHQ() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full uppercase font-bold">
-                  BÚNKER MASTER • FULL ACCESS
+                <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full uppercase font-bold flex items-center gap-1.5">
+                  <Crown className="w-3 h-3 text-amber-400" />
+                  BÚNKER MASTER • {adminName.toUpperCase()}
                 </span>
                 <span className="text-xs text-zinc-400">Deportivo Carmen Serdán</span>
               </div>
