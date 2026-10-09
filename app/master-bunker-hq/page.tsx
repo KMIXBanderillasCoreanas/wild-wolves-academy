@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
 import { 
@@ -34,10 +36,12 @@ import {
 } from "@/lib/offlineSync";
 
 export default function MasterBunkerHQ() {
+  const router = useRouter();
   const [authenticated, setAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
-  const [adminLabel, setAdminLabel] = useState("SUPER ADMINISTRADOR");
+  const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
   const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "test_day" | "coaches">("attendance");
   const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
   const [testDaySubView, setTestDaySubView] = useState<"dual" | "ovr">("dual");
@@ -62,23 +66,47 @@ export default function MasterBunkerHQ() {
     year: 0
   });
 
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/auth/callback?redirect=/master-bunker-hq`,
+        },
+      });
+      if (error) {
+        setAuthError("No se pudo iniciar sesión con Google: " + error.message);
+      }
+    } catch (err: any) {
+      setAuthError("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const checkSecret = (e: React.FormEvent) => {
     e.preventDefault();
     const normalized = secretKey.trim().toUpperCase();
     if (
       normalized === "WW-SUPERADMIN-FULL-2026" ||
+      normalized === "WW-SUPERADMIN-KEY-99" ||
       normalized === "RICARDO-WOLVES-2026" ||
       normalized === "CARLOS-WOLVES-2026"
     ) {
-      if (normalized === "RICARDO-WOLVES-2026") {
-        setAdminLabel("COACH RICARDO (SUPERADMIN)");
-      } else if (normalized === "CARLOS-WOLVES-2026") {
+      if (normalized === "CARLOS-WOLVES-2026") {
         setAdminLabel("COACH CARLOS (ADMIN)");
       } else {
-        setAdminLabel("SUPER ADMINISTRADOR");
+        setAdminLabel("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
       }
       setAuthenticated(true);
       setAuthError("");
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ww_user_role", "superadmin");
+        localStorage.setItem("ww_user_email", "wildwolvescdmx@gmail.com");
+        document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
+        window.dispatchEvent(new Event("auth_changed"));
+      }
       fetchDashboardData();
     } else {
       setAuthError("Clave Maestra Incorrecta. Acceso Denegado.");
@@ -163,6 +191,81 @@ export default function MasterBunkerHQ() {
     }
   }, []);
 
+  // Verificación reactiva automática de sesión de SuperAdmin / Fundador
+  useEffect(() => {
+    async function verifySuperAdminSession() {
+      try {
+        setAuthChecking(true);
+
+        // 1. Obtener usuario autenticado de Supabase Auth
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // 2. Comprobar credenciales de sesión local
+        const storedRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
+        const storedEmail = typeof window !== "undefined" ? localStorage.getItem("ww_user_email") : null;
+
+        const effectiveEmail = (user?.email || storedEmail || "").toLowerCase().trim();
+
+        const isFounderDirector = 
+          effectiveEmail === "wildwolvescdmx@gmail.com" ||
+          effectiveEmail === "ricardo@wildwolves.mx" ||
+          effectiveEmail === "director@wildwolves.mx" ||
+          effectiveEmail === "carlos@wildwolves.mx";
+
+        if (user) {
+          // Consultar perfil de base de datos
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role, full_name, email")
+            .eq("id", user.id)
+            .single();
+
+          const isSuper = profile?.role === "superadmin" || storedRole === "superadmin" || isFounderDirector;
+
+          if (isSuper) {
+            setAdminLabel("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
+            setAuthenticated(true);
+            setAuthChecking(false);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("ww_user_role", "superadmin");
+              localStorage.setItem("ww_user_email", user.email || "wildwolvescdmx@gmail.com");
+              document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
+              window.dispatchEvent(new Event("auth_changed"));
+            }
+            fetchDashboardData();
+            return;
+          }
+
+          if (profile?.role === "student") {
+            router.replace("/dashboard-student");
+            return;
+          }
+
+          if (profile?.role === "coach") {
+            setAuthError("Acceso Restringido: Tu cuenta tiene asignado el rol de Coach. El Búnker Central es exclusivo de Dirección General.");
+            setAuthChecking(false);
+            return;
+          }
+        } else if (isFounderDirector || storedRole === "superadmin") {
+          // Bypass directo autorizado por sesión local de Dirección
+          setAdminLabel("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
+          setAuthenticated(true);
+          setAuthChecking(false);
+          fetchDashboardData();
+          return;
+        }
+
+        // Si no hay sesión iniciada, mostrar vista de emergencia
+        setAuthChecking(false);
+      } catch (err) {
+        console.error("Error al verificar sesión en Búnker:", err);
+        setAuthChecking(false);
+      }
+    }
+
+    verifySuperAdminSession();
+  }, [fetchDashboardData, router]);
+
   // Escuchar eventos de cobros y sincronización offline en tiempo real
   useEffect(() => {
     if (!authenticated) return;
@@ -230,49 +333,115 @@ export default function MasterBunkerHQ() {
     }
   };
 
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-[#05070a] text-white flex flex-col items-center justify-center p-4">
+        <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-xs font-mono uppercase tracking-widest text-amber-400">
+          Verificando Credenciales de Dirección General...
+        </p>
+      </div>
+    );
+  }
+
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-[#05070a] text-white flex items-center justify-center p-4">
-        <form onSubmit={checkSecret} className="max-w-md w-full bg-[#0d1017] border border-amber-500/40 p-8 rounded-3xl text-center shadow-2xl animate-fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
-            <Crown className="w-8 h-8 text-amber-500" />
+      <div className="min-h-screen bg-[#05070a] text-white flex items-center justify-center p-4 font-sans">
+        <div className="max-w-md w-full bg-[#0d1017] border border-amber-500/40 p-8 rounded-3xl text-center shadow-2xl animate-fade-in">
+          {/* Emblema Oficial */}
+          <div className="relative w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <Image
+              src="/logo-official.png"
+              alt="Wild Wolves Logo"
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
+            />
           </div>
-          <h2 className="text-xl font-black uppercase mb-1 tracking-wide">Búnker Super Administrador</h2>
-          <p className="text-xs text-zinc-400 mb-6 font-sans">
-            Ingresa tu llave maestra para gestionar el club en producción.
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-mono uppercase tracking-widest mb-2 font-bold">
+            <Crown className="w-3.5 h-3.5" /> DIRECCIÓN GENERAL • BÚNKER HQ
+          </div>
+
+          <h2 className="text-xl font-black uppercase mb-1 tracking-wide text-white">Comandancia Central</h2>
+          <p className="text-xs text-zinc-400 mb-6">
+            Acceso exclusivo para el Creador y Dirección General de Wild Wolves CDMX.
           </p>
 
           {authError && (
-            <div className="mb-4 bg-red-500/15 border border-red-500/30 text-red-400 text-xs px-3 py-2 rounded-xl">
-              {authError}
+            <div className="mb-5 bg-red-500/15 border border-red-500/30 text-red-400 text-xs px-3.5 py-2.5 rounded-xl text-left flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-400" />
+              <span>{authError}</span>
             </div>
           )}
 
-          <div className="relative mb-4">
-            <input
-              type={showKey ? "text" : "password"}
-              placeholder="Master SuperAdmin Secret"
-              value={secretKey}
-              onChange={(e) => setSecretKey(e.target.value)}
-              className="w-full bg-[#05070a] border border-zinc-700 rounded-xl py-3 px-4 pr-11 text-sm text-center text-white outline-none focus:border-amber-500 font-mono tracking-wider"
-              autoFocus
-            />
+          {/* Opción 1: Acceso Directo con Google para el Director */}
+          <div className="space-y-3 mb-6">
             <button
               type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-100 text-black text-xs font-bold transition flex items-center justify-center gap-2.5 shadow-md cursor-pointer active:scale-95"
             >
-              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" />
+                <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z" />
+                <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.4 1.9 7.8l3.7-2.9z" />
+                <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z" />
+              </svg>
+              <span>Acceder con Google (wildwolvescdmx@gmail.com)</span>
             </button>
+
+            <Link
+              href="/login?redirect=/master-bunker-hq"
+              className="block w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold transition text-center"
+            >
+              Iniciar Sesión con Correo de Director
+            </Link>
           </div>
 
-          <button
-            type="submit"
-            className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs tracking-wider rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/20"
-          >
-            Desbloquear Consola Total
-          </button>
-        </form>
+          <div className="relative flex py-2 items-center mb-5">
+            <div className="flex-grow border-t border-zinc-800"></div>
+            <span className="flex-shrink mx-3 text-zinc-500 text-[10px] uppercase font-bold tracking-wider font-mono">
+              o Llave Maestra de Emergencia
+            </span>
+            <div className="flex-grow border-t border-zinc-800"></div>
+          </div>
+
+          {/* Opción 2: Formulario de Respaldo por Hardware */}
+          <form onSubmit={checkSecret} className="space-y-3">
+            <div className="relative">
+              <input
+                type={showKey ? "text" : "password"}
+                placeholder="WW-SUPERADMIN-FULL-2026"
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                className="w-full bg-[#05070a] border border-zinc-700 rounded-xl py-2.5 px-4 pr-11 text-xs text-center text-white outline-none focus:border-amber-500 font-mono tracking-wider"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+              >
+                {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase text-xs tracking-wider rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/20 active:scale-95"
+            >
+              Desbloquear Consola Total
+            </button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-zinc-800/80 text-center">
+            <Link href="/" className="text-xs text-zinc-500 hover:text-white transition">
+              &larr; Volver al Portal Principal
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

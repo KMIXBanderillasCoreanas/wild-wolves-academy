@@ -8,14 +8,11 @@ import { HoopStore } from '@/lib/store';
 import { supabase } from '@/lib/supabaseClient';
 import { User } from '@/lib/types';
 import { 
-  Flame, 
-  KeyRound, 
   LogOut, 
   Instagram, 
   Youtube, 
   Facebook, 
   MessageCircle, 
-  ArrowRightLeft,
   Download
 } from 'lucide-react';
 
@@ -25,70 +22,147 @@ export function Navbar() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    setCurrentUser(HoopStore.getCurrentUser());
+    async function syncUser() {
+      // 1. HoopStore
+      const storeUser = HoopStore.getCurrentUser();
+      
+      // 2. Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const storedRole = typeof window !== 'undefined' ? localStorage.getItem('ww_user_role') : null;
+      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ww_user_email') : null;
+      const storedName = typeof window !== 'undefined' ? localStorage.getItem('ww_student_name') : null;
+
+      const email = (user?.email || storedEmail || storeUser?.email || '').toLowerCase().trim();
+      const isFounder = 
+        email === 'wildwolvescdmx@gmail.com' ||
+        email === 'ricardo@wildwolves.mx' ||
+        email === 'director@wildwolves.mx';
+
+      let role = storedRole || storeUser?.role;
+      if (isFounder) role = 'superadmin';
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, role, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          if (isFounder) role = 'superadmin';
+          else if (profile.role) role = profile.role;
+
+          setCurrentUser({
+            id: user.id,
+            fullName: isFounder ? 'Coach Ricardo' : (profile.full_name || storeUser?.fullName || 'Atleta Wild Wolves'),
+            email: email,
+            role: role as any,
+            avatarUrl: profile.avatar_url || storeUser?.avatarUrl || '/logo-official.png',
+            provider: 'supabase'
+          });
+          return;
+        }
+      }
+
+      if (isFounder || role === 'superadmin') {
+        setCurrentUser({
+          id: 'dir_ricardo',
+          fullName: 'Coach Ricardo',
+          email: 'wildwolvescdmx@gmail.com',
+          role: 'superadmin',
+          avatarUrl: '/logo-official.png',
+          provider: 'supabase'
+        });
+        return;
+      }
+
+      if (storeUser) {
+        setCurrentUser(storeUser);
+      } else if (storedEmail && storedRole) {
+        setCurrentUser({
+          id: 'user_local',
+          fullName: storedName || (storedRole === 'coach' ? 'Coach Wild Wolves' : 'Atleta Wild Wolves'),
+          email: storedEmail,
+          role: storedRole as any,
+          avatarUrl: '/logo-official.png',
+          provider: 'supabase'
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    }
+
+    syncUser();
 
     const handleAuthChange = () => {
-      setCurrentUser(HoopStore.getCurrentUser());
+      syncUser();
     };
 
     window.addEventListener('auth_changed', handleAuthChange);
-    return () => window.removeEventListener('auth_changed', handleAuthChange);
+    window.addEventListener('profile_avatar_updated', handleAuthChange);
+    return () => {
+      window.removeEventListener('auth_changed', handleAuthChange);
+      window.removeEventListener('profile_avatar_updated', handleAuthChange);
+    };
   }, []);
-
-  const handleQuickToggleRole = () => {
-    if (!currentUser || currentUser.role === 'coach') {
-      const studentUser = HoopStore.loginAsStudent('student_01');
-      setCurrentUser(studentUser);
-      router.push('/dashboard-student');
-    } else if (currentUser.role === 'student') {
-      const parentUser = HoopStore.loginAsParent('student_01');
-      setCurrentUser(parentUser);
-      router.push('/dashboard-student');
-    } else {
-      const coachUser = HoopStore.loginAsCoach();
-      setCurrentUser(coachUser);
-      router.push('/dashboard-coach');
-    }
-  };
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
     } catch {}
     HoopStore.logout();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ww_user_role');
+      localStorage.removeItem('ww_user_email');
+      localStorage.removeItem('ww_student_name');
+      document.cookie = 'user_role=; path=/; max-age=0';
+      document.cookie = 'user_email=; path=/; max-age=0';
+      window.dispatchEvent(new Event('auth_changed'));
+    }
     setCurrentUser(null);
     router.push('/login');
   };
 
-  const isStaff = currentUser?.role === 'coach' || currentUser?.role === 'superadmin';
-
-  // No mostrar Navbar en la portada pública ni en los portales de acceso aislados
+  // No mostrar Navbar en páginas de acceso aisladas
   if (
-    pathname === '/' || 
     pathname === '/login' || 
-    pathname === '/dashboard-student' ||
-    pathname === '/staff-portal-ww' || 
-    pathname === '/head-coach-master-hq' ||
     pathname === '/apply-coach-ww' ||
-    pathname === '/master-bunker-hq'
+    pathname === '/staff-portal-ww'
   ) {
     return null;
   }
 
+  const emailLower = (currentUser?.email || '').toLowerCase().trim();
+  const isSuperAdmin = 
+    currentUser?.role === 'superadmin' || 
+    emailLower === 'wildwolvescdmx@gmail.com' || 
+    emailLower === 'ricardo@wildwolves.mx' ||
+    emailLower === 'director@wildwolves.mx';
+
+  const isCoach = isSuperAdmin || currentUser?.role === 'coach';
+  const isStudent = !isCoach && currentUser?.role === 'student';
+  const hasActiveSession = !!currentUser;
+
+  const displayName = isSuperAdmin 
+    ? 'Coach Ricardo' 
+    : (currentUser?.fullName?.split(' ')[0] || (isCoach ? 'Coach' : 'Atleta'));
+
+  const displayAvatar = currentUser?.avatarUrl || '/logo-official.png';
+
   return (
     <nav className="bg-[#0a0e17] border-b border-[#27272a] sticky top-0 z-50 font-sans">
-      {/* 1. Barra de Canales Oficiales y Redes Sociales */}
-      <div className="bg-[#18181b] border-b border-[#27272a] px-4 py-1.5 text-xs font-mono">
+      {/* 1. Barra Superior Institucional (Redes y Contacto) */}
+      <div className="bg-[#121620] border-b border-[#27272a]/80 px-4 py-1.5 text-xs font-mono">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-zinc-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-semibold text-zinc-300">WILD WOLVES CDMX:</span>
-            <span className="text-[10px] text-zinc-500 hidden sm:inline">Academia Oficial de Baloncesto</span>
+            <span className="text-[10px] text-zinc-500 hidden sm:inline">Deportivo Carmen Serdán</span>
           </div>
 
-          {/* Enlaces Oficiales a Redes Sociales */}
           <div className="flex items-center gap-3">
-            {/* WhatsApp Oficial: 01 55 2242 7769 */}
+            {/* WhatsApp */}
             <a
               href="https://wa.me/525522427769?text=Hola%20Coach%2C%20solicito%20informaci%C3%B3n%20sobre%20las%20clases%20de%20baloncesto%20Wild%20Wolves"
               target="_blank"
@@ -100,7 +174,7 @@ export function Navbar() {
               <span>WhatsApp (55 2242 7769)</span>
             </a>
             <span className="text-zinc-700">|</span>
-            {/* Instagram: https://www.instagram.com/wild_wolves_cdmx/ */}
+            {/* Instagram */}
             <a
               href="https://www.instagram.com/wild_wolves_cdmx/"
               target="_blank"
@@ -112,7 +186,7 @@ export function Navbar() {
               <span>@wild_wolves_cdmx</span>
             </a>
             <span className="text-zinc-700">|</span>
-            {/* TikTok: https://www.tiktok.com/@wild_wolves_cdmx */}
+            {/* TikTok */}
             <a
               href="https://www.tiktok.com/@wild_wolves_cdmx"
               target="_blank"
@@ -126,7 +200,7 @@ export function Navbar() {
               <span>TikTok</span>
             </a>
             <span className="text-zinc-700">|</span>
-            {/* Facebook Oficial */}
+            {/* Facebook */}
             <a
               href="https://www.facebook.com/profile.php?id=61590139041471"
               target="_blank"
@@ -138,19 +212,19 @@ export function Navbar() {
               <span className="hidden sm:inline">Facebook</span>
             </a>
             <span className="text-zinc-700">|</span>
-            {/* YouTube Oficial: @WildWolvesCDMX */}
+            {/* YouTube */}
             <a
               href="https://www.youtube.com/@WildWolvesCDMX"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-red-500 hover:text-red-400 transition-colors font-medium"
-              title="Canal Oficial de YouTube @WildWolvesCDMX"
+              title="YouTube @WildWolvesCDMX"
             >
               <Youtube className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">YouTube</span>
             </a>
             <span className="text-zinc-700">|</span>
-            {/* Botón Universal de Instalación PWA */}
+            {/* PWA Install */}
             <button
               onClick={() => {
                 if (typeof window !== 'undefined') {
@@ -158,7 +232,7 @@ export function Navbar() {
                 }
               }}
               className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 hover:text-orange-300 font-bold border border-orange-500/30 transition-all cursor-pointer text-[11px]"
-              title="Instalar App en Windows, Android, iPhone o Mac"
+              title="Instalar App en el dispositivo"
             >
               <Download className="w-3 h-3 animate-pulse" />
               <span>Instalar App 📲</span>
@@ -167,138 +241,140 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* 2. Barra de Navegación Principal */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logotipo Oficial */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          {/* Logotipo Oficial Original */}
-          <div className="relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
+      {/* 2. Barra de Navegación Principal Limpia */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        
+        {/* LADO IZQUIERDO: Logo y Título Institucional Limpio */}
+        <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
+          <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-orange-500/40 bg-black/60 p-1 flex items-center justify-center flex-shrink-0 shadow-md shadow-orange-500/10">
             <Image
               src="/logo-official.png"
-              alt="Wild Wolves Logo"
-              width={38}
-              height={38}
+              alt="Wild Wolves Emblem"
+              width={36}
+              height={36}
               className="object-contain transition-transform group-hover:scale-105"
               priority
             />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-black tracking-tight text-white uppercase font-sans">
-                WILD WOLVES <span className="text-orange-500">CDMX</span>
-              </span>
-              <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                OS v0.3.0
-              </span>
-            </div>
-            <p className="text-[10px] font-mono text-zinc-400 -mt-1">
-              Basketball High-Performance OS • $50/Clase
-            </p>
-          </div>
+          <span className="text-base sm:text-lg font-black tracking-tight text-white uppercase font-sans">
+            WILD WOLVES <span className="text-[#ea580c]">CDMX</span>
+          </span>
         </Link>
 
-        {/* Enlaces de Navegación */}
-        {/* Enlaces de Navegación Seguros */}
-        <div className="hidden md:flex items-center gap-1.5 font-mono text-xs">
-          <Link
-            href="/"
-            className={`px-3 py-1.5 rounded-lg transition-colors ${
-              pathname === '/'
-                ? 'bg-[#18181b] text-white border border-[#27272a]'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-            }`}
-          >
-            Inicio &amp; Registro
-          </Link>
-          <Link
-            href="/dashboard-student"
-            className={`px-3 py-1.5 rounded-lg transition-colors ${
-              pathname.startsWith('/dashboard-student')
-                ? 'bg-blue-500/10 text-blue-300 border border-blue-500/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-            }`}
-          >
-            Portal Alumno (Lectura)
-          </Link>
-          {isStaff && (
+        {/* CENTRO: Navegación Contextual por Rol */}
+        <div className="flex items-center gap-2">
+          {/* Si es SuperAdmin / Fundador: [Panel Cancha] y [Búnker Central] */}
+          {isSuperAdmin && (
+            <>
+              <Link
+                href="/dashboard-coach"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono uppercase tracking-wider transition ${
+                  pathname.startsWith('/dashboard-coach')
+                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                Panel Cancha
+              </Link>
+              <Link
+                href="/master-bunker-hq"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono uppercase tracking-wider transition ${
+                  pathname.startsWith('/master-bunker-hq')
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                Búnker Central
+              </Link>
+            </>
+          )}
+
+          {/* Si es Coach estándar (no superadmin): [Panel Cancha] */}
+          {isCoach && !isSuperAdmin && (
             <Link
               href="/dashboard-coach"
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono uppercase tracking-wider transition ${
                 pathname.startsWith('/dashboard-coach')
-                  ? 'bg-orange-500/10 text-orange-300 border border-orange-500/30'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
               }`}
             >
-              Panel Coach (Admin)
+              Panel Cancha
             </Link>
           )}
-          {currentUser?.role === 'superadmin' && (
+
+          {/* Si es Alumno: [Mi Portal Atleta] */}
+          {isStudent && (
             <Link
-              href="/master-bunker-hq"
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
-                pathname.startsWith('/master-bunker-hq')
-                  ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+              href="/dashboard-student"
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono uppercase tracking-wider transition ${
+                pathname.startsWith('/dashboard-student')
+                  ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
               }`}
             >
-              Búnker Central
+              Mi Portal Atleta
+            </Link>
+          )}
+
+          {/* Si NO hay sesión iniciada: Enlace Inicio */}
+          {!hasActiveSession && (
+            <Link
+              href="/"
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono uppercase tracking-wider transition ${
+                pathname === '/'
+                  ? 'bg-zinc-800 text-white border border-zinc-700'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+              }`}
+            >
+              Inicio
             </Link>
           )}
         </div>
 
-        {/* Conmutador Rápido de Sesión */}
-        <div className="flex items-center gap-2">
-          {currentUser ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleQuickToggleRole}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#18181b] hover:bg-zinc-800 border border-[#27272a] text-zinc-200 text-xs font-mono font-bold transition-all cursor-pointer"
-                title="Cambiar instantáneamente entre Coach Ricardo, Alumno y Tutor"
-              >
-                <ArrowRightLeft className="w-3.5 h-3.5 text-orange-400" />
-                <span className="hidden sm:inline">Cambiar a:</span>
-                <span className={
-                  currentUser.role === 'coach' ? 'text-blue-400' :
-                  currentUser.role === 'student' ? 'text-purple-400' : 'text-orange-400'
-                }>
-                  {currentUser.role === 'coach' ? 'Modo Alumno' :
-                   currentUser.role === 'student' ? 'Modo Tutor' : 'Coach Ricardo'}
+        {/* LADO DERECHO: Chip de Perfil Oficial y Logout */}
+        <div className="flex items-center gap-2.5">
+          {hasActiveSession ? (
+            <>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#121620] border border-zinc-800">
+                <div className="w-6 h-6 rounded-full overflow-hidden border border-orange-500/30 bg-black flex items-center justify-center flex-shrink-0">
+                  <Image
+                    src={displayAvatar}
+                    alt={displayName}
+                    width={24}
+                    height={24}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                <span className="text-xs font-bold text-white tracking-wide truncate max-w-[120px] hidden sm:inline">
+                  {displayName}
                 </span>
-              </button>
-
-              <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#18181b] border border-[#27272a]">
-                <img
-                  src={currentUser.avatarUrl}
-                  alt={currentUser.fullName}
-                  className="w-5 h-5 rounded-md object-cover"
-                />
-                <span className="text-[10px] font-mono text-zinc-300 truncate max-w-[100px]">
-                  {currentUser.fullName.split(' ')[0]}
-                </span>
-                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                  currentUser.role === 'coach' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
-                  currentUser.role === 'parent' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                  'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase ${
+                  isSuperAdmin 
+                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                    : isCoach
+                    ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                    : 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
                 }`}>
-                  {currentUser.role === 'coach' ? 'COACH RICARDO' : currentUser.role === 'parent' ? 'TUTOR' : 'ALUMNO'}
+                  {isSuperAdmin ? 'DIRECCIÓN' : isCoach ? 'COACH' : 'ATLETA'}
                 </span>
               </div>
 
               <button
                 onClick={handleLogout}
-                className="p-1.5 rounded-lg bg-[#18181b] hover:bg-rose-500/10 text-zinc-400 hover:text-rose-400 border border-[#27272a] transition-colors cursor-pointer"
-                title="Cerrar sesión"
+                className="p-2 rounded-xl bg-[#121620] hover:bg-red-500/15 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/30 transition cursor-pointer"
+                title="Cerrar Sesión"
+                aria-label="Cerrar Sesión"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
               </button>
-            </div>
+            </>
           ) : (
             <Link
               href="/login"
-              className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-mono font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-sky-600/20"
+              className="px-4 py-2 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-mono font-bold text-xs uppercase tracking-wider transition shadow-md shadow-[#ea580c]/20"
             >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Acceso Familias</span>
+              Iniciar Sesión
             </Link>
           )}
         </div>
