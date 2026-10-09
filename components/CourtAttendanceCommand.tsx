@@ -11,6 +11,21 @@ import {
   generateUUID,
   getOfflineQueueCount
 } from "@/lib/offlineSync";
+import { 
+  Activity, 
+  Sun, 
+  Users, 
+  CheckCircle2, 
+  Clock, 
+  CreditCard, 
+  Search, 
+  RefreshCw, 
+  X, 
+  AlertCircle, 
+  XCircle, 
+  Landmark, 
+  MessageSquare 
+} from "lucide-react";
 
 export interface StudentRosterItem {
   id: string;
@@ -293,7 +308,7 @@ export default function CourtAttendanceCommand() {
           {/* Sede y Título Táctico */}
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-primary-container/20 border border-primary-container/40 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-primary-container text-[24px]">stadium</span>
+              <Activity className="w-6 h-6 text-orange-400" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -323,7 +338,7 @@ export default function CourtAttendanceCommand() {
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
-                <span className="material-symbols-outlined text-[16px]">wb_sunny</span>
+                <Sun className="w-4 h-4 text-amber-400" />
                 <span>Matutino (09:00 - 11:00)</span>
               </button>
               <button
@@ -335,7 +350,7 @@ export default function CourtAttendanceCommand() {
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
-                <span className="material-symbols-outlined text-[16px]">sports_score</span>
+                <Activity className="w-4 h-4 text-orange-400" />
                 <span>Vespertino (17:00 - 19:00)</span>
               </button>
             </div>
@@ -355,7 +370,7 @@ export default function CourtAttendanceCommand() {
                 type="button"
                 title="Sincronizar cambios ahora"
               >
-                <span className="material-symbols-outlined text-[18px]">sync</span>
+                <RefreshCw className="w-4 h-4 text-emerald-400" />
               </button>
             </div>
 
@@ -371,7 +386,7 @@ export default function CourtAttendanceCommand() {
             <span className="text-[10px] sm:text-xs text-on-surface-variant uppercase font-bold tracking-wider">
               Roster Sesión
             </span>
-            <span className="material-symbols-outlined text-secondary text-[20px]">groups</span>
+            <Users className="w-5 h-5 text-sky-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-on-surface">{totalInSession}</span>
@@ -386,7 +401,7 @@ export default function CourtAttendanceCommand() {
             <span className="text-[10px] sm:text-xs text-tertiary uppercase font-bold tracking-wider">
               Presentes
             </span>
-            <span className="material-symbols-outlined text-tertiary text-[20px]">check_circle</span>
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-tertiary">{presentCount}</span>
@@ -401,7 +416,7 @@ export default function CourtAttendanceCommand() {
             <span className="text-[10px] sm:text-xs text-primary uppercase font-bold tracking-wider">
               Retardos / Faltas
             </span>
-            <span className="material-symbols-outlined text-primary text-[20px]">schedule</span>
+            <Clock className="w-5 h-5 text-amber-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-xl sm:text-2xl font-black text-primary">{lateCount} <span className="text-xs font-normal text-on-surface-variant">ret.</span></span>
@@ -417,7 +432,7 @@ export default function CourtAttendanceCommand() {
             <span className="text-[10px] sm:text-xs text-error uppercase font-bold tracking-wider">
               Cobros Pendientes
             </span>
-            <span className="material-symbols-outlined text-error text-[20px]">payments</span>
+            <CreditCard className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-error">{debtorCount}</span>
@@ -431,9 +446,7 @@ export default function CourtAttendanceCommand() {
       <section className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Bar */}
         <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-[20px]">
-            search
-          </span>
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -445,7 +458,7 @@ export default function CourtAttendanceCommand() {
               onClick={() => setSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface text-xs cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">close</span>
+              <X className="w-4 h-4 text-zinc-400" />
             </button>
           )}
         </div>
@@ -511,7 +524,7 @@ export default function CourtAttendanceCommand() {
         {filtered.length === 0 ? (
           <div className="col-span-full py-16 px-6 text-center bg-surface-container-low/80 rounded-3xl border border-surface-container-high/80 shadow-2xl flex flex-col items-center justify-center max-w-xl mx-auto my-6">
             <div className="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary-container mb-4 border border-surface-container-highest shadow-inner">
-              <span className="material-symbols-outlined text-3xl">sports_basketball</span>
+              <Activity className="w-8 h-8 text-orange-500" />
             </div>
             <h3 className="text-base font-black text-white uppercase tracking-wide">
               {search ? "Sin resultados para tu búsqueda" : "No hay atletas registrados en este turno"}
@@ -557,12 +570,12 @@ export default function CourtAttendanceCommand() {
                   {/* Badge de Estatus de Pago */}
                   {st.last_payment_status === "al_corriente" ? (
                     <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-container/30 text-tertiary text-[10px] font-bold border border-tertiary/20 shrink-0">
-                      <span className="material-symbols-outlined text-[13px]">verified</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Al Corriente</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container text-[10px] font-bold animate-pulse shrink-0">
-                      <span className="material-symbols-outlined text-[13px]">error</span>
+                      <AlertCircle className="w-3.5 h-3.5 text-red-400" />
                       <span>Adeudo</span>
                     </div>
                   )}
@@ -580,7 +593,7 @@ export default function CourtAttendanceCommand() {
                       className="flex items-center justify-between w-full h-10 px-3 rounded-xl bg-primary-container text-on-primary font-bold text-xs shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer"
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[18px]">payments</span>
+                        <CreditCard className="w-4 h-4 text-white" />
                         <span>Cobrar en Cancha</span>
                       </div>
                       <span className="px-2 py-0.5 rounded-full bg-black/25 text-[10px] font-black">
@@ -606,42 +619,42 @@ export default function CourtAttendanceCommand() {
                   <button
                     type="button"
                     onClick={() => handleMarkAttendance(st.id, "presente")}
-                    className={`flex items-center justify-center gap-1 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
+                    className={`flex items-center justify-center gap-1.5 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                       st.attendance_status === "presente"
                         ? "bg-tertiary text-on-tertiary shadow-md"
                         : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                     }`}
                     title="Marcar Presente"
                   >
-                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                    <CheckCircle2 className="w-4 h-4" />
                     <span className="hidden sm:inline">Presente</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleMarkAttendance(st.id, "retardo")}
-                    className={`flex items-center justify-center gap-1 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
+                    className={`flex items-center justify-center gap-1.5 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                       st.attendance_status === "retardo"
                         ? "bg-primary-container text-on-primary shadow-md"
                         : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                     }`}
                     title="Marcar Retardo"
                   >
-                    <span className="material-symbols-outlined text-[16px]">schedule</span>
+                    <Clock className="w-4 h-4" />
                     <span className="hidden sm:inline">Retardo</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleMarkAttendance(st.id, "falta")}
-                    className={`flex items-center justify-center gap-1 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
+                    className={`flex items-center justify-center gap-1.5 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                       st.attendance_status === "falta"
                         ? "bg-error-container text-on-error-container shadow-md"
                         : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                     }`}
                     title="Marcar Falta"
                   >
-                    <span className="material-symbols-outlined text-[16px]">cancel</span>
+                    <XCircle className="w-4 h-4" />
                     <span className="hidden sm:inline">Falta</span>
                   </button>
                 </div>
@@ -671,7 +684,7 @@ export default function CourtAttendanceCommand() {
                 onClick={() => setSelectedStudent(null)} 
                 className="text-outline hover:text-on-surface p-1 rounded-lg hover:bg-surface-variant transition cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[22px]">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -719,7 +732,7 @@ export default function CourtAttendanceCommand() {
                       : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[18px]">payments</span>
+                  <CreditCard className="w-4 h-4 text-emerald-400" />
                   <span>Efectivo en Cancha</span>
                 </button>
                 <button
@@ -731,7 +744,7 @@ export default function CourtAttendanceCommand() {
                       : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[18px]">account_balance</span>
+                  <Landmark className="w-4 h-4 text-sky-400" />
                   <span>SPEI / Transferencia</span>
                 </button>
               </div>
@@ -740,7 +753,7 @@ export default function CourtAttendanceCommand() {
             {/* Opción Comprobante WhatsApp */}
             <label className="flex items-center justify-between p-3 rounded-xl bg-surface-container cursor-pointer text-xs border border-surface-container-high/60">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-tertiary text-[18px]">chat</span>
+                <MessageSquare className="w-4 h-4 text-emerald-400" />
                 <span className="text-on-surface font-medium">Enviar comprobante por WhatsApp al tutor</span>
               </div>
               <input
@@ -757,7 +770,7 @@ export default function CourtAttendanceCommand() {
               onClick={handleConfirmPayment}
               className="h-12 w-full rounded-xl bg-tertiary hover:bg-[#3ecb65] text-on-tertiary font-extrabold text-sm uppercase flex items-center justify-center gap-2 shadow-lg transition active:scale-98 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[20px]">verified</span>
+              <CheckCircle2 className="w-5 h-5 text-black" />
               <span>Confirmar Cobro (${payAmount} MXN)</span>
             </button>
 

@@ -6,6 +6,34 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import AuthModal from "@/components/AuthModal";
 import SelfieCameraCapture from "@/components/SelfieCameraCapture";
+import TierProgressionBar from "@/components/TierProgressionBar";
+import {
+  Camera,
+  ExternalLink,
+  Dumbbell,
+  Lock,
+  Activity,
+  CheckCircle2,
+  Circle,
+  Calendar,
+  Clock,
+  CreditCard,
+  MessageSquare,
+  Download,
+  User,
+  Sparkles,
+  AlertTriangle,
+  TrendingUp,
+  Flame,
+  Target,
+  Zap,
+  ShieldCheck,
+  Award,
+  X,
+  Check,
+  Info,
+  Eye
+} from "lucide-react";
 
 // ==============================================================================
 // 1. DEFINICIÓN DEL ESCALAFÓN BIOLÓGICO (9 TIERS OFICIALES WILD WOLVES)
@@ -776,7 +804,7 @@ export default function StudentDashboardPage() {
       {profile?.isSuperAdmin ? (
         <div className="bg-amber-950/80 border-b border-amber-500/50 px-4 py-2.5 text-xs font-mono text-amber-200 flex flex-wrap items-center justify-between gap-2 shadow-lg">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-amber-400 text-base">crown</span>
+            <Award className="w-4 h-4 text-amber-400" />
             <span>
               <strong>CONSOLA DE DIRECCIÓN GENERAL (SUPERADMIN)</strong> • Acceso Raíz Activo (<strong>{profile.email}</strong>).
             </span>
@@ -792,7 +820,7 @@ export default function StudentDashboardPage() {
         </div>
       ) : profile?.isCoachOrAdmin ? (
         <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-center text-xs text-amber-200 flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-base text-amber-400">visibility</span>
+          <Eye className="w-4 h-4 text-amber-400 shrink-0" />
           <span>
             Estás explorando el portal en <strong>Modo Vista Previa de Alumno</strong> con tu cuenta de Staff (<strong>{profile.email}</strong>).
           </span>
@@ -804,7 +832,7 @@ export default function StudentDashboardPage() {
 
       {profile?.isGuest && (
         <div className="bg-sky-500/15 border-b border-sky-500/30 px-4 py-2 text-center text-xs text-sky-200 flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-base text-sky-400">info</span>
+          <Info className="w-4 h-4 text-sky-400 shrink-0" />
           <span>
             Explorando en <strong>Modo Vista Previa</strong>. Para sincronizar tus marcas y pagos en Carmen Serdán,
           </span>
@@ -824,7 +852,7 @@ export default function StudentDashboardPage() {
           <div className="mb-6 bg-gradient-to-r from-orange-950/80 via-amber-950/70 to-zinc-900 border-2 border-orange-500/60 p-4 sm:p-5 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0">
-                <span className="material-symbols-outlined text-2xl">photo_camera</span>
+                <Camera className="w-6 h-6 text-orange-400" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -845,11 +873,16 @@ export default function StudentDashboardPage() {
               onClick={() => setShowSelfieModal(true)}
               className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-[#ea580c] to-[#f97316] hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 active:scale-95 shrink-0"
             >
-              <span className="material-symbols-outlined text-base">camera_alt</span>
+              <Camera className="w-4 h-4" />
               <span>Tomar mi Selfie Ahora</span>
             </button>
           </div>
         )}
+
+        {/* BARRA VISUAL DE PROGRESIÓN OFICIAL: 9 TIERS + CANDADOS + SALA DE PESAS */}
+        <div className="mb-6">
+          <TierProgressionBar currentLevel={activeRank.level} />
+        </div>
 
         {/* GRID PRINCIPAL: 1 COL EN MÓVIL, 12 COLUMNAS EN DESKTOP/TABLET */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -894,7 +927,7 @@ export default function StudentDashboardPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900/90 p-2 text-center">
-                      <span className="material-symbols-outlined text-4xl text-zinc-600 mb-1">account_circle</span>
+                      <User className="w-8 h-8 text-zinc-600 mb-1" />
                       <span className="text-[9px] font-mono text-amber-400 font-bold uppercase">Sin Selfie</span>
                       <span className="text-[8px] font-mono text-zinc-500">Foto Real</span>
                     </div>
@@ -908,7 +941,7 @@ export default function StudentDashboardPage() {
                     className="absolute bottom-1.5 left-1.5 bg-black/80 hover:bg-orange-600 text-white px-2 py-1 rounded-lg border border-white/20 transition cursor-pointer flex items-center gap-1 text-[10px] font-mono shadow-md backdrop-blur-sm z-10"
                     title="Tomar o cambiar fotografía oficial"
                   >
-                    <span className="material-symbols-outlined text-xs">photo_camera</span>
+                    <Camera className="w-3.5 h-3.5" />
                     <span className="font-bold">{hasRealSelfie ? "Cambiar" : "Selfie"}</span>
                   </button>
 
@@ -948,9 +981,7 @@ export default function StudentDashboardPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-xl bg-surface-container-lowest/80 flex items-center justify-center border border-white/10 shrink-0">
-                      <span className={`material-symbols-outlined text-2xl ${activeRank.textColor}`}>
-                        {activeRank.icon}
-                      </span>
+                      <Award className={`w-6 h-6 ${activeRank.textColor}`} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -973,7 +1004,7 @@ export default function StudentDashboardPage() {
                     className="shrink-0 text-[10px] font-bold font-mono px-2.5 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-secondary border border-secondary/30 transition flex items-center gap-1 cursor-pointer"
                   >
                     <span>Escalafón</span>
-                    <span className="material-symbols-outlined text-xs">open_in_new</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
@@ -1014,8 +1045,8 @@ export default function StudentDashboardPage() {
                   </div>
                   <div className={`rounded-xl p-2 border ${activeRank.gymAccess ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300" : "bg-surface-container-lowest/70 border-white/5 text-zinc-400"}`}>
                     <span className="text-[9px] font-mono uppercase block font-bold">Sala Cargas</span>
-                    <span className={`text-[10px] font-black font-mono mt-0.5 flex items-center justify-center gap-0.5 ${activeRank.gymAccess ? "text-emerald-400" : "text-zinc-500"}`}>
-                      <span className="material-symbols-outlined text-[12px]">{activeRank.gymAccess ? "fitness_center" : "lock"}</span>
+                    <span className={`text-[10px] font-black font-mono mt-0.5 flex items-center justify-center gap-1 ${activeRank.gymAccess ? "text-emerald-400" : "text-zinc-500"}`}>
+                      {activeRank.gymAccess ? <Dumbbell className="w-3 h-3 text-emerald-400" /> : <Lock className="w-3 h-3 text-zinc-500" />}
                       {activeRank.gymAccess ? "Desbloqueado" : "Bloqueado"}
                     </span>
                   </div>
@@ -1028,7 +1059,7 @@ export default function StudentDashboardPage() {
               <div className="bg-surface-container-low/90 border border-surface-container-high rounded-2xl p-4 mt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-lg">exercise</span>
+                    <Activity className="w-5 h-5 text-orange-400" />
                     <div>
                       <h4 className="text-xs font-black uppercase text-white tracking-wide">
                         Batería Base de Autocarga
@@ -1054,9 +1085,11 @@ export default function StudentDashboardPage() {
                       ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
                       : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
                   }`}>
-                    <span className={`material-symbols-outlined text-sm ${baseMastery.pushups ? "text-emerald-400" : "text-zinc-500"}`}>
-                      {baseMastery.pushups ? "check_circle" : "radio_button_unchecked"}
-                    </span>
+                    {baseMastery.pushups ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-zinc-500 shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <span className="font-bold block truncate">1. Lagartijas</span>
                       <span className="text-[9px] text-zinc-400 block truncate font-mono">3x25 / Variantes</span>
@@ -1069,9 +1102,11 @@ export default function StudentDashboardPage() {
                       ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
                       : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
                   }`}>
-                    <span className={`material-symbols-outlined text-sm ${baseMastery.squats ? "text-emerald-400" : "text-zinc-500"}`}>
-                      {baseMastery.squats ? "check_circle" : "radio_button_unchecked"}
-                    </span>
+                    {baseMastery.squats ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-zinc-500 shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <span className="font-bold block truncate">2. Sentadillas</span>
                       <span className="text-[9px] text-zinc-400 block truncate font-mono">Autocarga</span>
@@ -1084,9 +1119,11 @@ export default function StudentDashboardPage() {
                       ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
                       : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
                   }`}>
-                    <span className={`material-symbols-outlined text-sm ${baseMastery.abs ? "text-emerald-400" : "text-zinc-500"}`}>
-                      {baseMastery.abs ? "check_circle" : "radio_button_unchecked"}
-                    </span>
+                    {baseMastery.abs ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-zinc-500 shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <span className="font-bold block truncate">3. Abdominales</span>
                       <span className="text-[9px] text-zinc-400 block truncate font-mono">3 Fases Core</span>
@@ -1099,9 +1136,11 @@ export default function StudentDashboardPage() {
                       ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
                       : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
                   }`}>
-                    <span className={`material-symbols-outlined text-sm ${baseMastery.calves ? "text-emerald-400" : "text-zinc-500"}`}>
-                      {baseMastery.calves ? "check_circle" : "radio_button_unchecked"}
-                    </span>
+                    {baseMastery.calves ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-zinc-500 shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <span className="font-bold block truncate">4. Pantorrillas</span>
                       <span className="text-[9px] text-zinc-400 block truncate font-mono">Elevación 3x25</span>
@@ -1114,9 +1153,11 @@ export default function StudentDashboardPage() {
                       ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
                       : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
                   }`}>
-                    <span className={`material-symbols-outlined text-sm ${baseMastery.stairs ? "text-emerald-400" : "text-zinc-500"}`}>
-                      {baseMastery.stairs ? "check_circle" : "radio_button_unchecked"}
-                    </span>
+                    {baseMastery.stairs ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-zinc-500 shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <span className="font-bold block truncate">5. Cuerda/Gradas</span>
                       <span className="text-[9px] text-zinc-400 block truncate font-mono">Ritmo & Salto</span>
@@ -1129,9 +1170,11 @@ export default function StudentDashboardPage() {
                       ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" 
                       : "bg-surface-container-lowest/60 border-white/5 text-zinc-400"
                   }`}>
-                    <span className={`material-symbols-outlined text-sm ${baseMastery.lunges ? "text-emerald-400" : "text-zinc-500"}`}>
-                      {baseMastery.lunges ? "check_circle" : "radio_button_unchecked"}
-                    </span>
+                    {baseMastery.lunges ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-zinc-500 shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <span className="font-bold block truncate">6. Desplantes</span>
                       <span className="text-[9px] text-zinc-400 block truncate font-mono">Pared & Isometría</span>
@@ -1147,7 +1190,7 @@ export default function StudentDashboardPage() {
               {/* Días y Horarios */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
                 <div className="flex items-center gap-2.5 bg-surface-container px-3.5 py-2.5 rounded-xl text-xs border border-surface-container-high/60">
-                  <span className="material-symbols-outlined text-secondary text-lg shrink-0">calendar_month</span>
+                  <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[10px] text-zinc-400 block font-mono">Días Programados:</span>
                     <span className="font-bold text-xs truncate block text-white">
@@ -1156,7 +1199,7 @@ export default function StudentDashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 bg-surface-container px-3.5 py-2.5 rounded-xl text-xs border border-surface-container-high/60">
-                  <span className="material-symbols-outlined text-primary text-lg shrink-0">schedule</span>
+                  <Clock className="w-4 h-4 text-orange-400 shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[10px] text-zinc-400 block font-mono">Turno Oficial:</span>
                     <span className="font-bold text-xs truncate block text-white">
@@ -1170,7 +1213,7 @@ export default function StudentDashboardPage() {
               <div className="bg-surface-container p-4 rounded-2xl mt-4 flex flex-col gap-2 border border-surface-container-high/60">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-tertiary text-lg">verified</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     {attendanceStats.total} Asistencias Registradas
                   </span>
                   <span className="text-[10px] font-bold text-tertiary bg-surface-container-lowest px-2.5 py-0.5 rounded-full uppercase border border-tertiary/20">
@@ -1187,7 +1230,7 @@ export default function StudentDashboardPage() {
             <section className="bg-surface-container-low rounded-3xl p-5 sm:p-6 border border-surface-container-high shadow-xl space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-tertiary text-xl">payments</span>
+                  <CreditCard className="w-5 h-5 text-emerald-400" />
                   <h2 className="text-sm font-bold text-white uppercase tracking-wide">Estatus Financiero</h2>
                 </div>
                 <span className="text-[10px] font-bold uppercase text-on-tertiary bg-tertiary-container px-2.5 py-0.5 rounded-full">
@@ -1219,14 +1262,14 @@ export default function StudentDashboardPage() {
                   rel="noopener noreferrer"
                   className="h-11 w-full flex items-center justify-center gap-2 bg-tertiary-container hover:bg-tertiary text-on-tertiary text-xs font-bold rounded-xl transition cursor-pointer shadow-md"
                 >
-                  <span className="material-symbols-outlined text-base">chat</span>
+                  <MessageSquare className="w-4 h-4" />
                   <span>Aclaraciones de Pago vía WhatsApp</span>
                 </a>
                 <button
                   onClick={triggerToast}
                   className="h-11 w-full flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-variant text-secondary text-xs font-bold rounded-xl transition cursor-pointer border border-surface-container-high"
                 >
-                  <span className="material-symbols-outlined text-base">download</span>
+                  <Download className="w-4 h-4" />
                   <span>Descargar Comprobante Digital Oficial</span>
                 </button>
               </div>
@@ -1243,7 +1286,7 @@ export default function StudentDashboardPage() {
             <section className="bg-surface-container-low rounded-3xl p-5 sm:p-6 border border-surface-container-high shadow-xl space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-secondary text-xl">health_and_safety</span>
+                  <ShieldCheck className="w-5 h-5 text-sky-400" />
                   <h2 className="text-sm font-black text-white uppercase tracking-wide">
                     Diagnóstico Postural & Prescripción
                   </h2>
@@ -1257,29 +1300,29 @@ export default function StudentDashboardPage() {
               <div className="bg-surface-container p-4 sm:p-5 rounded-2xl border border-surface-container-high flex flex-col gap-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-primary text-base">accessibility_new</span>
+                    <Activity className="w-4 h-4 text-orange-400" />
                     Estatus Biomecánico del Atleta:
                   </span>
 
                   {/* Badges según estatus postural */}
                   {!isEvaluated ? (
                     <span className="text-[10px] font-black font-mono px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-600 flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-xs">hourglass_top</span>
+                      <Clock className="w-3.5 h-3.5" />
                       [DÍA 1 PENDIENTE]
                     </span>
                   ) : postureStatus === "ultra_instinto" ? (
                     <span className="text-[10px] font-black font-mono px-3 py-1 rounded-full bg-fuchsia-500/20 text-fuchsia-200 border border-fuchsia-400/50 shadow-[0_0_12px_rgba(217,70,239,0.5)] flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-xs">auto_awesome</span>
+                      <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
                       [IMPECABLE ULTRA INSTINTO]
                     </span>
                   ) : postureStatus === "optima" ? (
                     <span className="text-[10px] font-black font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(74,225,118,0.3)] flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-xs">verified</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       [ÓPTIMA CERTIFICADA]
                     </span>
                   ) : (
                     <span className="text-[10px] font-black font-mono px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-xs">warning</span>
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                       [EN CORRECCIÓN ACTIVA]
                     </span>
                   )}
@@ -1300,7 +1343,7 @@ export default function StudentDashboardPage() {
                 {/* Prescripción de Descanso Asignado */}
                 <div className="mt-1 pt-3 border-t border-surface-container-high flex items-center justify-between bg-surface-container-lowest/60 p-3 rounded-xl border border-surface-container">
                   <div className="flex items-center gap-2.5">
-                    <span className="material-symbols-outlined text-secondary text-lg">timer</span>
+                    <Clock className="w-4 h-4 text-sky-400" />
                     <div>
                       <span className="text-[11px] uppercase font-bold text-white block">
                         Descanso Asignado entre Series:
@@ -1337,7 +1380,7 @@ export default function StudentDashboardPage() {
               <div className="flex items-start justify-between flex-wrap gap-2">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-amber-400 text-lg">trending_up</span>
+                    <TrendingUp className="w-4 h-4 text-amber-400" />
                     <h2 className="text-sm font-black text-white uppercase tracking-wide">
                       Evolución: Día 1 vs. Avance Actual
                     </h2>
@@ -1355,7 +1398,7 @@ export default function StudentDashboardPage() {
               {!isEvaluated ? (
                 <div className="py-14 px-6 text-center bg-surface-container/70 rounded-2xl border border-amber-500/20 flex flex-col items-center justify-center space-y-3">
                   <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                    <span className="material-symbols-outlined text-3xl">sports_score</span>
+                    <Activity className="w-7 h-7 text-amber-400" />
                   </div>
                   <h3 className="text-base font-black text-white uppercase tracking-wide">
                     Línea Base en Espera de tu Primer Entrenamiento
@@ -1375,7 +1418,7 @@ export default function StudentDashboardPage() {
                   <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-white flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-primary text-base">directions_run</span>
+                        <Flame className="w-4 h-4 text-orange-400" />
                         Vueltas & Resistencia
                       </span>
                       <span className="text-primary font-mono text-[11px] font-black bg-primary-container/20 px-2 py-0.5 rounded-md border border-primary-container/30">
@@ -1402,7 +1445,7 @@ export default function StudentDashboardPage() {
                   <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-white flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-tertiary text-base">fitness_center</span>
+                        <Activity className="w-4 h-4 text-emerald-400" />
                         Saltos de Cuerda
                       </span>
                       <span className="text-tertiary font-mono text-[11px] font-black bg-tertiary-container/20 px-2 py-0.5 rounded-md border border-tertiary/30">
@@ -1429,7 +1472,7 @@ export default function StudentDashboardPage() {
                   <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-white flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-secondary text-base">accessibility</span>
+                        <Zap className="w-4 h-4 text-sky-400" />
                         Fuerza de Empuje
                       </span>
                       <span className="text-secondary font-mono text-[11px] font-black bg-secondary-container/20 px-2 py-0.5 rounded-md border border-secondary/30">
@@ -1456,7 +1499,7 @@ export default function StudentDashboardPage() {
                   <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-white flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-emerald-400 text-base">sports_gymnastics</span>
+                        <Activity className="w-4 h-4 text-emerald-400" />
                         Batería 3x25
                       </span>
                       <span className="text-emerald-400 font-mono text-[11px] font-black bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30">
@@ -1483,7 +1526,7 @@ export default function StudentDashboardPage() {
                   <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-white flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-orange-400 text-base">sports_basketball</span>
+                        <Target className="w-4 h-4 text-orange-400" />
                         Tiro Graduado ({shootingAttempts} Tiros)
                       </span>
                       <span className="text-orange-400 font-mono text-[11px] font-black bg-orange-500/20 px-2 py-0.5 rounded-md border border-orange-500/30">
@@ -1510,7 +1553,7 @@ export default function StudentDashboardPage() {
                   <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-white flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sky-400 text-base">flight_takeoff</span>
+                        <Zap className="w-4 h-4 text-sky-400" />
                         Vuelo & Velocidad
                       </span>
                       <span className="text-sky-400 font-mono text-[11px] font-black bg-sky-500/20 px-2 py-0.5 rounded-md border border-sky-500/30">
@@ -1541,7 +1584,7 @@ export default function StudentDashboardPage() {
             <section className="bg-surface-container-low rounded-3xl p-5 sm:p-6 border border-surface-container-high shadow-xl space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-secondary text-xl">radar</span>
+                  <Target className="w-5 h-5 text-secondary" />
                   <div>
                     <h2 className="text-sm font-bold text-white uppercase tracking-wide">Test Day Biomecánico</h2>
                     <span className="text-[10px] text-zinc-400 block font-mono">
@@ -1622,7 +1665,7 @@ export default function StudentDashboardPage() {
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-surface-container flex items-center justify-between bg-surface-container/60">
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-secondary text-2xl">military_tech</span>
+                <Award className="w-6 h-6 text-secondary" />
                 <div>
                   <h3 className="text-sm font-black text-white uppercase tracking-tight">
                     Escalafón Biológico Wild Wolves
@@ -1636,7 +1679,7 @@ export default function StudentDashboardPage() {
                 onClick={() => setShowRankModal(false)}
                 className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
               >
-                <span className="material-symbols-outlined text-base">close</span>
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1666,7 +1709,7 @@ export default function StudentDashboardPage() {
                             ? "bg-emerald-950/60 text-emerald-400" 
                             : "bg-surface-container text-zinc-400"
                         }`}>
-                          <span className="material-symbols-outlined text-base">{rank.icon}</span>
+                          <Award className={`w-4 h-4 ${rank.textColor}`} />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -1690,7 +1733,7 @@ export default function StudentDashboardPage() {
                       )}
                       {isPassed && (
                         <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 uppercase shrink-0 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[10px]">check</span>
+                          <Check className="w-2.5 h-2.5 text-emerald-400" />
                           Superado
                         </span>
                       )}
@@ -1712,8 +1755,8 @@ export default function StudentDashboardPage() {
                       </div>
                       <div className={`rounded-lg p-1 ${rank.gymAccess ? "bg-emerald-950/40 text-emerald-300 border border-emerald-500/20" : "bg-surface-container-lowest/60 text-zinc-400"}`}>
                         <span className="text-zinc-400 block text-[9px]">Sala Pesas:</span>
-                        <span className="font-bold flex items-center justify-center gap-0.5">
-                          <span className="material-symbols-outlined text-[11px]">{rank.gymAccess ? "fitness_center" : "lock"}</span>
+                        <span className="font-bold flex items-center justify-center gap-1">
+                          {rank.gymAccess ? <Dumbbell className="w-3 h-3 text-emerald-400" /> : <Lock className="w-3 h-3 text-zinc-500" />}
                           {rank.gymAccess ? "Acceso" : "Bloqueado"}
                         </span>
                       </div>
@@ -1747,7 +1790,7 @@ export default function StudentDashboardPage() {
       <div className={`fixed bottom-8 inset-x-4 max-w-md mx-auto z-50 bg-surface-container-highest text-on-surface p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 border border-surface-container ${
         toastVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"
       }`}>
-        <span className="material-symbols-outlined text-tertiary text-2xl">task_alt</span>
+        <CheckCircle2 className="w-6 h-6 text-tertiary shrink-0" />
         <div className="flex flex-col min-w-0">
           <span className="text-xs font-bold text-white truncate">Comprobante Digital Generado</span>
           <span className="text-[10px] text-zinc-400 truncate">Comprobante digital enviado al correo del atleta.</span>

@@ -3,6 +3,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
+import {
+  Target,
+  ChevronDown,
+  Activity,
+  ShieldCheck,
+  Dumbbell,
+  Award,
+  RefreshCw,
+  CheckCircle2
+} from "lucide-react";
 
 export type AthleticLevel = "iniciacion_adaptacion" | "formativo_desarrollo" | "competitivo_elite";
 
@@ -284,7 +294,7 @@ export default function TestDayEvaluator() {
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black uppercase text-white mt-1.5 tracking-tight flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-primary-container text-2xl sm:text-3xl">radar</span>
+            <Target className="w-6 h-6 sm:w-7 sm:h-7 text-primary-container" />
             <span>Test Day: Evaluación Dinámica por Nivel</span>
           </h2>
           <p className="text-xs text-on-surface-variant mt-1">
@@ -341,9 +351,7 @@ export default function TestDayEvaluator() {
                   ))
                 )}
               </select>
-              <span className="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
-                unfold_more
-              </span>
+              <ChevronDown className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
             </div>
           </div>
 
@@ -402,7 +410,7 @@ export default function TestDayEvaluator() {
           <div className="space-y-4 animate-fade-in p-4 sm:p-5 rounded-2xl bg-surface-container/60 border border-tertiary/30">
             <div className="flex items-center justify-between border-b border-surface-container pb-2">
               <span className="text-xs font-black text-tertiary uppercase flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[18px]">nature_people</span>
+                <Activity className="w-4 h-4" />
                 Pruebas de Adaptación Motriz (Adultos Sedentarios / Niños Nuevos)
               </span>
               <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
@@ -412,7 +420,7 @@ export default function TestDayEvaluator() {
 
             {/* AVISO PEDAGÓGICO */}
             <div className="text-[11px] text-tertiary/90 bg-tertiary-container/20 border border-tertiary/30 p-3 rounded-xl flex items-center gap-2">
-              <span className="material-symbols-outlined text-base shrink-0">health_and_safety</span>
+              <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>
                 <strong>Cero pliometría explosiva en escaleras altas.</strong> La resistencia se evalúa por <strong>vueltas continuas a la cancha</strong>, y la fuerza se calibra en rangos controlados de 15 a 60 segundos.
               </span>
@@ -593,7 +601,7 @@ export default function TestDayEvaluator() {
           <div className="space-y-4 animate-fade-in p-4 sm:p-5 rounded-2xl bg-surface-container/60 border border-secondary/30">
             <div className="flex items-center justify-between border-b border-surface-container pb-2">
               <span className="text-xs font-black text-secondary uppercase flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[18px]">fitness_center</span>
+                <Dumbbell className="w-4 h-4" />
                 Pruebas Formativas & Desarrollo Físico (Jóvenes 13+ / Adultos en Evolución)
               </span>
               <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
@@ -749,7 +757,7 @@ export default function TestDayEvaluator() {
           <div className="space-y-4 animate-fade-in p-4 sm:p-5 rounded-2xl bg-surface-container/60 border border-primary-container/30">
             <div className="flex items-center justify-between border-b border-surface-container pb-2">
               <span className="text-xs font-black text-primary uppercase flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[18px]">military_tech</span>
+                <Award className="w-4 h-4" />
                 Pruebas de Alto Rendimiento • Nivel 3 Competitivo & Élite
               </span>
               <span className="text-[10px] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
@@ -945,9 +953,11 @@ export default function TestDayEvaluator() {
           disabled={saving || !selectedStudentId}
           className="w-full h-12 rounded-xl bg-tertiary hover:bg-tertiary-container text-on-tertiary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-tertiary/20 active:scale-98 cursor-pointer disabled:opacity-50"
         >
-          <span className="material-symbols-outlined text-lg">
-            {saving ? "sync" : "verified"}
-          </span>
+          {saving ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4" />
+          )}
           <span>
             {saving ? "Registrando en Base de Datos..." : `Publicar Test Day (${activeLevel === "iniciacion_adaptacion" ? "Nivel 1" : activeLevel === "formativo_desarrollo" ? "Nivel 2" : "Nivel 3"} • OVR ${calculatedOvr})`}
           </span>
@@ -956,7 +966,7 @@ export default function TestDayEvaluator() {
         {/* TOAST CONFIRMACIÓN */}
         {successMsg && (
           <div className="p-3.5 rounded-xl bg-tertiary/20 text-tertiary text-xs font-bold text-center border border-tertiary/30 animate-fade-in flex items-center justify-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">task_alt</span>
+            <CheckCircle2 className="w-4 h-4" />
             <span>¡Evaluación guardada exitosamente y reflejada en la Cyber Wolf Card del deportista!</span>
           </div>
         )}

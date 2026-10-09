@@ -2,6 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { 
+  Activity, 
+  X, 
+  Check, 
+  Sun, 
+  CreditCard, 
+  ArrowRight, 
+  Lock 
+} from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -118,7 +127,7 @@ export default function AuthModal({
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 rounded-2xl bg-primary-container flex items-center justify-center text-on-primary shadow-md">
-                <span className="material-symbols-outlined text-3xl">sports_basketball</span>
+                <Activity className="w-6 h-6 text-orange-400" />
               </div>
               <div>
                 <div className="flex items-center space-x-2">
@@ -133,7 +142,7 @@ export default function AuthModal({
               aria-label="Cerrar modal" 
               className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
             >
-              <span className="material-symbols-outlined text-lg">close</span>
+              <X className="w-4 h-4" />
             </button>
           </div>
           <p className="text-xs text-on-surface-variant mt-3 leading-relaxed">
@@ -172,7 +181,7 @@ export default function AuthModal({
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
                   freq === "daily" ? "bg-primary-container text-on-primary" : "bg-surface-variant text-transparent"
                 }`}>
-                  <span className="material-symbols-outlined text-xs font-bold">check</span>
+                  <Check className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
@@ -226,7 +235,7 @@ export default function AuthModal({
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
                   freq === "alternate" ? "bg-primary-container text-on-primary" : "bg-surface-variant text-transparent"
                 }`}>
-                  <span className="material-symbols-outlined text-xs font-bold">check</span>
+                  <Check className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
@@ -266,7 +275,7 @@ export default function AuthModal({
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
                   freq === "custom" ? "bg-primary-container text-on-primary" : "bg-surface-variant text-transparent"
                 }`}>
-                  <span className="material-symbols-outlined text-xs font-bold">check</span>
+                  <Check className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
@@ -294,7 +303,7 @@ export default function AuthModal({
               >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-secondary">
-                    <span className="material-symbols-outlined text-2xl">wb_sunny</span>
+                    <Sun className="w-5 h-5 text-amber-400" />
                   </div>
                   <div>
                     <div className="flex items-center space-x-2">
@@ -307,7 +316,7 @@ export default function AuthModal({
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
                   shift === "matutino_9_11" ? "bg-secondary text-on-secondary" : "bg-surface-variant text-transparent"
                 }`}>
-                  <span className="material-symbols-outlined text-xs font-bold">check</span>
+                  <Check className="w-3.5 h-3.5" />
                 </div>
               </div>
 
@@ -321,7 +330,7 @@ export default function AuthModal({
               >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-xl bg-on-secondary/40 flex items-center justify-center text-secondary">
-                    <span className="material-symbols-outlined text-2xl">sports_basketball</span>
+                    <Activity className="w-5 h-5 text-orange-400" />
                   </div>
                   <div>
                     <div className="flex items-center space-x-2">
@@ -334,7 +343,7 @@ export default function AuthModal({
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
                   shift === "vespertino_5_7" ? "bg-secondary text-on-secondary" : "bg-surface-variant text-transparent"
                 }`}>
-                  <span className="material-symbols-outlined text-xs font-bold">check</span>
+                  <Check className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
@@ -344,7 +353,7 @@ export default function AuthModal({
           <section className="rounded-2xl bg-surface-container-lowest p-4 space-y-2 border border-surface-container-high">
             <div className="flex items-start space-x-3">
               <div className="w-8 h-8 rounded-xl bg-primary-container/20 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <span className="material-symbols-outlined text-lg">payments</span>
+                <CreditCard className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
                 <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">CUOTAS REGLAMENTARIAS</span>
@@ -368,10 +377,10 @@ export default function AuthModal({
             className="w-full h-12 rounded-xl bg-primary-container hover:brightness-110 active:scale-[0.99] text-on-primary font-bold text-sm flex items-center justify-center space-x-2 transition shadow-lg shadow-primary-container/20 cursor-pointer disabled:opacity-50"
           >
             <span>{loading ? "Guardando..." : "Guardar Compromiso y Acceder al Club"}</span>
-            <span className="material-symbols-outlined text-lg">arrow_forward</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
           <span className="text-[10px] text-on-surface-variant flex items-center gap-1 font-mono">
-            <span className="material-symbols-outlined text-xs text-secondary">lock</span>
+            <Lock className="w-3 h-3 text-secondary" />
             Compromiso modificable directamente con tu Head Coach
           </span>
         </div>

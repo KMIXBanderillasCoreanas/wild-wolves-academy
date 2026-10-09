@@ -23,6 +23,7 @@ import {
   HeartPulse
 } from "lucide-react";
 import { enqueueOfflineAction } from "@/lib/offlineSync";
+import TierProgressionBar, { getTierForMetrics } from "@/components/TierProgressionBar";
 
 export default function DualCoachCommand() {
   const [students, setStudents] = useState<any[]>([]);
@@ -70,6 +71,9 @@ export default function DualCoachCommand() {
   // Selector de estatus postural: [En Corrección] [Óptima] [Impecable Ultra Instinto]
   const [postureStatus, setPostureStatus] = useState<"en_correccion" | "optima" | "ultra_instinto">("optima");
   const [restSeconds, setRestSeconds] = useState<number>(45);
+
+  // Escalafón Biológico Oficial (9 Tiers) calculado reactivamente
+  const calculatedTier = getTierForMetrics(lapsDone, joggingMin, ropeCount, postureStatus);
 
   // ==========================================
   // 3. PESTAÑA 3: PRUEBAS TÉCNICAS DE BALONCESTO
@@ -573,6 +577,14 @@ export default function DualCoachCommand() {
         {activeTab === "fisico" && (
           <div className="space-y-5 animate-fade-in">
             
+            {/* ESCALAFÓN BIOLÓGICO OFICIAL (9 TIERS) & REQUISITOS DE GRADUACIÓN */}
+            <TierProgressionBar 
+              currentLevel={calculatedTier.level}
+              onSelectTier={(selectedTier) => {
+                setRestSeconds(selectedTier.restSeconds);
+              }}
+            />
+
             {/* INTERRUPTORES TÁCTILES DEL COACH */}
             <div className="bg-[#191b23] border border-[#272a32] p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
               <span className="font-extrabold text-white flex items-center gap-2">
@@ -847,20 +859,34 @@ export default function DualCoachCommand() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase text-[#e2bfb2] block mb-2">
-                    Segundos de Descanso Asignados entre Series:
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[30, 45, 60, 90].map((sec) => (
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-bold uppercase text-[#e2bfb2] block">
+                      Segundos de Descanso Asignados entre Series:
+                    </label>
+                    <span className="text-[10px] font-mono text-orange-400 font-bold">
+                      Mandatorio Tier: {calculatedTier.restSeconds}s
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                    {[
+                      { sec: 120, label: "T1 (120s)" },
+                      { sec: 90, label: "T2 (90s)" },
+                      { sec: 60, label: "T3 (60s)" },
+                      { sec: 45, label: "T4 (45s)" },
+                      { sec: 30, label: "T5 (30s)" },
+                      { sec: 15, label: "T7-9 (15s)" },
+                      { sec: 10, label: "T6 (10s)" },
+                    ].map(({ sec, label }) => (
                       <button
                         key={sec}
                         type="button"
                         onClick={() => setRestSeconds(sec)}
-                        className={`py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border ${
+                        className={`py-2 px-1 rounded-xl text-xs font-mono font-bold transition cursor-pointer border text-center ${
                           restSeconds === sec
-                            ? "bg-[#f66018] border-[#f66018] text-white shadow"
-                            : "bg-[#1d2027] border-transparent text-zinc-400"
+                            ? "bg-[#f66018] border-[#f66018] text-white shadow-lg shadow-orange-500/20"
+                            : "bg-[#1d2027] border-transparent text-zinc-400 hover:text-white"
                         }`}
+                        title={label}
                       >
                         {sec}s
                       </button>
