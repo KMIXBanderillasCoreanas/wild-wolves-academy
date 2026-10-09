@@ -13,13 +13,20 @@ import {
   Youtube, 
   Facebook, 
   MessageCircle, 
-  Download
+  Download,
+  ShoppingBag,
+  Compass,
+  X,
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showStoreModal, setShowStoreModal] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
 
   useEffect(() => {
     async function syncUser() {
@@ -330,6 +337,33 @@ export function Navbar() {
               Inicio
             </Link>
           )}
+
+          {/* Accesos Directos Oficiales Fase 2: Tienda Wolves & Gira Nacional */}
+          <button
+            type="button"
+            onClick={() => setShowStoreModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold font-mono tracking-wider text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition cursor-pointer border border-transparent hover:border-zinc-700"
+            title="Tienda Oficial Wild Wolves"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 text-orange-400" />
+            <span className="hidden lg:inline">Tienda Wolves</span>
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+              Próximamente
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowTourModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold font-mono tracking-wider text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition cursor-pointer border border-transparent hover:border-zinc-700"
+            title="Gira Nacional Wild Wolves"
+          >
+            <Compass className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden lg:inline">Gira Nacional</span>
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">
+              Próximamente
+            </span>
+          </button>
         </div>
 
         {/* LADO DERECHO: Chip de Perfil Oficial y Logout */}
@@ -379,6 +413,186 @@ export function Navbar() {
           )}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* MODAL: TIENDA OFICIAL WILD WOLVES (PRÓXIMAMENTE)                          */}
+      {/* ========================================================================= */}
+      {showStoreModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-[#10131a] border border-[#272a32] rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+            <div className="flex items-start justify-between pb-4 border-b border-[#272a32] mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400">
+                  <ShoppingBag className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black uppercase text-white tracking-tight">
+                      Tienda Oficial Wild Wolves
+                    </h3>
+                    <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-orange-500 text-black">
+                      Fase 2
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-zinc-400 font-mono">
+                    Equipamiento técnico para el entrenamiento de alta intensidad
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowStoreModal(false)}
+                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs max-h-[60vh] overflow-y-auto pr-1">
+              {[
+                {
+                  title: "🏀 Balones Oficiales Wild Wolves",
+                  desc: "Cuero composite microfibra con canales profundos y grip anti-sudor para duela y exteriores.",
+                  status: "Preventa en Cancha"
+                },
+                {
+                  title: "⚡ Cuerdas de Salto de Alta Velocidad",
+                  desc: "Cable de acero ultra ligero con baleros de alta rotación 360° para series de 250 a 1,000 saltos.",
+                  status: "Próximamente"
+                },
+                {
+                  title: "🏋️ Polainas con Peso (2 kg cada una)",
+                  desc: "Neopreno ergonómico con velcro reforzado para potenciar el despegue vertical y fuerza de piernas.",
+                  status: "Próximamente"
+                },
+                {
+                  title: "💨 Paracaídas de Aceleración",
+                  desc: "Resistencia aerodinámica para sprints de 100m y desarrollo de velocidad de reacción explosiva.",
+                  status: "Próximamente"
+                },
+                {
+                  title: "🐺 Uniformes Oficiales de Juego",
+                  desc: "Jersey y short transpirable con tecnología M3, escudo bordado CDMX y número personalizado.",
+                  status: "Edición 2026"
+                }
+              ].map((item, i) => (
+                <div key={i} className="p-3 bg-[#191b23] border border-[#272a32] rounded-xl flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-bold text-white text-xs">{item.title}</h4>
+                    <p className="text-[11px] text-zinc-400 mt-0.5 leading-tight">{item.desc}</p>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold px-2 py-1 rounded bg-[#0b0e15] text-orange-400 border border-orange-500/30 whitespace-nowrap">
+                    {item.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-[#272a32] flex gap-2">
+              <a
+                href="https://wa.me/525522427769?text=Hola%20Coach%20Ricardo%2C%20solicito%20informaci%C3%B3n%20sobre%20la%20preventa%20de%20la%20Tienda%20Oficial%20Wild%20Wolves"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 bg-gradient-to-r from-orange-600 to-amber-500 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-lg shadow-orange-500/20"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Solicitar Preventa vía WhatsApp</span>
+              </a>
+              <button
+                onClick={() => setShowStoreModal(false)}
+                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs uppercase rounded-xl transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: GIRA NACIONAL WILD WOLVES (PRÓXIMAMENTE)                           */}
+      {/* ========================================================================= */}
+      {showTourModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-[#10131a] border border-[#272a32] rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+            <div className="flex items-start justify-between pb-4 border-b border-[#272a32] mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400">
+                  <Compass className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black uppercase text-white tracking-tight">
+                      Gira Nacional Wild Wolves
+                    </h3>
+                    <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full bg-sky-500 text-black">
+                      Expediciones
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-zinc-400 font-mono">
+                    Convocatoria a expediciones y torneos en canchas de la República
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTourModal(false)}
+                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs max-h-[60vh] overflow-y-auto pr-1">
+              <div className="p-3.5 bg-[#191b23] border border-sky-500/30 rounded-xl">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-4 h-4 text-sky-400" />
+                  <h4 className="font-bold text-white text-xs">Canchas Emblemáticas de México</h4>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  Encuentros y torneos de fogueo en canchas profesionales y duela contra selectivos estatales en Puebla, Querétaro, Guadalajara, Monterrey y Acapulco.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-[#191b23] border border-[#272a32] rounded-xl">
+                <div className="flex items-center gap-2 mb-1">
+                  <Compass className="w-4 h-4 text-emerald-400" />
+                  <h4 className="font-bold text-white text-xs">Campamentos de Acondicionamiento Físico en Altura</h4>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  Expediciones de adaptación neuromuscular, trote continuo de montaña y fortalecimiento cardiovascular en altura para elevar la capacidad biológica del atleta.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-[#191b23] border border-[#272a32] rounded-xl">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="w-4 h-4 text-orange-400" />
+                  <h4 className="font-bold text-white text-xs">Criterio de Selección del Roster</h4>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  Convocatoria abierta para atletas con rango formal en el Escalafón Biológico a partir de Tier 5 (Militar), Tier 6 (Élite) o superior, con asistencia validada en Carmen Serdán.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-[#272a32] flex gap-2">
+              <a
+                href="https://wa.me/525522427769?text=Hola%20Coach%20Ricardo%2C%20solicito%20informaci%C3%B3n%20sobre%20la%20Gira%20Nacional%20y%20Expediciones%20Wild%20Wolves"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:brightness-110 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/20"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Solicitar Informe de Gira en WhatsApp</span>
+              </a>
+              <button
+                onClick={() => setShowTourModal(false)}
+                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs uppercase rounded-xl transition cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

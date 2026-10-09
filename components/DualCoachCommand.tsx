@@ -20,7 +20,9 @@ import {
   Layers,
   Award,
   Clock,
-  HeartPulse
+  HeartPulse,
+  Crosshair,
+  Check
 } from "lucide-react";
 import { enqueueOfflineAction } from "@/lib/offlineSync";
 import TierProgressionBar, { getTierForMetrics } from "@/components/TierProgressionBar";
@@ -76,9 +78,28 @@ export default function DualCoachCommand() {
   const calculatedTier = getTierForMetrics(lapsDone, joggingMin, ropeCount, postureStatus);
 
   // ==========================================
-  // 3. PESTAÑA 3: PRUEBAS TÉCNICAS DE BALONCESTO
+  // 3. PESTAÑA 3: PRUEBAS TÉCNICAS DE BALONCESTO & 5 SPOTS
   // ==========================================
-  // Selector de Base de Tiros: [5 Tiros] vs [10 Tiros]
+  // Circuito de 25 Tiros Perimetrales (5 Puntos Clave: 0-5 aciertos cada uno)
+  const [spotCornerLeft, setSpotCornerLeft] = useState<number>(3);
+  const [spotWingLeft, setSpotWingLeft] = useState<number>(4);
+  const [spotTopKey, setSpotTopKey] = useState<number>(4);
+  const [spotWingRight, setSpotWingRight] = useState<number>(3);
+  const [spotCornerRight, setSpotCornerRight] = useState<number>(4);
+
+  // Mecánica de Suspensión y Parábola (1 a 10)
+  const [suspensionHeight, setSuspensionHeight] = useState<number>(8);
+  const [arcParabola, setArcParabola] = useState<number>(8);
+  const [followThrough, setFollowThrough] = useState<number>(9);
+
+  // Habilidades Especiales de Bote y Manejo (Switches Táctiles)
+  const [ankleBreakerDone, setAnkleBreakerDone] = useState<boolean>(true);
+  const [behindBackDone, setBehindBackDone] = useState<boolean>(true);
+
+  // Habilidades de Vuelo y Salto (Switches Táctiles)
+  const [midAirSwitchDone, setMidAirSwitchDone] = useState<boolean>(true);
+
+  // Selector de Base de Tiros Adicional: [5 Tiros] vs [10 Tiros]
   const [shootingBase, setShootingBase] = useState<5 | 10>(5);
   const [ftMade, setFtMade] = useState<number>(4);
   const [midMade, setMidMade] = useState<number>(3);
@@ -165,8 +186,36 @@ export default function DualCoachCommand() {
           setEntrySquats(data.initial_squats_count ?? 12);
           setEntryNotes(data.initial_posture_notes ?? "");
           setHasExistingBaseline(true);
-          return;
+        } else {
+          setHasExistingBaseline(false);
         }
+
+        // Cargar últimas pruebas técnicas de baloncesto registradas
+        const { data: bLog } = await supabase
+          .from("basketball_skills_logs")
+          .select("*")
+          .eq("student_id", studentId)
+          .order("test_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (bLog) {
+          if (typeof bLog.spot_corner_left === "number") setSpotCornerLeft(bLog.spot_corner_left);
+          if (typeof bLog.spot_wing_left === "number") setSpotWingLeft(bLog.spot_wing_left);
+          if (typeof bLog.spot_top_key === "number") setSpotTopKey(bLog.spot_top_key);
+          if (typeof bLog.spot_wing_right === "number") setSpotWingRight(bLog.spot_wing_right);
+          if (typeof bLog.spot_corner_right === "number") setSpotCornerRight(bLog.spot_corner_right);
+          if (typeof bLog.mechanics_suspension_height === "number") setSuspensionHeight(bLog.mechanics_suspension_height);
+          if (typeof bLog.mechanics_arc_parabola === "number") setArcParabola(bLog.mechanics_arc_parabola);
+          if (typeof bLog.mechanics_follow_through === "number") setFollowThrough(bLog.mechanics_follow_through);
+          if (typeof bLog.ankle_breaker_done === "boolean") setAnkleBreakerDone(bLog.ankle_breaker_done);
+          if (typeof bLog.behind_back_done === "boolean") setBehindBackDone(bLog.behind_back_done);
+          if (typeof bLog.mid_air_switch_done === "boolean") setMidAirSwitchDone(bLog.mid_air_switch_done);
+          if (typeof bLog.vertical_jump_cm === "number") setVerticalJumpCm(bLog.vertical_jump_cm);
+          if (typeof bLog.broad_jump_cm === "number") setBroadJumpCm(bLog.broad_jump_cm);
+          if (typeof bLog.board_rebound_drill_done === "boolean") setBoardDrillDone(bLog.board_rebound_drill_done);
+        }
+        return;
       }
 
       // Respaldo en localStorage
@@ -180,13 +229,28 @@ export default function DualCoachCommand() {
           setEntrySquats(b.initial_squats_count ?? 12);
           setEntryNotes(b.initial_posture_notes ?? "");
           setHasExistingBaseline(true);
-          return;
+        } else {
+          setHasExistingBaseline(false);
+        }
+
+        const localBasket = JSON.parse(localStorage.getItem("ww_basketball_logs") || "{}");
+        if (localBasket[studentId] && localBasket[studentId][0]) {
+          const bLog = localBasket[studentId][0];
+          if (typeof bLog.spot_corner_left === "number") setSpotCornerLeft(bLog.spot_corner_left);
+          if (typeof bLog.spot_wing_left === "number") setSpotWingLeft(bLog.spot_wing_left);
+          if (typeof bLog.spot_top_key === "number") setSpotTopKey(bLog.spot_top_key);
+          if (typeof bLog.spot_wing_right === "number") setSpotWingRight(bLog.spot_wing_right);
+          if (typeof bLog.spot_corner_right === "number") setSpotCornerRight(bLog.spot_corner_right);
+          if (typeof bLog.mechanics_suspension_height === "number") setSuspensionHeight(bLog.mechanics_suspension_height);
+          if (typeof bLog.mechanics_arc_parabola === "number") setArcParabola(bLog.mechanics_arc_parabola);
+          if (typeof bLog.mechanics_follow_through === "number") setFollowThrough(bLog.mechanics_follow_through);
+          if (typeof bLog.ankle_breaker_done === "boolean") setAnkleBreakerDone(bLog.ankle_breaker_done);
+          if (typeof bLog.behind_back_done === "boolean") setBehindBackDone(bLog.behind_back_done);
+          if (typeof bLog.mid_air_switch_done === "boolean") setMidAirSwitchDone(bLog.mid_air_switch_done);
         }
       }
-
-      setHasExistingBaseline(false);
     } catch (e) {
-      console.warn("Fallo cargando baseline:", e);
+      console.warn("Fallo cargando baseline o basket log:", e);
     }
   };
 
@@ -309,6 +373,9 @@ export default function DualCoachCommand() {
       // CASO 3: PESTAÑA 3 - PRUEBAS TÉCNICAS DE BALONCESTO
       // ----------------------------------------------------
       else if (activeTab === "baloncesto") {
+        const spotsTotal = spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight;
+        const mechanicsScore = Number(((suspensionHeight + arcParabola + followThrough) / 3).toFixed(1));
+
         const basketballPayload = {
           student_id: selectedStudentId,
           coach_id: coachId,
@@ -318,6 +385,19 @@ export default function DualCoachCommand() {
           mid_range_made: midMade,
           three_point_made: threeMade,
           half_court_made: halfMade,
+          spot_corner_left: spotCornerLeft,
+          spot_wing_left: spotWingLeft,
+          spot_top_key: spotTopKey,
+          spot_wing_right: spotWingRight,
+          spot_corner_right: spotCornerRight,
+          spots_total_made: spotsTotal,
+          mechanics_suspension_height: suspensionHeight,
+          mechanics_arc_parabola: arcParabola,
+          mechanics_follow_through: followThrough,
+          mechanics_overall_score: mechanicsScore,
+          ankle_breaker_done: ankleBreakerDone,
+          behind_back_done: behindBackDone,
+          mid_air_switch_done: midAirSwitchDone,
           sprint_100m_seconds: parseFloat(sprint100m) || 14.20,
           lines_one_way_seconds: parseFloat(linesOneWay) || 11.50,
           lines_round_trip_seconds: parseFloat(linesRoundTrip) || 24.10,
@@ -336,13 +416,85 @@ export default function DualCoachCommand() {
           window.dispatchEvent(new CustomEvent("basketball_skills_logged", { detail: basketballPayload }));
         }
 
+        // Evaluar medallas ganadas en tiempo real
+        const badgesToAward: Array<{ key: string; title: string; icon: string }> = [];
+        if (spotsTotal >= 18) {
+          badgesToAward.push({ key: "francotirador_alfa", title: "Francotirador Alfa", icon: "Crosshair" });
+        }
+        if (ankleBreakerDone && behindBackDone) {
+          badgesToAward.push({ key: "crossover_mortal", title: "Crossover Mortal", icon: "Zap" });
+        }
+        if (midAirSwitchDone && verticalJumpCm >= 60) {
+          badgesToAward.push({ key: "gravedad_cero", title: "Gravedad Cero", icon: "Flame" });
+        }
+
+        if (typeof window !== "undefined" && badgesToAward.length > 0) {
+          const existingBadges = JSON.parse(localStorage.getItem("ww_student_badges") || "{}");
+          if (!existingBadges[selectedStudentId]) existingBadges[selectedStudentId] = [];
+          badgesToAward.forEach(b => {
+            if (!existingBadges[selectedStudentId].some((eb: any) => eb.badge_key === b.key)) {
+              existingBadges[selectedStudentId].push({
+                badge_key: b.key,
+                badge_title: b.title,
+                badge_icon: b.icon,
+                unlocked_at: new Date().toISOString()
+              });
+            }
+          });
+          localStorage.setItem("ww_student_badges", JSON.stringify(existingBadges));
+          window.dispatchEvent(new CustomEvent("student_badges_updated", { detail: existingBadges[selectedStudentId] }));
+        }
+
         if (navigator.onLine) {
-          await supabase.from("basketball_skills_logs").insert(basketballPayload);
+          try {
+            const { error: insErr } = await supabase.from("basketball_skills_logs").insert(basketballPayload);
+            if (insErr) {
+              console.warn("Retrying with legacy payload structure if new columns not yet applied:", insErr);
+              const legacyPayload = {
+                student_id: selectedStudentId,
+                coach_id: coachId,
+                test_date: todayDate,
+                shooting_base_attempts: shootingBase,
+                free_throws_made: ftMade,
+                mid_range_made: midMade,
+                three_point_made: threeMade,
+                half_court_made: halfMade,
+                sprint_100m_seconds: parseFloat(sprint100m) || 14.20,
+                lines_one_way_seconds: parseFloat(linesOneWay) || 11.50,
+                lines_round_trip_seconds: parseFloat(linesRoundTrip) || 24.10,
+                defensive_touch_verified: defensiveTwoHands,
+                vertical_jump_cm: verticalJumpCm,
+                broad_jump_cm: broadJumpCm,
+                board_rebound_drill_done: boardDrillDone,
+                coach_notes: basketNotes
+              };
+              await supabase.from("basketball_skills_logs").insert(legacyPayload);
+            }
+
+            if (badgesToAward.length > 0) {
+              for (const b of badgesToAward) {
+                try {
+                  await supabase.from("student_earned_badges").upsert({
+                    student_id: selectedStudentId,
+                    badge_key: b.key,
+                    badge_title: b.title,
+                    badge_icon: b.icon,
+                    metadata: { unlocked_by: "coach_evaluation", spots_made: spotsTotal, date: todayDate }
+                  }, { onConflict: "student_id,badge_key" });
+                } catch (bErr) {
+                  console.warn("Badge sync note:", bErr);
+                }
+              }
+            }
+          } catch (netErr) {
+            console.warn("Error en supabase insert:", netErr);
+            enqueueOfflineAction("BASKETBALL_LOG", basketballPayload);
+          }
         } else {
           enqueueOfflineAction("BASKETBALL_LOG", basketballPayload);
         }
 
-        setFeedbackSuccess("¡Pruebas Técnicas de Baloncesto registradas y publicadas en el expediente del atleta!");
+        setFeedbackSuccess("¡Pruebas Técnicas de Baloncesto (5 Spots & Habilidades) registradas y medallas actualizadas!");
       }
 
       setTimeout(() => setFeedbackSuccess(null), 4500);
@@ -900,106 +1052,440 @@ export default function DualCoachCommand() {
         )}
 
         {/* ========================================================================= */}
-        {/* PESTAÑA 3: PRUEBAS TÉCNICAS DE BALONCESTO (FUNDAMENTOS)                   */}
+        {/* PESTAÑA 3: PRUEBAS TÉCNICAS DE BALONCESTO & 5 SPOTS                       */}
         {/* ========================================================================= */}
         {activeTab === "baloncesto" && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             
-            {/* 1. SELECTOR DE BASE DE TIROS (5 VS 10 TIROS) */}
-            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#272a32] gap-2">
+            {/* 1. CIRCUITO DE 25 TIROS PERIMETRALES (5 PUNTOS CLAVE) */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 sm:p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#272a32] gap-3">
                 <div>
-                  <h3 className="text-sm font-black uppercase text-[#7bd0ff] flex items-center gap-2">
-                    <Target className="w-5 h-5 text-[#7bd0ff]" /> Batería de Tiro Escalonado
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Crosshair className="w-5 h-5 text-[#f66018]" />
+                    <h3 className="text-sm font-black uppercase text-white tracking-wide">
+                      Circuito Perimetral de 25 Tiros (5 Puntos Clave)
+                    </h3>
+                  </div>
                   <p className="text-xs text-[#e2bfb2] mt-0.5">
-                    Contadores de aciertos en Tiro Libre, Media Distancia, Triples y Media Cancha.
+                    Evaluación táctil de efectividad perimetral: 5 lanzamientos por estación clave en la duela.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 p-1 rounded-xl bg-[#0b0e15] border border-[#32353d]">
-                  <button
-                    type="button"
-                    onClick={() => setShootingBase(5)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      shootingBase === 5 ? "bg-[#00a6e0] text-white shadow" : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    Base 5 Tiros
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShootingBase(10)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      shootingBase === 10 ? "bg-[#00a6e0] text-white shadow" : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    Base 10 Tiros
-                  </button>
+                {/* Score Total y Porcentaje */}
+                <div className="flex items-center gap-3 bg-[#0b0e15] px-4 py-2 rounded-xl border border-[#32353d] self-start sm:self-auto">
+                  <div className="text-right">
+                    <span className="text-[10px] text-zinc-400 font-mono block">Aciertos Totales:</span>
+                    <span className="text-lg font-black font-mono text-[#f66018]">
+                      {spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight} / 25
+                    </span>
+                  </div>
+                  <div className="h-8 w-px bg-zinc-800"></div>
+                  <div>
+                    <span className="text-[10px] text-zinc-400 font-mono block">Efectividad:</span>
+                    <span className="text-lg font-black font-mono text-[#4ae176]">
+                      {Math.round(((spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight) / 25) * 100)}%
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
-                {/* Tiro Libre */}
-                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
-                  <span className="text-zinc-400 block mb-1 font-bold">Tiro Libre</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max={shootingBase}
-                    value={ftMade}
-                    onChange={(e) => setFtMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#4ae176] mx-auto font-mono"
+              {/* Barra de Efectividad */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-zinc-400 text-[11px]">Barra de Rendimiento Perimetral:</span>
+                  <span className={`font-black ${
+                    (spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight) >= 18 
+                      ? "text-emerald-400" 
+                      : (spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight) >= 12 
+                      ? "text-amber-400" 
+                      : "text-zinc-400"
+                  }`}>
+                    {Math.round(((spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight) / 25) * 100)}% de efectividad
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-[#0b0e15] rounded-full overflow-hidden border border-[#32353d]">
+                  <div 
+                    className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-orange-600 via-amber-500 to-emerald-400"
+                    style={{ width: `${Math.round(((spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight) / 25) * 100)}%` }}
                   />
-                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
+                </div>
+              </div>
+
+              {/* Banner de Insignia Francotirador Alfa si cumple >= 18 */}
+              {(spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight) >= 18 && (
+                <div className="p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-xl flex items-center justify-between gap-3 text-xs text-emerald-300 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <span>
+                      <strong>¡Medalla Francotirador Alfa Activada!</strong> El atleta supera la marca de 18/25 en el circuito perimetral oficial.
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[10px] font-black uppercase shrink-0 font-mono">
+                    Desbloqueada
+                  </span>
+                </div>
+              )}
+
+              {/* Grid Táctil de las 5 Estaciones */}
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                {[
+                  {
+                    name: "1. Esquina Izquierda",
+                    sub: "Corner Left",
+                    val: spotCornerLeft,
+                    set: setSpotCornerLeft,
+                    accent: "border-sky-500/30 text-sky-400"
+                  },
+                  {
+                    name: "2. Ala 45° Izquierda",
+                    sub: "Wing Left",
+                    val: spotWingLeft,
+                    set: setSpotWingLeft,
+                    accent: "border-cyan-500/30 text-cyan-400"
+                  },
+                  {
+                    name: "3. Cabecera Central",
+                    sub: "Top of the Key",
+                    val: spotTopKey,
+                    set: setSpotTopKey,
+                    accent: "border-orange-500/40 text-orange-400"
+                  },
+                  {
+                    name: "4. Ala 45° Derecha",
+                    sub: "Wing Right",
+                    val: spotWingRight,
+                    set: setSpotWingRight,
+                    accent: "border-cyan-500/30 text-cyan-400"
+                  },
+                  {
+                    name: "5. Esquina Derecha",
+                    sub: "Corner Right",
+                    val: spotCornerRight,
+                    set: setSpotCornerRight,
+                    accent: "border-sky-500/30 text-sky-400"
+                  }
+                ].map((spot, idx) => (
+                  <div 
+                    key={idx}
+                    className={`bg-[#1d2027] border ${spot.accent} p-3.5 rounded-2xl flex flex-col items-center justify-between text-center relative group`}
+                  >
+                    <div className="w-full mb-2">
+                      <span className="text-white text-xs font-black block truncate">{spot.name}</span>
+                      <span className="text-[10px] text-zinc-400 font-mono block">{spot.sub}</span>
+                    </div>
+
+                    {/* Selector de número grande */}
+                    <div className="my-1.5 flex items-center justify-center">
+                      <div className="w-14 h-12 rounded-xl bg-[#0b0e15] border border-[#32353d] flex items-center justify-center text-xl font-mono font-black text-white group-hover:border-orange-500/50 transition">
+                        {spot.val}
+                        <span className="text-xs text-zinc-500 ml-0.5 font-normal">/5</span>
+                      </div>
+                    </div>
+
+                    {/* Botones táctiles 0 al 5 con un solo toque */}
+                    <div className="grid grid-cols-6 gap-1 w-full mt-2">
+                      {[0, 1, 2, 3, 4, 5].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => spot.set(num)}
+                          className={`py-1.5 rounded-lg text-[11px] font-mono font-bold transition cursor-pointer ${
+                            spot.val === num
+                              ? "bg-gradient-to-t from-orange-600 to-amber-500 text-white font-black shadow-md shadow-orange-500/30 scale-105"
+                              : "bg-[#0b0e15] text-zinc-400 hover:text-white hover:bg-zinc-800"
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. MECÁNICA DE SUSPENSIÓN Y PARÁBOLA */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#272a32] gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-[#7bd0ff]" />
+                    <h3 className="text-sm font-black uppercase text-white tracking-wide">
+                      Mecánica de Suspensión, Parábola y Guía
+                    </h3>
+                  </div>
+                  <p className="text-xs text-[#e2bfb2] mt-0.5">
+                    Evaluación biomecánica cualitativa en escala de 1 a 10.
+                  </p>
                 </div>
 
-                {/* Media Distancia */}
-                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
-                  <span className="text-zinc-400 block mb-1 font-bold">Media Distancia</span>
+                <div className="flex items-center gap-2 bg-[#0b0e15] px-3.5 py-1.5 rounded-xl border border-[#32353d] self-start sm:self-auto">
+                  <span className="text-[10px] text-zinc-400 font-mono">Calificación Biomecánica:</span>
+                  <span className="text-sm font-black font-mono text-[#7bd0ff]">
+                    {((suspensionHeight + arcParabola + followThrough) / 3).toFixed(1)} / 10
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                {/* Altura de suspensión */}
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d] space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-bold">1. Altura de Suspensión</span>
+                    <span className="font-mono text-sm font-black text-[#7bd0ff]">{suspensionHeight}/10</span>
+                  </div>
                   <input
-                    type="number"
-                    min="0"
-                    max={shootingBase}
-                    value={midMade}
-                    onChange={(e) => setMidMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#7bd0ff] mx-auto font-mono"
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={suspensionHeight}
+                    onChange={(e) => setSuspensionHeight(Number(e.target.value))}
+                    className="w-full accent-[#7bd0ff] cursor-pointer"
                   />
-                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
+                  <span className="text-[10px] text-zinc-400 block">
+                    Elevación en despegue y suelta en el punto máximo de suspensión.
+                  </span>
                 </div>
 
-                {/* Triples */}
-                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
-                  <span className="text-zinc-400 block mb-1 font-bold">Triples</span>
+                {/* Arco parabólico */}
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d] space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-bold">2. Arco Parabólico</span>
+                    <span className="font-mono text-sm font-black text-amber-400">{arcParabola}/10</span>
+                  </div>
                   <input
-                    type="number"
-                    min="0"
-                    max={shootingBase}
-                    value={threeMade}
-                    onChange={(e) => setThreeMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#ffb599] mx-auto font-mono"
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={arcParabola}
+                    onChange={(e) => setArcParabola(Number(e.target.value))}
+                    className="w-full accent-amber-400 cursor-pointer"
                   />
-                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
+                  <span className="text-[10px] text-zinc-400 block">
+                    Ángulo de entrada (~45°–52°) sin trayectoria plana o errática.
+                  </span>
                 </div>
 
-                {/* Media Cancha */}
-                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
-                  <span className="text-zinc-400 block mb-1 font-bold">Media Cancha</span>
+                {/* Guía del brazo ("follow-through") */}
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d] space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-bold">3. Follow-Through (Guía)</span>
+                    <span className="font-mono text-sm font-black text-[#4ae176]">{followThrough}/10</span>
+                  </div>
                   <input
-                    type="number"
-                    min="0"
-                    max={shootingBase}
-                    value={halfMade}
-                    onChange={(e) => setHalfMade(Number(e.target.value))}
-                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-purple-400 mx-auto font-mono"
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={followThrough}
+                    onChange={(e) => setFollowThrough(Number(e.target.value))}
+                    className="w-full accent-[#4ae176] cursor-pointer"
                   />
-                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
+                  <span className="text-[10px] text-zinc-400 block">
+                    Extensión completa del brazo rector y quiebre de muñeca (&quot;cuello de ganso&quot;).
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* 2. CAMPOS DE VELOCIDAD CON MILÉSIMAS (00.00S) Y LÍNEAS */}
-            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 space-y-4">
+            {/* 3. HABILIDADES ESPECIALES DE BOTE Y MANEJO */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 sm:p-6 space-y-4">
+              <div className="pb-3 border-b border-[#272a32]">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-sm font-black uppercase text-white tracking-wide">
+                    Habilidades Especiales de Bote y Manejo (Switches Táctiles)
+                  </h3>
+                </div>
+                <p className="text-xs text-[#e2bfb2] mt-0.5">
+                  Desbloquean la medalla &quot;Crossover Mortal&quot; al consolidar ambas variantes con fluidez.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Switch 1: Rompimiento de Tobillos */}
+                <label className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer text-xs ${
+                  ankleBreakerDone 
+                    ? "bg-amber-950/25 border-amber-500/50 shadow-md shadow-amber-500/10" 
+                    : "bg-[#0b0e15] border-[#32353d] opacity-75"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      ankleBreakerDone ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-zinc-500"
+                    }`}>
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-white font-bold block text-xs">
+                        Rompimiento de Tobillos (Ankle Breaker)
+                      </span>
+                      <span className="text-[10px] text-zinc-400 leading-tight block">
+                        Cambio drástico de ritmo, transferencia de peso y centro de gravedad bajo.
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={ankleBreakerDone}
+                    onChange={(e) => setAnkleBreakerDone(e.target.checked)}
+                    className="w-5 h-5 accent-amber-500 ml-2"
+                  />
+                </label>
+
+                {/* Switch 2: Drible / Pase por la Espalda */}
+                <label className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer text-xs ${
+                  behindBackDone 
+                    ? "bg-amber-950/25 border-amber-500/50 shadow-md shadow-amber-500/10" 
+                    : "bg-[#0b0e15] border-[#32353d] opacity-75"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      behindBackDone ? "bg-amber-500/20 text-amber-400" : "bg-zinc-800 text-zinc-500"
+                    }`}>
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-white font-bold block text-xs">
+                        Drible / Pase por la Espalda
+                      </span>
+                      <span className="text-[10px] text-zinc-400 leading-tight block">
+                        Behind the back en velocidad máxima sin mirar el balón.
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={behindBackDone}
+                    onChange={(e) => setBehindBackDone(e.target.checked)}
+                    className="w-5 h-5 accent-amber-500 ml-2"
+                  />
+                </label>
+              </div>
+
+              {ankleBreakerDone && behindBackDone && (
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2 text-xs text-amber-300 font-mono">
+                  <Check className="w-4 h-4 text-amber-400" />
+                  <span>⚡ <strong>¡Crossover Mortal Concedido!</strong> Ambas técnicas de desestabilización validadas.</span>
+                </div>
+              )}
+            </div>
+
+            {/* 4. HABILIDADES DE VUELO Y SALTO */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 sm:p-6 space-y-4">
+              <div className="pb-3 border-b border-[#272a32]">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-[#4ae176]" />
+                  <h3 className="text-sm font-black uppercase text-white tracking-wide">
+                    Habilidades de Vuelo, Salto y Finalización
+                  </h3>
+                </div>
+                <p className="text-xs text-[#e2bfb2] mt-0.5">
+                  Métricas pliométricas y control del cuerpo en suspensión (Gravedad Cero).
+                </p>
+              </div>
+
+              {/* Switch Cambio de Manos en el Aire */}
+              <label className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer text-xs ${
+                midAirSwitchDone 
+                  ? "bg-emerald-950/25 border-emerald-500/50 shadow-md shadow-emerald-500/10" 
+                  : "bg-[#0b0e15] border-[#32353d] opacity-75"
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    midAirSwitchDone ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-800 text-zinc-500"
+                  }`}>
+                    <Flame className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-white font-bold block text-xs">
+                      Cambio de Manos en el Aire (Mid-Air Hand Switch / Double Clutch)
+                    </span>
+                    <span className="text-[10px] text-zinc-400 leading-tight block">
+                      Ajuste acrobático en el punto más alto del salto para esquivar bloqueo defensivo.
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={midAirSwitchDone}
+                  onChange={(e) => setMidAirSwitchDone(e.target.checked)}
+                  className="w-5 h-5 accent-emerald-500 ml-2"
+                />
+              </label>
+
+              {/* Inputs Métricos: Salto Vertical y Longitud */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-zinc-400 font-bold block">Salto Vertical Estático (cm):</label>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">Meta: +60cm</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={verticalJumpCm}
+                    onChange={(e) => setVerticalJumpCm(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-black text-white text-base"
+                    placeholder="64"
+                  />
+                </div>
+
+                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-zinc-400 font-bold block">Salto de Longitud Horizontal (cm):</label>
+                    <span className="text-[10px] text-sky-400 font-mono font-bold">Potencia horizontal</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={broadJumpCm}
+                    onChange={(e) => setBroadJumpCm(Number(e.target.value))}
+                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-black text-white text-base"
+                    placeholder="195"
+                  />
+                </div>
+              </div>
+
+              {/* Switch Drill Tablero */}
+              <label className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer text-xs ${
+                boardDrillDone 
+                  ? "bg-orange-950/25 border-orange-500/50 shadow-md shadow-orange-500/10" 
+                  : "bg-[#0b0e15] border-[#32353d] opacity-75"
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    boardDrillDone ? "bg-orange-500/20 text-orange-400" : "bg-zinc-800 text-zinc-500"
+                  }`}>
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-white font-bold block text-xs">
+                      Drill Tablero: Lanzar balón, captura en el punto máximo de suspensión y tiro inmediato
+                    </span>
+                    <span className="text-[10px] text-zinc-400 leading-tight block">
+                      Amortiguación elástica y coordinación en rebote ofensivo antes de tocar el suelo.
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={boardDrillDone}
+                  onChange={(e) => setBoardDrillDone(e.target.checked)}
+                  className="w-5 h-5 accent-orange-500 ml-2"
+                />
+              </label>
+
+              {midAirSwitchDone && verticalJumpCm >= 60 && (
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-300 font-mono">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span>🔥 <strong>¡Medalla Gravedad Cero Concedida!</strong> Cambio de manos + Salto vertical &gt;=60cm alcanzado.</span>
+                </div>
+              )}
+            </div>
+
+            {/* 5. VELOCIDAD DE DESPLAZAMIENTO Y LÍNEAS DEFENSIVAS */}
+            <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 sm:p-6 space-y-4">
               <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
                 <Timer className="w-5 h-5 text-[#f66018]" /> Velocidad de Desplazamiento y Líneas Defensivas
               </h3>
@@ -1057,51 +1543,82 @@ export default function DualCoachCommand() {
               </label>
             </div>
 
-            {/* 3. PRUEBAS DE SALTO Y SWITCH DRILL DE TABLERO */}
+            {/* 6. BATERÍA TRADICIONAL COMPLEMENTARIA (TIROS LIBRES & MEDIA DISTANCIA) */}
             <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-black uppercase text-white flex items-center gap-2">
-                <Flame className="w-5 h-5 text-[#4ae176]" /> Salto Estático y Drill de Tablero
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
-                  <label className="text-zinc-400 font-bold block mb-1">Salto Vertical Estático (cm):</label>
-                  <input
-                    type="number"
-                    value={verticalJumpCm}
-                    onChange={(e) => setVerticalJumpCm(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-black text-white text-base"
-                  />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#272a32] gap-2">
+                <div>
+                  <h3 className="text-xs font-black uppercase text-zinc-300 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-[#7bd0ff]" /> Tiros Libres y Media Distancia Complementarios
+                  </h3>
+                  <span className="text-[10px] text-zinc-400">Pruebas estandarizadas adicionales para evaluación formativa.</span>
                 </div>
-
-                <div className="bg-[#1d2027] p-3.5 rounded-xl border border-[#32353d]">
-                  <label className="text-zinc-400 font-bold block mb-1">Salto de Longitud (cm):</label>
-                  <input
-                    type="number"
-                    value={broadJumpCm}
-                    onChange={(e) => setBroadJumpCm(Number(e.target.value))}
-                    className="w-full h-10 px-3 bg-[#0b0e15] border border-[#32353d] rounded-lg font-mono font-black text-white text-base"
-                  />
+                <div className="flex items-center gap-2 p-1 rounded-xl bg-[#0b0e15] border border-[#32353d]">
+                  <button
+                    type="button"
+                    onClick={() => setShootingBase(5)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      shootingBase === 5 ? "bg-[#00a6e0] text-white shadow" : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    Base 5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShootingBase(10)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      shootingBase === 10 ? "bg-[#00a6e0] text-white shadow" : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    Base 10
+                  </button>
                 </div>
               </div>
 
-              {/* SWITCH DRILL TABLERO */}
-              <label className="flex items-center justify-between p-3.5 rounded-xl bg-[#0b0e15] border border-[#32353d] cursor-pointer text-xs">
-                <div className="flex items-center gap-2.5">
-                  <Award className="w-5 h-5 text-[#f66018]" />
-                  <div>
-                    <span className="text-white font-bold block">Drill de Tablero: Lanzar, saltar en punto más alto, atrapar y tirar</span>
-                    <span className="text-[10px] text-zinc-400">Coordinación de rebote ofensivo y suspensión antes de caer.</span>
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center text-xs">
+                {/* Tiro Libre */}
+                <div className="bg-[#1d2027] p-3 rounded-xl border border-[#32353d]">
+                  <span className="text-zinc-400 block mb-1 font-bold">Tiro Libre</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={shootingBase}
+                    value={ftMade}
+                    onChange={(e) => setFtMade(Number(e.target.value))}
+                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#4ae176] mx-auto font-mono"
+                  />
+                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={boardDrillDone}
-                  onChange={(e) => setBoardDrillDone(e.target.checked)}
-                  className="w-5 h-5 accent-[#f66018]"
-                />
-              </label>
+
+                {/* Media Distancia */}
+                <div className="bg-[#1d2027] p-3 rounded-xl border border-[#32353d]">
+                  <span className="text-zinc-400 block mb-1 font-bold">Media Distancia</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={shootingBase}
+                    value={midMade}
+                    onChange={(e) => setMidMade(Number(e.target.value))}
+                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-[#7bd0ff] mx-auto font-mono"
+                  />
+                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
+                </div>
+
+                {/* Media Cancha */}
+                <div className="bg-[#1d2027] p-3 rounded-xl border border-[#32353d] col-span-2 sm:col-span-1">
+                  <span className="text-zinc-400 block mb-1 font-bold">Media Cancha</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={shootingBase}
+                    value={halfMade}
+                    onChange={(e) => setHalfMade(Number(e.target.value))}
+                    className="w-16 h-10 bg-[#0b0e15] border border-[#32353d] rounded-xl text-center font-black text-lg text-purple-400 mx-auto font-mono"
+                  />
+                  <span className="text-[10px] text-zinc-500 mt-1 block">de {shootingBase} intentos</span>
+                </div>
+              </div>
             </div>
+
           </div>
         )}
 

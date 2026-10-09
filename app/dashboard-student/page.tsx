@@ -32,7 +32,9 @@ import {
   X,
   Check,
   Info,
-  Eye
+  Eye,
+  Crosshair,
+  Shield
 } from "lucide-react";
 
 // ==============================================================================
@@ -374,6 +376,8 @@ export default function StudentDashboardPage() {
   const [showRankModal, setShowRankModal] = useState(false);
   const [showCommitmentModal, setShowCommitmentModal] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
+  const [selectedBadgeModal, setSelectedBadgeModal] = useState<any | null>(null);
 
   // ==========================================
   // ESTADOS DE LÍNEA BASE (DÍA 1 / LLEGADA)
@@ -389,7 +393,7 @@ export default function StudentDashboardPage() {
   });
 
   // ==========================================
-  // ESTADOS DE RENDIMIENTO ACTUAL
+  // ESTADOS DE RENDIMIENTO ACTUAL & 5 SPOTS
   // ==========================================
   const [currentPerformance, setCurrentPerformance] = useState<any>({
     court_laps_done: 0,
@@ -410,6 +414,16 @@ export default function StudentDashboardPage() {
     mid_range_made: 0,
     three_point_made: 0,
     half_court_made: 0,
+    spot_corner_left: 0,
+    spot_wing_left: 0,
+    spot_top_key: 0,
+    spot_wing_right: 0,
+    spot_corner_right: 0,
+    spots_total_made: 0,
+    mechanics_overall_score: 0,
+    ankle_breaker_done: false,
+    behind_back_done: false,
+    mid_air_switch_done: false,
     sprint_100m_seconds: 0,
     lines_one_way_seconds: 0,
     lines_round_trip_seconds: 0,
@@ -547,6 +561,16 @@ export default function StudentDashboardPage() {
               mid_range_made: basketData?.mid_range_made ?? prev.mid_range_made,
               three_point_made: basketData?.three_point_made ?? prev.three_point_made,
               half_court_made: basketData?.half_court_made ?? prev.half_court_made,
+              spot_corner_left: basketData?.spot_corner_left ?? prev.spot_corner_left,
+              spot_wing_left: basketData?.spot_wing_left ?? prev.spot_wing_left,
+              spot_top_key: basketData?.spot_top_key ?? prev.spot_top_key,
+              spot_wing_right: basketData?.spot_wing_right ?? prev.spot_wing_right,
+              spot_corner_right: basketData?.spot_corner_right ?? prev.spot_corner_right,
+              spots_total_made: basketData?.spots_total_made ?? prev.spots_total_made,
+              mechanics_overall_score: basketData?.mechanics_overall_score ?? prev.mechanics_overall_score,
+              ankle_breaker_done: basketData?.ankle_breaker_done ?? prev.ankle_breaker_done,
+              behind_back_done: basketData?.behind_back_done ?? prev.behind_back_done,
+              mid_air_switch_done: basketData?.mid_air_switch_done ?? prev.mid_air_switch_done,
               vertical_jump_cm: basketData?.vertical_jump_cm ?? prev.vertical_jump_cm,
               broad_jump_cm: basketData?.broad_jump_cm ?? prev.broad_jump_cm,
               sprint_100m_seconds: basketData?.sprint_100m_seconds ?? prev.sprint_100m_seconds,
@@ -573,6 +597,30 @@ export default function StudentDashboardPage() {
               ...detailedData,
               isReal: true
             }));
+          }
+
+          // E) Consultar Medallas Ganadas
+          try {
+            const { data: badgesData } = await supabase
+              .from("student_earned_badges")
+              .select("*")
+              .eq("student_id", effectiveId);
+
+            if (badgesData && badgesData.length > 0) {
+              setEarnedBadges(badgesData);
+            } else if (typeof window !== "undefined") {
+              const localBadges = JSON.parse(localStorage.getItem("ww_student_badges") || "{}");
+              if (localBadges[effectiveId]) {
+                setEarnedBadges(localBadges[effectiveId]);
+              }
+            }
+          } catch {
+            if (typeof window !== "undefined") {
+              const localBadges = JSON.parse(localStorage.getItem("ww_student_badges") || "{}");
+              if (localBadges[effectiveId]) {
+                setEarnedBadges(localBadges[effectiveId]);
+              }
+            }
           }
         }
 
@@ -676,6 +724,16 @@ export default function StudentDashboardPage() {
           mid_range_made: e.detail.mid_range_made ?? prev.mid_range_made,
           three_point_made: e.detail.three_point_made ?? prev.three_point_made,
           half_court_made: e.detail.half_court_made ?? prev.half_court_made,
+          spot_corner_left: e.detail.spot_corner_left ?? prev.spot_corner_left,
+          spot_wing_left: e.detail.spot_wing_left ?? prev.spot_wing_left,
+          spot_top_key: e.detail.spot_top_key ?? prev.spot_top_key,
+          spot_wing_right: e.detail.spot_wing_right ?? prev.spot_wing_right,
+          spot_corner_right: e.detail.spot_corner_right ?? prev.spot_corner_right,
+          spots_total_made: e.detail.spots_total_made ?? prev.spots_total_made,
+          mechanics_overall_score: e.detail.mechanics_overall_score ?? prev.mechanics_overall_score,
+          ankle_breaker_done: e.detail.ankle_breaker_done ?? prev.ankle_breaker_done,
+          behind_back_done: e.detail.behind_back_done ?? prev.behind_back_done,
+          mid_air_switch_done: e.detail.mid_air_switch_done ?? prev.mid_air_switch_done,
           vertical_jump_cm: e.detail.vertical_jump_cm ?? prev.vertical_jump_cm,
           broad_jump_cm: e.detail.broad_jump_cm ?? prev.broad_jump_cm,
           sprint_100m_seconds: e.detail.sprint_100m_seconds ?? prev.sprint_100m_seconds,
@@ -698,9 +756,14 @@ export default function StudentDashboardPage() {
       }
     };
 
+    const handleBadgesUpdate = (e: any) => {
+      if (e.detail) setEarnedBadges(e.detail);
+    };
+
     window.addEventListener("student_baseline_updated", handleBaselineUpdate);
     window.addEventListener("physical_training_logged", handlePhysicalUpdate);
     window.addEventListener("basketball_skills_logged", handleBasketUpdate);
+    window.addEventListener("student_badges_updated", handleBadgesUpdate);
     window.addEventListener("test_day_updated", handleTestDayUpdate);
     window.addEventListener("profile_avatar_updated", handleAvatarUpdate);
 
@@ -708,6 +771,7 @@ export default function StudentDashboardPage() {
       window.removeEventListener("student_baseline_updated", handleBaselineUpdate);
       window.removeEventListener("physical_training_logged", handlePhysicalUpdate);
       window.removeEventListener("basketball_skills_logged", handleBasketUpdate);
+      window.removeEventListener("student_badges_updated", handleBadgesUpdate);
       window.removeEventListener("test_day_updated", handleTestDayUpdate);
       window.removeEventListener("profile_avatar_updated", handleAvatarUpdate);
     };
@@ -783,6 +847,104 @@ export default function StudentDashboardPage() {
   // Estatus Postural del Coach
   const postureStatus = currentPerformance.posture_status || "pendiente";
   const restSeconds = currentPerformance.rest_seconds || 45;
+
+  // =========================================================================
+  // MEDALLAS OFICIALES WILD WOLVES (COMPUTADAS Y DE SUPABASE)
+  // =========================================================================
+  const spotsMade = Number(currentPerformance.spots_total_made) || 0;
+  const isFrancotiradorUnlocked = 
+    earnedBadges.some(b => b.badge_key === "francotirador_alfa") || 
+    spotsMade >= 18 || 
+    (Number(currentPerformance.three_point_made) >= 4 && currentPerformance.shooting_base_attempts === 5);
+
+  const isCrossoverUnlocked = 
+    earnedBadges.some(b => b.badge_key === "crossover_mortal") || 
+    (Boolean(currentPerformance.ankle_breaker_done) && Boolean(currentPerformance.behind_back_done));
+
+  const isGravedadCeroUnlocked = 
+    earnedBadges.some(b => b.badge_key === "gravedad_cero") || 
+    (Boolean(currentPerformance.mid_air_switch_done) && Number(currentPerformance.vertical_jump_cm) >= 60);
+
+  const isPilarInamovibleUnlocked = 
+    earnedBadges.some(b => b.badge_key === "pilar_inamovible") || 
+    (Number(currentPerformance.wall_sit_seconds) >= 300 || Number(currentPerformance.plank_seconds) >= 300);
+
+  const isLoboDeHierroUnlocked = 
+    earnedBadges.some(b => b.badge_key === "lobo_de_hierro") || 
+    (Boolean(currentPerformance.squats_3x25_done) && 
+     Boolean(currentPerformance.abs_3x25_done) && 
+     (Number(currentPerformance.pushups_reps) >= 25 || Boolean(currentPerformance.calves_3x25_done)) && 
+     (Number(currentPerformance.rest_seconds) <= 45));
+
+  const BADGES_LIST = [
+    {
+      id: "francotirador_alfa",
+      title: "Francotirador Alfa",
+      emoji: "🎯",
+      isUnlocked: isFrancotiradorUnlocked,
+      shortReq: "18/25 o más en los 5 spots de triples",
+      fullDesc: "Dominio de la línea perimetral oficial de 3 puntos. El tirador acierta al menos 18 de los 25 lanzamientos distribuidos en las 5 posiciones clave de la duela.",
+      currentStat: `${spotsMade} / 25 aciertos perimetrales`,
+      glowClass: "border-orange-500/80 shadow-[0_0_25px_rgba(246,96,24,0.35)] bg-gradient-to-br from-orange-950/40 via-[#131620] to-[#0c0e14]",
+      accentColor: "text-orange-400",
+      pillBg: "bg-orange-500/20 text-orange-300 border-orange-500/40",
+      icon: Crosshair
+    },
+    {
+      id: "crossover_mortal",
+      title: "Crossover Mortal",
+      emoji: "⚡",
+      isUnlocked: isCrossoverUnlocked,
+      shortReq: "Rompimiento de tobillos + Drible tras espalda",
+      fullDesc: "Destreza en desaceleración y cambio de ritmo abrupto (Ankle Breaker con centro de gravedad bajo) y drible de escape o pase tras la espalda a velocidad máxima sin mirar el balón.",
+      currentStat: `Ankle Breaker: ${currentPerformance.ankle_breaker_done ? "✓" : "Pendiente"} • Tras Espalda: ${currentPerformance.behind_back_done ? "✓" : "Pendiente"}`,
+      glowClass: "border-amber-500/80 shadow-[0_0_25px_rgba(245,158,11,0.35)] bg-gradient-to-br from-amber-950/40 via-[#131620] to-[#0c0e14]",
+      accentColor: "text-amber-400",
+      pillBg: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+      icon: Zap
+    },
+    {
+      id: "gravedad_cero",
+      title: "Gravedad Cero",
+      emoji: "🔥",
+      isUnlocked: isGravedadCeroUnlocked,
+      shortReq: "Cambio de manos en el aire + Salto vertical +60 cm",
+      fullDesc: "Capacidad aérea y control en suspensión. El atleta ejecuta un ajuste acrobático en el punto más alto del salto (Double Clutch) y cuenta con un despegue vertical validado de al menos 60 cm.",
+      currentStat: `Salto: ${currentPerformance.vertical_jump_cm || 0} cm • Doble Clutch: ${currentPerformance.mid_air_switch_done ? "✓" : "Pendiente"}`,
+      glowClass: "border-cyan-400/80 shadow-[0_0_25px_rgba(6,182,212,0.35)] bg-gradient-to-br from-cyan-950/40 via-[#131620] to-[#0c0e14]",
+      accentColor: "text-cyan-400",
+      pillBg: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+      icon: Flame
+    },
+    {
+      id: "pilar_inamovible",
+      title: "Pilar Inamovible",
+      emoji: "🛡️",
+      isUnlocked: isPilarInamovibleUnlocked,
+      shortReq: "5 min sentadilla isométrica en pared o plancha",
+      fullDesc: "Fuerza estática y estabilidad neuromuscular inquebrantable. El atleta sostiene una sentadilla isométrica de 90° en pared o plancha prona durante 300 segundos continuos sin romper la postura neutra.",
+      currentStat: `Pared: ${Math.round((currentPerformance.wall_sit_seconds || 0)/60)}m • Plancha: ${currentPerformance.plank_seconds || 0}s (Meta: 300s)`,
+      glowClass: "border-emerald-500/80 shadow-[0_0_25px_rgba(16,185,129,0.35)] bg-gradient-to-br from-emerald-950/40 via-[#131620] to-[#0c0e14]",
+      accentColor: "text-emerald-400",
+      pillBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+      icon: ShieldCheck
+    },
+    {
+      id: "lobo_de_hierro",
+      title: "Lobo de Hierro",
+      emoji: "🐺",
+      isUnlocked: isLoboDeHierroUnlocked,
+      shortReq: "Batería 3x25 completa dominada con descansos reducidos",
+      fullDesc: "Resistencia física espartana. Dominio riguroso de la batería calisténica 3x25 (Lagartijas con variantes, Sentadillas profundas, Abdominales, Pantorrillas) soportando pausas de descanso reducidas (≤ 45s).",
+      currentStat: `Batería 3x25 activa • Descanso asignado: ${currentPerformance.rest_seconds || 45}s`,
+      glowClass: "border-fuchsia-500/80 shadow-[0_0_25px_rgba(217,70,239,0.35)] bg-gradient-to-br from-fuchsia-950/40 via-[#131620] to-[#0c0e14]",
+      accentColor: "text-fuchsia-400",
+      pillBg: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40",
+      icon: Award
+    }
+  ];
+
+  const unlockedBadgesCount = BADGES_LIST.filter(b => b.isUnlocked).length;
 
   if (loading) {
     return (
@@ -883,6 +1045,116 @@ export default function StudentDashboardPage() {
         <div className="mb-6">
           <TierProgressionBar currentLevel={activeRank.level} />
         </div>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓN INTERACTIVA: MEDALLERO OFICIAL WILD WOLVES (CYBER WOLF BADGES)   */}
+        {/* ========================================================================= */}
+        <section className="mb-8 bg-[#10131a] border border-[#272a32] rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/5 rounded-full blur-3xl pointer-events-none"></div>
+
+          {/* Header del Medallero */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b border-[#272a32] gap-3 relative z-10">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400">
+                  <Award className="w-4 h-4" />
+                </div>
+                <h2 className="text-base sm:text-lg font-black uppercase text-white tracking-tight flex items-center gap-2">
+                  Medallero Oficial Wild Wolves
+                </h2>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1">
+                Conquistas atléticas, perimetrales y biomecánicas validadas en cancha por el cuerpo técnico en Deportivo Carmen Serdán.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto bg-[#0b0e15] px-3.5 py-1.5 rounded-xl border border-[#32353d]">
+              <span className="text-[10px] text-zinc-400 font-mono">Insignias Obtenidas:</span>
+              <span className="text-xs font-mono font-black text-orange-400">
+                {unlockedBadgesCount} / {BADGES_LIST.length}
+              </span>
+              <div className="w-16 h-2 bg-zinc-800 rounded-full overflow-hidden ml-1">
+                <div 
+                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((unlockedBadgesCount / BADGES_LIST.length) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Grid de 5 Tarjetas Hexagonales / Neón */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 relative z-10">
+            {BADGES_LIST.map((badge) => {
+              const BadgeIcon = badge.icon;
+              return (
+                <div
+                  key={badge.id}
+                  onClick={() => setSelectedBadgeModal(badge)}
+                  className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between cursor-pointer group ${
+                    badge.isUnlocked
+                      ? `${badge.glowClass} hover:scale-[1.02]`
+                      : "border-[#272a32] bg-[#0c0e14]/90 opacity-70 hover:opacity-100 hover:border-zinc-700"
+                  }`}
+                >
+                  <div>
+                    {/* Top row: Icon token + Status Pill */}
+                    <div className="flex items-center justify-between">
+                      <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 ${
+                        badge.isUnlocked 
+                          ? "bg-black/60 border-white/20 shadow-lg" 
+                          : "bg-zinc-900/90 border-zinc-800 text-zinc-600"
+                      }`}>
+                        <BadgeIcon className={`w-6 h-6 ${badge.isUnlocked ? badge.accentColor : "text-zinc-600"}`} />
+                        {!badge.isUnlocked && (
+                          <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center backdrop-blur-[1px]">
+                            <Lock className="w-4 h-4 text-zinc-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      {badge.isUnlocked ? (
+                        <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${badge.pillBg}`}>
+                          <CheckCircle2 className="w-3 h-3" />
+                          DESBLOQUEADA
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 border border-zinc-700 flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-zinc-500" />
+                          BLOQUEADA
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Título */}
+                    <h3 className="text-sm font-black text-white tracking-tight mt-3 flex items-center gap-1.5">
+                      <span>{badge.emoji}</span>
+                      <span className="truncate">{badge.title}</span>
+                    </h3>
+
+                    {/* Descripción o Criterio */}
+                    {badge.isUnlocked ? (
+                      <p className="text-[11px] text-zinc-300 mt-1 line-clamp-2 leading-relaxed">
+                        {badge.fullDesc}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-amber-300/80 mt-1 leading-relaxed font-mono">
+                        🔒 Requiere: {badge.shortReq}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Footer de Tarjeta con métrica */}
+                  <div className={`mt-3 pt-2.5 border-t text-[10px] font-mono flex items-center justify-between ${
+                    badge.isUnlocked ? "border-white/10 text-emerald-300" : "border-white/5 text-zinc-400"
+                  }`}>
+                    <span className="truncate">{badge.isUnlocked ? `⚡ ${badge.currentStat}` : `Progreso: ${badge.currentStat}`}</span>
+                    <span className="text-[9px] text-zinc-400 group-hover:text-white transition">Ver +</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* GRID PRINCIPAL: 1 COL EN MÓVIL, 12 COLUMNAS EN DESKTOP/TABLET */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -1807,6 +2079,81 @@ export default function StudentDashboardPage() {
           setProfile((prev: any) => ({ ...prev, avatar_url: url }));
         }}
       />
+
+      {/* ========================================================================= */}
+      {/* MODAL: DETALLE DE MEDALLA SELECCIONADA                                     */}
+      {/* ========================================================================= */}
+      {selectedBadgeModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#10131a] border border-[#272a32] rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-xl ${
+                  selectedBadgeModal.isUnlocked 
+                    ? "bg-black/60 border-white/20" 
+                    : "bg-zinc-900 border-zinc-800"
+                }`}>
+                  {React.createElement(selectedBadgeModal.icon, {
+                    className: `w-7 h-7 ${selectedBadgeModal.isUnlocked ? selectedBadgeModal.accentColor : "text-zinc-500"}`
+                  })}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{selectedBadgeModal.emoji}</span>
+                    <h3 className="text-base font-black text-white">{selectedBadgeModal.title}</h3>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border inline-block mt-1 ${
+                    selectedBadgeModal.isUnlocked 
+                      ? selectedBadgeModal.pillBg 
+                      : "bg-zinc-900 text-zinc-400 border-zinc-700"
+                  }`}>
+                    {selectedBadgeModal.isUnlocked ? "✓ Conquistada en Duela" : "🔒 En Proceso de Conquista"}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedBadgeModal(null)}
+                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed">
+              <div className="bg-[#191b23] p-3.5 rounded-xl border border-[#272a32]">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-1 font-mono">
+                  Descripción Oficial:
+                </span>
+                <p className="text-zinc-200">{selectedBadgeModal.fullDesc}</p>
+              </div>
+
+              <div className="bg-[#191b23] p-3.5 rounded-xl border border-[#272a32]">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-1 font-mono">
+                  Criterio Obligatorio para Otorgar:
+                </span>
+                <p className="text-amber-300 font-mono">{selectedBadgeModal.shortReq}</p>
+              </div>
+
+              <div className="bg-[#191b23] p-3.5 rounded-xl border border-[#272a32]">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-1 font-mono">
+                  Tu Marca Registrada Actual:
+                </span>
+                <p className="text-[#4ae176] font-mono font-bold">{selectedBadgeModal.currentStat}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-[#272a32]">
+              <button
+                onClick={() => setSelectedBadgeModal(null)}
+                className="w-full py-2.5 bg-gradient-to-r from-orange-600 to-amber-500 hover:brightness-110 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
+              >
+                Cerrar Detalle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
