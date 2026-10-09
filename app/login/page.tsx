@@ -17,12 +17,10 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Shield, 
-  KeyRound,
   ArrowLeft,
   Users,
   Eye,
-  EyeOff,
-  Briefcase
+  EyeOff
 } from "lucide-react";
 
 type RolePortal = "student" | "coach";
@@ -40,10 +38,6 @@ function LoginContent() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Clave rápida / PIN para Coaches
-  const [staffPin, setStaffPin] = useState("");
-  const [showStaffPin, setShowStaffPin] = useState(false);
 
   // Estados de carga y mensajes
   const [loading, setLoading] = useState(false);
@@ -111,40 +105,6 @@ function LoginContent() {
         "El acceso rápido con Google se encuentra en mantenimiento temporal. Por favor ingresa con tu correo y contraseña abajo."
       );
       setLoading(false);
-    }
-  };
-
-  // Acceso de Coach vía PIN de Cancha
-  const handleStaffPinLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
-    const clean = staffPin.trim().toUpperCase();
-
-    if (
-      clean === "WOLVES-STAFF-2026" ||
-      clean === "RICARDO-WOLVES-2026" ||
-      clean === "CARLOS-WOLVES-2026" ||
-      clean === "WW-SUPERADMIN-KEY-99"
-    ) {
-      const isSuper = clean.includes("RICARDO") || clean.includes("CARLOS") || clean.includes("SUPERADMIN");
-      const coachEmail = isSuper ? "ricardo@wildwolves.mx" : "coach@wildwolves.mx";
-      const role = isSuper ? "superadmin" : "coach";
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("ww_user_role", role);
-        localStorage.setItem("ww_user_email", coachEmail);
-        document.cookie = `user_role=${role}; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `user_email=${encodeURIComponent(coachEmail)}; path=/; max-age=86400; SameSite=Lax`;
-        window.dispatchEvent(new Event("auth_changed"));
-      }
-
-      HoopStore.loginAsCoach();
-      setSuccessMsg(`¡PIN verificado! Accediendo como ${isSuper ? "Super Administrador" : "Coach de Cancha"}...`);
-      setTimeout(() => {
-        router.push("/dashboard-coach");
-      }, 700);
-    } else {
-      setErrorMsg("PIN de Staff no autorizado. Intento registrado por seguridad.");
     }
   };
 
@@ -477,46 +437,6 @@ function LoginContent() {
                 >
                   + Postularse como Coach
                 </Link>
-              </div>
-
-              {/* Acceso Rápido con PIN de Cancha */}
-              <form onSubmit={handleStaffPinLogin} className="mb-4 p-3.5 rounded-2xl bg-[#121724] border border-[#ea580c]/30">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-1.5 font-mono">
-                  ¿Acceso en Cancha? Usa tu PIN de Staff
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
-                    <input
-                      type={showStaffPin ? "text" : "password"}
-                      placeholder="PIN oficial (ej. WOLVES-STAFF-2026)"
-                      value={staffPin}
-                      onChange={(e) => setStaffPin(e.target.value)}
-                      className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] focus:outline-none rounded-xl py-2 pl-9 pr-8 text-xs text-white font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowStaffPin(!showStaffPin)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer"
-                    >
-                      {showStaffPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <button
-                    type="submit"
-                    className="px-3.5 py-2 bg-[#ea580c] hover:bg-[#c2410c] text-white font-bold text-xs rounded-xl transition cursor-pointer active:scale-95"
-                  >
-                    Entrar
-                  </button>
-                </div>
-              </form>
-
-              <div className="relative flex py-2 items-center mb-3">
-                <div className="flex-grow border-t border-zinc-800"></div>
-                <span className="flex-shrink mx-3 text-zinc-500 text-[10px] uppercase font-bold tracking-wider">
-                  o con correo de Coach
-                </span>
-                <div className="flex-grow border-t border-zinc-800"></div>
               </div>
             </div>
           )}

@@ -366,9 +366,9 @@ export default function ApplyCoachPage() {
             </form>
 
             <div className="mt-5 pt-4 border-t border-zinc-800 text-center text-[11px] text-zinc-400 font-mono">
-              ¿Ya eres Coach activo con PIN?{" "}
-              <Link href="/staff-portal-ww" className="text-[#ea580c] hover:underline font-bold">
-                Acceso Rápido Staff Cancha &rarr;
+              ¿Ya formas parte del cuerpo técnico?{" "}
+              <Link href="/login?role=coach" className="text-[#ea580c] hover:underline font-bold">
+                Ingresar al Portal de Coaches &rarr;
               </Link>
             </div>
           </div>
