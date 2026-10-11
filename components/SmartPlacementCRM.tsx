@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Link as LinkIcon
 } from "lucide-react";
+import { offlineStorage } from "@/lib/offlineSync";
 
 // Motor de cálculo de Tier en cliente para fallback resiliente
 export function calculateClientTier(laps: number, rope: number, pushups: number, form: string): string {
@@ -118,6 +119,7 @@ export default function SmartPlacementCRM() {
 
         const unifiedList = [...nonCoachProfiles, ...mappedProspects];
         setStudents(unifiedList);
+        offlineStorage.saveStudentsSnapshot(unifiedList);
 
         if (!selectedStudent) {
           selectStudent(unifiedList[0]);
@@ -127,10 +129,21 @@ export default function SmartPlacementCRM() {
           else selectStudent(unifiedList[0]);
         }
       } else {
-        setStudents([]);
+        const cached = offlineStorage.getCachedStudents();
+        if (cached && cached.length > 0) {
+          setStudents(cached);
+          if (!selectedStudent) selectStudent(cached[0]);
+        } else {
+          setStudents([]);
+        }
       }
     } catch (err) {
-      console.warn("Error cargando atletas en SmartPlacementCRM:", err);
+      console.warn("Error cargando atletas en SmartPlacementCRM, usando respaldo local:", err);
+      const cached = offlineStorage.getCachedStudents();
+      if (cached && cached.length > 0) {
+        setStudents(cached);
+        if (!selectedStudent) selectStudent(cached[0]);
+      }
     }
   }
 
@@ -245,19 +258,25 @@ export default function SmartPlacementCRM() {
       const { data: { user } } = await supabase.auth.getUser();
 
       // Guardar en la tabla baseline
-      if (!selectedStudent.is_prospect_record) {
-        const { error } = await supabase.from("student_initial_baseline").upsert({
-          student_id: selectedStudent.id,
-          coach_id: user?.id,
-          initial_laps_completed: laps,
-          initial_jump_rope_max: rope,
-          initial_pushups_form: pushupsForm,
-          initial_squats_count: pushups,
-          initial_posture_notes: notes || "Evaluación inteligente aplicada en cancha."
-        }, { onConflict: "student_id" });
+      const baselinePayload = {
+        student_id: selectedStudent.id,
+        coach_id: user?.id,
+        initial_laps_completed: laps,
+        initial_jump_rope_max: rope,
+        initial_pushups_form: pushupsForm,
+        initial_squats_count: pushups,
+        initial_posture_notes: notes || "Evaluación inteligente aplicada en cancha."
+      };
 
-        if (error) {
-          console.warn("Fallo baseline upsert, aplicando fallback directo:", error);
+      if (!selectedStudent.is_prospect_record) {
+        if (!navigator.onLine) {
+          offlineStorage.enqueueAction("BASELINE", "student_initial_baseline", baselinePayload);
+        } else {
+          try {
+            await supabase.from("student_initial_baseline").upsert(baselinePayload, { onConflict: "student_id" });
+          } catch {
+            offlineStorage.enqueueAction("BASELINE", "student_initial_baseline", baselinePayload);
+          }
         }
       }
 
@@ -265,16 +284,24 @@ export default function SmartPlacementCRM() {
       const calculatedTier = calculateClientTier(laps, rope, pushups, pushupsForm);
 
       // Asegurar actualización en profiles
+      const profileUpdatePayload = {
+        id: selectedStudent.id,
+        current_tier: calculatedTier,
+        crm_status: "activo",
+        days_inactive: 0,
+        last_attended_at: new Date().toISOString().split("T")[0]
+      };
+
       if (!selectedStudent.is_prospect_record) {
-        await supabase
-          .from("profiles")
-          .update({
-            current_tier: calculatedTier,
-            crm_status: "activo",
-            days_inactive: 0,
-            last_attended_at: new Date().toISOString().split("T")[0]
-          })
-          .eq("id", selectedStudent.id);
+        if (!navigator.onLine) {
+          offlineStorage.enqueueAction("PROFILE_FINANCIAL_UPDATE", "profiles", profileUpdatePayload);
+        } else {
+          try {
+            await supabase.from("profiles").update(profileUpdatePayload).eq("id", selectedStudent.id);
+          } catch {
+            offlineStorage.enqueueAction("PROFILE_FINANCIAL_UPDATE", "profiles", profileUpdatePayload);
+          }
+        }
       }
 
       // Actualizar también caché local

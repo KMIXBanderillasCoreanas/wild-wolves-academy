@@ -26,7 +26,8 @@ import {
   Settings,
   Sparkles,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  DollarSign
 } from "lucide-react";
 import ManageStudentFinanceModal, { 
   StudentFinanceData, 
@@ -59,7 +60,20 @@ export interface StudentRosterItem {
 }
 
 export default function CourtAttendanceCommand() {
-  const [shift, setShift] = useState<"matutino" | "vespertino">("vespertino");
+  // Detección Automática de Turno según la hora de la cancha y día
+  const [shift, setShift] = useState<"matutino" | "vespertino">(() => {
+    if (typeof window === "undefined") return "vespertino";
+    const now = new Date();
+    const hour = now.getHours();
+    const minutes = now.getMinutes();
+    const timeVal = hour + minutes / 60;
+    // Si son entre las 08:00 y las 12:30 hrs -> Turno Matutino
+    if (timeVal >= 8 && timeVal < 12.5) {
+      return "matutino";
+    }
+    // De lo contrario -> Turno Vespertino (16:30 - 19:30 o Domingo 16:00 - 18:00)
+    return "vespertino";
+  });
   const [filterMode, setFilterMode] = useState<"scheduled_today" | "all">("scheduled_today");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "al_corriente" | "adeudo" | "abono_parcial" | "becado">("all");
   const [userTypeFilter, setUserTypeFilter] = useState<"all" | "alumno" | "prospecto" | "visitante" | "tutor">("all");
@@ -67,6 +81,11 @@ export default function CourtAttendanceCommand() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [offlineCount, setOfflineCount] = useState(0);
+
+  // Modal rápido de cobro en cancha de 1 toque (Efectivo / Transferencia)
+  const [selectedAthleteForQuickPay, setSelectedAthleteForQuickPay] = useState<StudentRosterItem | null>(null);
+  const [quickPayAmount, setQuickPayAmount] = useState<number>(150);
+  const [quickPayMethod, setQuickPayMethod] = useState<"efectivo" | "transferencia">("efectivo");
 
   // Modal táctil de finanzas y horarios
   const [selectedStudentForFinance, setSelectedStudentForFinance] = useState<StudentRosterItem | null>(null);
@@ -345,6 +364,89 @@ export default function CourtAttendanceCommand() {
         enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", payload);
         setOfflineCount(getOfflineQueueCount());
       }
+    }
+  };
+
+  // 2. PASO: REGISTRAR COBRO RÁPIDO EN CANCHA AL TERMINAR LA CLASE
+  const handleRegisterQuickPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAthleteForQuickPay) return;
+
+    const studentId = selectedAthleteForQuickPay.id;
+    const amount = Number(quickPayAmount) || 0;
+    const todayDate = new Date().toISOString().split("T")[0];
+
+    const currentDebt = Number(selectedAthleteForQuickPay.current_debt_amount) || 0;
+    const nextDebt = Math.max(0, currentDebt - amount);
+    const nextFinStatus: FinancialStatus = nextDebt <= 0 ? "al_corriente" : "abono_parcial";
+
+    // 1. Optimistic UI update en el estado local de alumnos
+    setStudents(prev => prev.map(s => {
+      if (s.id !== studentId) return s;
+      return {
+        ...s,
+        current_debt_amount: nextDebt,
+        financial_status: nextFinStatus,
+        last_payment_status: nextFinStatus === "al_corriente" ? "al_corriente" : "adeudo",
+        last_payment_amount: amount,
+        last_session_date: todayDate,
+      };
+    }));
+
+    // Actualizar también la caché local
+    const cached = getCachedRoster();
+    if (cached && cached.length > 0) {
+      const updatedCache = cached.map((s: any) => {
+        if (s.id !== studentId) return s;
+        return {
+          ...s,
+          current_debt_amount: nextDebt,
+          financial_status: nextFinStatus,
+          last_payment_status: nextFinStatus === "al_corriente" ? "al_corriente" : "adeudo",
+          last_payment_amount: amount,
+        };
+      });
+      cacheRosterLocally(updatedCache);
+    }
+
+    // 2. Payload para historial de transacciones y pagos
+    const transactionPayload = {
+      student_id: studentId,
+      amount_paid: amount,
+      payment_method: quickPayMethod,
+      concept: `Cuota Cancha Carmen Serdán (${todayDate})`,
+      transaction_date: todayDate,
+      created_at: new Date().toISOString(),
+    };
+
+    const profileUpdatePayload = {
+      id: studentId,
+      current_debt_amount: nextDebt,
+      financial_status: nextFinStatus,
+    };
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction("PAYMENT_TRANSACTION", transactionPayload);
+      enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profileUpdatePayload);
+      setOfflineCount(getOfflineQueueCount());
+    } else {
+      try {
+        await supabase.from("payment_transactions_history").insert(transactionPayload);
+        await supabase.from("profiles").update({
+          current_debt_amount: nextDebt,
+          financial_status: nextFinStatus,
+        }).eq("id", studentId);
+      } catch {
+        enqueueOfflineAction("PAYMENT_TRANSACTION", transactionPayload);
+        enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profileUpdatePayload);
+        setOfflineCount(getOfflineQueueCount());
+      }
+    }
+
+    const athleteName = selectedAthleteForQuickPay.full_name;
+    setSelectedAthleteForQuickPay(null);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("payment_recorded"));
     }
   };
 
@@ -908,20 +1010,46 @@ export default function CourtAttendanceCommand() {
                 </div>
 
                 {/* Botón Prominente de Cobro en Cancha si tiene saldo pendiente */}
-                {(st.financial_status === "adeudo_pendiente" || st.financial_status === "abono_parcial") && (
-                  <div className="mt-2.5">
+                {(st.financial_status === "adeudo_pendiente" || st.financial_status === "abono_parcial") ? (
+                  <div className="mt-2.5 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setSelectedStudentForFinance(st)}
-                      className="flex items-center justify-between w-full h-10 px-3 rounded-xl bg-gradient-to-r from-[#f66018] to-orange-600 hover:brightness-110 active:scale-98 text-white font-black text-xs shadow-md transition cursor-pointer"
+                      onClick={() => {
+                        setSelectedAthleteForQuickPay(st);
+                        setQuickPayAmount(Number(st.current_debt_amount || 50));
+                      }}
+                      className="flex-1 flex items-center justify-between h-10 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-110 active:scale-98 text-white font-black text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer"
+                      title="Cobro Rápido Táctil al Finalizar Clase"
                     >
                       <div className="flex items-center gap-1.5">
-                        <CreditCard className="w-4 h-4 text-white" />
-                        <span>Gestionar Cobro / Abono</span>
+                        <DollarSign className="w-4 h-4 text-white" />
+                        <span>💵 Cobrar en Cancha</span>
                       </div>
                       <span className="px-2 py-0.5 rounded-full bg-black/30 text-[10px] font-black">
                         ${st.current_debt_amount} MXN
                       </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStudentForFinance(st)}
+                      className="w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                      title="Detalle Financiero"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAthleteForQuickPay(st);
+                        setQuickPayAmount(50);
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 h-8 px-3 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[11px] font-bold transition cursor-pointer"
+                    >
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Registrar Pago / Cuota Rápida</span>
                     </button>
                   </div>
                 )}
@@ -988,7 +1116,136 @@ export default function CourtAttendanceCommand() {
         )}
       </section>
 
-      {/* 5. MODAL TÁCTIL: GESTIONAR FINANZAS, ABONOS, HORARIOS & ROLES */}
+      {/* 5. MODAL TÁCTIL: COBRO RÁPIDO EN CANCHA AL FINALIZAR CLASE */}
+      {selectedAthleteForQuickPay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#121724] border border-zinc-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative">
+            <button
+              onClick={() => setSelectedAthleteForQuickPay(null)}
+              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-zinc-800/50 hover:bg-zinc-800 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                <DollarSign className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Cobro Rápido en Cancha</h3>
+                <p className="text-xs text-zinc-400">
+                  {selectedAthleteForQuickPay.full_name} ({selectedAthleteForQuickPay.number || "#"})
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleRegisterQuickPayment} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                  Monto Recibido ($ MXN)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-lg">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="10"
+                    value={quickPayAmount}
+                    onChange={(e) => setQuickPayAmount(Number(e.target.value) || 0)}
+                    className="w-full pl-9 pr-4 py-3 bg-zinc-900 border border-zinc-700 rounded-xl text-white font-black text-xl focus:border-emerald-500 focus:outline-none"
+                    placeholder="0"
+                    autoFocus
+                    required
+                  />
+                </div>
+                {/* Botones de sugerencias rápidas */}
+                <div className="flex gap-2 mt-2">
+                  {[50, 100, 150, 200].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setQuickPayAmount(amt)}
+                      className={`flex-1 py-1 text-xs font-bold rounded-lg border transition ${
+                        quickPayAmount === amt
+                          ? "bg-emerald-500 text-black border-emerald-400"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                      }`}
+                    >
+                      ${amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                  Método de Pago
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQuickPayMethod("efectivo")}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+                      quickPayMethod === "efectivo"
+                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-850"
+                    }`}
+                  >
+                    <span>💵 Efectivo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickPayMethod("transferencia")}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+                      quickPayMethod === "transferencia"
+                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-850"
+                    }`}
+                  >
+                    <span>📱 Transferencia</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-zinc-900/60 p-3 rounded-xl border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+                <div className="flex justify-between">
+                  <span>Adeudo actual:</span>
+                  <span className="font-bold text-white">${selectedAthleteForQuickPay.current_debt_amount || 0} MXN</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Saldo restante tras pago:</span>
+                  <span className="font-black text-emerald-400">
+                    ${Math.max(0, (selectedAthleteForQuickPay.current_debt_amount || 0) - (Number(quickPayAmount) || 0))} MXN
+                  </span>
+                </div>
+                {!navigator.onLine && (
+                  <p className="text-amber-400 text-[10px] mt-1 pt-1 border-t border-zinc-800">
+                    ⚡ Modo sin conexión: Se guardará en la cola local y se sincronizará automáticamente al reconectar.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAthleteForQuickPay(null)}
+                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-xl text-xs transition shadow-lg shadow-emerald-950/50"
+                >
+                  Confirmar Cobro
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. MODAL TÁCTIL: GESTIONAR FINANZAS, ABONOS, HORARIOS & ROLES */}
       {selectedStudentForFinance && (
         <ManageStudentFinanceModal
           isOpen={!!selectedStudentForFinance}

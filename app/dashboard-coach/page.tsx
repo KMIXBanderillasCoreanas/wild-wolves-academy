@@ -29,6 +29,7 @@ import TestDayEvaluator from '@/components/TestDayEvaluator';
 import DualCoachCommand from '@/components/DualCoachCommand';
 import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
+import OfflineStatusBar from '@/components/OfflineStatusBar';
 import confetti from 'canvas-confetti';
 import { 
   PlusCircle, 
@@ -487,7 +488,9 @@ export default function CoachDashboardPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
+    <>
+      <OfflineStatusBar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
       {/* 1. Panel Superior de Control con Roster y RBAC Indicator */}
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 pb-5 border-b border-[#27272a]">
@@ -1367,6 +1370,7 @@ export default function CoachDashboardPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

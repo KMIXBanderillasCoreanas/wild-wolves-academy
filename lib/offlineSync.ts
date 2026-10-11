@@ -4,21 +4,28 @@ export type OfflineActionType =
   | "ATTENDANCE" 
   | "PAYMENT" 
   | "BASELINE" 
+  | "SPORTS_TEST"
   | "PHYSICAL_LOG" 
   | "BASKETBALL_LOG" 
   | "DETAILED_TEST"
   | "PROFILE_FINANCIAL_UPDATE"
   | "PAYMENT_TRANSACTION";
 
-export interface QueueItem {
+export interface PendingAction {
   id: string;
   type: OfflineActionType;
+  table: string;
   payload: any;
-  timestamp: number;
+  createdAt?: string;
+  timestamp?: number;
 }
 
-const QUEUE_KEY = "wildwolves_offline_queue";
-const CACHE_ROSTER_KEY = "wildwolves_cached_roster";
+export type QueueItem = PendingAction;
+
+const QUEUE_KEY = "wild_wolves_offline_queue";
+const CACHED_STUDENTS_KEY = "wild_wolves_cached_students";
+const LEGACY_QUEUE_KEY = "wildwolves_offline_queue";
+const LEGACY_CACHE_KEY = "wildwolves_cached_roster";
 
 // Generador de UUID seguro con compatibilidad para entornos móviles
 export const generateUUID = (): string => {
@@ -36,97 +43,109 @@ export const generateUUID = (): string => {
   });
 };
 
-// 1. Guardar la lista de alumnos en caché local para que cargue aun sin señal en cancha
+// 1. Snapshot y Caché Local de Alumnos (Dual Keys para compatibilidad)
 export const cacheRosterLocally = (rosterData: any[]) => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(CACHE_ROSTER_KEY, JSON.stringify(rosterData));
+    const serialized = JSON.stringify(rosterData || []);
+    localStorage.setItem(CACHED_STUDENTS_KEY, serialized);
+    localStorage.setItem(LEGACY_CACHE_KEY, serialized);
   } catch (err) {
-    console.warn("Error al guardar caché de roster:", err);
+    console.warn("Error al guardar snapshot de atletas:", err);
   }
 };
 
 export const getCachedRoster = (): any[] => {
   if (typeof window === "undefined") return [];
   try {
-    const cached = localStorage.getItem(CACHE_ROSTER_KEY);
-    return cached ? JSON.parse(cached) : [];
+    const raw = localStorage.getItem(CACHED_STUDENTS_KEY) || localStorage.getItem(LEGACY_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 };
 
-// 2. Encolar acción cuando no hay internet o falla la petición
-export const enqueueOfflineAction = (type: OfflineActionType, payload: any) => {
-  if (typeof window === "undefined") return;
+// 2. Manejo de Cola Desconectada
+export const getOfflineQueue = (): PendingAction[] => {
+  if (typeof window === "undefined") return [];
   try {
-    const queue: QueueItem[] = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
-    const item: QueueItem = {
-      id: payload.id || generateUUID(),
-      type,
-      payload: {
-        ...payload,
-        id: payload.id || generateUUID(),
-      },
-      timestamp: Date.now(),
-    };
-    queue.push(item);
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
-    
-    // Notificar cambio de estado en la cola a componentes suscritos
-    window.dispatchEvent(new CustomEvent("offline_queue_updated", { detail: { count: queue.length } }));
-  } catch (err) {
-    console.error("Error al encolar acción offline:", err);
+    const raw = localStorage.getItem(QUEUE_KEY) || localStorage.getItem(LEGACY_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
   }
 };
 
 export const getOfflineQueueCount = (): number => {
-  if (typeof window === "undefined") return 0;
-  try {
-    const queue: QueueItem[] = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
-    return queue.length;
-  } catch {
-    return 0;
-  }
-};
-
-export const getOfflineQueue = (): QueueItem[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
-  } catch {
-    return [];
-  }
+  return getOfflineQueue().length;
 };
 
 export const clearOfflineQueue = () => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(QUEUE_KEY);
+  localStorage.removeItem(LEGACY_QUEUE_KEY);
   window.dispatchEvent(new CustomEvent("offline_queue_updated", { detail: { count: 0 } }));
 };
 
-// 3. Vaciar y sincronizar la cola hacia Supabase con idempotencia
+export const enqueueOfflineAction = (
+  type: OfflineActionType, 
+  payload: any, 
+  table?: string
+): PendingAction | undefined => {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const queue = getOfflineQueue();
+    const actionId = payload.id || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const actionTable = table || (
+      type === "ATTENDANCE" ? "daily_attendance" :
+      type === "PAYMENT" ? "membership_payments" :
+      type === "PAYMENT_TRANSACTION" ? "payment_transactions_history" :
+      type === "BASELINE" ? "student_initial_baseline" :
+      type === "PHYSICAL_LOG" ? "physical_training_logs" :
+      type === "BASKETBALL_LOG" ? "basketball_skills_logs" :
+      type === "DETAILED_TEST" ? "detailed_test_records" :
+      type === "PROFILE_FINANCIAL_UPDATE" ? "profiles" : "daily_attendance"
+    );
+
+    const newAction: PendingAction = {
+      id: actionId,
+      type,
+      table: actionTable,
+      payload: {
+        ...payload,
+        id: payload.id || actionId,
+      },
+      createdAt: new Date().toISOString(),
+      timestamp: Date.now(),
+    };
+
+    queue.push(newAction);
+    const serialized = JSON.stringify(queue);
+    localStorage.setItem(QUEUE_KEY, serialized);
+    localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
+
+    window.dispatchEvent(new CustomEvent("offline_queue_updated", { detail: { count: queue.length } }));
+    return newAction;
+  } catch (err) {
+    console.error("Error al encolar acción offline:", err);
+    return undefined;
+  }
+};
+
+// 3. Sincronización Automática hacia Supabase
 export const syncOfflineQueueToSupabase = async (
-  onSyncComplete?: (count: number) => void
+  onProgress?: (remaining: number) => void
 ): Promise<{ synced: number; failed: number }> => {
   if (typeof window === "undefined" || !navigator.onLine) {
     return { synced: 0, failed: 0 };
   }
 
-  const raw = localStorage.getItem(QUEUE_KEY);
-  if (!raw) return { synced: 0, failed: 0 };
-
-  let queue: QueueItem[] = [];
-  try {
-    queue = JSON.parse(raw);
-  } catch {
-    return { synced: 0, failed: 0 };
-  }
-
+  const queue = getOfflineQueue();
   if (queue.length === 0) return { synced: 0, failed: 0 };
 
-  const remainingQueue: QueueItem[] = [];
   let syncedCount = 0;
+  let failedCount = 0;
+  const remainingQueue: PendingAction[] = [];
   let hasPaymentSynced = false;
 
   for (const item of queue) {
@@ -143,6 +162,17 @@ export const syncOfflineQueueToSupabase = async (
           item.payload,
           { onConflict: "id" }
         );
+        if (error) throw error;
+        syncedCount++;
+        hasPaymentSynced = true;
+      } else if (item.type === "PAYMENT_TRANSACTION") {
+        const { error } = await supabase.from("payment_transactions_history").insert(item.payload);
+        if (error) throw error;
+        syncedCount++;
+        hasPaymentSynced = true;
+      } else if (item.type === "PROFILE_FINANCIAL_UPDATE") {
+        const { id, ...updateData } = item.payload;
+        const { error } = await supabase.from("profiles").update(updateData).eq("id", id);
         if (error) throw error;
         syncedCount++;
         hasPaymentSynced = true;
@@ -168,32 +198,32 @@ export const syncOfflineQueueToSupabase = async (
         );
         if (error) throw error;
         syncedCount++;
-      } else if (item.type === "PROFILE_FINANCIAL_UPDATE") {
-        const { id, ...updateData } = item.payload;
-        const { error } = await supabase.from("profiles").update(updateData).eq("id", id);
+      } else {
+        // Fallback genérico por tabla indicada
+        const targetTable = item.table || "daily_attendance";
+        const { error } = await supabase.from(targetTable).upsert(item.payload);
         if (error) throw error;
         syncedCount++;
-        hasPaymentSynced = true;
-      } else if (item.type === "PAYMENT_TRANSACTION") {
-        const { error } = await supabase.from("payment_transactions_history").insert(item.payload);
-        if (error) throw error;
-        syncedCount++;
-        hasPaymentSynced = true;
       }
     } catch (err) {
-      console.error("Fallo al sincronizar elemento de cola:", item, err);
-      remainingQueue.push(item); // Conservar para el siguiente reintento automático
+      console.error("Fallo sincronizando elemento offline:", item, err);
+      remainingQueue.push(item);
+      failedCount++;
+    }
+
+    if (onProgress) {
+      onProgress(remainingQueue.length);
     }
   }
 
-  // Guardar elementos que hayan fallado (si hubo cortes intermitentes)
   try {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(remainingQueue));
+    const serialized = JSON.stringify(remainingQueue);
+    localStorage.setItem(QUEUE_KEY, serialized);
+    localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
   } catch (err) {
-    console.error("Error al actualizar cola de sincronización:", err);
+    console.error("Error al actualizar almacenamiento de cola:", err);
   }
 
-  // Notificar a la app
   window.dispatchEvent(
     new CustomEvent("offline_queue_updated", {
       detail: { count: remainingQueue.length },
@@ -210,11 +240,20 @@ export const syncOfflineQueueToSupabase = async (
     if (hasPaymentSynced) {
       window.dispatchEvent(new Event("payment_recorded"));
     }
-
-    if (onSyncComplete) {
-      onSyncComplete(syncedCount);
-    }
   }
 
-  return { synced: syncedCount, failed: remainingQueue.length };
+  return { synced: syncedCount, failed: failedCount };
+};
+
+// Objeto unificado offlineStorage compatible con ambas firmas
+export const offlineStorage = {
+  saveStudentsSnapshot: (students: any[]) => cacheRosterLocally(students),
+  getCachedStudents: (): any[] => getCachedRoster(),
+  enqueueAction: (type: OfflineActionType, table: string, payload: any) => enqueueOfflineAction(type, payload, table),
+  getQueue: (): PendingAction[] => getOfflineQueue(),
+  clearQueue: () => clearOfflineQueue(),
+  syncPendingActions: async (onProgress?: (remaining: number) => void) => {
+    const result = await syncOfflineQueueToSupabase(onProgress);
+    return { success: result.synced, failed: result.failed };
+  },
 };
