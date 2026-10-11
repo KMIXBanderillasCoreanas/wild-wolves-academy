@@ -27,27 +27,41 @@ interface RadarChart360Props {
   metricsCurrent?: BasketballMetrics;
   metricsPrevious?: BasketballMetrics;
   athleteName?: string;
+  hasOfficialTest?: boolean;
 }
 
-export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = 'Atleta' }: RadarChart360Props) {
+export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = 'Atleta', hasOfficialTest }: RadarChart360Props) {
   const [showPreviousMonth, setShowPreviousMonth] = useState(true);
 
+  // Determinar si existen evaluaciones reales del coach
+  const isEvaluated = hasOfficialTest !== undefined 
+    ? hasOfficialTest 
+    : Boolean(metricsCurrent && (
+        metricsCurrent.freeThrow > 0 ||
+        metricsCurrent.midRange > 0 ||
+        metricsCurrent.threePoint > 0 ||
+        metricsCurrent.verticalJump > 0 ||
+        metricsCurrent.sprint100m > 0 ||
+        metricsCurrent.agilityTTest > 0
+      ));
+
+  // Cero datos ficticios: si no hay métricas se renderizan estrictamente en 0
   const cur = metricsCurrent || {
-    freeThrow: 70,
-    midRange: 68,
-    threePoint: 65,
-    verticalJump: 72,
-    sprint100m: 75,
-    agilityTTest: 74,
+    freeThrow: 0,
+    midRange: 0,
+    threePoint: 0,
+    verticalJump: 0,
+    sprint100m: 0,
+    agilityTTest: 0,
   };
 
   const prev = metricsPrevious || {
-    freeThrow: 60,
-    midRange: 60,
-    threePoint: 55,
-    verticalJump: 65,
-    sprint100m: 70,
-    agilityTTest: 68,
+    freeThrow: 0,
+    midRange: 0,
+    threePoint: 0,
+    verticalJump: 0,
+    sprint100m: 0,
+    agilityTTest: 0,
   };
 
   const radarData = [
@@ -133,28 +147,52 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
           <div className="px-3.5 py-1.5 bg-[#0a0e17] rounded-xl border border-[#27272a] text-center">
             <div className="text-[10px] font-mono text-zinc-400 uppercase">Promedio Actual</div>
             <div className="text-xl font-mono font-black text-orange-500 flex items-center justify-center gap-1">
-              {currentAverage}
-              <span className={`text-[11px] font-mono font-bold ${delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {delta >= 0 ? `+${delta}` : delta}
-              </span>
+              {isEvaluated ? currentAverage : 0}
+              {isEvaluated && (
+                <span className={`text-[11px] font-mono font-bold ${delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {delta >= 0 ? `+${delta}` : delta}
+                </span>
+              )}
             </div>
           </div>
 
-          <button
-            onClick={() => setShowPreviousMonth(!showPreviousMonth)}
-            className={`px-3 py-2 rounded-xl border text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer ${
-              showPreviousMonth
-                ? 'bg-zinc-800 border-zinc-700 text-white'
-                : 'bg-[#0a0e17] border-[#27272a] text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5 text-sky-400" />
-            <span>{showPreviousMonth ? 'Ocultar Mes Anterior' : 'Ver Mes Anterior'}</span>
-          </button>
+          {isEvaluated && (
+            <button
+              onClick={() => setShowPreviousMonth(!showPreviousMonth)}
+              className={`px-3 py-2 rounded-xl border text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer ${
+                showPreviousMonth
+                  ? 'bg-zinc-800 border-zinc-700 text-white'
+                  : 'bg-[#0a0e17] border-[#27272a] text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-sky-400" />
+              <span>{showPreviousMonth ? 'Ocultar Mes Anterior' : 'Ver Mes Anterior'}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Gráfico y Métricas */}
+      {/* SI NO TIENE EVALUACIÓN OFICIAL EN CANCHA: TARJETA DE ESTADO ELEGANTE */}
+      {!isEvaluated ? (
+        <div className="py-12 px-6 text-center bg-[#0a0e17] rounded-2xl border border-dashed border-[#27272a] flex flex-col items-center justify-center space-y-4 my-2">
+          <div className="w-16 h-16 rounded-3xl bg-[#f66018]/10 border border-[#f66018]/30 flex items-center justify-center text-[#f66018] shadow-lg shadow-orange-950/40">
+            <Target className="w-8 h-8 text-[#f66018]" />
+          </div>
+          <div className="max-w-md space-y-2">
+            <h4 className="text-base font-black text-white uppercase tracking-tight">
+              Sin Evaluaciones Oficiales en Cancha
+            </h4>
+            <p className="text-xs text-zinc-300 leading-relaxed font-sans">
+              Preséntate a tu primer Test Day con el Head Coach Ricardo para calibrar tus 6 ejes deportivos.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-[#f66018]">
+            <span className="w-2 h-2 rounded-full bg-[#f66018] animate-ping" />
+            <span>Ejes: Tiros Libres • Media • Triples • Salto Vertical • Velocidad • Agilidad</span>
+          </div>
+        </div>
+      ) : (
+      /* Gráfico y Métricas */
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
         {/* Recharts Spider Chart */}
         <div className="lg:col-span-7 h-[340px] w-full flex items-center justify-center">
@@ -256,6 +294,7 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
           })}
         </div>
       </div>
+      )}
 
       <div className="mt-4 pt-3 border-t border-[#27272a] text-[10px] font-mono text-zinc-500 flex items-center justify-between">
         <span>Evaluaciones estandarizadas bajo métricas de combine HoopPerformance</span>

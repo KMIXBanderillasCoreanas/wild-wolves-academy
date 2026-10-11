@@ -156,6 +156,7 @@ export default function ManageStudentFinanceModal({
   // Guardar Cambios y Transacción
   const handleSaveAll = async () => {
     setSaving(true);
+    try {
       // Generar resumen legible de días y horarios
       const DAY_LABELS: Record<string, string> = {
         lunes: "Lun",

@@ -24,13 +24,16 @@ import {
   Wifi,
   WifiOff,
   CloudUpload,
-  Activity
+  Activity,
+  Sparkles
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
 import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
 import TestDayEvaluator from "@/components/TestDayEvaluator";
 import DualCoachCommand from "@/components/DualCoachCommand";
 import SmartPlacementCRM from "@/components/SmartPlacementCRM";
+import BunkerHomeTrainingMonitor from "@/components/BunkerHomeTrainingMonitor";
+import { Home } from "lucide-react";
 import { 
   syncOfflineQueueToSupabase, 
   getOfflineQueueCount 
@@ -43,7 +46,7 @@ export default function MasterBunkerHQ() {
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "coaches">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "home_training" | "coaches">("attendance");
   const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
   const [testDaySubView, setTestDaySubView] = useState<"dual" | "ovr">("dual");
   const [coaches, setCoaches] = useState<any[]>([]);
@@ -558,6 +561,16 @@ export default function MasterBunkerHQ() {
           <Activity className="w-4 h-4" /> Test Day & Evaluaciones
         </button>
         <button
+          onClick={() => setActiveTab("home_training")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "home_training"
+              ? "bg-amber-500 text-black font-black shadow-lg shadow-amber-500/20"
+              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          }`}
+        >
+          <Home className="w-4 h-4" /> Entrenamiento en Casa
+        </button>
+        <button
           onClick={() => setActiveTab("coaches")}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "coaches"
@@ -739,6 +752,12 @@ export default function MasterBunkerHQ() {
           ) : (
             <TestDayEvaluator />
           )}
+        </div>
+      )}
+
+      {activeTab === "home_training" && (
+        <div className="space-y-4 animate-fade-in">
+          <BunkerHomeTrainingMonitor />
         </div>
       )}
 

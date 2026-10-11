@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabaseClient";
 import AuthModal from "@/components/AuthModal";
 import SelfieCameraCapture from "@/components/SelfieCameraCapture";
 import TierProgressionBar from "@/components/TierProgressionBar";
+import { RadarChart360 } from "@/components/RadarChart360";
+import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import {
   Camera,
   ExternalLink,
@@ -458,7 +460,7 @@ export default function StudentDashboardPage() {
   // ESTADO DE TEST DAY BIOMECÁNICO (OVR)
   // ==========================================
   const [evaluation, setEvaluation] = useState<any>({
-    overall_ovr: 70,
+    overall_ovr: 0,
     athletic_level_assessed: "iniciacion_adaptacion",
     court_laps_count: 0,
     squats_count: 0,
@@ -466,7 +468,7 @@ export default function StudentDashboardPage() {
     plank_seconds: 0,
     jump_rope_count: 0,
     short_range_shots_made: 0,
-    coach_feedback: "Tu evaluación técnica aún no se aplica. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base.",
+    coach_feedback: "Sin Evaluaciones Oficiales en Cancha. Preséntate a tu primer Test Day con el Head Coach Ricardo para calibrar tus 6 ejes deportivos.",
     evaluation_date: "Por programar",
     isReal: false
   });
@@ -1916,6 +1918,38 @@ export default function StudentDashboardPage() {
                 </p>
                 <span className="text-[10px] text-zinc-400 block mt-2 font-mono">Coach Ricardo • Head Coach Formativo</span>
               </div>
+            </section>
+
+            {/* 4. RADAR COMBINE BIOMECÁNICO OFICIAL (6 EJES SIN MOCKS) */}
+            <section className="space-y-4">
+              <RadarChart360
+                hasOfficialTest={Boolean(currentPerformance?.isReal || evaluation?.isReal)}
+                athleteName={profile?.full_name || "Atleta Wild Wolves"}
+                metricsCurrent={currentPerformance?.isReal ? {
+                  freeThrow: currentShootingPct || 0,
+                  midRange: currentPerformance.mid_range_made ? Math.round((currentPerformance.mid_range_made / 10) * 100) : 0,
+                  threePoint: currentPerformance.three_point_made ? Math.round((currentPerformance.three_point_made / 10) * 100) : 0,
+                  verticalJump: currentPerformance.vertical_jump_cm || 0,
+                  sprint100m: currentPerformance.sprint_100m_seconds ? Math.max(0, Math.min(100, Math.round((16 - currentPerformance.sprint_100m_seconds) * 15))) : 0,
+                  agilityTTest: currentPerformance.lines_round_trip_seconds ? Math.max(0, Math.min(100, Math.round((30 - currentPerformance.lines_round_trip_seconds) * 10))) : 0,
+                } : {
+                  freeThrow: 0,
+                  midRange: 0,
+                  threePoint: 0,
+                  verticalJump: 0,
+                  sprint100m: 0,
+                  agilityTTest: 0,
+                }}
+              />
+            </section>
+
+            {/* 5. CALENDARIO AUTÓNOMO DE ENTRENAMIENTO EN CASA */}
+            <section className="space-y-4">
+              <HomeTrainingCalendar
+                studentId={profile?.id}
+                studentName={profile?.full_name}
+                dayNumber={Math.max(1, Math.min(10, attendanceStats.total + 1))}
+              />
             </section>
 
           </div>
