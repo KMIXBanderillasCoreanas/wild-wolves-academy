@@ -99,10 +99,14 @@ export default function BunkerHomeTrainingMonitor() {
     }
   }
 
-  const filtered = students.filter(
-    (s) =>
-      s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      s.email.toLowerCase().includes(search.toLowerCase())
+  const filtered = (students || []).filter(
+    (s) => {
+      if (!s) return false;
+      const q = (search || "").toLowerCase().trim();
+      const sName = (s.full_name || "").toLowerCase();
+      const sEmail = (s.email || "").toLowerCase();
+      return !q || sName.includes(q) || sEmail.includes(q);
+    }
   );
 
   return (

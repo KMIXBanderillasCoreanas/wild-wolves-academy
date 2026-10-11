@@ -94,13 +94,22 @@ export default function GuardianDirectory() {
     }
   };
 
-  const filtered = guardians.filter(
-    (g) =>
-      g.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      g.email?.toLowerCase().includes(search.toLowerCase()) ||
-      g.phone_number?.includes(search) ||
-      g.linked_student_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = (guardians || []).filter((g) => {
+    if (!g) return false;
+    const q = (search || "").toLowerCase().trim();
+    const gName = (g.full_name || "").toLowerCase();
+    const gEmail = (g.email || "").toLowerCase();
+    const gPhone = g.phone_number || "";
+    const gLinked = (g.linked_student_name || "").toLowerCase();
+
+    return (
+      !q ||
+      gName.includes(q) ||
+      gEmail.includes(q) ||
+      gPhone.includes(q) ||
+      gLinked.includes(q)
+    );
+  });
 
   return (
     <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-6">

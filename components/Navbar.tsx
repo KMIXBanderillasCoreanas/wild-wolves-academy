@@ -18,7 +18,8 @@ import {
   Compass,
   X,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Activity
 } from 'lucide-react';
 
 export function Navbar() {
@@ -201,9 +202,7 @@ export function Navbar() {
               className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors"
               title="TikTok Oficial"
             >
-              <svg width="14" height="14" style={{ minWidth: 14, minHeight: 14 }} className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.37a6.34 6.34 0 0 0-1-.08 6.34 6.34 0 0 0-6.33 6.34 6.34 0 0 0 6.33 6.37 6.34 6.34 0 0 0 6.33-6.37V9.75a8.16 8.16 0 0 0 5.08 1.75V8.05a4.83 4.83 0 0 1-1.15-1.36z" />
-              </svg>
+              <Activity className="w-3.5 h-3.5" />
               <span>TikTok</span>
             </a>
             <span className="text-zinc-700">|</span>

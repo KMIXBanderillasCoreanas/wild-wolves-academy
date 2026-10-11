@@ -83,6 +83,7 @@ export default function SmartPlacementCRM() {
         // EXCLUSIÓN PERMANENTE DEL HEAD COACH / CREADOR:
         // wildwolvescdmx@gmail.com o cualquier usuario con role === 'superadmin' o role === 'coach'
         const nonCoachProfiles = data.filter((p: any) => {
+          if (!p) return false;
           const email = (p.email || "").toLowerCase().trim();
           const role = (p.role || "").toLowerCase().trim();
           if (email === "wildwolvescdmx@gmail.com" || email === "ricardo@wildwolves.mx") return false;
@@ -92,7 +93,15 @@ export default function SmartPlacementCRM() {
 
         // Combinar con prospectos de prospect_athletes que aún no estén en profiles
         const mappedProspects = prospects
-          .filter(pr => !nonCoachProfiles.some(p => p.id === pr.claimed_user_id || (p.full_name && p.full_name.toLowerCase() === (pr.athlete_full_name || "").toLowerCase())))
+          .filter(pr => {
+            if (!pr) return false;
+            const prospectName = (pr.athlete_full_name || "").toLowerCase().trim();
+            return !nonCoachProfiles.some(p => {
+              if (!p) return false;
+              const pName = (p.full_name || p.name || "").toLowerCase().trim();
+              return p.id === pr.claimed_user_id || (pName && prospectName && pName === prospectName);
+            });
+          })
           .map(pr => ({
             id: pr.id || `prospect_${pr.athlete_full_name}`,
             full_name: pr.athlete_full_name,
@@ -293,16 +302,20 @@ export default function SmartPlacementCRM() {
   };
 
   // Filtrado por Pestaña 1: Atletas / Alumnos
-  const athletesList = students.filter(s => {
+  const athletesList = (students || []).filter(s => {
+    if (!s) return false;
+    const cat = (s.account_category || "").toLowerCase();
+    const uType = (s.user_type || "").toLowerCase();
+    const role = (s.role || "").toLowerCase();
     const isGuardian = 
-      s.account_category === "guardian_family" || 
-      s.user_type === "tutor" || 
-      s.role === "parent" || 
-      s.role === "guardian";
+      cat === "guardian_family" || 
+      uType === "tutor" || 
+      role === "parent" || 
+      role === "guardian";
     if (isGuardian) return false;
 
     if (subFilter === "todos") return true;
-    if (subFilter === "prospecto") return s.crm_status === "prospecto" || s.user_type === "prospecto";
+    if (subFilter === "prospecto") return s.crm_status === "prospecto" || uType === "prospecto";
     if (subFilter === "activo") return s.crm_status === "activo" || !s.crm_status;
     if (subFilter === "inactivo_retorno") return s.crm_status === "inactivo_retorno" || (s.days_inactive && s.days_inactive > 45);
     if (subFilter === "en_riesgo") return s.crm_status === "en_riesgo" || (s.days_inactive && s.days_inactive > 14 && s.days_inactive <= 45);
@@ -310,11 +323,15 @@ export default function SmartPlacementCRM() {
   });
 
   // Filtrado por Pestaña 2: Directorio de Tutores y Familiares
-  const guardiansList = students.filter(s => {
-    return s.account_category === "guardian_family" || 
-      s.user_type === "tutor" || 
-      s.role === "parent" || 
-      s.role === "guardian";
+  const guardiansList = (students || []).filter(s => {
+    if (!s) return false;
+    const cat = (s.account_category || "").toLowerCase();
+    const uType = (s.user_type || "").toLowerCase();
+    const role = (s.role || "").toLowerCase();
+    return cat === "guardian_family" || 
+      uType === "tutor" || 
+      role === "parent" || 
+      role === "guardian";
   });
 
   const displayedList = activeTab === "athletes" ? athletesList : guardiansList;

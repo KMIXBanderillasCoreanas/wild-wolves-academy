@@ -101,14 +101,25 @@ export default function CourtAttendanceCommand() {
             .select("student_id, amount, status, payment_date")
             .order("payment_date", { ascending: false });
 
-          const todayIso = new Date().toISOString().split("T")[0];
-          const { data: todayAttendance } = await supabase
-            .from("daily_attendance")
-            .select("student_id, status, shift")
-            .eq("date", todayIso);
+          let todayAttendance: any[] = [];
+          try {
+            const todayIso = new Date().toISOString().split("T")[0];
+            const { data: attData, error: attError } = await supabase
+              .from("daily_attendance")
+              .select("student_id, status, shift")
+              .eq("date", todayIso);
+            if (attError) {
+              console.warn("Aviso en daily_attendance de CourtAttendanceCommand:", attError.message);
+            } else if (attData) {
+              todayAttendance = attData;
+            }
+          } catch (err) {
+            console.error("Fallo recuperable en asistencia:", err);
+          }
 
           // Exclusión permanente del Head Coach Ricardo de listas de evaluación
-          const nonCoachProfiles = profiles.filter((p: any) => {
+          const nonCoachProfiles = (profiles || []).filter((p: any) => {
+            if (!p) return false;
             const email = (p.email || "").toLowerCase().trim();
             const role = (p.role || "").toLowerCase().trim();
             if (email === "wildwolvescdmx@gmail.com" || email === "ricardo@wildwolves.mx") return false;
@@ -188,7 +199,15 @@ export default function CourtAttendanceCommand() {
 
           // Integrar prospectos pre-registrados que no hayan reclamado cuenta
           const mappedProspects: StudentRosterItem[] = prospects
-            .filter(pr => !nonCoachProfiles.some(p => p.id === pr.claimed_user_id || (p.full_name && p.full_name.toLowerCase() === (pr.athlete_full_name || "").toLowerCase())))
+            .filter(pr => {
+              if (!pr) return false;
+              const prospectName = (pr.athlete_full_name || "").toLowerCase().trim();
+              return !nonCoachProfiles.some(p => {
+                if (!p) return false;
+                const pName = (p.full_name || p.name || "").toLowerCase().trim();
+                return p.id === pr.claimed_user_id || (pName && prospectName && pName === prospectName);
+              });
+            })
             .map((pr, pIdx) => ({
               id: pr.id || `prospect_${pr.athlete_full_name}`,
               full_name: pr.athlete_full_name,
@@ -393,12 +412,19 @@ export default function CourtAttendanceCommand() {
     return true;
   };
 
-  const filtered = onCourtCandidates.filter(st => {
+  const filtered = (onCourtCandidates || []).filter(st => {
+    if (!st) return false;
     // 1. Búsqueda
+    const q = (search || "").toLowerCase().trim();
+    const stName = (st.full_name || "").toLowerCase();
+    const stCat = (st.category || "").toLowerCase();
+    const stNum = (st.number || "").toLowerCase();
+
     const matchesSearch = 
-      st.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      (st.category || "").toLowerCase().includes(search.toLowerCase()) ||
-      (st.number || "").toLowerCase().includes(search.toLowerCase());
+      !q ||
+      stName.includes(q) ||
+      stCat.includes(q) ||
+      stNum.includes(q);
     if (!matchesSearch) return false;
 
     // 2. Filtro de Turno / Día Programado Granular

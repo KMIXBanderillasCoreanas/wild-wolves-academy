@@ -140,10 +140,20 @@ export default function AttendanceTracker({
         .select("user_id, days_selected, shift, frequency_type");
 
       // 3. Asistencias de hoy
-      const { data: attendanceData } = await supabase
-        .from("daily_attendance")
-        .select("id, student_id, status, shift")
-        .eq("date", todayDateString);
+      let attendanceData: any[] = [];
+      try {
+        const { data: attData, error: attError } = await supabase
+          .from("daily_attendance")
+          .select("id, student_id, status, shift")
+          .eq("date", todayDateString);
+        if (attError) {
+          console.warn("Aviso en daily_attendance de AttendanceTracker:", attError.message);
+        } else if (attData) {
+          attendanceData = attData;
+        }
+      } catch (err) {
+        console.error("Fallo recuperable en asistencia:", err);
+      }
 
       // 4. Pagos históricos
       const { data: paymentsData } = await supabase
@@ -430,10 +440,16 @@ export default function AttendanceTracker({
     );
   };
 
-  const filteredStudents = students.filter((s) => {
+  const filteredStudents = (students || []).filter((s) => {
+    if (!s) return false;
+    const q = (searchQuery || "").toLowerCase().trim();
+    const sName = (s.full_name || "").toLowerCase();
+    const sEmail = (s.email || "").toLowerCase();
+
     const matchesSearch =
-      (s.full_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (s.email || "").toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      sName.includes(q) || 
+      sEmail.includes(q);
     if (!matchesSearch) return false;
     if (activeTab === "scheduled") return isScheduledToday(s);
     return true;
