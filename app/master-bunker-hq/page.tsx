@@ -34,6 +34,7 @@ import DualCoachCommand from "@/components/DualCoachCommand";
 import SmartPlacementCRM from "@/components/SmartPlacementCRM";
 import BunkerHomeTrainingMonitor from "@/components/BunkerHomeTrainingMonitor";
 import GuardianDirectory from "@/components/GuardianDirectory";
+import CombineExpressTable from "@/components/CombineExpressTable";
 import { Home } from "lucide-react";
 import { 
   syncOfflineQueueToSupabase, 
@@ -51,7 +52,7 @@ export default function MasterBunkerHQ() {
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
   const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "home_training" | "guardians" | "coaches">("attendance");
   const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
-  const [testDaySubView, setTestDaySubView] = useState<"dual" | "ovr">("dual");
+  const [testDaySubView, setTestDaySubView] = useState<"express" | "dual" | "ovr">("express");
   const [coaches, setCoaches] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -731,38 +732,53 @@ export default function MasterBunkerHQ() {
         <div className="space-y-4 animate-fade-in">
           {/* Sub-selector de Vista Test Day */}
           <div className="flex items-center justify-between flex-wrap gap-2 pb-2">
-            <div className="inline-flex p-1 rounded-xl bg-[#121724] border border-zinc-800">
+            <div className="inline-flex p-1 rounded-xl bg-[#121724] border border-zinc-800 flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => setTestDaySubView("express")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
+                  testDaySubView === "express"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>⚡ Combine Express (Tabla Masiva de Toda la Cancha)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setTestDaySubView("dual")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
                   testDaySubView === "dual"
                     ? "bg-[#8b5cf6] text-white shadow-md shadow-purple-600/20"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
-                <span>⚡ Control Dual (Día 1, Físico y Baloncesto)</span>
+                <span>🎯 Control Dual (Día 1, Físico & Batería)</span>
               </button>
               <button
                 type="button"
                 onClick={() => setTestDaySubView("ovr")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
                   testDaySubView === "ovr"
                     ? "bg-[#ea580c] text-white shadow-md shadow-orange-600/20"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
-                <span>📊 Evaluación Biomecánica por Nivel (OVR)</span>
+                <span>📊 Evaluación por Nivel (OVR)</span>
               </button>
             </div>
             <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
-              {testDaySubView === "dual" 
+              {testDaySubView === "express" 
+                ? "Califica a toda la lista de alumnos en una sola tabla táctil" 
+                : testDaySubView === "dual"
                 ? "Línea base de llegada y entrenamiento modular con interruptores ON/OFF" 
                 : "Calificación y cálculo de Overall Rating OVR por nivel"}
             </span>
           </div>
 
-          {testDaySubView === "dual" ? (
+          {testDaySubView === "express" ? (
+            <CombineExpressTable />
+          ) : testDaySubView === "dual" ? (
             <DualCoachCommand />
           ) : (
             <TestDayEvaluator />

@@ -27,7 +27,10 @@ import {
   Sparkles,
   ShieldAlert,
   UserCheck,
-  DollarSign
+  DollarSign,
+  MessageCircle,
+  Send,
+  Share2
 } from "lucide-react";
 import ManageStudentFinanceModal, { 
   StudentFinanceData, 
@@ -86,6 +89,16 @@ export default function CourtAttendanceCommand() {
   const [selectedAthleteForQuickPay, setSelectedAthleteForQuickPay] = useState<StudentRosterItem | null>(null);
   const [quickPayAmount, setQuickPayAmount] = useState<number>(150);
   const [quickPayMethod, setQuickPayMethod] = useState<"efectivo" | "transferencia">("efectivo");
+
+  // Ventana modal de éxito con Generador de Comprobante WhatsApp
+  const [paymentSuccessReceipt, setPaymentSuccessReceipt] = useState<{
+    athleteName: string;
+    amountPaid: number;
+    paymentMethod: string;
+    date: string;
+    remainingDebt: number;
+    tutorPhone: string;
+  } | null>(null);
 
   // Modal táctil de finanzas y horarios
   const [selectedStudentForFinance, setSelectedStudentForFinance] = useState<StudentRosterItem | null>(null);
@@ -444,6 +457,18 @@ export default function CourtAttendanceCommand() {
     }
 
     const athleteName = selectedAthleteForQuickPay.full_name;
+    const tutorPhone = selectedAthleteForQuickPay.tutor_phone || "5522427769";
+
+    // Disparar ventana de éxito con generador de comprobante WhatsApp
+    setPaymentSuccessReceipt({
+      athleteName,
+      amountPaid: amount,
+      paymentMethod: quickPayMethod,
+      date: todayDate,
+      remainingDebt: nextDebt,
+      tutorPhone,
+    });
+
     setSelectedAthleteForQuickPay(null);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("payment_recorded"));
@@ -1229,18 +1254,101 @@ export default function CourtAttendanceCommand() {
                 <button
                   type="button"
                   onClick={() => setSelectedAthleteForQuickPay(null)}
-                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs transition"
+                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs transition active:scale-95 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-xl text-xs transition shadow-lg shadow-emerald-950/50"
+                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-xl text-xs transition shadow-lg shadow-emerald-950/50 active:scale-95 cursor-pointer"
                 >
                   Confirmar Cobro
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5.1 VENTANA DE ÉXITO: COMPROBANTE DE PAGO INMEDIATO POR WHATSAPP */}
+      {paymentSuccessReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#121724] border-2 border-emerald-500/40 rounded-3xl w-full max-w-md p-6 shadow-2xl relative text-center space-y-5">
+            <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-lg shadow-emerald-950/40">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                PAGO REGISTRADO CON ÉXITO
+              </span>
+              <h3 className="text-xl font-black text-white mt-1">
+                ${paymentSuccessReceipt.amountPaid} MXN
+              </h3>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Alumno: <strong className="text-white">{paymentSuccessReceipt.athleteName}</strong>
+              </p>
+            </div>
+
+            {/* Ficha Resumen de Comprobante */}
+            <div className="bg-[#0b0e16] p-4 rounded-2xl border border-zinc-800 text-left text-xs font-mono space-y-1.5">
+              <div className="flex justify-between text-zinc-400">
+                <span>Concepto:</span>
+                <span className="text-white font-bold">Cuota Cancha Carmen Serdán</span>
+              </div>
+              <div className="flex justify-between text-zinc-400">
+                <span>Fecha:</span>
+                <span className="text-zinc-300">{paymentSuccessReceipt.date}</span>
+              </div>
+              <div className="flex justify-between text-zinc-400">
+                <span>Método:</span>
+                <span className="capitalize text-zinc-300">{paymentSuccessReceipt.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between text-zinc-400 pt-1.5 border-t border-zinc-800">
+                <span>Saldo Restante:</span>
+                <span className={`font-black ${paymentSuccessReceipt.remainingDebt === 0 ? "text-emerald-400" : "text-amber-400"}`}>
+                  ${paymentSuccessReceipt.remainingDebt} MXN
+                </span>
+              </div>
+            </div>
+
+            {/* Botones de Acción */}
+            <div className="space-y-2 pt-2">
+              {/* Botón WhatsApp */}
+              <button
+                type="button"
+                onClick={() => {
+                  const cleanPhone = paymentSuccessReceipt.tutorPhone.replace(/\D/g, "");
+                  const validPhone = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone.length === 12 && cleanPhone.startsWith("52") ? cleanPhone : "525522427769";
+                  
+                  const messageText = `🐺 *COMPROBANTE OFICIAL DE PAGO - WILD WOLVES CDMX* 🏀\n\n` +
+                    `¡Hola! Confirmamos la recepción de tu aportación de entrenamiento:\n\n` +
+                    `👤 *Atleta:* ${paymentSuccessReceipt.athleteName}\n` +
+                    `💵 *Monto Cubierto:* $${paymentSuccessReceipt.amountPaid} MXN\n` +
+                    `📱 *Método:* ${paymentSuccessReceipt.paymentMethod.toUpperCase()}\n` +
+                    `📅 *Fecha:* ${paymentSuccessReceipt.date}\n` +
+                    `📍 *Sede:* Canchas Techadas Deportivo Carmen Serdán\n` +
+                    `✅ *Saldo Restante:* $${paymentSuccessReceipt.remainingDebt} MXN\n\n` +
+                    `_Agradecemos tu confianza y compromiso con el desarrollo de la manada._ 🐺🔥\n` +
+                    `*Head Coach Ricardo • Wild Wolves Academy*`;
+
+                  const waUrl = `https://wa.me/${validPhone}?text=${encodeURIComponent(messageText)}`;
+                  window.open(waUrl, "_blank");
+                }}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 transition cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 fill-white" />
+                <span>📲 Enviar Comprobante WhatsApp al Tutor</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentSuccessReceipt(null)}
+                className="w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 font-bold text-xs uppercase tracking-wider transition cursor-pointer"
+              >
+                Listo / Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
