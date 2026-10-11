@@ -55,12 +55,12 @@ export const SupabaseSync = {
         const previousEval = evals[1];
 
         const defaultMetrics: BasketballMetrics = {
-          freeThrow: 75,
-          midRange: 75,
-          threePoint: 75,
-          verticalJump: 75,
-          sprint100m: 75,
-          agilityTTest: 75,
+          freeThrow: 0,
+          midRange: 0,
+          threePoint: 0,
+          verticalJump: 0,
+          sprint100m: 0,
+          agilityTTest: 0,
         };
 
         const metricsCurrent: BasketballMetrics = latestEval

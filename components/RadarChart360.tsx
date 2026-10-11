@@ -45,6 +45,18 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
         metricsCurrent.agilityTTest > 0
       ));
 
+  // Determinar si existen evaluaciones previas reales (mínimo 2 meses / 2 tests registrados)
+  const hasPreviousReal = Boolean(
+    metricsPrevious && (
+      metricsPrevious.freeThrow > 0 ||
+      metricsPrevious.midRange > 0 ||
+      metricsPrevious.threePoint > 0 ||
+      metricsPrevious.verticalJump > 0 ||
+      metricsPrevious.sprint100m > 0 ||
+      metricsPrevious.agilityTTest > 0
+    )
+  );
+
   // Cero datos ficticios: si no hay métricas se renderizan estrictamente en 0
   const cur = metricsCurrent || {
     freeThrow: 0,
@@ -55,7 +67,7 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
     agilityTTest: 0,
   };
 
-  const prev = metricsPrevious || {
+  const prev = hasPreviousReal && metricsPrevious ? metricsPrevious : {
     freeThrow: 0,
     midRange: 0,
     threePoint: 0,
@@ -148,7 +160,7 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
             <div className="text-[10px] font-mono text-zinc-400 uppercase">Promedio Actual</div>
             <div className="text-xl font-mono font-black text-orange-500 flex items-center justify-center gap-1">
               {isEvaluated ? currentAverage : 0}
-              {isEvaluated && (
+              {isEvaluated && hasPreviousReal && (
                 <span className={`text-[11px] font-mono font-bold ${delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {delta >= 0 ? `+${delta}` : delta}
                 </span>
@@ -156,7 +168,7 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
             </div>
           </div>
 
-          {isEvaluated && (
+          {isEvaluated && hasPreviousReal && (
             <button
               onClick={() => setShowPreviousMonth(!showPreviousMonth)}
               className={`px-3 py-2 rounded-xl border text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -269,18 +281,26 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[100px]">{item.subject}</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                    diffAxis >= 0 
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                  }`}>
-                    {diffAxis >= 0 ? `+${diffAxis}` : diffAxis}
-                  </span>
+                  {hasPreviousReal ? (
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                      diffAxis >= 0 
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}>
+                      {diffAxis >= 0 ? `+${diffAxis}` : diffAxis}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+                      Actual
+                    </span>
+                  )}
                 </div>
                 
                 <div className="flex items-baseline justify-between">
                   <span className="text-lg font-mono font-black text-white">{item.actual}</span>
-                  <span className="text-[10px] font-mono text-zinc-500">ant: {item.anterior}</span>
+                  {hasPreviousReal && (
+                    <span className="text-[10px] font-mono text-zinc-500">ant: {item.anterior}</span>
+                  )}
                 </div>
 
                 <div className="w-full bg-zinc-800 h-1 rounded-full mt-2 overflow-hidden">

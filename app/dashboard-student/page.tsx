@@ -473,6 +473,9 @@ export default function StudentDashboardPage() {
     isReal: false
   });
 
+  const [officialTestsCount, setOfficialTestsCount] = useState<number>(0);
+  const [previousMetrics, setPreviousMetrics] = useState<any | null>(null);
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -554,14 +557,36 @@ export default function StudentDashboardPage() {
             .limit(1)
             .maybeSingle();
 
-          // C) Consultar Registro Baloncesto más reciente
-          const { data: basketData } = await supabase
+          // C) Consultar Historial Oficial de Evaluaciones de Baloncesto
+          const { data: basketLogs } = await supabase
             .from("basketball_skills_logs")
             .select("*")
             .eq("student_id", effectiveId)
-            .order("test_date", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .order("test_date", { ascending: false });
+
+          const basketData = basketLogs && basketLogs.length > 0 ? basketLogs[0] : null;
+          const previousBasketData = basketLogs && basketLogs.length > 1 ? basketLogs[1] : null;
+
+          if (basketLogs && basketLogs.length > 0) {
+            setOfficialTestsCount(basketLogs.length);
+            if (previousBasketData) {
+              setPreviousMetrics({
+                freeThrow: previousBasketData.free_throws_made && previousBasketData.shooting_base_attempts
+                  ? Math.round((previousBasketData.free_throws_made / previousBasketData.shooting_base_attempts) * 100)
+                  : 0,
+                midRange: previousBasketData.mid_range_made ? Math.round((previousBasketData.mid_range_made / 10) * 100) : 0,
+                threePoint: previousBasketData.three_point_made ? Math.round((previousBasketData.three_point_made / 10) * 100) : 0,
+                verticalJump: previousBasketData.vertical_jump_cm || 0,
+                sprint100m: previousBasketData.sprint_100m_seconds ? Math.max(0, Math.min(100, Math.round((16 - previousBasketData.sprint_100m_seconds) * 15))) : 0,
+                agilityTTest: previousBasketData.lines_round_trip_seconds ? Math.max(0, Math.min(100, Math.round((30 - previousBasketData.lines_round_trip_seconds) * 10))) : 0,
+              });
+            } else {
+              setPreviousMetrics(null);
+            }
+          } else {
+            setOfficialTestsCount(0);
+            setPreviousMetrics(null);
+          }
 
           if (physicalData || basketData) {
             setCurrentPerformance((prev: any) => ({
@@ -1923,23 +1948,17 @@ export default function StudentDashboardPage() {
             {/* 4. RADAR COMBINE BIOMECÁNICO OFICIAL (6 EJES SIN MOCKS) */}
             <section className="space-y-4">
               <RadarChart360
-                hasOfficialTest={Boolean(currentPerformance?.isReal || evaluation?.isReal)}
+                hasOfficialTest={Boolean(officialTestsCount > 0 && currentPerformance?.isReal)}
                 athleteName={profile?.full_name || "Atleta Wild Wolves"}
-                metricsCurrent={currentPerformance?.isReal ? {
+                metricsCurrent={officialTestsCount > 0 && currentPerformance?.isReal ? {
                   freeThrow: currentShootingPct || 0,
                   midRange: currentPerformance.mid_range_made ? Math.round((currentPerformance.mid_range_made / 10) * 100) : 0,
                   threePoint: currentPerformance.three_point_made ? Math.round((currentPerformance.three_point_made / 10) * 100) : 0,
                   verticalJump: currentPerformance.vertical_jump_cm || 0,
                   sprint100m: currentPerformance.sprint_100m_seconds ? Math.max(0, Math.min(100, Math.round((16 - currentPerformance.sprint_100m_seconds) * 15))) : 0,
                   agilityTTest: currentPerformance.lines_round_trip_seconds ? Math.max(0, Math.min(100, Math.round((30 - currentPerformance.lines_round_trip_seconds) * 10))) : 0,
-                } : {
-                  freeThrow: 0,
-                  midRange: 0,
-                  threePoint: 0,
-                  verticalJump: 0,
-                  sprint100m: 0,
-                  agilityTTest: 0,
-                }}
+                } : undefined}
+                metricsPrevious={previousMetrics || undefined}
               />
             </section>
 
