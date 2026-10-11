@@ -43,6 +43,7 @@ import {
 
 import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
 import TacticalAIAssistant from "@/components/TacticalAIAssistant";
+import MasterAICockpit from "@/components/MasterAICockpit";
 
 export default function MasterBunkerHQ() {
   const router = useRouter();
@@ -523,6 +524,11 @@ export default function MasterBunkerHQ() {
             Salir al Sitio
           </a>
         </div>
+      </div>
+
+      {/* CENTRO DE MANDO IA: LOBO CENTRAL (EXCLUSIVO HEAD COACH RICARDO) */}
+      <div className="my-6">
+        <MasterAICockpit />
       </div>
 
       {/* PESTAÑAS PRINCIPALES DE GESTIÓN */}
