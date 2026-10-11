@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
 import { enqueueOfflineAction, generateUUID, getOfflineQueueCount } from "@/lib/offlineSync";
+import CustomScheduleSelector from "@/components/CustomScheduleSelector";
 
 export type FinancialStatus = "al_corriente" | "abono_parcial" | "adeudo_pendiente" | "becado";
 export type UserType = "alumno" | "prospecto" | "tutor" | "visitante";
@@ -33,6 +34,8 @@ export interface StudentFinanceData {
   training_days: string;
   training_schedule: string;
   user_type: UserType;
+  selected_days?: string[];
+  schedules_by_day?: Record<string, string>;
 }
 
 interface ManageStudentFinanceModalProps {
@@ -76,9 +79,36 @@ export default function ManageStudentFinanceModal({
   const [sendWhatsApp, setSendWhatsApp] = useState<boolean>(true);
 
   // Estados Horario y Rol
+  const parseInitialDays = (): string[] => {
+    if (student.selected_days && student.selected_days.length > 0) return student.selected_days;
+    const raw = (student.training_days || "").toLowerCase();
+    const days: string[] = [];
+    if (raw.includes("lun")) days.push("lunes");
+    if (raw.includes("mar")) days.push("martes");
+    if (raw.includes("mié") || raw.includes("mie")) days.push("miercoles");
+    if (raw.includes("jue")) days.push("jueves");
+    if (raw.includes("vie")) days.push("viernes");
+    if (raw.includes("sáb") || raw.includes("sab")) days.push("sabado");
+    if (raw.includes("dom")) days.push("domingo");
+    if (raw.includes("diario")) return ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+    return days.length > 0 ? days : ["lunes", "miercoles", "viernes"];
+  };
+
+  const [selectedDays, setSelectedDays] = useState<string[]>(parseInitialDays);
+  const [schedulesByDay, setSchedulesByDay] = useState<Record<string, string>>(() => {
+    if (student.schedules_by_day) return student.schedules_by_day;
+    const defaultShift = student.training_schedule?.toLowerCase().includes("matutino") 
+      ? "09:00 - 11:00" 
+      : "17:00 - 19:00";
+    const initialMap: Record<string, string> = {};
+    parseInitialDays().forEach(d => {
+      initialMap[d] = d === "domingo" ? "16:00 - 18:00" : defaultShift;
+    });
+    return initialMap;
+  });
+
   const [trainingDays, setTrainingDays] = useState<string>(student.training_days || "Lun-Mié-Vie");
   const [trainingSchedule, setTrainingSchedule] = useState<string>(student.training_schedule || "Vespertino: 17:00 - 19:00");
-  const [customSchedule, setCustomSchedule] = useState<string>("");
   const [userType, setUserType] = useState<UserType>(student.user_type || "alumno");
 
   const [saving, setSaving] = useState(false);
@@ -126,10 +156,28 @@ export default function ManageStudentFinanceModal({
   // Guardar Cambios y Transacción
   const handleSaveAll = async () => {
     setSaving(true);
-    try {
-      const finalSchedule = trainingSchedule === "Personalizado" 
-        ? (customSchedule.trim() || "Horario Especial") 
-        : trainingSchedule;
+      // Generar resumen legible de días y horarios
+      const DAY_LABELS: Record<string, string> = {
+        lunes: "Lun",
+        martes: "Mar",
+        miercoles: "Mié",
+        jueves: "Jue",
+        viernes: "Vie",
+        sabado: "Sáb",
+        domingo: "Dom",
+      };
+      const formattedDays = selectedDays.length > 0 
+        ? selectedDays.map(d => DAY_LABELS[d] || d).join("-") 
+        : "Sin días asignados";
+
+      const hasMatutino = Object.values(schedulesByDay).some(s => s.includes("09:00"));
+      const hasVespertino = Object.values(schedulesByDay).some(s => s.includes("17:00"));
+      const hasDomingo = Object.values(schedulesByDay).some(s => s.includes("16:00"));
+      const summaryParts: string[] = [];
+      if (hasMatutino) summaryParts.push("Matutino (09:00 - 11:00)");
+      if (hasVespertino) summaryParts.push("Vespertino (17:00 - 19:00)");
+      if (hasDomingo) summaryParts.push("Domingo (16:00 - 18:00)");
+      const finalSchedule = summaryParts.length > 0 ? summaryParts.join(" / ") : "Vespertino: 17:00 - 19:00";
 
       let newDebt = currentDebt;
       let finalStatus: FinancialStatus = financialStatus;
@@ -153,18 +201,22 @@ export default function ManageStudentFinanceModal({
         ...student,
         current_debt_amount: newDebt,
         financial_status: finalStatus,
-        training_days: trainingDays,
+        training_days: formattedDays,
         training_schedule: finalSchedule,
         user_type: userType,
+        selected_days: selectedDays,
+        schedules_by_day: schedulesByDay,
       };
 
       const profilePayload = {
         id: student.id,
         financial_status: finalStatus,
         current_debt_amount: newDebt,
-        training_days: trainingDays,
+        training_days: formattedDays,
         training_schedule: finalSchedule,
         user_type: userType,
+        selected_days: selectedDays,
+        schedules_by_day: schedulesByDay,
       };
 
       const transactionPayload = paidAmt > 0 ? {
@@ -205,9 +257,11 @@ export default function ManageStudentFinanceModal({
             .update({
               financial_status: finalStatus,
               current_debt_amount: newDebt,
-              training_days: trainingDays,
+              training_days: formattedDays,
               training_schedule: finalSchedule,
               user_type: userType,
+              selected_days: selectedDays,
+              schedules_by_day: schedulesByDay,
             })
             .eq("id", student.id);
 
@@ -548,70 +602,16 @@ export default function ManageStudentFinanceModal({
           )}
 
           {/* 4. DÍAS Y HORARIO DE ENTRENAMIENTO */}
-          <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-3">
-            <label className="text-[11px] font-black uppercase text-zinc-400 tracking-wider block flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-secondary" />
-              Días y Horarios de Entrenamiento
-            </label>
-
-            {/* Días */}
-            <div>
-              <span className="text-[10px] font-bold uppercase text-zinc-500 block mb-1.5">
-                Días de Práctica:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {PRESET_DAYS.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setTrainingDays(d)}
-                    className={`py-2 px-2 rounded-xl text-xs font-black transition cursor-pointer border ${
-                      trainingDays === d
-                        ? "bg-[#f66018] text-white border-[#f66018] shadow"
-                        : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Horario */}
-            <div>
-              <span className="text-[10px] font-bold uppercase text-zinc-500 block mb-1.5 flex items-center gap-1">
-                <Clock className="w-3 h-3 text-amber-400" />
-                Horario de Sesión:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                {PRESET_SCHEDULES.map((sched) => (
-                  <button
-                    key={sched}
-                    type="button"
-                    onClick={() => setTrainingSchedule(sched)}
-                    className={`py-2 px-2 rounded-xl text-[11px] font-black transition cursor-pointer border ${
-                      trainingSchedule === sched
-                        ? "bg-[#f66018] text-white border-[#f66018] shadow"
-                        : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    {sched}
-                  </button>
-                ))}
-              </div>
-
-              {trainingSchedule === "Personalizado" && (
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    value={customSchedule}
-                    onChange={(e) => setCustomSchedule(e.target.value)}
-                    placeholder="Ej. Sábados 10:00 - 12:00 / Clínicas"
-                    className="w-full h-10 px-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs focus:outline-none focus:border-[#f66018]"
-                  />
-                </div>
-              )}
-            </div>
+          {/* 4. DÍAS Y HORARIO DE ENTRENAMIENTO PERSONALIZADOS */}
+          <div className="space-y-3">
+            <CustomScheduleSelector
+              initialDays={selectedDays}
+              initialSchedules={schedulesByDay}
+              onSave={(days, schedules) => {
+                setSelectedDays(days);
+                setSchedulesByDay(schedules);
+              }}
+            />
           </div>
 
         </div>

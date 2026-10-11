@@ -52,6 +52,8 @@ export interface StudentRosterItem {
   user_type: UserType;
   training_days?: string;
   training_schedule?: string;
+  selected_days?: string[];
+  schedules_by_day?: Record<string, string>;
 }
 
 export default function CourtAttendanceCommand() {
@@ -84,7 +86,7 @@ export default function CourtAttendanceCommand() {
       if (typeof window !== "undefined" && navigator.onLine) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name, email, role, financial_status, current_debt_amount, training_days, training_schedule, user_type")
+          .select("id, full_name, email, role, financial_status, current_debt_amount, training_days, training_schedule, user_type, selected_days, schedules_by_day")
           .neq("email", "wildwolvescdmx@gmail.com");
 
         if (profiles && profiles.length > 0) {
@@ -147,6 +149,8 @@ export default function CourtAttendanceCommand() {
               training_days: scheduleDays,
               training_schedule: scheduleTime,
               shift: shiftResolved,
+              selected_days: p.selected_days || (comm?.days_selected ? comm.days_selected.map((d: string) => d.toLowerCase()) : undefined),
+              schedules_by_day: p.schedules_by_day,
               attendance_rate: 85,
               financial_status: finStatus,
               current_debt_amount: debtAmt,
@@ -289,6 +293,8 @@ export default function CourtAttendanceCommand() {
         training_schedule: updated.training_schedule,
         schedule_days: updated.training_days,
         user_type: updated.user_type,
+        selected_days: updated.selected_days,
+        schedules_by_day: updated.schedules_by_day,
         last_payment_status: (updated.financial_status === "adeudo_pendiente" || updated.financial_status === "abono_parcial") ? "adeudo" : "al_corriente",
         last_payment_amount: updated.current_debt_amount,
       };
@@ -299,6 +305,43 @@ export default function CourtAttendanceCommand() {
   // REGLA CLAVE: Tutores / Familiares NO aparecen en el pase de lista ni en cobro de cancha
   const onCourtCandidates = students.filter(s => s.user_type !== "tutor");
 
+  // Identificador normalizado del día de hoy en minúsculas (lunes..domingo)
+  const currentDayKey = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][new Date().getDay()];
+
+  // Función para determinar si el atleta entrena hoy y en qué turno
+  const isStudentScheduledForSession = (st: StudentRosterItem, targetShift: "matutino" | "vespertino"): boolean => {
+    // 1. Si tiene configuración granular día por día
+    if (st.selected_days && st.selected_days.length > 0) {
+      const isDaySelected = st.selected_days.some(d => {
+        const norm = d.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return norm === currentDayKey || norm.startsWith(currentDayKey.slice(0, 3));
+      });
+      if (!isDaySelected) return false;
+
+      // Verificar franja horaria para el día de hoy
+      if (st.schedules_by_day && st.schedules_by_day[currentDayKey]) {
+        const daySchedule = st.schedules_by_day[currentDayKey];
+        if (targetShift === "matutino") return daySchedule.includes("09:00");
+        if (targetShift === "vespertino") return daySchedule.includes("17:00") || daySchedule.includes("16:00");
+      }
+    }
+
+    // 2. Fallback a cadena de días (ej. Lun-Mié-Vie o Martes)
+    if (st.schedule_days || st.training_days) {
+      const rawDays = (st.schedule_days || st.training_days || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const dayPrefix = currentDayKey.slice(0, 3); // lun, mar, mie, jue, vie, sab, dom
+      const matchesDay = rawDays.includes(dayPrefix) || rawDays.includes("diario");
+      if (!matchesDay) return false;
+    }
+
+    // 3. Fallback de turno general
+    if (st.shift) {
+      return st.shift === targetShift;
+    }
+
+    return true;
+  };
+
   const filtered = onCourtCandidates.filter(st => {
     // 1. Búsqueda
     const matchesSearch = 
@@ -307,9 +350,9 @@ export default function CourtAttendanceCommand() {
       (st.number || "").toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
-    // 2. Filtro de Turno / Día Programado
+    // 2. Filtro de Turno / Día Programado Granular
     if (filterMode === "scheduled_today") {
-      if (st.shift && st.shift !== shift) return false;
+      if (!isStudentScheduledForSession(st, shift)) return false;
     }
 
     // 3. Filtro Financiero Reactivo
@@ -325,7 +368,7 @@ export default function CourtAttendanceCommand() {
   });
 
   // Métricas calculadas para la barra táctica (excluyendo tutores)
-  const sessionStudents = onCourtCandidates.filter(s => filterMode === "all" || (s.shift ? s.shift === shift : true));
+  const sessionStudents = onCourtCandidates.filter(s => filterMode === "all" || isStudentScheduledForSession(s, shift));
   const totalInSession = sessionStudents.length;
   const presentCount = sessionStudents.filter(s => s.attendance_status === "presente").length;
   const lateCount = sessionStudents.filter(s => s.attendance_status === "retardo").length;
@@ -826,6 +869,8 @@ export default function CourtAttendanceCommand() {
             training_days: selectedStudentForFinance.training_days || selectedStudentForFinance.schedule_days || "Lun-Mié-Vie",
             training_schedule: selectedStudentForFinance.training_schedule || "Vespertino: 17:00 - 19:00",
             user_type: selectedStudentForFinance.user_type,
+            selected_days: selectedStudentForFinance.selected_days,
+            schedules_by_day: selectedStudentForFinance.schedules_by_day,
           }}
           onClose={() => setSelectedStudentForFinance(null)}
           onSuccess={handleFinanceModalSuccess}
