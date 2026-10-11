@@ -159,7 +159,7 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
           <div className="px-3.5 py-1.5 bg-[#0a0e17] rounded-xl border border-[#27272a] text-center">
             <div className="text-[10px] font-mono text-zinc-400 uppercase">Promedio Actual</div>
             <div className="text-xl font-mono font-black text-orange-500 flex items-center justify-center gap-1">
-              {isEvaluated ? currentAverage : 0}
+              {isEvaluated ? currentAverage : "--"}
               {isEvaluated && hasPreviousReal && (
                 <span className={`text-[11px] font-mono font-bold ${delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {delta >= 0 ? `+${delta}` : delta}
@@ -192,10 +192,10 @@ export function RadarChart360({ metricsCurrent, metricsPrevious, athleteName = '
           </div>
           <div className="max-w-md space-y-2">
             <h4 className="text-base font-black text-white uppercase tracking-tight">
-              Sin Evaluaciones Oficiales en Cancha
+              PENDIENTE DE EVALUACIÓN OFICIAL
             </h4>
             <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-              Preséntate a tu primer Test Day con el Head Coach Ricardo para calibrar tus 6 ejes deportivos.
+              El Head Coach Ricardo aún no ha capturado tus pruebas deportivas en cancha. Preséntate a tu primer Test Day para calibrar tus 6 ejes biomecánicos.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-[#f66018]">

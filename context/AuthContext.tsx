@@ -43,6 +43,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const effectiveRole = isMasterAdmin ? "superadmin" : (data?.role || "student");
 
+      // Auto-vinculación en login con prospect_athletes si existe pre-ficha por nombre
+      if (data?.full_name && userId && !isMasterAdmin) {
+        try {
+          await supabase
+            .from("prospect_athletes")
+            .update({ claimed_user_id: userId })
+            .ilike("athlete_full_name", data.full_name)
+            .is("claimed_user_id", null);
+        } catch {
+          // Si la tabla aún no existe o falla la consulta, no interrumpir auth
+        }
+      }
+
       setProfile(data ? { ...data, role: effectiveRole } : { id: userId, email: cleanEmail, role: effectiveRole });
 
       // Sincronizar cookies y almacenamiento local para acceso inmediato offline

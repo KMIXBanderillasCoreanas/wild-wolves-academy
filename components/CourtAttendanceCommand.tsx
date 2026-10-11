@@ -54,6 +54,8 @@ export interface StudentRosterItem {
   training_schedule?: string;
   selected_days?: string[];
   schedules_by_day?: Record<string, string>;
+  is_prospect?: boolean;
+  prospect_tutor?: string;
 }
 
 export default function CourtAttendanceCommand() {
@@ -105,14 +107,35 @@ export default function CourtAttendanceCommand() {
             .select("student_id, status, shift")
             .eq("date", todayIso);
 
-          const mapped: StudentRosterItem[] = profiles.map((p: any, idx: number) => {
+          // Exclusión permanente del Head Coach Ricardo de listas de evaluación
+          const nonCoachProfiles = profiles.filter((p: any) => {
+            const email = (p.email || "").toLowerCase().trim();
+            const role = (p.role || "").toLowerCase().trim();
+            if (email === "wildwolvescdmx@gmail.com" || email === "ricardo@wildwolves.mx") return false;
+            if (role === "superadmin" || role === "coach") return false;
+            return true;
+          });
+
+          // Consultar pre-fichas de prospect_athletes
+          let prospects: any[] = [];
+          try {
+            const { data: pData } = await supabase
+              .from("prospect_athletes")
+              .select("*")
+              .order("created_at", { ascending: false });
+            if (pData) prospects = pData;
+          } catch {
+            // Fallback silencioso
+          }
+
+          const mapped: StudentRosterItem[] = nonCoachProfiles.map((p: any, idx: number) => {
             const comm = comms?.find((c: any) => c.user_id === p.id);
             const pay = payments?.find((pay: any) => pay.student_id === p.id);
             const att = todayAttendance?.find((a: any) => a.student_id === p.id);
 
             // Determinar rol real de usuario
             let uType: UserType = "alumno";
-            if (p.account_category === "guardian_family" || p.role === "parent") {
+            if (p.account_category === "guardian_family" || p.role === "parent" || p.role === "guardian") {
               uType = "tutor";
             } else if (p.user_type) {
               uType = p.user_type as UserType;
@@ -157,13 +180,38 @@ export default function CourtAttendanceCommand() {
               last_payment_status: (finStatus === "adeudo_pendiente" || finStatus === "abono_parcial") ? "adeudo" : "al_corriente",
               last_payment_amount: debtAmt > 0 ? debtAmt : (pay ? Number(pay.amount) : 150),
               attendance_status: (att?.status as any) || undefined,
-              tutor_phone: "+525522427769",
+              tutor_phone: p.parent_phone || p.emergency_phone || "+525522427769",
               user_type: uType,
+              is_prospect: false
             };
           });
 
-          setStudents(mapped);
-          cacheRosterLocally(mapped);
+          // Integrar prospectos pre-registrados que no hayan reclamado cuenta
+          const mappedProspects: StudentRosterItem[] = prospects
+            .filter(pr => !nonCoachProfiles.some(p => p.id === pr.claimed_user_id || (p.full_name && p.full_name.toLowerCase() === (pr.athlete_full_name || "").toLowerCase())))
+            .map((pr, pIdx) => ({
+              id: pr.id || `prospect_${pr.athlete_full_name}`,
+              full_name: pr.athlete_full_name,
+              number: `#P${pIdx + 1}`,
+              category: "PROSPECTO EN CANCHA",
+              schedule_days: "Lun-Mié-Vie",
+              training_days: "Lun-Mié-Vie",
+              training_schedule: "Vespertino: 17:00 - 19:00",
+              shift: "vespertino",
+              attendance_rate: 100,
+              financial_status: "al_corriente",
+              current_debt_amount: 0,
+              last_payment_status: "al_corriente",
+              last_payment_amount: 0,
+              tutor_phone: pr.contact_phone || pr.emergency_phone || "+525522427769",
+              user_type: "prospecto",
+              is_prospect: true,
+              prospect_tutor: pr.guardian_name || pr.tutor_name || "Catalina Lopez"
+            }));
+
+          const finalRoster = [...mapped, ...mappedProspects];
+          setStudents(finalRoster);
+          cacheRosterLocally(finalRoster);
           return;
         } else {
           setStudents([]);
@@ -760,12 +808,20 @@ export default function CourtAttendanceCommand() {
                       
                       {/* Días y Horarios */}
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-bold">
-                          {st.category}
-                        </span>
-                        <span className="text-[10px] text-zinc-400 font-medium">
-                          {st.training_days || st.schedule_days}
-                        </span>
+                        {st.is_prospect ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold">
+                            Pre-Ficha Familiar / Tutor: {st.prospect_tutor || "Catalina Lopez"}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-bold">
+                              {st.category}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-medium">
+                              {st.training_days || st.schedule_days}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
