@@ -44,6 +44,7 @@ import {
 import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
 import TacticalAIAssistant from "@/components/TacticalAIAssistant";
 import MasterAICockpit from "@/components/MasterAICockpit";
+import TacticalRadarAlerts from "@/components/TacticalRadarAlerts";
 
 export default function MasterBunkerHQ() {
   const router = useRouter();
@@ -526,8 +527,13 @@ export default function MasterBunkerHQ() {
         </div>
       </div>
 
+      {/* RADAR TÁCTICO DE NOVEDADES (AUDITORÍA EN VIVO) */}
+      <div className="mt-6 mb-2">
+        <TacticalRadarAlerts />
+      </div>
+
       {/* CENTRO DE MANDO IA: LOBO CENTRAL (EXCLUSIVO HEAD COACH RICARDO) */}
-      <div className="my-6">
+      <div className="mb-6">
         <MasterAICockpit />
       </div>
 
