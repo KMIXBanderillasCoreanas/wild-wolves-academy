@@ -119,7 +119,8 @@ export default function AttendanceTracker({
       const { data: profilesData, error: profilesErr } = await supabase
         .from("profiles")
         .select("id, full_name, email")
-        .eq("role", "student");
+        .eq("role", "student")
+        .neq("email", "wildwolvescdmx@gmail.com");
 
       if (profilesErr || !profilesData || profilesData.length === 0) {
         // Fallback solo si estamos offline y hay caché de atletas reales previo

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
-import { HoopStore } from '@/lib/store';
+import { HoopStore, generateSchedule } from '@/lib/store';
 import { 
   StudentProfile, 
   User, 
@@ -15,7 +15,8 @@ import {
   PaymentFrequency,
   ShiftType,
   AttendanceStatus,
-  Role
+  Role,
+  ProgressiveTraining
 } from '@/lib/types';
 import { RadarChart360 } from '@/components/RadarChart360';
 import { RopeTracker } from '@/components/RopeTracker';
@@ -54,6 +55,7 @@ import {
 } from 'lucide-react';
 
 export default function CoachDashboardPage() {
+  const [loading, setLoading] = useState<boolean>(true);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('ww_mateo_07');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -101,21 +103,52 @@ export default function CoachDashboardPage() {
   const [editCoachNotes, setEditCoachNotes] = useState<string>('');
 
   useEffect(() => {
-    const user = HoopStore.getCurrentUser();
-    setCurrentUser(user);
+    let isMounted = true;
 
-    // Detección de Rol
-    const roleInStorage = typeof window !== 'undefined' ? localStorage.getItem('ww_user_role') : null;
-    if (roleInStorage === 'superadmin' || user?.role === 'superadmin') {
-      setCurrentRole('superadmin');
-    } else {
-      setCurrentRole('coach');
+    try {
+      const user = HoopStore.getCurrentUser();
+      if (isMounted) setCurrentUser(user);
+
+      // Detección de Rol
+      const roleInStorage = typeof window !== 'undefined' ? localStorage.getItem('ww_user_role') : null;
+      if (roleInStorage === 'superadmin' || user?.role === 'superadmin') {
+        if (isMounted) setCurrentRole('superadmin');
+      } else {
+        if (isMounted) setCurrentRole('coach');
+      }
+    } catch (e) {
+      console.warn('Error reading local user:', e);
+    }
+
+    const filterRealAthletes = (raw: StudentProfile[]) => {
+      return (raw || []).filter((s) => {
+        const email = (s?.email || "").toLowerCase().trim();
+        return (
+          email !== "wildwolvescdmx@gmail.com" &&
+          email !== "ricardo@wildwolves.mx" &&
+          s?.role !== "superadmin" &&
+          s?.role !== "coach"
+        );
+      });
+    };
+
+    // Carga inicial local
+    try {
+      const localList = filterRealAthletes(HoopStore.getStudents() || []);
+      if (isMounted) {
+        setStudents(localList);
+        if (localList.length > 0) {
+          setSelectedStudentId(localList[0].id);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading HoopStore students:', e);
     }
 
     // Sincronización en vivo con Supabase Auth
     supabase.auth.getUser().then(async ({ data }) => {
       const authUser = data?.user;
-      if (authUser) {
+      if (authUser && isMounted) {
         try {
           const { data: profile } = await supabase
             .from('profiles')
@@ -129,7 +162,7 @@ export default function CoachDashboardPage() {
             authUser.email?.toLowerCase().includes('wildwolvescdmx');
 
           const role = profile?.role || (isDirector ? 'superadmin' : 'coach');
-          setCurrentRole(role === 'superadmin' ? 'superadmin' : 'coach');
+          if (isMounted) setCurrentRole(role === 'superadmin' ? 'superadmin' : 'coach');
 
           if (typeof window !== 'undefined') {
             localStorage.setItem('ww_user_role', role);
@@ -141,39 +174,45 @@ export default function CoachDashboardPage() {
           console.warn('Profile sync in dashboard-coach:', e);
         }
       }
+    }).catch((err) => {
+      console.warn('Supabase auth error in dashboard-coach:', err);
     });
-
-    const filterRealAthletes = (raw: StudentProfile[]) => {
-      return (raw || []).filter((s) => {
-        const email = (s.email || "").toLowerCase().trim();
-        return (
-          email !== "wildwolvescdmx@gmail.com" &&
-          email !== "ricardo@wildwolves.mx" &&
-          s.role !== "superadmin" &&
-          s.role !== "coach"
-        );
-      });
-    };
-
-    const list = filterRealAthletes(HoopStore.getStudents());
-    setStudents(list);
-    if (list.length > 0) {
-      setSelectedStudentId(list[0].id);
-    }
 
     // Sincronización en vivo con Supabase PostgreSQL
-    HoopStore.syncWithSupabase().then((remoteList) => {
-      if (remoteList && remoteList.length > 0) {
-        setStudents(filterRealAthletes(remoteList));
-      }
-    });
+    HoopStore.syncWithSupabase()
+      .then((remoteList) => {
+        if (isMounted && remoteList && remoteList.length > 0) {
+          const filtered = filterRealAthletes(remoteList);
+          setStudents(filtered);
+          if (filtered.length > 0) {
+            setSelectedStudentId((prev) => (filtered.some((s) => s.id === prev) ? prev : filtered[0].id));
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('syncWithSupabase error:', err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
 
     const handlePaymentRecorded = () => {
-      setStudents(filterRealAthletes(HoopStore.getStudents()));
+      if (isMounted) {
+        setStudents(filterRealAthletes(HoopStore.getStudents() || []));
+      }
     };
-    window.addEventListener('payment_recorded', handlePaymentRecorded);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('payment_recorded', handlePaymentRecorded);
+    }
+
     return () => {
-      window.removeEventListener('payment_recorded', handlePaymentRecorded);
+      isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('payment_recorded', handlePaymentRecorded);
+      }
     };
   }, []);
 
@@ -425,23 +464,27 @@ export default function CoachDashboardPage() {
     setEvalToDelete(null);
   };
 
-  if (!selectedStudent) {
+  if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6 font-sans">
-        <div className="w-16 h-16 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center mx-auto text-2xl font-black">
-          WW
-        </div>
-        <div>
-          <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-orange-500/10 text-orange-400 border border-orange-500/30 uppercase">
-            Panel Dirección Técnica • Deportivo Carmen Serdán CDMX
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight mt-3">
-            Cargando Plantel de Atletas...
-          </h2>
-        </div>
+      <div className="min-h-screen bg-[#0a0d14] flex flex-col items-center justify-center text-zinc-400 gap-3">
+        <div className="w-10 h-10 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+        <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
+          Cargando Búnker Táctico...
+        </span>
       </div>
     );
   }
+
+  const athleteDisplayName = selectedStudent?.fullName || 'Atleta';
+  const athleteFirstName = athleteDisplayName.split(' ')[0] || 'Atleta';
+  const evaluationsList = Array.isArray(selectedStudent?.evaluations) ? selectedStudent.evaluations : [];
+  const trainingData: ProgressiveTraining = selectedStudent?.training || {
+    ropeJumpsToday: 100,
+    ropeTarget: 500,
+    joggingMinutesToday: 10,
+    joggingTarget: 30,
+    schedule: generateSchedule(1),
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
@@ -502,7 +545,7 @@ export default function CoachDashboardPage() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
               >
                 <Heart className="w-3.5 h-3.5 text-rose-400" />
-                <span>Ficha Médica ({selectedStudent.fullName.split(' ')[0]})</span>
+                <span>Ficha Médica ({athleteFirstName})</span>
               </button>
             )}
 
@@ -719,7 +762,7 @@ export default function CoachDashboardPage() {
             </div>
             <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
               <History className="w-5 h-5 text-orange-400" />
-              <span>Bitácora de Evaluaciones: {selectedStudent.fullName}</span>
+              <span>Bitácora de Evaluaciones: {athleteDisplayName}</span>
             </h3>
             <p className="text-xs text-zinc-400 font-mono">
               {isSuperAdmin
@@ -738,21 +781,21 @@ export default function CoachDashboardPage() {
         </div>
 
         {/* Lista de Evaluaciones del Atleta con Botones según Rol */}
-        {selectedStudent.evaluations.length === 0 ? (
+        {evaluationsList.length === 0 ? (
           <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a]">
             Este atleta no tiene evaluaciones históricas registradas. Haz clic en &quot;+ Cargar Evaluación Mensual&quot;.
           </div>
         ) : (
           <div className="space-y-3">
-            {selectedStudent.evaluations.map((ev, index) => (
+            {evaluationsList.map((ev, index) => (
               <div
-                key={ev.id}
+                key={ev?.id || `eval_${index}`}
                 className="bg-[#0a0e17] border border-[#27272a] hover:border-zinc-700 rounded-xl p-4 font-mono text-xs transition"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-white font-bold text-sm font-sans">{ev.date}</span>
-                    <span className="text-[10px] text-zinc-400">evaluado por {ev.coachName}</span>
+                    <span className="text-white font-bold text-sm font-sans">{ev?.date || 'Fecha'}</span>
+                    <span className="text-[10px] text-zinc-400">evaluado por {ev?.coachName || 'Coach'}</span>
                     {index === 0 && (
                       <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
                         Vigente
@@ -792,31 +835,31 @@ export default function CoachDashboardPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 my-2 text-[11px] pt-1 border-t border-zinc-800/60">
                   <div className="p-2 bg-zinc-900/60 rounded-lg">
                     <span className="text-zinc-500 text-[10px] block">T. Libres</span>
-                    <strong className="text-white">{ev.rawStats?.freeThrowMade || Math.round((ev.metrics.freeThrow * 20)/100)}/20</strong>
+                    <strong className="text-white">{ev?.rawStats?.freeThrowMade ?? Math.round(((ev?.metrics?.freeThrow ?? 0) * 20)/100)}/20</strong>
                   </div>
                   <div className="p-2 bg-zinc-900/60 rounded-lg">
                     <span className="text-zinc-500 text-[10px] block">Media Dist.</span>
-                    <strong className="text-white">{ev.rawStats?.midRangePct || ev.metrics.midRange}%</strong>
+                    <strong className="text-white">{ev?.rawStats?.midRangePct ?? (ev?.metrics?.midRange ?? 0)}%</strong>
                   </div>
                   <div className="p-2 bg-zinc-900/60 rounded-lg">
                     <span className="text-zinc-500 text-[10px] block">Triples</span>
-                    <strong className="text-white">{ev.rawStats?.threePointPct || ev.metrics.threePoint}%</strong>
+                    <strong className="text-white">{ev?.rawStats?.threePointPct ?? (ev?.metrics?.threePoint ?? 0)}%</strong>
                   </div>
                   <div className="p-2 bg-zinc-900/60 rounded-lg">
                     <span className="text-zinc-500 text-[10px] block">Salto</span>
-                    <strong className="text-orange-400">{ev.rawStats?.verticalJumpCm || Math.round((ev.metrics.verticalJump * 90)/100)} cm</strong>
+                    <strong className="text-orange-400">{ev?.rawStats?.verticalJumpCm ?? Math.round(((ev?.metrics?.verticalJump ?? 0) * 90)/100)} cm</strong>
                   </div>
                   <div className="p-2 bg-zinc-900/60 rounded-lg">
                     <span className="text-zinc-500 text-[10px] block">100m Sprint</span>
-                    <strong className="text-sky-400">{ev.rawStats?.sprint100mSeconds || 11.5}s</strong>
+                    <strong className="text-sky-400">{ev?.rawStats?.sprint100mSeconds ?? 11.5}s</strong>
                   </div>
                   <div className="p-2 bg-zinc-900/60 rounded-lg">
                     <span className="text-zinc-500 text-[10px] block">T-Test Agilidad</span>
-                    <strong className="text-emerald-400">{ev.rawStats?.agilityTTestSeconds || 9.2}s</strong>
+                    <strong className="text-emerald-400">{ev?.rawStats?.agilityTTestSeconds ?? 9.2}s</strong>
                   </div>
                 </div>
 
-                {ev.coachNotes && (
+                {ev?.coachNotes && (
                   <div className="p-2.5 bg-zinc-900/40 rounded-lg text-zinc-300 font-sans text-xs mt-2 border border-zinc-800/40">
                     <span className="font-mono font-bold text-orange-400 mr-1.5">Feedback:</span>
                     {ev.coachNotes}
@@ -831,14 +874,14 @@ export default function CoachDashboardPage() {
       {/* 5. Cuerda & Resistencia */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RopeTracker
-          training={selectedStudent.training}
+          training={trainingData}
           readOnly={false}
           onToggleDay={handleToggleDay}
           onUpdateTargets={handleUpdateRopeTargets}
         />
 
         <EnduranceCalendar
-          training={selectedStudent.training}
+          training={trainingData}
           readOnly={false}
           onToggleDay={handleToggleDay}
           onUpdateTargets={handleUpdateJoggingTargets}
@@ -863,7 +906,7 @@ export default function CoachDashboardPage() {
                   EVALUACIÓN COMBINE MENSUAL
                 </span>
                 <h3 className="text-xl font-bold text-white mt-1">Cargar Nueva Evaluación Técnica</h3>
-                <p className="text-xs font-mono text-zinc-400">Atleta: {selectedStudent.fullName}</p>
+                <p className="text-xs font-mono text-zinc-400">Atleta: {athleteDisplayName}</p>
               </div>
               <button
                 onClick={() => setIsEvalModalOpen(false)}
@@ -1007,7 +1050,7 @@ export default function CoachDashboardPage() {
                   EDICIÓN SUPERADMINISTRADOR • {evalToEdit.date}
                 </span>
                 <h3 className="text-xl font-bold text-white mt-1">Modificar Evaluación Histórica</h3>
-                <p className="text-xs font-mono text-zinc-400">Atleta: {selectedStudent.fullName}</p>
+                <p className="text-xs font-mono text-zinc-400">Atleta: {athleteDisplayName}</p>
               </div>
               <button
                 onClick={() => setIsEditEvalModalOpen(false)}
