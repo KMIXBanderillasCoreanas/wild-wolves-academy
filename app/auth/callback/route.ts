@@ -1,97 +1,120 @@
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const targetRole = searchParams.get("target_role");
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get("code");
+  const next = requestUrl.searchParams.get("next") || "/";
 
   if (code) {
-    try {
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-      if (data?.user) {
-        const userEmail = (data.user.email || "").toLowerCase();
-        const isMasterAdmin = 
-          userEmail === "wildwolvescdmx@gmail.com" ||
-          userEmail === "ricardo@wildwolves.mx" || 
-          userEmail === "carlos@wildwolves.mx" || 
-          userEmail === "director@wildwolves.mx";
-
-        let role = isMasterAdmin ? "superadmin" : (targetRole || "student");
-
-        try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, status, full_name")
-            .eq("id", data.user.id)
-            .single();
-
-          if (isMasterAdmin) {
-            role = "superadmin";
-            await supabase.from("profiles").upsert({
-              id: data.user.id,
-              email: data.user.email,
-              full_name: profile?.full_name || "Coach Ricardo (Director General)",
-              role: "superadmin",
-              status: "active",
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dgzuttxfmrfcgsceczql.supabase.co",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_SYyJnZPqfIHN5cYH3I-5YQ_foTlKdNa",
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ 
+              name, 
+              value, 
+              ...options,
+              maxAge: 60 * 60 * 24 * 365, // 1 año de persistencia continua
+              sameSite: "lax",
+              path: "/"
             });
-          } else if (profile?.role) {
-            role = profile.role;
-          } else {
-            // Auto registrar en profiles si es primer inicio con Google
-            role = targetRole || "student";
-            await supabase.from("profiles").upsert({
-              id: data.user.id,
-              email: data.user.email,
-              full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || "Atleta Wild Wolves",
-              role: role,
-              status: "active",
-            });
-          }
-        } catch (e) {
-          console.warn("Aviso al consultar profile en callback:", e);
-        }
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.delete({ name, ...options });
+          },
+        },
+      }
+    );
 
-        // Redirección y blindaje de cookies según rol
-        if (role === "coach_pending") {
-          const res = NextResponse.redirect(`${origin}/apply-coach-ww?status=pending`);
-          res.cookies.set("user_role", "coach_pending", { path: "/", maxAge: 86400, sameSite: "lax" });
-          if (data.user.email) {
-            res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 86400, sameSite: "lax" });
-          }
-          return res;
-        }
+    const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (role === "superadmin") {
-          const res = NextResponse.redirect(`${origin}/master-bunker-hq`);
-          res.cookies.set("user_role", "superadmin", { path: "/", maxAge: 86400, sameSite: "lax" });
-          if (data.user.email) {
-            res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 86400, sameSite: "lax" });
-          }
-          return res;
-        }
+    if (!error && data?.user) {
+      const userEmail = (data.user.email || "").toLowerCase().trim();
+      const isMasterAdmin = 
+        userEmail === "wildwolvescdmx@gmail.com" ||
+        userEmail === "ricardo@wildwolves.mx" || 
+        userEmail === "carlos@wildwolves.mx" || 
+        userEmail === "director@wildwolves.mx";
 
-        if (role === "coach") {
-          const res = NextResponse.redirect(`${origin}/dashboard-coach`);
-          res.cookies.set("user_role", "coach", { path: "/", maxAge: 86400, sameSite: "lax" });
-          if (data.user.email) {
-            res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 86400, sameSite: "lax" });
-          }
-          return res;
-        }
+      let role = isMasterAdmin ? "superadmin" : "student";
 
-        // Alumno o Tutor (student)
-        const res = NextResponse.redirect(`${origin}/dashboard-student`);
-        res.cookies.set("user_role", "student", { path: "/", maxAge: 86400, sameSite: "lax" });
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, status, full_name")
+          .eq("id", data.user.id)
+          .maybeSingle();
+
+        if (isMasterAdmin) {
+          role = "superadmin";
+          await supabase.from("profiles").upsert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: profile?.full_name || "Coach Ricardo (Director General)",
+            role: "superadmin",
+            status: "active",
+          });
+        } else if (profile?.role) {
+          role = profile.role;
+        } else {
+          // Registrar nuevo alumno
+          await supabase.from("profiles").upsert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || "Atleta Wild Wolves",
+            role: "student",
+            status: "active",
+          });
+        }
+      } catch (e) {
+        console.warn("Aviso en profile de callback:", e);
+      }
+
+      // Si es el correo oficial del Director General o superadmin, paso directo al Búnker
+      if (role === "superadmin" || isMasterAdmin) {
+        const res = NextResponse.redirect(new URL("/master-bunker-hq", requestUrl.origin));
+        res.cookies.set("user_role", "superadmin", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
         if (data.user.email) {
-          res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 86400, sameSite: "lax" });
+          res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
         }
         return res;
       }
-    } catch (e) {
-      console.error("Error exchanging OAuth code for session:", e);
+
+      if (role === "coach") {
+        const res = NextResponse.redirect(new URL("/dashboard-coach", requestUrl.origin));
+        res.cookies.set("user_role", "coach", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+        if (data.user.email) {
+          res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+        }
+        return res;
+      }
+
+      if (role === "coach_pending") {
+        const res = NextResponse.redirect(new URL("/apply-coach-ww?status=pending", requestUrl.origin));
+        res.cookies.set("user_role", "coach_pending", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+        if (data.user.email) {
+          res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+        }
+        return res;
+      }
+
+      // Portal del alumno
+      const res = NextResponse.redirect(new URL("/dashboard-student", requestUrl.origin));
+      res.cookies.set("user_role", "student", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+      if (data.user.email) {
+        res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+      }
+      return res;
     }
   }
 
-  return NextResponse.redirect(`${origin}/dashboard-student`);
+  return NextResponse.redirect(new URL(next, requestUrl.origin));
 }

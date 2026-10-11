@@ -3,6 +3,7 @@ import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import InstallPWA from '@/components/InstallPWA';
 import AuthSync from '@/components/AuthSync';
+import { AuthProvider } from '@/context/AuthContext';
 
 export const viewport: Viewport = {
   themeColor: '#ea580c',
@@ -59,12 +60,14 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-[#090d16] text-zinc-100 flex flex-col font-sans selection:bg-[#ea580c] selection:text-white antialiased">
-        <AuthSync />
-        <InstallPWA />
-        <Navbar />
-        <div className="flex-1">
-          {children}
-        </div>
+        <AuthProvider>
+          <AuthSync />
+          <InstallPWA />
+          <Navbar />
+          <div className="flex-1">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );
