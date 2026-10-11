@@ -42,6 +42,7 @@ import {
 } from "@/lib/offlineSync";
 
 import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
+import TacticalAIAssistant from "@/components/TacticalAIAssistant";
 
 export default function MasterBunkerHQ() {
   const router = useRouter();
@@ -850,6 +851,7 @@ export default function MasterBunkerHQ() {
         </div>
       )}
       </div>
+      <TacticalAIAssistant />
     </>
   );
 }
