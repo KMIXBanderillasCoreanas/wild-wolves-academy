@@ -26,6 +26,7 @@ import { AttendanceTracker } from '@/components/AttendanceTracker';
 import CourtAttendanceCommand from '@/components/CourtAttendanceCommand';
 import TestDayEvaluator from '@/components/TestDayEvaluator';
 import DualCoachCommand from '@/components/DualCoachCommand';
+import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
 import confetti from 'canvas-confetti';
 import { 
@@ -658,6 +659,11 @@ export default function CoachDashboardPage() {
         </div>
       ) : (
         <>
+          {/* Motor Autónomo: Diagnóstico Exprés de Colocación & Pipeline CRM */}
+          <div className="mb-6">
+            <SmartPlacementCRM />
+          </div>
+
           {/* Comando Táctico Stitch en Cancha */}
           <div className="mb-6">
             <CourtAttendanceCommand />

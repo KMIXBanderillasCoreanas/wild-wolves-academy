@@ -30,6 +30,7 @@ import AttendanceTracker from "@/components/AttendanceTracker";
 import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
 import TestDayEvaluator from "@/components/TestDayEvaluator";
 import DualCoachCommand from "@/components/DualCoachCommand";
+import SmartPlacementCRM from "@/components/SmartPlacementCRM";
 import { 
   syncOfflineQueueToSupabase, 
   getOfflineQueueCount 
@@ -42,7 +43,7 @@ export default function MasterBunkerHQ() {
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "test_day" | "coaches">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "coaches">("attendance");
   const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
   const [testDaySubView, setTestDaySubView] = useState<"dual" | "ovr">("dual");
   const [coaches, setCoaches] = useState<any[]>([]);
@@ -527,6 +528,16 @@ export default function MasterBunkerHQ() {
           <Calendar className="w-4 h-4" /> Control de Asistencia y Cancha
         </button>
         <button
+          onClick={() => setActiveTab("smart_placement")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "smart_placement"
+              ? "bg-purple-600 text-white font-black shadow-lg shadow-purple-600/30"
+              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-purple-300" /> Diagnóstico Exprés & CRM
+        </button>
+        <button
           onClick={() => setActiveTab("finance")}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "finance"
@@ -599,6 +610,12 @@ export default function MasterBunkerHQ() {
           ) : (
             <AttendanceTracker />
           )}
+        </div>
+      )}
+
+      {activeTab === "smart_placement" && (
+        <div className="space-y-4 animate-fade-in">
+          <SmartPlacementCRM />
         </div>
       )}
 

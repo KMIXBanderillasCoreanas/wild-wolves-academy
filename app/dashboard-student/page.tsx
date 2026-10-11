@@ -258,7 +258,26 @@ function checkBaseExercisesMastery(perf: any, baseline: any): BaseMasteryState {
 }
 
 // Algoritmo de cálculo dinámico de Rango Biológico & Desbloqueo Automático
-function calculateBiologicalRank(perf: any, baseline: any = {}): BiologicalRankInfo {
+function calculateBiologicalRank(perf: any, baseline: any = {}, profileTier?: string | null): BiologicalRankInfo {
+  // 1. Si el atleta tiene un Tier asignado por el Motor Autónomo / CRM en profiles
+  if (profileTier) {
+    const tierNormalized = profileTier.toLowerCase().replace(/[- ]/g, "_");
+    const TIER_MAP: Record<string, number> = {
+      principiante: 1,
+      basico: 2,
+      intermedio: 3,
+      avanzado: 4,
+      militar: 5,
+      elite: 6,
+      bestia_alfa: 7,
+      titan_wolf: 8,
+      ultra_instinto: 9,
+    };
+    if (TIER_MAP[tierNormalized] && BIOLOGICAL_RANKS[TIER_MAP[tierNormalized]]) {
+      return BIOLOGICAL_RANKS[TIER_MAP[tierNormalized]];
+    }
+  }
+
   const mastery = checkBaseExercisesMastery(perf, baseline);
   const joggingMin = Number(perf?.jogging_minutes) || 0;
   const laps = Number(perf?.court_laps_done) || 0;
@@ -656,6 +675,7 @@ export default function StudentDashboardPage() {
           avatar_url: prof?.avatar_url || null,
           jersey_number: isSuperAdmin ? "00" : (prof?.jersey_number || 11),
           position: isSuperAdmin ? "DIRECTOR GENERAL • NIVEL 0" : (prof?.position || "GUARD (SG)"),
+          current_tier: prof?.current_tier || null,
           isSuperAdmin: isSuperAdmin,
           isCoachOrAdmin: isCoachOrAdmin,
           isGuest: false
@@ -797,8 +817,8 @@ export default function StudentDashboardPage() {
     window.location.href = "/login";
   };
 
-  // Verificación de evaluación real
-  const isEvaluated = Boolean(currentPerformance.isReal || baseline.isReal);
+  // Verificación de evaluación real (por desempeño, línea base o Tier asignado en profile)
+  const isEvaluated = Boolean(currentPerformance.isReal || baseline.isReal || profile?.current_tier);
   const baseMastery = checkBaseExercisesMastery(currentPerformance, baseline);
   const hasRealSelfie = Boolean(
     profile?.avatar_url && 
@@ -808,7 +828,7 @@ export default function StudentDashboardPage() {
 
   // Cálculo del Rango Biológico activo o estado pendiente de Día 1
   const activeRank: BiologicalRankInfo = isEvaluated
-    ? calculateBiologicalRank(currentPerformance, baseline)
+    ? calculateBiologicalRank(currentPerformance, baseline, profile?.current_tier)
     : {
         level: 0,
         tierName: "Iniciación",
