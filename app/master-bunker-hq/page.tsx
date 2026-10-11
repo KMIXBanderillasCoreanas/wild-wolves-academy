@@ -33,6 +33,7 @@ import TestDayEvaluator from "@/components/TestDayEvaluator";
 import DualCoachCommand from "@/components/DualCoachCommand";
 import SmartPlacementCRM from "@/components/SmartPlacementCRM";
 import BunkerHomeTrainingMonitor from "@/components/BunkerHomeTrainingMonitor";
+import GuardianDirectory from "@/components/GuardianDirectory";
 import { Home } from "lucide-react";
 import { 
   syncOfflineQueueToSupabase, 
@@ -46,7 +47,7 @@ export default function MasterBunkerHQ() {
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "home_training" | "coaches">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "home_training" | "guardians" | "coaches">("attendance");
   const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
   const [testDaySubView, setTestDaySubView] = useState<"dual" | "ovr">("dual");
   const [coaches, setCoaches] = useState<any[]>([]);
@@ -571,6 +572,16 @@ export default function MasterBunkerHQ() {
           <Home className="w-4 h-4" /> Entrenamiento en Casa
         </button>
         <button
+          onClick={() => setActiveTab("guardians")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "guardians"
+              ? "bg-purple-600 text-white font-black shadow-lg shadow-purple-600/30"
+              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          }`}
+        >
+          <Users className="w-4 h-4 text-purple-300" /> Directorio Familiar &amp; Tutores
+        </button>
+        <button
           onClick={() => setActiveTab("coaches")}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "coaches"
@@ -758,6 +769,12 @@ export default function MasterBunkerHQ() {
       {activeTab === "home_training" && (
         <div className="space-y-4 animate-fade-in">
           <BunkerHomeTrainingMonitor />
+        </div>
+      )}
+
+      {activeTab === "guardians" && (
+        <div className="space-y-4 animate-fade-in">
+          <GuardianDirectory />
         </div>
       )}
 

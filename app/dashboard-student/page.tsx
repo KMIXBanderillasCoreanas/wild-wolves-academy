@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import AuthModal from "@/components/AuthModal";
+import FamilyOnboardingModal from "@/components/FamilyOnboardingModal";
 import SelfieCameraCapture from "@/components/SelfieCameraCapture";
 import TierProgressionBar from "@/components/TierProgressionBar";
 import { RadarChart360 } from "@/components/RadarChart360";
@@ -396,6 +397,7 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showRankModal, setShowRankModal] = useState(false);
   const [showCommitmentModal, setShowCommitmentModal] = useState(false);
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
   const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
   const [selectedBadgeModal, setSelectedBadgeModal] = useState<any | null>(null);
@@ -708,7 +710,17 @@ export default function StudentDashboardPage() {
           isGuest: false
         });
 
-        // Manejo de compromiso de asistencia
+        // Chequeo de Cuestionario Obligatorio de Parentesco y Familia
+        const needsFamilyOnboarding = !isCoachOrAdmin && effectiveId && (!prof?.phone_number || !prof?.account_category);
+        if (needsFamilyOnboarding) {
+          setShowFamilyModal(true);
+        } else if (!comm && !isCoachOrAdmin) {
+          const localDays = typeof window !== "undefined" ? localStorage.getItem("ww_selected_days") : null;
+          if (!localDays) {
+            setShowCommitmentModal(true);
+          }
+        }
+
         if (comm) {
           setCommitment(comm);
         } else if (typeof window !== "undefined") {
@@ -719,8 +731,6 @@ export default function StudentDashboardPage() {
               shift: localStorage.getItem("ww_selected_shift") || "vespertino_5_7",
               frequency_type: localStorage.getItem("ww_frequency_type") || "cada_tercer_dia_3_dias"
             });
-          } else if (!isCoachOrAdmin) {
-            setShowCommitmentModal(true);
           }
         }
 
@@ -1975,6 +1985,22 @@ export default function StudentDashboardPage() {
 
         </div>
       </main>
+
+      {/* ========================================================================= */}
+      {/* MODAL ONBOARDING FAMILIAR Y DE PARENTESCO (OBLIGATORIO)                   */}
+      {/* ========================================================================= */}
+      {showFamilyModal && profile?.id && (
+        <FamilyOnboardingModal
+          userId={profile.id}
+          userEmail={profile.email}
+          onComplete={() => {
+            setShowFamilyModal(false);
+            if (typeof window !== "undefined") {
+              window.location.reload();
+            }
+          }}
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL ONBOARDING PACTO DE ENTRENAMIENTO (OBLIGATORIO)                     */}

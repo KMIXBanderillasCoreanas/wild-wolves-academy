@@ -56,17 +56,20 @@ export default function SmartPlacementCRM() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, current_tier, crm_status, days_inactive, last_attended_at, role, user_type")
+        .select("id, full_name, email, current_tier, crm_status, days_inactive, last_attended_at, role, user_type, account_category")
         .eq("role", "student")
         .neq("email", "wildwolvescdmx@gmail.com");
 
       if (data && data.length > 0) {
-        setStudents(data);
+        // Excluir tutores/familiares de pruebas físicas y drills de duela
+        const onlyStudents = data.filter((d: any) => d.account_category !== "guardian_family" && d.user_type !== "tutor");
+        setStudents(onlyStudents);
         if (!selectedStudent) {
-          selectStudent(data[0]);
+          if (onlyStudents.length > 0) selectStudent(onlyStudents[0]);
         } else {
-          const fresh = data.find((d: any) => d.id === selectedStudent.id);
+          const fresh = onlyStudents.find((d: any) => d.id === selectedStudent.id);
           if (fresh) setSelectedStudent(fresh);
+          else if (onlyStudents.length > 0) selectStudent(onlyStudents[0]);
         }
       } else {
         setStudents([]);
@@ -140,6 +143,19 @@ export default function SmartPlacementCRM() {
       alert("Error en diagnóstico: " + err.message);
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleQuickToggleRole = async (targetStudentId: string, toRole: "student" | "guardian_family") => {
+    try {
+      await supabase.from("profiles").update({
+        account_category: toRole,
+        role: toRole === "guardian_family" ? "parent" : "student",
+        user_type: toRole === "guardian_family" ? "tutor" : "alumno"
+      }).eq("id", targetStudentId);
+      await loadAthletes();
+    } catch (e) {
+      console.warn("Error cambiando rol de usuario:", e);
     }
   };
 
@@ -235,10 +251,22 @@ export default function SmartPlacementCRM() {
 
         {/* FORMULARIO DE EVALUACIÓN EXPRÉS DE COLOCACIÓN */}
         <div className="lg:col-span-2 bg-[#121724] border border-zinc-800 rounded-2xl p-5 space-y-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <span className="text-[10px] font-mono text-zinc-400 uppercase">Evaluando a:</span>
-              <h3 className="text-lg font-black text-white uppercase">{selectedStudent?.full_name || "Selecciona un Atleta"}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-white uppercase">{selectedStudent?.full_name || "Selecciona un Atleta"}</h3>
+                {selectedStudent && (
+                  <button
+                    type="button"
+                    onClick={() => handleQuickToggleRole(selectedStudent.id, "guardian_family")}
+                    className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition cursor-pointer"
+                    title="Mover a Tutor/Familiar si este registro no es alumno"
+                  >
+                    Cambiar a Tutor Familiar
+                  </button>
+                )}
+              </div>
             </div>
 
             {selectedStudent?.current_tier && (

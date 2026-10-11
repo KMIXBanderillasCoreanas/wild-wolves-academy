@@ -86,7 +86,7 @@ export default function CourtAttendanceCommand() {
       if (typeof window !== "undefined" && navigator.onLine) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name, email, role, financial_status, current_debt_amount, training_days, training_schedule, user_type, selected_days, schedules_by_day")
+          .select("id, full_name, email, role, financial_status, current_debt_amount, training_days, training_schedule, user_type, account_category, phone_number, selected_days, schedules_by_day")
           .neq("email", "wildwolvescdmx@gmail.com");
 
         if (profiles && profiles.length > 0) {
@@ -112,10 +112,10 @@ export default function CourtAttendanceCommand() {
 
             // Determinar rol real de usuario
             let uType: UserType = "alumno";
-            if (p.user_type) {
-              uType = p.user_type as UserType;
-            } else if (p.role === "parent") {
+            if (p.account_category === "guardian_family" || p.role === "parent") {
               uType = "tutor";
+            } else if (p.user_type) {
+              uType = p.user_type as UserType;
             }
 
             // Determinar estatus financiero dinámico
