@@ -48,13 +48,17 @@ export async function POST(req: Request) {
 
     const { messages, customContext } = await req.json();
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const groqApiKey = process.env.GROQ_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY;
     const freeLlmApiUrl = process.env.FREE_LLM_API_URL;
 
-    // Si aún no se ha configurado la clave secreta
-    if (!apiKey || apiKey === "tu_clave_secreta_aqui") {
+    const hasGroq = Boolean(groqApiKey && groqApiKey.startsWith("gsk_"));
+    const hasGemini = Boolean(geminiApiKey && geminiApiKey !== "tu_clave_secreta_aqui");
+
+    // Si aún no se ha configurado ninguna clave secreta
+    if (!hasGroq && !hasGemini && !freeLlmApiUrl) {
       return NextResponse.json({
-        reply: "🐺 *Lobo Central IA en espera:*\n\nCoach Ricardo, para activar las respuestas de IA en tiempo real, ingresa tu clave gratuita de Google Gemini en tu archivo `.env.local`:\n\n`GEMINI_API_KEY=\"AIzaSy...\"`\n\nPuedes generar tu clave en segundos sin costo en: **aistudio.google.com**.\n\n_Mientras tanto, todas las funciones del Búnker, pase de lista, finanzas y evaluaciones continúan operando al 100%._"
+        reply: "🐺 *Lobo Central IA en espera:*\n\nCoach Ricardo, para activar las respuestas de IA en tiempo real, ingresa tu clave de Groq o Google Gemini en tu archivo `.env.local`:\n\n`GROQ_API_KEY=\"gsk_...\"` o `GEMINI_API_KEY=\"AIzaSy...\"`\n\n_Mientras tanto, todas las funciones del Búnker, pase de lista, finanzas y evaluaciones continúan operando al 100%._"
       });
     }
 
@@ -71,14 +75,49 @@ REGLAS DE TONO Y FORMATO:
 - Cuando redactes para WhatsApp, usa negritas (*), emojis deportivos oficiales (🐺🏀🔥) y estructura visual limpia lista para copiar y pegar.
 - Contexto de la consulta actual: ${JSON.stringify(customContext || {})}`;
 
-    // 3. INFERENCIA CON PROXY FREELLMAPI (SI ESTÁ DEFINIDO)
+    // 3. INFERENCIA ULTRA-RÁPIDA CON GROQ (LLAMA 3.3 70B / 3.1 8B)
+    if (hasGroq && groqApiKey) {
+      try {
+        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${groqApiKey}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...(messages || []).map((m: any) => ({
+                role: m.role === "assistant" || m.role === "model" ? "assistant" : "user",
+                content: m.content,
+              })),
+            ],
+            temperature: 0.6,
+            max_tokens: 1200,
+          }),
+        });
+
+        if (groqResponse.ok) {
+          const groqData = await groqResponse.json();
+          const replyText = groqData.choices?.[0]?.message?.content;
+          if (replyText) {
+            return NextResponse.json({ reply: replyText });
+          }
+        }
+      } catch (groqErr) {
+        console.warn("Groq inference fallback notice:", groqErr);
+      }
+    }
+
+    // 4. INFERENCIA CON PROXY FREELLMAPI (SI ESTÁ DEFINIDO)
     if (freeLlmApiUrl) {
       const openAiUrl = freeLlmApiUrl.endsWith("/") ? `${freeLlmApiUrl}chat/completions` : `${freeLlmApiUrl}/chat/completions`;
       const response = await fetch(openAiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
+          "Authorization": `Bearer ${geminiApiKey || groqApiKey}`,
         },
         body: JSON.stringify({
           model: "gemini-1.5-flash",
@@ -103,8 +142,8 @@ REGLAS DE TONO Y FORMATO:
       return NextResponse.json({ reply: replyText });
     }
 
-    // 4. INFERENCIA DIRECTA CON GOOGLE GEMINI 1.5 FLASH
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 5. INFERENCIA DIRECTA CON GOOGLE GEMINI 1.5 FLASH
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
     const formattedContents = [
       {
