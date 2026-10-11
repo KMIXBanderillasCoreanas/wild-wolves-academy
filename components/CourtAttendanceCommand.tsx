@@ -23,9 +23,16 @@ import {
   X, 
   AlertCircle, 
   XCircle, 
-  Landmark, 
-  MessageSquare 
+  Settings,
+  Sparkles,
+  ShieldAlert,
+  UserCheck
 } from "lucide-react";
+import ManageStudentFinanceModal, { 
+  StudentFinanceData, 
+  FinancialStatus, 
+  UserType 
+} from "@/components/ManageStudentFinanceModal";
 
 export interface StudentRosterItem {
   id: string;
@@ -34,38 +41,41 @@ export interface StudentRosterItem {
   category?: string;
   schedule_days?: string;
   attendance_rate?: number;
-  last_payment_status: "al_corriente" | "adeudo";
+  last_payment_status: "al_corriente" | "adeudo"; // compatibilidad interna
+  financial_status: FinancialStatus;
+  current_debt_amount: number;
   last_payment_amount?: number;
   last_session_date?: string;
   attendance_status?: "presente" | "retardo" | "falta";
   tutor_phone?: string;
   shift?: "matutino" | "vespertino" | string;
+  user_type: UserType;
+  training_days?: string;
+  training_schedule?: string;
 }
 
 export default function CourtAttendanceCommand() {
   const [shift, setShift] = useState<"matutino" | "vespertino">("vespertino");
   const [filterMode, setFilterMode] = useState<"scheduled_today" | "all">("scheduled_today");
-  const [paymentFilter, setPaymentFilter] = useState<"all" | "al_corriente" | "adeudo">("all");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "al_corriente" | "adeudo" | "abono_parcial" | "becado">("all");
+  const [userTypeFilter, setUserTypeFilter] = useState<"all" | "alumno" | "prospecto" | "visitante">("all");
   const [search, setSearch] = useState("");
   const [isOnline, setIsOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [offlineCount, setOfflineCount] = useState(0);
 
-  // Estados de cobro rápido en cancha
-  const [selectedStudent, setSelectedStudent] = useState<StudentRosterItem | null>(null);
-  const [payAmount, setPayAmount] = useState<number>(150);
-  const [payMethod, setPayMethod] = useState<"efectivo" | "spei">("efectivo");
-  const [sendWhatsApp, setSendWhatsApp] = useState(true);
+  // Modal táctil de finanzas y horarios
+  const [selectedStudentForFinance, setSelectedStudentForFinance] = useState<StudentRosterItem | null>(null);
 
-  // Lista de atletas con carga resiliente (inicializada vacía, solo atletas reales de Supabase)
+  // Lista de atletas con carga resiliente
   const [students, setStudents] = useState<StudentRosterItem[]>([]);
 
   const daysMap = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   const currentDayName = daysMap[new Date().getDay()];
-  const todayFormatted = new Intl.DateTimeFormat('es-MX', { 
-    weekday: 'long', 
-    day: 'numeric', 
-    month: 'short' 
+  const todayFormatted = new Intl.DateTimeFormat("es-MX", { 
+    weekday: "long", 
+    day: "numeric", 
+    month: "short" 
   }).format(new Date());
 
   const loadRoster = useCallback(async () => {
@@ -74,8 +84,7 @@ export default function CourtAttendanceCommand() {
       if (typeof window !== "undefined" && navigator.onLine) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name, email, role")
-          .eq("role", "student")
+          .select("id, full_name, email, role, financial_status, current_debt_amount, training_days, training_schedule, user_type")
           .neq("email", "wildwolvescdmx@gmail.com");
 
         if (profiles && profiles.length > 0) {
@@ -94,24 +103,58 @@ export default function CourtAttendanceCommand() {
             .select("student_id, status, shift")
             .eq("date", todayIso);
 
-          const mapped: StudentRosterItem[] = profiles.map((p, idx) => {
-            const comm = comms?.find(c => c.user_id === p.id);
-            const pay = payments?.find(pay => pay.student_id === p.id);
-            const att = todayAttendance?.find(a => a.student_id === p.id);
-            const isPaid = pay ? pay.status === "pagado" : false;
+          const mapped: StudentRosterItem[] = profiles.map((p: any, idx: number) => {
+            const comm = comms?.find((c: any) => c.user_id === p.id);
+            const pay = payments?.find((pay: any) => pay.student_id === p.id);
+            const att = todayAttendance?.find((a: any) => a.student_id === p.id);
+
+            // Determinar rol real de usuario
+            let uType: UserType = "alumno";
+            if (p.user_type) {
+              uType = p.user_type as UserType;
+            } else if (p.role === "parent") {
+              uType = "tutor";
+            }
+
+            // Determinar estatus financiero dinámico
+            let finStatus: FinancialStatus = "al_corriente";
+            let debtAmt = 0;
+
+            if (p.financial_status) {
+              finStatus = p.financial_status as FinancialStatus;
+              debtAmt = Number(p.current_debt_amount ?? (finStatus === "adeudo_pendiente" ? 150 : 0));
+            } else {
+              const isPaid = pay ? pay.status === "pagado" : false;
+              if (isPaid) {
+                finStatus = "al_corriente";
+                debtAmt = 0;
+              } else {
+                finStatus = "adeudo_pendiente";
+                debtAmt = pay ? Number(pay.amount) : 150;
+              }
+            }
+
+            const scheduleDays = p.training_days || (comm?.days_selected?.join("-") || "Lun-Mié-Vie");
+            const scheduleTime = p.training_schedule || (comm?.shift?.includes("matutino") ? "Matutino: 09:00 - 11:00" : "Vespertino: 17:00 - 19:00");
+            const shiftResolved = scheduleTime.toLowerCase().includes("matutino") || comm?.shift?.includes("matutino") ? "matutino" : "vespertino";
 
             return {
               id: p.id,
               full_name: p.full_name || "Atleta Wild Wolves",
               number: `#${(idx * 7 + 8) % 99 || 11}`,
               category: idx % 3 === 0 ? "U-15 FORMATIVO" : idx % 3 === 1 ? "U-17 COMPETITIVO" : "ADULTOS +20",
-              schedule_days: comm?.days_selected?.join("-") || "Lun-Mié-Vie",
-              shift: comm?.shift?.includes("matutino") ? "matutino" : "vespertino",
+              schedule_days: scheduleDays,
+              training_days: scheduleDays,
+              training_schedule: scheduleTime,
+              shift: shiftResolved,
               attendance_rate: 85,
-              last_payment_status: isPaid ? "al_corriente" : "adeudo",
-              last_payment_amount: pay ? Number(pay.amount) : 150,
+              financial_status: finStatus,
+              current_debt_amount: debtAmt,
+              last_payment_status: (finStatus === "adeudo_pendiente" || finStatus === "abono_parcial") ? "adeudo" : "al_corriente",
+              last_payment_amount: debtAmt > 0 ? debtAmt : (pay ? Number(pay.amount) : 150),
               attendance_status: (att?.status as any) || undefined,
               tutor_phone: "+525522427769",
+              user_type: uType,
             };
           });
 
@@ -212,60 +255,51 @@ export default function CourtAttendanceCommand() {
     }
   };
 
-  const handleConfirmPayment = async () => {
-    if (!selectedStudent) return;
-    const todayDate = new Date().toISOString().split("T")[0];
-    const paymentId = generateUUID();
-
-    const paymentPayload = {
-      id: paymentId,
-      student_id: selectedStudent.id,
-      amount: payAmount,
-      payment_date: todayDate,
-      payment_method: payMethod === "efectivo" ? "efectivo" : "transferencia",
-      concept: payAmount === 50 ? "clase_individual" : payAmount === 150 ? "semanal" : "mensualidad",
-      status: "pagado"
+  // Cambio rápido inline de Tipo de Usuario
+  const handleQuickChangeUserType = async (studentId: string, newType: UserType) => {
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, user_type: newType } : s));
+    
+    const payload = {
+      id: studentId,
+      user_type: newType
     };
 
-    // Sincronizar en HoopStore local y disparar evento global
-    HoopStore.recordPayment(
-      selectedStudent.id,
-      payAmount,
-      payMethod === "efectivo" ? "Efectivo" : "Transferencia"
-    );
-
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("payment_recorded"));
-    }
-
     if (!navigator.onLine) {
-      enqueueOfflineAction("PAYMENT", paymentPayload);
+      enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", payload);
       setOfflineCount(getOfflineQueueCount());
     } else {
       try {
-        await supabase.from("membership_payments").upsert(paymentPayload, { onConflict: "id" });
+        await supabase.from("profiles").update({ user_type: newType }).eq("id", studentId);
       } catch {
-        enqueueOfflineAction("PAYMENT", paymentPayload);
+        enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", payload);
         setOfflineCount(getOfflineQueueCount());
       }
     }
+  };
 
-    setStudents(prev => prev.map(s => s.id === selectedStudent.id ? { 
-      ...s, 
-      last_payment_status: "al_corriente", 
-      last_payment_amount: payAmount 
-    } : s));
-
-    if (sendWhatsApp && selectedStudent.tutor_phone) {
-      const msg = encodeURIComponent(`Hola, se confirmó el pago de $${payAmount} MXN (${paymentPayload.concept}) para el atleta ${selectedStudent.full_name} en Wild Wolves CDMX (Sede Deportivo Carmen Serdán). ¡Gracias por su confianza! 🐺🏀`);
-      window.open(`https://wa.me/${selectedStudent.tutor_phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
-    }
-
-    setSelectedStudent(null);
+  // Callback exitoso del modal de finanzas
+  const handleFinanceModalSuccess = (updated: StudentFinanceData) => {
+    setStudents(prev => prev.map(s => {
+      if (s.id !== updated.id) return s;
+      return {
+        ...s,
+        financial_status: updated.financial_status,
+        current_debt_amount: updated.current_debt_amount,
+        training_days: updated.training_days,
+        training_schedule: updated.training_schedule,
+        schedule_days: updated.training_days,
+        user_type: updated.user_type,
+        last_payment_status: (updated.financial_status === "adeudo_pendiente" || updated.financial_status === "abono_parcial") ? "adeudo" : "al_corriente",
+        last_payment_amount: updated.current_debt_amount,
+      };
+    }));
   };
 
   // Filtrado reactivo de atletas
-  const filtered = students.filter(st => {
+  // REGLA CLAVE: Tutores / Familiares NO aparecen en el pase de lista ni en cobro de cancha
+  const onCourtCandidates = students.filter(s => s.user_type !== "tutor");
+
+  const filtered = onCourtCandidates.filter(st => {
     // 1. Búsqueda
     const matchesSearch = 
       st.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -275,52 +309,92 @@ export default function CourtAttendanceCommand() {
 
     // 2. Filtro de Turno / Día Programado
     if (filterMode === "scheduled_today") {
-      // Si el alumno tiene turno asignado y no coincide con el turno activo
       if (st.shift && st.shift !== shift) return false;
     }
 
-    // 3. Filtro Financiero
-    if (paymentFilter === "al_corriente" && st.last_payment_status !== "al_corriente") return false;
-    if (paymentFilter === "adeudo" && st.last_payment_status !== "adeudo") return false;
+    // 3. Filtro Financiero Reactivo
+    if (paymentFilter === "al_corriente" && st.financial_status !== "al_corriente") return false;
+    if (paymentFilter === "adeudo" && st.financial_status !== "adeudo_pendiente") return false;
+    if (paymentFilter === "abono_parcial" && st.financial_status !== "abono_parcial") return false;
+    if (paymentFilter === "becado" && st.financial_status !== "becado") return false;
+
+    // 4. Filtro por Rol / Tipo de Usuario
+    if (userTypeFilter !== "all" && st.user_type !== userTypeFilter) return false;
 
     return true;
   });
 
-  // Métricas calculadas para la barra táctica
-  const sessionStudents = students.filter(s => filterMode === "all" || (s.shift ? s.shift === shift : true));
+  // Métricas calculadas para la barra táctica (excluyendo tutores)
+  const sessionStudents = onCourtCandidates.filter(s => filterMode === "all" || (s.shift ? s.shift === shift : true));
   const totalInSession = sessionStudents.length;
   const presentCount = sessionStudents.filter(s => s.attendance_status === "presente").length;
   const lateCount = sessionStudents.filter(s => s.attendance_status === "retardo").length;
   const absentCount = sessionStudents.filter(s => s.attendance_status === "falta").length;
-  const debtorCount = sessionStudents.filter(s => s.last_payment_status === "adeudo").length;
-  const totalDebtAmount = sessionStudents
-    .filter(s => s.last_payment_status === "adeudo")
-    .reduce((acc, curr) => acc + (curr.last_payment_amount || 150), 0);
+  
+  // Total de alumnos con saldo por cobrar (adeudo pendiente o abono parcial)
+  const debtorStudents = sessionStudents.filter(s => s.financial_status === "adeudo_pendiente" || s.financial_status === "abono_parcial");
+  const debtorCount = debtorStudents.length;
+  const totalDebtAmount = debtorStudents.reduce((acc, curr) => acc + (curr.current_debt_amount || 0), 0);
   const attendanceRatePct = totalInSession > 0 ? Math.round((presentCount / totalInSession) * 100) : 0;
 
+  // Render Badge Financiero Reactivo
+  const renderFinancialBadge = (st: StudentRosterItem) => {
+    switch (st.financial_status) {
+      case "al_corriente":
+        return (
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-black border border-emerald-500/30 shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Al Corriente ($0 Adeudo)</span>
+          </div>
+        );
+      case "abono_parcial":
+        return (
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black border border-amber-500/40 shrink-0">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Abonó Parcial (Resta: ${st.current_debt_amount} MXN)</span>
+          </div>
+        );
+      case "becado":
+        return (
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-black border border-sky-400/30 shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+            <span>Becado / Exento</span>
+          </div>
+        );
+      case "adeudo_pendiente":
+      default:
+        return (
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-950/80 text-red-300 text-[10px] font-black border border-red-500/40 animate-pulse shrink-0">
+            <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+            <span>Adeudo Pendiente (${st.current_debt_amount || 150} MXN)</span>
+          </div>
+        );
+    }
+  };
+
   return (
-    <div className="w-full bg-surface text-on-surface rounded-3xl border border-surface-container-high shadow-2xl p-4 sm:p-6 lg:p-7 space-y-5 transition-all duration-300">
+    <div className="w-full bg-[#0a0d14] text-zinc-100 rounded-3xl border border-zinc-800/80 shadow-2xl p-4 sm:p-6 lg:p-7 space-y-5 transition-all duration-300">
       
       {/* 1. COURT SESSION CONTROL & SYNC STRIP (100% RESPONSIVE) */}
-      <section className="bg-surface-container-low p-4 sm:p-5 rounded-2xl border border-surface-container">
+      <section className="bg-zinc-900/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           {/* Sede y Título Táctico */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-primary-container/20 border border-primary-container/40 flex items-center justify-center shrink-0">
-              <Activity className="w-6 h-6 text-orange-400" />
+            <div className="w-11 h-11 rounded-2xl bg-[#f66018]/15 border border-[#f66018]/30 flex items-center justify-center shrink-0">
+              <Activity className="w-6 h-6 text-[#f66018]" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-extrabold text-on-surface uppercase tracking-tight text-base sm:text-lg">
+                <span className="font-extrabold text-white uppercase tracking-tight text-base sm:text-lg">
                   On-Court Command
                 </span>
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-surface-container-high text-secondary border border-secondary/20">
+                <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-[#f66018]/20 text-[#f66018] border border-[#f66018]/30">
                   Carmen Serdán Court
                 </span>
               </div>
-              <p className="text-xs text-on-surface-variant capitalize mt-0.5">
-                {todayFormatted} • Sede Oficial Wild Wolves
+              <p className="text-xs text-zinc-400 capitalize mt-0.5">
+                {todayFormatted} • Head Coach Command Center
               </p>
             </div>
           </div>
@@ -328,14 +402,14 @@ export default function CourtAttendanceCommand() {
           {/* Turnos Selector + Sync Status */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             {/* Turno Switcher */}
-            <div className="inline-flex p-1 rounded-xl bg-surface-container border border-surface-container-high">
+            <div className="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800">
               <button
                 type="button"
                 onClick={() => setShift("matutino")}
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
                   shift === "matutino" 
-                    ? "bg-primary-container text-on-primary shadow-sm" 
-                    : "text-on-surface-variant hover:text-on-surface"
+                    ? "bg-[#f66018] text-white shadow-sm font-black" 
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <Sun className="w-4 h-4 text-amber-400" />
@@ -346,8 +420,8 @@ export default function CourtAttendanceCommand() {
                 onClick={() => setShift("vespertino")}
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
                   shift === "vespertino" 
-                    ? "bg-primary-container text-on-primary shadow-sm" 
-                    : "text-on-surface-variant hover:text-on-surface"
+                    ? "bg-[#f66018] text-white shadow-sm font-black" 
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 <Activity className="w-4 h-4 text-orange-400" />
@@ -356,17 +430,17 @@ export default function CourtAttendanceCommand() {
             </div>
 
             {/* Offline-First Sync Pill */}
-            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 rounded-xl bg-surface-container border border-surface-container-high">
+            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800">
               <div className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? "bg-tertiary animate-ping" : "bg-error"}`} />
-                <span className={`text-[11px] font-bold uppercase ${isOnline ? "text-tertiary" : "text-error"}`}>
+                <span className={`h-2.5 w-2.5 rounded-full ${isOnline ? "bg-emerald-400 animate-ping" : "bg-red-500"}`} />
+                <span className={`text-[11px] font-black uppercase ${isOnline ? "text-emerald-400" : "text-red-400"}`}>
                   {isOnline ? (offlineCount > 0 ? `Subiendo (${offlineCount})...` : "En Línea • Sincronizado") : `Offline (${offlineCount} en cola)`}
                 </span>
               </div>
               <button 
                 onClick={triggerSync} 
                 disabled={syncing}
-                className={`text-tertiary hover:text-white transition cursor-pointer ml-1 p-0.5 rounded hover:bg-surface-variant ${syncing ? "animate-spin" : ""}`} 
+                className={`text-emerald-400 hover:text-white transition cursor-pointer ml-1 p-0.5 rounded hover:bg-zinc-800 ${syncing ? "animate-spin" : ""}`} 
                 type="button"
                 title="Sincronizar cambios ahora"
               >
@@ -381,64 +455,64 @@ export default function CourtAttendanceCommand() {
       {/* 2. QUICK KPI METRICS BANNER (RESPONSIVE 2X2 ON MOBILE, 4-COL ON DESKTOP) */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Roster Hoy */}
-        <div className="flex flex-col justify-between bg-surface-container-low p-3.5 sm:p-4 rounded-2xl border border-surface-container hover:border-surface-container-high transition">
+        <div className="flex flex-col justify-between bg-zinc-900/50 p-3.5 sm:p-4 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs text-on-surface-variant uppercase font-bold tracking-wider">
+            <span className="text-[10px] sm:text-xs text-zinc-400 uppercase font-black tracking-wider">
               Roster Sesión
             </span>
             <Users className="w-5 h-5 text-sky-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-black text-on-surface">{totalInSession}</span>
-            <span className="text-xs text-on-surface-variant font-medium">atletas</span>
+            <span className="text-2xl sm:text-3xl font-black text-white">{totalInSession}</span>
+            <span className="text-xs text-zinc-400 font-medium">alumnos</span>
           </div>
-          <span className="text-[10px] text-secondary mt-1 font-semibold capitalize">Turno {shift}</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-semibold capitalize">Turno {shift}</span>
         </div>
 
         {/* Presentes */}
-        <div className="flex flex-col justify-between bg-surface-container-low p-3.5 sm:p-4 rounded-2xl border border-surface-container hover:border-surface-container-high transition">
+        <div className="flex flex-col justify-between bg-zinc-900/50 p-3.5 sm:p-4 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs text-tertiary uppercase font-bold tracking-wider">
+            <span className="text-[10px] sm:text-xs text-emerald-400 uppercase font-black tracking-wider">
               Presentes
             </span>
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-black text-tertiary">{presentCount}</span>
-            <span className="text-xs text-tertiary/70 font-bold">({attendanceRatePct}%)</span>
+            <span className="text-2xl sm:text-3xl font-black text-emerald-400">{presentCount}</span>
+            <span className="text-xs text-emerald-400/80 font-bold">({attendanceRatePct}%)</span>
           </div>
-          <span className="text-[10px] text-on-surface-variant mt-1 font-medium">Asistencia en duela/cancha</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-medium">Asistencia en duela/cancha</span>
         </div>
 
         {/* Retardos / Faltas */}
-        <div className="flex flex-col justify-between bg-surface-container-low p-3.5 sm:p-4 rounded-2xl border border-surface-container hover:border-surface-container-high transition">
+        <div className="flex flex-col justify-between bg-zinc-900/50 p-3.5 sm:p-4 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs text-primary uppercase font-bold tracking-wider">
+            <span className="text-[10px] sm:text-xs text-amber-400 uppercase font-black tracking-wider">
               Retardos / Faltas
             </span>
             <Clock className="w-5 h-5 text-amber-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-black text-primary">{lateCount} <span className="text-xs font-normal text-on-surface-variant">ret.</span></span>
+            <span className="text-xl sm:text-2xl font-black text-amber-400">{lateCount} <span className="text-xs font-normal text-zinc-400">ret.</span></span>
             <span className="text-zinc-600 font-bold">•</span>
-            <span className="text-xl sm:text-2xl font-black text-error">{absentCount} <span className="text-xs font-normal text-on-surface-variant">falt.</span></span>
+            <span className="text-xl sm:text-2xl font-black text-red-400">{absentCount} <span className="text-xs font-normal text-zinc-400">falt.</span></span>
           </div>
-          <span className="text-[10px] text-on-surface-variant mt-1 font-medium">Incidencias hoy</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-medium">Incidencias hoy</span>
         </div>
 
-        {/* Cobros Pendientes */}
-        <div className="flex flex-col justify-between bg-surface-container-low p-3.5 sm:p-4 rounded-2xl border border-surface-container hover:border-surface-container-high transition">
+        {/* Cobros Pendientes Dinámicos */}
+        <div className="flex flex-col justify-between bg-zinc-900/50 p-3.5 sm:p-4 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs text-error uppercase font-bold tracking-wider">
+            <span className="text-[10px] sm:text-xs text-red-400 uppercase font-black tracking-wider">
               Cobros Pendientes
             </span>
             <CreditCard className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-black text-error">{debtorCount}</span>
-            <span className="text-xs text-error/80 font-bold">(${totalDebtAmount} MXN)</span>
+            <span className="text-2xl sm:text-3xl font-black text-red-400">{debtorCount}</span>
+            <span className="text-xs text-red-400/80 font-bold">(${totalDebtAmount} MXN)</span>
           </div>
-          <span className="text-[10px] text-on-surface-variant mt-1 font-medium">Cobro rápido disponible</span>
+          <span className="text-[10px] text-zinc-400 mt-1 font-medium">Adeudos o abonos parciales</span>
         </div>
       </section>
 
@@ -450,13 +524,13 @@ export default function CourtAttendanceCommand() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-11 pl-11 pr-10 rounded-xl bg-surface-container text-on-surface text-xs placeholder:text-outline focus:outline-none border border-surface-container-high focus:border-secondary transition"
+            className="w-full h-11 pl-11 pr-10 rounded-xl bg-zinc-950 text-white text-xs placeholder:text-zinc-500 focus:outline-none border border-zinc-800 focus:border-[#f66018] transition"
             placeholder="Buscar por atleta, categoría, dorsal o tutor..."
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface text-xs cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs cursor-pointer"
             >
               <X className="w-4 h-4 text-zinc-400" />
             </button>
@@ -466,14 +540,14 @@ export default function CourtAttendanceCommand() {
         {/* Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
           {/* Modalidad de Roster */}
-          <div className="inline-flex p-1 rounded-xl bg-surface-container border border-surface-container-high shrink-0">
+          <div className="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800 shrink-0">
             <button
               type="button"
               onClick={() => setFilterMode("scheduled_today")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 filterMode === "scheduled_today"
-                  ? "bg-primary-container text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-[#f66018] text-white shadow-sm font-black"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               Hoy en Turno
@@ -483,59 +557,92 @@ export default function CourtAttendanceCommand() {
               onClick={() => setFilterMode("all")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 filterMode === "all"
-                  ? "bg-primary-container text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-[#f66018] text-white shadow-sm font-black"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               Todo el Plantel
             </button>
           </div>
 
-          {/* Filtro Estatus Pago */}
-          <div className="inline-flex p-1 rounded-xl bg-surface-container border border-surface-container-high shrink-0">
+          {/* Filtro Estatus Financiero Reactivo */}
+          <div className="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800 shrink-0">
             <button
               type="button"
               onClick={() => setPaymentFilter("all")}
               className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                 paymentFilter === "all"
-                  ? "bg-surface-variant text-on-surface"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-zinc-800 text-white font-black"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               Todos
             </button>
             <button
               type="button"
+              onClick={() => setPaymentFilter("al_corriente")}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                paymentFilter === "al_corriente"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Al Corriente
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentFilter("abono_parcial")}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                paymentFilter === "abono_parcial"
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Abonos
+            </button>
+            <button
+              type="button"
               onClick={() => setPaymentFilter("adeudo")}
               className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                 paymentFilter === "adeudo"
-                  ? "bg-error-container text-on-error-container"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-red-950/80 text-red-300 border border-red-500/40"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
-              Adeudos ({debtorCount})
+              Adeudos
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentFilter("becado")}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                paymentFilter === "becado"
+                  ? "bg-sky-500/20 text-sky-300 border border-sky-400/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Becados
             </button>
           </div>
         </div>
       </section>
 
-      {/* 4. ATHLETE ROSTER: AUTO-ADJUSTING RESPONSIVE GRID (1 COL ON MOBILE, 2 COLS ON TABLET, 3-4 COLS ON DESKTOP) */}
+      {/* 4. ATHLETE ROSTER: RESPONSIVE CARDS */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {filtered.length === 0 ? (
-          <div className="col-span-full py-16 px-6 text-center bg-surface-container-low/80 rounded-3xl border border-surface-container-high/80 shadow-2xl flex flex-col items-center justify-center max-w-xl mx-auto my-6">
-            <div className="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary-container mb-4 border border-surface-container-highest shadow-inner">
-              <Activity className="w-8 h-8 text-orange-500" />
+          <div className="col-span-full py-16 px-6 text-center bg-zinc-900/40 rounded-3xl border border-zinc-800 shadow-2xl flex flex-col items-center justify-center max-w-xl mx-auto my-6">
+            <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800 shadow-inner">
+              <Activity className="w-8 h-8 text-[#f66018]" />
             </div>
             <h3 className="text-base font-black text-white uppercase tracking-wide">
-              {search ? "Sin resultados para tu búsqueda" : "No hay atletas registrados en este turno"}
+              {search ? "Sin resultados para tu búsqueda" : "No hay alumnos en este filtro o turno"}
             </h3>
-            <p className="text-xs text-on-surface-variant max-w-md mt-2 leading-relaxed">
+            <p className="text-xs text-zinc-400 max-w-md mt-2 leading-relaxed">
               {search 
-                ? `No se encontró ningún alumno con el criterio "${search}".` 
-                : "Los alumnos aparecerán aquí automáticamente en cuanto completen su registro inicial con Google o correo en el Deportivo Carmen Serdán."}
+                ? `No se encontró ningún registro con "${search}".` 
+                : "Recuerda que los Tutores/Familiares se ocultan automáticamente del pase de lista y cobro de cancha."}
             </p>
-            <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container border border-surface-container-high text-[11px] font-mono text-secondary">
-              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+            <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-[#f66018]">
+              <span className="w-2 h-2 rounded-full bg-[#f66018] animate-pulse" />
               <span>Turno: {shift === "matutino" ? "Matutino (09:00 - 11:00 hrs)" : "Vespertino (17:00 - 19:00 hrs)"}</span>
             </div>
           </div>
@@ -543,61 +650,101 @@ export default function CourtAttendanceCommand() {
           filtered.map((st) => (
             <article 
               key={st.id} 
-              className="flex flex-col justify-between bg-surface-container-low hover:bg-surface-container/70 p-4 rounded-2xl gap-3.5 border border-surface-container/80 hover:border-surface-container-high transition-all duration-200 shadow-md hover:shadow-xl group"
+              className="flex flex-col justify-between bg-zinc-900/60 hover:bg-zinc-900 p-4 rounded-2xl gap-3.5 border border-zinc-800/80 hover:border-zinc-700 transition-all duration-200 shadow-md hover:shadow-xl group"
             >
-              {/* Card Header: Dorsal, Nombre, Categoría & Semáforo */}
+              {/* Card Header: Dorsal, Nombre, Rol, Categoría & Semáforo Financiero */}
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-container/80 to-surface-variant flex items-center justify-center font-black text-sm text-on-primary shadow-sm shrink-0">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#f66018] to-orange-700 flex items-center justify-center font-black text-sm text-white shadow-sm shrink-0">
                       {st.number || "#"}
                     </div>
                     <div>
-                      <span className="font-extrabold text-sm text-on-surface block leading-tight">
+                      <span className="font-extrabold text-sm text-white block leading-tight">
                         {st.full_name}
                       </span>
+                      
+                      {/* Días y Horarios */}
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-variant text-secondary font-bold">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-bold">
                           {st.category}
                         </span>
-                        <span className="text-[10px] text-outline font-medium">
-                          {st.schedule_days}
+                        <span className="text-[10px] text-zinc-400 font-medium">
+                          {st.training_days || st.schedule_days}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Badge de Estatus de Pago */}
-                  {st.last_payment_status === "al_corriente" ? (
-                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-container/30 text-tertiary text-[10px] font-bold border border-tertiary/20 shrink-0">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Al Corriente</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container text-[10px] font-bold animate-pulse shrink-0">
-                      <AlertCircle className="w-3.5 h-3.5 text-red-400" />
-                      <span>Adeudo</span>
-                    </div>
-                  )}
+                  {/* Botón de Engrane para abrir Modal de Finanzas */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentForFinance(st)}
+                    className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                    title="Gestionar Finanzas, Días, Horario y Rol"
+                  >
+                    <Settings className="w-4 h-4 text-zinc-300" />
+                  </button>
                 </div>
 
-                {/* Subinfo si tiene adeudo */}
-                {st.last_payment_status === "adeudo" && (
-                  <div className="mt-3">
+                {/* Sub-header: Selector Rápido de Rol e Identificación del Usuario */}
+                <div className="mt-3 flex items-center justify-between gap-1.5 pt-2 border-t border-zinc-800/50">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase">Rol:</span>
+                    <select
+                      value={st.user_type}
+                      onChange={(e) => handleQuickChangeUserType(st.id, e.target.value as UserType)}
+                      className={`text-[10px] font-black uppercase rounded-lg px-2 py-0.5 bg-zinc-950 border cursor-pointer focus:outline-none ${
+                        st.user_type === "alumno"
+                          ? "border-emerald-500/40 text-emerald-400"
+                          : st.user_type === "prospecto"
+                          ? "border-amber-500/40 text-amber-300"
+                          : st.user_type === "visitante"
+                          ? "border-sky-500/40 text-sky-300"
+                          : "border-purple-500/40 text-purple-300"
+                      }`}
+                    >
+                      <option value="alumno">Alumno Activo</option>
+                      <option value="prospecto">Prospecto / Muestra</option>
+                      <option value="visitante">Visitante</option>
+                      <option value="tutor">Tutor / Familiar</option>
+                    </select>
+                  </div>
+
+                  {/* Horario asignado compacto */}
+                  <span className="text-[10px] text-zinc-400 font-mono">
+                    {st.shift === "matutino" ? "09:00 - 11:00" : "17:00 - 19:00"}
+                  </span>
+                </div>
+
+                {/* Badge Financiero Dinámico Reactivo */}
+                <div className="mt-2.5 flex items-center justify-between gap-2">
+                  {renderFinancialBadge(st)}
+
+                  {/* Acceso Rápido al Botón de Cobro / Ajuste */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentForFinance(st)}
+                    className="text-[10px] font-black uppercase text-[#f66018] hover:text-orange-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Ajustar</span>
+                  </button>
+                </div>
+
+                {/* Botón Prominente de Cobro en Cancha si tiene saldo pendiente */}
+                {(st.financial_status === "adeudo_pendiente" || st.financial_status === "abono_parcial") && (
+                  <div className="mt-2.5">
                     <button
                       type="button"
-                      onClick={() => { 
-                        setSelectedStudent(st); 
-                        setPayAmount(st.last_payment_amount || 150); 
-                      }}
-                      className="flex items-center justify-between w-full h-10 px-3 rounded-xl bg-primary-container text-on-primary font-bold text-xs shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer"
+                      onClick={() => setSelectedStudentForFinance(st)}
+                      className="flex items-center justify-between w-full h-10 px-3 rounded-xl bg-gradient-to-r from-[#f66018] to-orange-600 hover:brightness-110 active:scale-98 text-white font-black text-xs shadow-md transition cursor-pointer"
                     >
                       <div className="flex items-center gap-1.5">
                         <CreditCard className="w-4 h-4 text-white" />
-                        <span>Cobrar en Cancha</span>
+                        <span>Gestionar Cobro / Abono</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-black/25 text-[10px] font-black">
-                        ${st.last_payment_amount || 150} MXN
+                      <span className="px-2 py-0.5 rounded-full bg-black/30 text-[10px] font-black">
+                        ${st.current_debt_amount} MXN
                       </span>
                     </button>
                   </div>
@@ -605,11 +752,11 @@ export default function CourtAttendanceCommand() {
               </div>
 
               {/* Card Footer: 3-State Attendance Selector */}
-              <div className="pt-2 border-t border-surface-container/60">
-                <div className="text-[10px] uppercase font-bold text-on-surface-variant mb-1.5 flex items-center justify-between">
-                  <span>Asistencia Hoy</span>
+              <div className="pt-2 border-t border-zinc-800/80">
+                <div className="text-[10px] uppercase font-bold text-zinc-400 mb-1.5 flex items-center justify-between">
+                  <span>Pase de Lista Hoy</span>
                   {st.attendance_status && (
-                    <span className="capitalize font-semibold text-secondary">
+                    <span className="capitalize font-black text-[#f66018]">
                       {st.attendance_status}
                     </span>
                   )}
@@ -621,8 +768,8 @@ export default function CourtAttendanceCommand() {
                     onClick={() => handleMarkAttendance(st.id, "presente")}
                     className={`flex items-center justify-center gap-1.5 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                       st.attendance_status === "presente"
-                        ? "bg-tertiary text-on-tertiary shadow-md"
-                        : "bg-surface-container text-on-surface-variant hover:text-on-surface"
+                        ? "bg-emerald-500 text-black font-black shadow-md shadow-emerald-950/50"
+                        : "bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                     }`}
                     title="Marcar Presente"
                   >
@@ -635,8 +782,8 @@ export default function CourtAttendanceCommand() {
                     onClick={() => handleMarkAttendance(st.id, "retardo")}
                     className={`flex items-center justify-center gap-1.5 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                       st.attendance_status === "retardo"
-                        ? "bg-primary-container text-on-primary shadow-md"
-                        : "bg-surface-container text-on-surface-variant hover:text-on-surface"
+                        ? "bg-amber-500 text-black font-black shadow-md shadow-amber-950/50"
+                        : "bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                     }`}
                     title="Marcar Retardo"
                   >
@@ -649,8 +796,8 @@ export default function CourtAttendanceCommand() {
                     onClick={() => handleMarkAttendance(st.id, "falta")}
                     className={`flex items-center justify-center gap-1.5 h-9 sm:h-10 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer ${
                       st.attendance_status === "falta"
-                        ? "bg-error-container text-on-error-container shadow-md"
-                        : "bg-surface-container text-on-surface-variant hover:text-on-surface"
+                        ? "bg-red-600 text-white font-black shadow-md shadow-red-950/50"
+                        : "bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                     }`}
                     title="Marcar Falta"
                   >
@@ -665,117 +812,24 @@ export default function CourtAttendanceCommand() {
         )}
       </section>
 
-      {/* 5. QUICK PAYMENT SHEET MODAL (RESPONSIVE) */}
-      {selectedStudent && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="w-full max-w-md bg-surface-container-high rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 flex flex-col gap-4 border border-surface-container animate-fade-in shadow-2xl">
-            
-            {/* Modal Header */}
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="font-black text-sm uppercase text-on-surface block tracking-wide">
-                  Cobro Rápido en Cancha
-                </span>
-                <span className="text-xs text-secondary font-bold mt-0.5 block">
-                  {selectedStudent.full_name} ({selectedStudent.category})
-                </span>
-              </div>
-              <button 
-                onClick={() => setSelectedStudent(null)} 
-                className="text-outline hover:text-on-surface p-1 rounded-lg hover:bg-surface-variant transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Selector de Monto */}
-            <div>
-              <label className="text-[11px] font-bold uppercase text-on-surface-variant block mb-2">
-                Selecciona Concepto y Monto:
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { amt: 50, label: "Por Clase", desc: "1 Sesión" },
-                  { amt: 150, label: "Semanal", desc: "3 Sesiones" },
-                  { amt: 600, label: "Mensual", desc: "Mes Completo" }
-                ].map(item => (
-                  <button
-                    key={item.amt}
-                    type="button"
-                    onClick={() => setPayAmount(item.amt)}
-                    className={`py-3 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center transition cursor-pointer border ${
-                      payAmount === item.amt
-                        ? "bg-primary-container border-primary-container text-on-primary shadow-md scale-102"
-                        : "bg-surface-container border-transparent text-on-surface-variant hover:text-on-surface"
-                    }`}
-                  >
-                    <span className="text-base font-black">${item.amt}</span>
-                    <span className="text-[10px] uppercase font-bold mt-0.5">{item.label}</span>
-                    <span className="text-[9px] opacity-75">{item.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Método de Pago */}
-            <div>
-              <label className="text-[11px] font-bold uppercase text-on-surface-variant block mb-2">
-                Método de Cobro:
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("efectivo")}
-                  className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                    payMethod === "efectivo"
-                      ? "bg-secondary-container text-on-secondary-container shadow font-extrabold"
-                      : "bg-surface-container text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4 text-emerald-400" />
-                  <span>Efectivo en Cancha</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPayMethod("spei")}
-                  className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                    payMethod === "spei"
-                      ? "bg-secondary-container text-on-secondary-container shadow font-extrabold"
-                      : "bg-surface-container text-on-surface-variant hover:text-on-surface"
-                  }`}
-                >
-                  <Landmark className="w-4 h-4 text-sky-400" />
-                  <span>SPEI / Transferencia</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Opción Comprobante WhatsApp */}
-            <label className="flex items-center justify-between p-3 rounded-xl bg-surface-container cursor-pointer text-xs border border-surface-container-high/60">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-emerald-400" />
-                <span className="text-on-surface font-medium">Enviar comprobante por WhatsApp al tutor</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={sendWhatsApp}
-                onChange={(e) => setSendWhatsApp(e.target.checked)}
-                className="w-4 h-4 accent-primary-container cursor-pointer"
-              />
-            </label>
-
-            {/* Botón de Confirmación */}
-            <button
-              type="button"
-              onClick={handleConfirmPayment}
-              className="h-12 w-full rounded-xl bg-tertiary hover:bg-[#3ecb65] text-on-tertiary font-extrabold text-sm uppercase flex items-center justify-center gap-2 shadow-lg transition active:scale-98 cursor-pointer"
-            >
-              <CheckCircle2 className="w-5 h-5 text-black" />
-              <span>Confirmar Cobro (${payAmount} MXN)</span>
-            </button>
-
-          </div>
-        </div>
+      {/* 5. MODAL TÁCTIL: GESTIONAR FINANZAS, ABONOS, HORARIOS & ROLES */}
+      {selectedStudentForFinance && (
+        <ManageStudentFinanceModal
+          isOpen={!!selectedStudentForFinance}
+          student={{
+            id: selectedStudentForFinance.id,
+            full_name: selectedStudentForFinance.full_name,
+            category: selectedStudentForFinance.category,
+            tutor_phone: selectedStudentForFinance.tutor_phone,
+            financial_status: selectedStudentForFinance.financial_status,
+            current_debt_amount: selectedStudentForFinance.current_debt_amount,
+            training_days: selectedStudentForFinance.training_days || selectedStudentForFinance.schedule_days || "Lun-Mié-Vie",
+            training_schedule: selectedStudentForFinance.training_schedule || "Vespertino: 17:00 - 19:00",
+            user_type: selectedStudentForFinance.user_type,
+          }}
+          onClose={() => setSelectedStudentForFinance(null)}
+          onSuccess={handleFinanceModalSuccess}
+        />
       )}
 
     </div>

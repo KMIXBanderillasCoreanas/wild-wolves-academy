@@ -6,7 +6,9 @@ export type OfflineActionType =
   | "BASELINE" 
   | "PHYSICAL_LOG" 
   | "BASKETBALL_LOG" 
-  | "DETAILED_TEST";
+  | "DETAILED_TEST"
+  | "PROFILE_FINANCIAL_UPDATE"
+  | "PAYMENT_TRANSACTION";
 
 export interface QueueItem {
   id: string;
@@ -166,6 +168,17 @@ export const syncOfflineQueueToSupabase = async (
         );
         if (error) throw error;
         syncedCount++;
+      } else if (item.type === "PROFILE_FINANCIAL_UPDATE") {
+        const { id, ...updateData } = item.payload;
+        const { error } = await supabase.from("profiles").update(updateData).eq("id", id);
+        if (error) throw error;
+        syncedCount++;
+        hasPaymentSynced = true;
+      } else if (item.type === "PAYMENT_TRANSACTION") {
+        const { error } = await supabase.from("payment_transactions_history").insert(item.payload);
+        if (error) throw error;
+        syncedCount++;
+        hasPaymentSynced = true;
       }
     } catch (err) {
       console.error("Fallo al sincronizar elemento de cola:", item, err);
