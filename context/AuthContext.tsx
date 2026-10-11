@@ -60,6 +60,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           window.location.href = "/master-bunker-hq";
         } else if (effectiveRole === "coach") {
           window.location.href = "/dashboard-coach";
+        } else if (data?.account_category === "guardian_family" || data?.role === "parent" || data?.role === "guardian") {
+          window.location.href = "/dashboard-guardian";
         } else if (effectiveRole === "student") {
           window.location.href = "/dashboard-student";
         }

@@ -130,15 +130,23 @@ export default function DualCoachCommand() {
       if (typeof window !== "undefined" && navigator.onLine) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name, email, role")
+          .select("id, full_name, email, role, account_category, user_type")
           .eq("role", "student")
           .neq("email", "wildwolvescdmx@gmail.com");
 
         if (profiles && profiles.length > 0) {
-          setStudents(profiles);
-          const currentId = selectedStudentId || profiles[0].id;
+          const onlyAthletes = profiles.filter((p: any) => 
+            p.account_category !== "guardian_family" && 
+            p.user_type !== "tutor" && 
+            p.role !== "parent" && 
+            p.role !== "guardian"
+          );
+          setStudents(onlyAthletes);
+          const currentId = selectedStudentId && onlyAthletes.some((a: any) => a.id === selectedStudentId) 
+            ? selectedStudentId 
+            : (onlyAthletes.length > 0 ? onlyAthletes[0].id : "");
           setSelectedStudentId(currentId);
-          await loadBaselineForStudent(currentId);
+          if (currentId) await loadBaselineForStudent(currentId);
           return;
         } else {
           setStudents([]);

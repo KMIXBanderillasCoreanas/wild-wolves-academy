@@ -74,11 +74,18 @@ export default function TestDayEvaluator() {
       if (typeof window !== "undefined" && navigator.onLine) {
         const { data } = await supabase
           .from("profiles")
-          .select("id, full_name, email, athletic_level")
-          .eq("role", "student");
+          .select("id, full_name, email, athletic_level, role, account_category, user_type")
+          .eq("role", "student")
+          .neq("email", "wildwolvescdmx@gmail.com");
 
         if (data && data.length > 0) {
-          const mapped: StudentItem[] = data.map((d, i) => ({
+          const onlyAthletes = data.filter((d: any) => 
+            d.account_category !== "guardian_family" && 
+            d.user_type !== "tutor" && 
+            d.role !== "parent" && 
+            d.role !== "guardian"
+          );
+          const mapped: StudentItem[] = onlyAthletes.map((d, i) => ({
             id: d.id,
             full_name: d.full_name || "Atleta Wild Wolves",
             email: d.email || "",
@@ -87,7 +94,7 @@ export default function TestDayEvaluator() {
             athletic_level: (d.athletic_level as AthleticLevel) || "iniciacion_adaptacion"
           }));
           setStudents(mapped);
-          setSelectedStudentId((prev) => (prev ? prev : mapped[0].id));
+          setSelectedStudentId((prev) => (prev ? prev : (mapped.length > 0 ? mapped[0].id : "")));
           if (mapped[0].athletic_level) {
             setActiveLevel(mapped[0].athletic_level);
           }
