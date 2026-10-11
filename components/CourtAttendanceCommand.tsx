@@ -30,8 +30,10 @@ import {
   DollarSign,
   MessageCircle,
   Send,
-  Share2
+  Share2,
+  UserPlus
 } from "lucide-react";
+import { queueOfflineAction, saveLocalAthletes } from "@/lib/offline/db";
 import ManageStudentFinanceModal, { 
   StudentFinanceData, 
   FinancialStatus, 
@@ -102,6 +104,14 @@ export default function CourtAttendanceCommand() {
 
   // Modal táctil de finanzas y horarios
   const [selectedStudentForFinance, setSelectedStudentForFinance] = useState<StudentRosterItem | null>(null);
+
+  // Modal de Registro Rápido en Cancha [+ Nuevo Atleta en Cancha] (Caso Osmar López)
+  const [isFastAthleteModalOpen, setIsFastAthleteModalOpen] = useState<boolean>(false);
+  const [fastAthleteName, setFastAthleteName] = useState<string>("");
+  const [fastAthleteCategory, setFastAthleteCategory] = useState<string>("U-15 FORMATIVO");
+  const [fastAthleteShift, setFastAthleteShift] = useState<"matutino" | "vespertino">("vespertino");
+  const [fastAthleteTutor, setFastAthleteTutor] = useState<string>("Abuela: Catalina Lopez / Padre: Omar Lopez");
+  const [fastAthletePhone, setFastAthletePhone] = useState<string>("55 2242 7769");
 
   // Lista de atletas con carga resiliente
   const [students, setStudents] = useState<StudentRosterItem[]>([]);
@@ -475,6 +485,79 @@ export default function CourtAttendanceCommand() {
     }
   };
 
+  // 3. PASO: ALTA RÁPIDA DE ATLETA EN CANCHA (CASO OSMAR LÓPEZ)
+  const handleCreateFastAthlete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = fastAthleteName.trim();
+    if (!cleanName) return;
+
+    const newId = `prospect_${Date.now()}`;
+    const newAthleteItem: StudentRosterItem = {
+      id: newId,
+      full_name: cleanName,
+      number: `#P${students.length + 1}`,
+      category: fastAthleteCategory,
+      schedule_days: "Lun-Mié-Vie",
+      training_days: "Lun-Mié-Vie",
+      training_schedule: fastAthleteShift === "matutino" ? "Matutino: 09:00 - 11:00" : "Vespertino: 17:00 - 19:00",
+      shift: fastAthleteShift,
+      attendance_rate: 100,
+      financial_status: "al_corriente",
+      current_debt_amount: 0,
+      last_payment_status: "al_corriente",
+      last_payment_amount: 0,
+      tutor_phone: fastAthletePhone.trim() || "+525522427769",
+      user_type: "prospecto",
+      is_prospect: true,
+      prospect_tutor: fastAthleteTutor.trim() || "Catalina Lopez"
+    };
+
+    // 1. Inserción optimista inmediata en la UI de cancha
+    setStudents(prev => [newAthleteItem, ...prev]);
+
+    // 2. Guardar en caché local y base IndexedDB del dispositivo
+    const cached = getCachedRoster() || [];
+    cacheRosterLocally([newAthleteItem, ...cached]);
+    saveLocalAthletes([newAthleteItem, ...cached]);
+
+    // 3. Payload para prospect_athletes
+    const prospectPayload = {
+      id: newId,
+      athlete_full_name: cleanName,
+      category: fastAthleteCategory,
+      shift: fastAthleteShift,
+      tutor_name: fastAthleteTutor.trim() || "Catalina Lopez",
+      contact_phone: fastAthletePhone.trim() || "+525522427769",
+      notes: "Pre-ficha rápida creada en cancha por Head Coach Ricardo.",
+      created_at: new Date().toISOString()
+    };
+
+    if (!navigator.onLine) {
+      queueOfflineAction({
+        type: "PROSPECT_STUDENT",
+        table: "prospect_athletes",
+        payload: prospectPayload
+      });
+      enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", prospectPayload);
+      setOfflineCount(getOfflineQueueCount());
+    } else {
+      try {
+        await supabase.from("prospect_athletes").upsert(prospectPayload, { onConflict: "athlete_full_name" });
+      } catch {
+        queueOfflineAction({
+          type: "PROSPECT_STUDENT",
+          table: "prospect_athletes",
+          payload: prospectPayload
+        });
+        setOfflineCount(getOfflineQueueCount());
+      }
+    }
+
+    // Resetear formulario y cerrar modal
+    setFastAthleteName("");
+    setIsFastAthleteModalOpen(false);
+  };
+
   // Callback exitoso del modal de finanzas
   const handleFinanceModalSuccess = (updated: StudentFinanceData) => {
     setStudents(prev => prev.map(s => {
@@ -694,6 +777,17 @@ export default function CourtAttendanceCommand() {
                 <RefreshCw className="w-4 h-4 text-emerald-400" />
               </button>
             </div>
+
+            {/* BOTÓN PROMINENTE DE ALTA EN CANCHA (CASO OSMAR LÓPEZ) */}
+            <button
+              type="button"
+              onClick={() => setIsFastAthleteModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition cursor-pointer shrink-0"
+              title="Registrar Atleta en Cancha de Forma Inmediata (Modo Offline Seguro)"
+            >
+              <UserPlus className="w-4 h-4 text-white" />
+              <span>+ Nuevo Atleta en Cancha</span>
+            </button>
 
           </div>
         </div>
@@ -1373,6 +1467,128 @@ export default function CourtAttendanceCommand() {
           onClose={() => setSelectedStudentForFinance(null)}
           onSuccess={handleFinanceModalSuccess}
         />
+      )}
+
+      {/* 7. MODAL TÁCTIL: REGISTRO RÁPIDO EN CANCHA [+ NUEVO ATLETA EN CANCHA] (CASO OSMAR LÓPEZ) */}
+      {isFastAthleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#121724] border border-zinc-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative font-sans space-y-4">
+            <button
+              onClick={() => setIsFastAthleteModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-zinc-800/50 hover:bg-zinc-800 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                <UserPlus className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Alta Rápida en Cancha</h3>
+                <p className="text-xs text-zinc-400 font-mono">
+                  Genera ficha local inmediata en la memoria de tu celular
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateFastAthlete} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                  Nombre Completo del Alumno *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={fastAthleteName}
+                  onChange={(e) => setFastAthleteName(e.target.value)}
+                  placeholder="Ej. Osmar Lopez"
+                  className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-white font-bold text-sm focus:border-emerald-500 focus:outline-none"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Categoría
+                  </label>
+                  <select
+                    value={fastAthleteCategory}
+                    onChange={(e) => setFastAthleteCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-zinc-200 text-xs focus:border-emerald-500 focus:outline-none cursor-pointer"
+                  >
+                    <option value="U-12 INICIACIÓN">U-12 Iniciación</option>
+                    <option value="U-15 FORMATIVO">U-15 Formativo</option>
+                    <option value="U-17 COMPETITIVO">U-17 Competitivo</option>
+                    <option value="ADULTOS +20">Adultos +20</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Turno Pactado
+                  </label>
+                  <select
+                    value={fastAthleteShift}
+                    onChange={(e) => setFastAthleteShift(e.target.value as "matutino" | "vespertino")}
+                    className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-zinc-200 text-xs focus:border-emerald-500 focus:outline-none cursor-pointer"
+                  >
+                    <option value="matutino">Matutino (09:00 - 11:00)</option>
+                    <option value="vespertino">Vespertino (17:00 - 19:00)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                  Tutor / Familiar de Contacto
+                </label>
+                <input
+                  type="text"
+                  value={fastAthleteTutor}
+                  onChange={(e) => setFastAthleteTutor(e.target.value)}
+                  placeholder="Ej. Abuela: Catalina Lopez / Padre: Omar Lopez"
+                  className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-zinc-200 text-xs focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                  Teléfono Tutor (WhatsApp)
+                </label>
+                <input
+                  type="tel"
+                  value={fastAthletePhone}
+                  onChange={(e) => setFastAthletePhone(e.target.value)}
+                  placeholder="Ej. 55 2242 7769"
+                  className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-zinc-200 text-xs font-mono focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-black/40 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+                <span className="text-emerald-400 font-bold block">✓ Incorporación Inmediata a la Lista:</span>
+                <span>Aparecerá al instante en tu lista de cancha para tomarle asistencia hoy y registrar cobros de $50 o $150 MXN.</span>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsFastAthleteModalOpen(false)}
+                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl text-xs transition active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-xl text-xs transition shadow-lg shadow-emerald-950/50 active:scale-95"
+                >
+                  Crear Pre-Ficha en Cancha
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

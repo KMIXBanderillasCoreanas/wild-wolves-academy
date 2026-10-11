@@ -29,7 +29,7 @@ import TestDayEvaluator from '@/components/TestDayEvaluator';
 import DualCoachCommand from '@/components/DualCoachCommand';
 import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
-import OfflineStatusBar from '@/components/OfflineStatusBar';
+import BunkerSyncCommandBar from '@/components/BunkerSyncCommandBar';
 import confetti from 'canvas-confetti';
 import { 
   PlusCircle, 
@@ -489,7 +489,7 @@ export default function CoachDashboardPage() {
 
   return (
     <>
-      <OfflineStatusBar />
+      <BunkerSyncCommandBar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
       {/* 1. Panel Superior de Control con Roster y RBAC Indicator */}
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">

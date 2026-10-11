@@ -41,7 +41,7 @@ import {
   getOfflineQueueCount 
 } from "@/lib/offlineSync";
 
-import OfflineStatusBar from "@/components/OfflineStatusBar";
+import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
 
 export default function MasterBunkerHQ() {
   const router = useRouter();
@@ -456,7 +456,7 @@ export default function MasterBunkerHQ() {
 
   return (
     <>
-      <OfflineStatusBar />
+      <BunkerSyncCommandBar />
       <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto font-sans">
       {/* HEADER BÚNKER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
