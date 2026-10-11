@@ -60,7 +60,7 @@ export default function CourtAttendanceCommand() {
   const [shift, setShift] = useState<"matutino" | "vespertino">("vespertino");
   const [filterMode, setFilterMode] = useState<"scheduled_today" | "all">("scheduled_today");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "al_corriente" | "adeudo" | "abono_parcial" | "becado">("all");
-  const [userTypeFilter, setUserTypeFilter] = useState<"all" | "alumno" | "prospecto" | "visitante">("all");
+  const [userTypeFilter, setUserTypeFilter] = useState<"all" | "alumno" | "prospecto" | "visitante" | "tutor">("all");
   const [search, setSearch] = useState("");
   const [isOnline, setIsOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -86,8 +86,8 @@ export default function CourtAttendanceCommand() {
       if (typeof window !== "undefined" && navigator.onLine) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, full_name, email, role, financial_status, current_debt_amount, training_days, training_schedule, user_type, account_category, phone_number, selected_days, schedules_by_day")
-          .neq("email", "wildwolvescdmx@gmail.com");
+          .select("*")
+          .order("created_at", { ascending: false });
 
         if (profiles && profiles.length > 0) {
           const { data: comms } = await supabase
@@ -302,8 +302,11 @@ export default function CourtAttendanceCommand() {
   };
 
   // Filtrado reactivo de atletas
-  // REGLA CLAVE: Tutores / Familiares NO aparecen en el pase de lista ni en cobro de cancha
-  const onCourtCandidates = students.filter(s => s.user_type !== "tutor");
+  // Si filterMode es "scheduled_today", enfocamos en atletas en cancha (excluyendo tutores del turno de duela directo),
+  // pero en "all" o cuando se busca/filtra por tutor, mostramos a todos los usuarios registrados sin omisiones.
+  const onCourtCandidates = (filterMode === "scheduled_today" && userTypeFilter !== "tutor")
+    ? students.filter(s => s.user_type !== "tutor")
+    : students;
 
   // Identificador normalizado del día de hoy en minúsculas (lunes..domingo)
   const currentDayKey = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][new Date().getDay()];
@@ -605,6 +608,54 @@ export default function CourtAttendanceCommand() {
               }`}
             >
               Todo el Plantel
+            </button>
+          </div>
+
+          {/* Filtro por Tipo de Usuario */}
+          <div className="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800 shrink-0">
+            <button
+              type="button"
+              onClick={() => setUserTypeFilter("all")}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                userTypeFilter === "all"
+                  ? "bg-zinc-800 text-white font-black"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Todos ({students.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserTypeFilter("alumno")}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                userTypeFilter === "alumno"
+                  ? "bg-blue-600/30 text-blue-300 border border-blue-500/40 font-black"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Alumnos
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserTypeFilter("prospecto")}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                userTypeFilter === "prospecto"
+                  ? "bg-purple-600/30 text-purple-300 border border-purple-500/40 font-black"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Prospectos
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserTypeFilter("tutor")}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                userTypeFilter === "tutor"
+                  ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-black"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Tutores / Fam.
             </button>
           </div>
 

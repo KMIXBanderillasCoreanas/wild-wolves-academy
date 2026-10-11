@@ -56,20 +56,17 @@ export default function SmartPlacementCRM() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, current_tier, crm_status, days_inactive, last_attended_at, role, user_type, account_category")
-        .eq("role", "student")
-        .neq("email", "wildwolvescdmx@gmail.com");
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (data && data.length > 0) {
-        // Excluir tutores/familiares de pruebas físicas y drills de duela
-        const onlyStudents = data.filter((d: any) => d.account_category !== "guardian_family" && d.user_type !== "tutor");
-        setStudents(onlyStudents);
+        setStudents(data);
         if (!selectedStudent) {
-          if (onlyStudents.length > 0) selectStudent(onlyStudents[0]);
+          selectStudent(data[0]);
         } else {
-          const fresh = onlyStudents.find((d: any) => d.id === selectedStudent.id);
+          const fresh = data.find((d: any) => d.id === selectedStudent.id);
           if (fresh) setSelectedStudent(fresh);
-          else if (onlyStudents.length > 0) selectStudent(onlyStudents[0]);
+          else selectStudent(data[0]);
         }
       } else {
         setStudents([]);
@@ -161,8 +158,9 @@ export default function SmartPlacementCRM() {
 
   const filteredStudents = students.filter(s => {
     if (crmFilter === "todos") return true;
+    if (crmFilter === "tutores") return s.account_category === "guardian_family" || s.user_type === "tutor" || s.role === "parent" || s.role === "guardian";
     if (crmFilter === "prospecto") return s.crm_status === "prospecto" || s.user_type === "prospecto";
-    if (crmFilter === "activo") return s.crm_status === "activo" || !s.crm_status;
+    if (crmFilter === "activo") return (s.crm_status === "activo" || !s.crm_status) && s.account_category !== "guardian_family" && s.user_type !== "tutor";
     if (crmFilter === "inactivo_retorno") return s.crm_status === "inactivo_retorno" || (s.days_inactive && s.days_inactive > 45);
     if (crmFilter === "en_riesgo") return s.crm_status === "en_riesgo" || (s.days_inactive && s.days_inactive > 14 && s.days_inactive <= 45);
     return s.crm_status === crmFilter;
@@ -184,8 +182,9 @@ export default function SmartPlacementCRM() {
         <div className="flex flex-wrap gap-1.5 bg-[#121724] p-1.5 rounded-2xl border border-zinc-800 text-xs">
           {[
             { id: "todos", label: "Todos" },
+            { id: "activo", label: "Alumnos" },
             { id: "prospecto", label: "Prospectos" },
-            { id: "activo", label: "Activos" },
+            { id: "tutores", label: "Tutores / Fam." },
             { id: "inactivo_retorno", label: "Retorno (>45d)" },
             { id: "en_riesgo", label: "En Riesgo" }
           ].map(f => (
