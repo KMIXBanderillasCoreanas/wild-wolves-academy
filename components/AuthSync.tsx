@@ -94,8 +94,25 @@ export default function AuthSync() {
       }
     });
 
+    // 3. Listener global de reconexión: vaciar cola de cancha a Supabase
+    const handleOnline = async () => {
+      try {
+        const { syncOfflineQueueToSupabase } = await import("@/lib/offlineSync");
+        await syncOfflineQueueToSupabase();
+      } catch (err) {
+        console.warn("Aviso en sincronización automática al volver online:", err);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", handleOnline);
+    }
+
     return () => {
       subscription.unsubscribe();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("online", handleOnline);
+      }
     };
   }, []);
 

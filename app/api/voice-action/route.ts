@@ -103,6 +103,18 @@ export async function POST(req: Request) {
       console.warn("Aviso obteniendo pagos hoy:", e);
     }
 
+    // C. Atletas con adeudo pendiente
+    let athletesWithDebt = 0;
+    try {
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .gt("current_debt_amount", 0);
+      athletesWithDebt = count || 0;
+    } catch (e) {
+      console.warn("Aviso obteniendo atletas con adeudo:", e);
+    }
+
     // 2. CONTEXTO OPERATIVO INYECTADO A GROQ
     const systemPrompt = `Eres "Fenrir Cyber-Wolf", asistente ejecutivo exclusivo del Head Coach Ricardo en Wild Wolves CDMX.
 MÉTRICAS VIVAS DE HOY (${today}):
@@ -112,14 +124,17 @@ MÉTRICAS VIVAS DE HOY (${today}):
         : "Ninguno registrado aún"
     } (Total: ${confirmedAthletes.length}).
 - Ingresos cobrados hoy en caja: $${incomeToday} MXN.
+- Atletas con saldo o adeudo pendiente: ${athletesWithDebt}.
 
 REGLAS DE ORO OBLIGATORIAS:
-1. Responde de forma CONCISA, directa y marcial (MÁXIMO 20 PALABRAS).
-2. NUNCA repitas la orden del Coach ni uses frases de relleno como "¿En qué más te puedo ayudar?".
-3. Cero formato Markdown (sin asteriscos, guiones ni numerales), ya que tu texto va directo a voz.
-4. Mapeo de rutas para navegación:
-   - "asistencia", "cancha", "quién vino", "pase de lista" -> "navigateTo": "/dashboard-coach"
-   - "finanzas", "ingresos", "caja", "cuánto he ganado", "cuánto dinero" -> "navigateTo": "/master-bunker-hq?tab=finanzas"
+1. Responde de forma CONCISA, directa y marcial (MÁXIMO 25 PALABRAS).
+2. Si el Coach solicita "corte de caja", "reporte de hoy", "cuánto he ganado" o resumen general, responde exactamente con esta estructura limpia:
+   "Corte listo, Coach: Hemos cobrado $${incomeToday} pesos hoy, ${confirmedAthletes.length} atletas confirmados en cancha y ${athletesWithDebt} atletas con saldo pendiente."
+3. NUNCA repitas la orden del Coach ni uses frases de relleno como "¿En qué más te puedo ayudar?".
+4. Cero formato Markdown (sin asteriscos, numerales ni viñetas), ya que tu texto va directo a voz.
+5. Mapeo de rutas para navegación:
+   - "asistencia", "cancha", "quién vino", "pase de lista", "alumnos" -> "navigateTo": "/dashboard-coach"
+   - "finanzas", "ingresos", "caja", "cuánto he ganado", "corte de caja", "dinero" -> "navigateTo": "/master-bunker-hq?tab=finanzas"
    - "búnker", "dirección", "mando central" -> "navigateTo": "/master-bunker-hq"
    - "evaluaciones", "test day" -> "navigateTo": "/dashboard-coach?tab=evaluaciones"
    - Si no requiere cambiar de pantalla -> "navigateTo": null
@@ -180,10 +195,19 @@ ESQUEMA JSON PURO OBLIGATORIO:
       let reply = "Orden recibida en duela, Coach.";
 
       if (
+        lower.includes("corte") ||
+        (lower.includes("reporte") && lower.includes("hoy")) ||
+        lower.includes("cuanto he ganado") ||
+        lower.includes("cuánto he ganado")
+      ) {
+        navTarget = "/master-bunker-hq?tab=finanzas";
+        reply = `Corte listo, Coach: Hemos cobrado $${incomeToday} pesos hoy, ${confirmedAthletes.length} atletas confirmados en cancha y ${athletesWithDebt} atletas con saldo pendiente.`;
+      } else if (
         lower.includes("quien") ||
         lower.includes("quién") ||
         lower.includes("asist") ||
         lower.includes("cancha") ||
+        lower.includes("alumnos") ||
         lower.includes("lista")
       ) {
         navTarget = "/dashboard-coach";
