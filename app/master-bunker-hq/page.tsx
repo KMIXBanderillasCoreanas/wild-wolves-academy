@@ -43,7 +43,6 @@ import {
 
 import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
 import TacticalAIAssistant from "@/components/TacticalAIAssistant";
-import FenrirVoiceAssistant from "@/components/FenrirVoiceAssistant";
 import MasterAICockpit from "@/components/MasterAICockpit";
 import TacticalRadarAlerts from "@/components/TacticalRadarAlerts";
 
@@ -888,7 +887,6 @@ export default function MasterBunkerHQ() {
         </div>
       )}
       </div>
-      <FenrirVoiceAssistant />
       <TacticalAIAssistant />
     </>
   );

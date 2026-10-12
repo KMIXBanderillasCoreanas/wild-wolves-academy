@@ -46,6 +46,8 @@ export const metadata: Metadata = {
   },
 };
 
+import FenrirVoiceAssistant from '@/components/FenrirVoiceAssistant';
+
 export default function RootLayout({
   children,
 }: {
@@ -68,6 +70,7 @@ export default function RootLayout({
           <div className="flex-1">
             {children}
           </div>
+          <FenrirVoiceAssistant />
         </AuthProvider>
       </body>
     </html>
