@@ -72,7 +72,7 @@ export default function MasterBunkerHQ() {
       applyTabFromUrl();
 
       const handleCustomTab = (e: any) => {
-        const targetTab = e?.detail?.tab;
+        const targetTab = typeof e?.detail === "string" ? e.detail : e?.detail?.tab;
         if (targetTab) {
           if (targetTab === "finanzas" || targetTab === "finance") setActiveTab("finance");
           else if (targetTab === "asistencia" || targetTab === "attendance") setActiveTab("attendance");
