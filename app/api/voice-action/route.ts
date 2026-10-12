@@ -10,41 +10,42 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 
 export async function POST(req: Request) {
   try {
-    const { command } = await req.json();
+    const body = await req.json();
+    // Acepta tanto 'command' como 'spokenText'
+    const commandText = body.command || body.spokenText;
 
-    if (!command || typeof command !== "string" || !command.trim()) {
+    if (!commandText || typeof commandText !== "string" || !commandText.trim()) {
       return NextResponse.json({
+        voiceReply: "Comandante, no logré escuchar la orden con claridad.",
         message: "Comandante, no logré escuchar la orden con claridad.",
+        navigateTo: null,
+        action: null,
         executedAction: null,
       });
     }
 
     const apiKey = process.env.GROQ_API_KEY;
 
-    const voiceParserPrompt = `Eres "Fenrir Cyber-Wolf", la inteligencia artificial táctica y operativa del Head Coach Ricardo en la academia Wild Wolves CDMX (Deportivo Carmen Serdán).
-Tu trabajo es interpretar comandos de voz dictados por el Coach en la duela.
-Si el comando menciona asistencia, retardos, faltas o cobros de alumnos (ejemplos: "Asistencia de Osmar López y pagó 150 pesos", "Asistencia para Isaac Salinas", "Toma lista de Mateo presente", "Cobro de 50 a Mateo", "Omar falta"):
-1. Extrae:
-   - studentName: Nombre limpio del alumno (ej. "Osmar Lopez", "Isaac Salinas").
-   - status: "presente" | "retardo" | "falta".
-   - amount: número entero si hubo pago (ej. 150, 50, 600) o 0 si no hubo.
-   - hasPayment: boolean true si pagó, false si solo es asistencia.
-2. Devuelve un texto breve y marcial para hablarle de vuelta al Coach por el altavoz (máximo 20 palabras, llamándolo "Coach" o "Comandante").
-3. Devuelve los datos en formato JSON estructurado EXACTO.
+    const systemPrompt = `Eres "Fenrir Cyber-Wolf", asistente ejecutivo y copiloto táctico de Wild Wolves CDMX para el Head Coach Ricardo.
+Tu misión es interpretar la orden de voz del Coach en cancha y responder con:
+1. "voiceReply": Texto breve, enérgico y marcial para responder en voz alta por la bocina (máximo 25 palabras, tratándolo de "Coach" o "Comandante").
+2. "navigateTo": Ruta a la que debes llevar al Coach si lo solicita o si la orden lo amerita:
+   - "ver asistencia" / "asistencia hoy" / "ir a cancha" / "pase de lista" -> "/dashboard-coach"
+   - "ver finanzas" / "ir a cobros" / "deudas" / "caja" -> "/master-bunker-hq?tab=finanzas"
+   - "ver evaluaciones" / "combine" / "test day" -> "/dashboard-coach?tab=evaluaciones"
+   - "ir a búnker" / "mando" / "cuartel" -> "/master-bunker-hq"
+   - null si no requiere navegación (ej. dictado de pago o pregunta táctica).
+3. "action": Objeto estructurado si registra asistencia o cobro de alumnos:
+   - "studentName": Nombre limpio del alumno (ej. "Osmar Lopez", "Isaac Salinas").
+   - "status": "presente" | "retardo" | "falta".
+   - "amount": número entero si hubo cobro (ej. 150, 50, 600) o 0.
+   - "hasPayment": boolean true si pagó, false si solo es asistencia.
+   O null si es consulta general o navegación pura.
 
-FORMATO DE RESPUESTA EXCLUSIVO (JSON puro):
+FORMATO EXCLUSIVO (JSON puro):
 {
-  "speechReply": "Asistencia de Osmar López registrada y cobro de 150 pesos guardado en caja, Coach.",
-  "action": {
-    "studentName": "Osmar Lopez",
-    "status": "presente",
-    "amount": 150,
-    "hasPayment": true
-  }
-}
-Si la orden es una consulta general de básquetbol o ejercicio:
-{
-  "speechReply": "Comandante, te sugiero iniciar con 5 minutos de movilidad articular, círculos con balón y pases al pecho.",
+  "voiceReply": "Abriendo el panel de asistencia en duela, Coach.",
+  "navigateTo": "/dashboard-coach",
   "action": null
 }`;
 
@@ -68,8 +69,8 @@ Si la orden es una consulta general de básquetbol o ejercicio:
             body: JSON.stringify({
               model: model,
               messages: [
-                { role: "system", content: voiceParserPrompt },
-                { role: "user", content: command },
+                { role: "system", content: systemPrompt },
+                { role: "user", content: commandText },
               ],
               temperature: 0.1,
               response_format: { type: "json_object" },
@@ -91,10 +92,27 @@ Si la orden es una consulta general de básquetbol o ejercicio:
       }
     }
 
-    // Fallback inteligente heurístico de cancha si la red externa demora
+    // Fallback heurístico si la IA externa no estuviera disponible
     if (!parsedResult) {
-      const lower = command.toLowerCase();
-      let extractedName = "Atleta Lobo";
+      const lower = commandText.toLowerCase();
+      let navTarget: string | null = null;
+      let reply = "Orden recibida en el búnker, Coach.";
+
+      if (lower.includes("asistencia") || lower.includes("cancha") || lower.includes("lista")) {
+        navTarget = "/dashboard-coach";
+        reply = "Abriendo el panel de asistencia en cancha, Coach.";
+      } else if (lower.includes("finanza") || lower.includes("caja") || lower.includes("cobro") || lower.includes("deuda")) {
+        navTarget = "/master-bunker-hq?tab=finanzas";
+        reply = "Desplegando el módulo de finanzas y tesorería en el Búnker, Coach.";
+      } else if (lower.includes("evaluaci") || lower.includes("test day") || lower.includes("combine")) {
+        navTarget = "/dashboard-coach?tab=evaluaciones";
+        reply = "Abriendo evaluaciones y Test Day de los atletas, Coach.";
+      } else if (lower.includes("bunker") || lower.includes("mando")) {
+        navTarget = "/master-bunker-hq";
+        reply = "Entrando al Búnker Supremo de mando, Comandante.";
+      }
+
+      let extractedName = "";
       let amount = 0;
       let hasPayment = false;
       let status: "presente" | "retardo" | "falta" = "presente";
@@ -103,7 +121,7 @@ Si la orden es una consulta general de básquetbol o ejercicio:
       else if (lower.includes("isaac")) extractedName = "Isaac Salinas";
       else if (lower.includes("mateo")) extractedName = "Mateo";
 
-      const numbers = command.match(/\d+/g);
+      const numbers = commandText.match(/\d+/g);
       if (numbers && numbers.length > 0) {
         amount = parseInt(numbers[0], 10);
         hasPayment = true;
@@ -118,16 +136,23 @@ Si la orden es una consulta general de básquetbol o ejercicio:
       if (lower.includes("retardo")) status = "retardo";
       if (lower.includes("falta")) status = "falta";
 
+      const hasAction = extractedName !== "";
+
       parsedResult = {
-        speechReply: hasPayment
-          ? `Asistencia de ${extractedName} registrada y cobro de ${amount} pesos guardado en caja, Coach.`
-          : `Asistencia de ${extractedName} registrada como ${status}, Comandante.`,
-        action: {
-          studentName: extractedName,
-          status,
-          amount,
-          hasPayment,
-        },
+        voiceReply: hasAction
+          ? (hasPayment
+              ? `Asistencia de ${extractedName} confirmada y cobro de ${amount} pesos guardado en caja, Coach.`
+              : `Asistencia de ${extractedName} registrada como ${status}, Comandante.`)
+          : reply,
+        navigateTo: navTarget,
+        action: hasAction
+          ? {
+              studentName: extractedName,
+              status,
+              amount,
+              hasPayment,
+            }
+          : null,
       };
     }
 
@@ -136,8 +161,9 @@ Si la orden es una consulta general de básquetbol o ejercicio:
     // =========================================================================
     // PERSISTENCIA REAL Y DIRECTA EN SUPABASE
     // =========================================================================
-    if (parsedResult.action && parsedResult.action.studentName) {
-      const { studentName, status, amount, hasPayment } = parsedResult.action;
+    const actionObj = parsedResult.action;
+    if (actionObj && actionObj.studentName) {
+      const { studentName, status, amount, hasPayment } = actionObj;
 
       try {
         // 1. Buscar si el alumno ya existe en profiles
@@ -199,15 +225,23 @@ Si la orden es una consulta general de básquetbol o ejercicio:
       }
     }
 
+    const finalVoiceReply = parsedResult.voiceReply || parsedResult.speechReply || "Orden recibida por Fenrir.";
+
     return NextResponse.json({
-      message: parsedResult.speechReply || "Orden recibida por Fenrir.",
+      voiceReply: finalVoiceReply,
+      message: finalVoiceReply,
+      navigateTo: parsedResult.navigateTo || null,
+      action: parsedResult.action || null,
       executedAction: parsedResult.action || null,
     });
   } catch (error: any) {
     console.error("Error en /api/voice-action:", error);
     return NextResponse.json(
       {
+        voiceReply: "Comandante, Fenrir registró la directiva en el búnker de cancha.",
         message: "Comandante, Fenrir registró la directiva en el búnker de cancha.",
+        navigateTo: null,
+        action: null,
         executedAction: null,
       },
       { status: 200 }

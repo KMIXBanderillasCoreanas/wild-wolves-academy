@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Mic, MicOff, Sparkles, X, Shield, Volume2, UserCheck, Play } from "lucide-react";
 import { offlineStorage } from "@/lib/offlineSync";
 import { queueOfflineAction } from "@/lib/offline/db";
@@ -15,6 +16,7 @@ interface ExecutedVoiceAction {
 }
 
 export default function FenrirVoiceAssistant() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -50,7 +52,7 @@ export default function FenrirVoiceAssistant() {
 
     if (!voices || voices.length === 0) return null;
 
-    // Prioridad 1: Voces específicas es-MX (como Raul, Jorge o Sabina)
+    // Prioridad 1: Voces específicas es-MX masculinas (Raul, Jorge, etc.)
     const mxMaleVoice = voices.find(
       (v) => v.lang.toLowerCase() === "es-mx" && (v.name.toLowerCase().includes("raul") || v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("jorge"))
     );
@@ -60,7 +62,7 @@ export default function FenrirVoiceAssistant() {
     const mxVoice = voices.find((v) => v.lang.toLowerCase() === "es-mx" || v.lang.toLowerCase().replace("_", "-") === "es-mx");
     if (mxVoice) return mxVoice;
 
-    // Prioridad 3: Voces masculinas en español (Pablo, Manuel, Diego, etc.)
+    // Prioridad 3: Voces masculinas en español
     const esMaleVoice = voices.find(
       (v) => v.lang.toLowerCase().startsWith("es") && (v.name.toLowerCase().includes("pablo") || v.name.toLowerCase().includes("diego") || v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("alvaro"))
     );
@@ -73,9 +75,23 @@ export default function FenrirVoiceAssistant() {
     return voices[0] || null;
   }, []);
 
-  // 2. Síntesis de voz bidireccional marcial conectada al Avatar
+  // 2. Desbloquear contexto de audio con utterance silencioso instantáneo
+  const primeAudioContext = useCallback(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        const silentUtterance = new SpeechSynthesisUtterance("");
+        silentUtterance.volume = 0;
+        window.speechSynthesis.speak(silentUtterance);
+      } catch {}
+    }
+  }, []);
+
+  // 3. Síntesis de voz bidireccional marcial conectada al Avatar
   const speakVoice = useCallback((text: string, onFinish?: () => void) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      if (onFinish) onFinish();
+      return;
+    }
 
     try {
       window.speechSynthesis.cancel();
@@ -83,7 +99,7 @@ export default function FenrirVoiceAssistant() {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "es-MX";
       utterance.rate = 1.05; // Cadencia ágil de duela
-      utterance.pitch = 0.88; // Tono grave y marcial de entrenador
+      utterance.pitch = 0.90; // Tono grave y marcial
 
       const bestVoice = selectBestSpanishVoice();
       if (bestVoice) {
@@ -109,10 +125,11 @@ export default function FenrirVoiceAssistant() {
     } catch (err) {
       console.warn("Fallo al reproducir audio TTS:", err);
       setIsSpeaking(false);
+      if (onFinish) onFinish();
     }
   }, [selectBestSpanishVoice]);
 
-  // 3. Procesar comando dictado con Groq LPU y persistir en Supabase
+  // 4. Procesar comando dictado con Groq LPU, persistir en Supabase y navegar
   const processVoiceCommand = useCallback(async (commandText: string) => {
     setAiReply("Fenrir analizando directiva táctica...");
     setLastAction(null);
@@ -121,21 +138,26 @@ export default function FenrirVoiceAssistant() {
       const res = await fetch("/api/voice-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command: commandText }),
+        body: JSON.stringify({ spokenText: commandText, command: commandText }),
       });
       const data = await res.json();
 
-      const replyMsg = data.message || "Orden recibida por Fenrir.";
+      const replyMsg = data.voiceReply || data.message || "Orden recibida por Fenrir.";
       setAiReply(replyMsg);
 
-      // Si la IA detectó asistencia o pago, guardar localmente/nube
-      if (data.executedAction) {
-        const actionData: ExecutedVoiceAction = data.executedAction;
+      // Si la directiva incluye navegación en la app web
+      if (data.navigateTo && typeof data.navigateTo === "string") {
+        setTimeout(() => {
+          router.push(data.navigateTo);
+        }, 800);
+      }
+
+      // Si la IA detectó asistencia o cobro, guardar en almacenamiento local y Supabase
+      const actionData: ExecutedVoiceAction | null = data.action || data.executedAction || null;
+      if (actionData) {
         setLastAction(actionData);
 
         // Dinámica de Estados Emocionales:
-        // 'happy': Pago registrado o asistencia exitosa (con reset automático a 5s)
-        // 'angry': Falta / inasistencia injustificada detectada
         if (actionData.hasPayment || actionData.status === "presente") {
           setMood("happy");
           setTimeout(() => {
@@ -195,7 +217,7 @@ export default function FenrirVoiceAssistant() {
         }
       }
 
-      // Reproducir respuesta audible con video de Fenrir
+      // Reproducir respuesta audible con video animado de Fenrir
       speakVoice(replyMsg);
     } catch (e) {
       console.warn("Fallo en procesamiento de voz:", e);
@@ -203,9 +225,9 @@ export default function FenrirVoiceAssistant() {
       setAiReply(failMsg);
       speakVoice(failMsg);
     }
-  }, [speakVoice]);
+  }, [router, speakVoice]);
 
-  // 4. Configuración del reconocimiento de voz continuo en es-MX
+  // 5. Configuración del reconocimiento de voz continuo en es-MX
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -224,7 +246,6 @@ export default function FenrirVoiceAssistant() {
       };
 
       recognition.onerror = (e: any) => {
-        // En silencio o interrupción normal, no lanzar alerta roja
         if (e.error !== "no-speech") {
           console.warn("SpeechRecognition aviso:", e.error);
         }
@@ -239,7 +260,7 @@ export default function FenrirVoiceAssistant() {
     }
   }, [processVoiceCommand]);
 
-  // 5. Encender/Apagar Micrófono solicitando permisos si es necesario
+  // 6. Encender/Apagar Micrófono con desbloqueo proactivo de audio
   const toggleListen = async () => {
     if (isListening) {
       try {
@@ -249,7 +270,9 @@ export default function FenrirVoiceAssistant() {
       return;
     }
 
-    // Cancelar voz anterior si estaba hablando
+    // Desbloquear audio del navegador en el clic exacto del usuario
+    primeAudioContext();
+
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -259,13 +282,10 @@ export default function FenrirVoiceAssistant() {
     setLastAction(null);
 
     try {
-      // Solicitar permisos de audio al navegador si es la primera vez
       if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
         try {
           await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch {
-          // Continuar con recognition directo si getUserMedia falla o no es soportado
-        }
+        } catch {}
       }
 
       recognitionRef.current?.start();
@@ -276,8 +296,9 @@ export default function FenrirVoiceAssistant() {
     }
   };
 
-  // 6. Prueba rápida de audio para desbloquear audio context en móviles y PC
+  // 7. Prueba rápida de audio para desbloquear audio context en móviles y PC
   const handleTestAudio = () => {
+    primeAudioContext();
     speakVoice(
       "Sistemas en línea, Coach Ricardo. Lobo Central y Fenrir listos para operar en el Deportivo Carmen Serdán."
     );
@@ -289,8 +310,8 @@ export default function FenrirVoiceAssistant() {
       <button
         type="button"
         onClick={() => {
+          primeAudioContext();
           setIsOpen(!isOpen);
-          // Si abre el modal, pre-calentar voces de síntesis
           updateAvailableVoices();
         }}
         aria-label="Abrir Fenrir Cyber-Wolf Asistente de Voz"
@@ -335,7 +356,7 @@ export default function FenrirVoiceAssistant() {
                   Fenrir Cyber-Wolf
                 </span>
                 <span className="text-[10px] text-zinc-400 font-mono">
-                  Mando de Voz en Duela • Head Coach
+                  Copiloto Ejecutivo & Mando de Voz
                 </span>
               </div>
             </div>
@@ -375,7 +396,7 @@ export default function FenrirVoiceAssistant() {
                 </span>
               ) : (
                 <span className="text-zinc-400">
-                  Toca el micrófono y dicta: <i>"Osmar López presente y pagó 150"</i>
+                  Dicta una orden: <i>"Ver finanzas"</i> o <i>"Osmar pagó $150"</i>
                 </span>
               )}
             </span>
@@ -412,7 +433,7 @@ export default function FenrirVoiceAssistant() {
             )}
           </div>
 
-          {/* BARRA DE ACCIÓN: MICRÓFONO Y PRUEBA DE AUDIO */}
+          {/* BARRA DE ACCIÓN: BOTÓN DE PRUEBA Y MICRÓFONO */}
           <div className="flex items-center justify-between pt-1 gap-2">
             <button
               type="button"
@@ -436,7 +457,7 @@ export default function FenrirVoiceAssistant() {
             </button>
 
             <div className="text-[10px] font-mono text-zinc-500 text-right">
-              <span>es-MX • Llama 3.1</span>
+              <span>es-MX • Control Web</span>
             </div>
           </div>
         </div>
