@@ -97,11 +97,11 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
               </div>
               <div>
                 <span className="font-black text-xs uppercase tracking-wider text-white block">
-                  Lobo Táctico • IA Carmen Serdán
+                  Lobo Táctico • Llama 3.3 Groq LPU
                 </span>
                 <span className="text-[10px] text-zinc-400 font-mono flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Gemini 1.5 Flash • Coach Assist
+                  Groq LPU (Ultra Rápido) • Coach Assist
                 </span>
               </div>
             </div>
@@ -116,6 +116,13 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
 
           {/* Quick Prompts Bar */}
           <div className="px-3 py-2 bg-[#121622] border-b border-zinc-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono scrollbar-none">
+            <button
+              type="button"
+              onClick={() => handleQuickPrompt("Hoy es domingo y mi alumno no se presentó a entrenar en Carmen Serdán. ¿Qué sugieres hacer y qué mensaje le mando al tutor por WhatsApp?")}
+              className="px-2.5 py-1 rounded-lg bg-orange-600/30 border border-orange-500/50 text-orange-200 hover:text-white whitespace-nowrap transition cursor-pointer shrink-0 font-bold"
+            >
+              🚨 Inasistencia Domingo
+            </button>
             <button
               type="button"
               onClick={() => handleQuickPrompt("Sugiéreme una rutina de tiro en 5 spots para un atleta con debilidad en triples.")}
