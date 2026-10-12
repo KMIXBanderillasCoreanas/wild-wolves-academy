@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Mic, MicOff, Volume2, X, Minimize2, Maximize2, Radio } from "lucide-react";
+import { Mic, MicOff, Volume2, X, Minimize2, Maximize2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import FenrirAvatar, { FenrirMood } from "./FenrirAvatar";
 
@@ -11,17 +11,13 @@ export default function FenrirVoiceAssistant() {
   const [isCompact, setIsCompact] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isHandsfreeActive, setIsHandsfreeActive] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [aiReply, setAiReply] = useState("Listo para tus órdenes en duela, Coach Ricardo.");
+  const [aiReply, setAiReply] = useState("Sistemas listos, Coach Ricardo.");
   const [mood, setMood] = useState<FenrirMood>("neutral");
 
   const recognitionRef = useRef<any>(null);
-  const isHandsfreeRef = useRef(false);
-
-  useEffect(() => {
-    isHandsfreeRef.current = isHandsfreeActive;
-  }, [isHandsfreeActive]);
+  const isSpeakingRef = useRef(false);
+  const isListeningRef = useRef(false);
 
   // Audio Priming nativo
   const primeAudioContext = useCallback(() => {
@@ -35,7 +31,7 @@ export default function FenrirVoiceAssistant() {
     }
   }, []);
 
-  // Función robusta de habla con limpieza de Markdown
+  // Función de habla blindada contra bucles de audio (Acoustic Feedback Loop)
   const speakAudio = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
@@ -52,12 +48,31 @@ export default function FenrirVoiceAssistant() {
       utterance.pitch = 0.90;
 
       const voices = window.speechSynthesis.getVoices();
-      const bestVoice = voices.find((v) => v.lang.toLowerCase().includes("es-mx") || v.lang.toLowerCase().startsWith("es"));
+      const bestVoice = voices.find((v) =>
+        v.lang.toLowerCase().includes("es-mx") || v.lang.toLowerCase().startsWith("es")
+      );
       if (bestVoice) utterance.voice = bestVoice;
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onstart = () => {
+        isSpeakingRef.current = true;
+        setIsSpeaking(true);
+        // Silenciar inmediatamente el reconocimiento para evitar que escuche su propia voz
+        try {
+          recognitionRef.current?.stop();
+        } catch {}
+        isListeningRef.current = false;
+        setIsListening(false);
+      };
+
+      utterance.onend = () => {
+        isSpeakingRef.current = false;
+        setIsSpeaking(false);
+      };
+
+      utterance.onerror = () => {
+        isSpeakingRef.current = false;
+        setIsSpeaking(false);
+      };
 
       window.speechSynthesis.speak(utterance);
 
@@ -65,13 +80,14 @@ export default function FenrirVoiceAssistant() {
         window.speechSynthesis.resume();
       }
     } catch {
+      isSpeakingRef.current = false;
       setIsSpeaking(false);
     }
   }, []);
 
-  // Procesar comando de voz
+  // Manejo de comandos con navegación inmediata
   const handleCommand = useCallback(async (commandText: string) => {
-    setAiReply("Fenrir ejecutando directiva...");
+    setAiReply("Consultando bases de datos...");
 
     try {
       const res = await fetch("/api/voice-action", {
@@ -81,11 +97,16 @@ export default function FenrirVoiceAssistant() {
       });
       const data = await res.json();
 
-      const replyText = data.voiceReply || data.message || "Orden recibida.";
+      const replyText = data.voiceReply || data.message || "Orden ejecutada.";
       setAiReply(replyText);
 
-      // Estado emocional reactivo
-      if (data.action?.hasPayment || data.action?.status === "presente") {
+      // NAVEGACIÓN INMEDIATA (Cero retardo sin esperar a que termine el audio)
+      if (data.navigateTo) {
+        router.push(data.navigateTo);
+      }
+
+      // Reacción de Avatar
+      if (data.action?.amount || data.action?.status === "presente") {
         setMood("happy");
         setTimeout(() => setMood("neutral"), 5000);
       } else if (data.action?.status === "falta") {
@@ -94,83 +115,75 @@ export default function FenrirVoiceAssistant() {
         setMood("neutral");
       }
 
-      // Hablar de inmediato por altavoz
+      // Hablar respuesta concisa en paralelo
       speakAudio(replyText);
-
-      // Control y navegación web si la IA devuelve ruta
-      if (data.navigateTo) {
-        // En navegación, pasar a modo compacto Picture-in-Picture para no cerrar el asistente
-        setIsCompact(true);
-        setTimeout(() => {
-          router.push(data.navigateTo);
-        }, 800);
-      }
     } catch {
-      const errorMsg = "Coach Ricardo, enlace de voz temporalmente interrumpido.";
+      const errorMsg = "Coach, error de conexión con Lobo Central.";
       setAiReply(errorMsg);
       speakAudio(errorMsg);
     }
   }, [router, speakAudio]);
 
-  // Configuración de reconocimiento de voz continuo (handsfree)
+  // Inicializar reconocimiento de voz
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const rec = new SpeechRecognition();
-      rec.continuous = true; // Escucha continua
+      rec.continuous = false; // Detener tras cada frase para evitar captar eco
       rec.interimResults = false;
       rec.lang = "es-MX";
 
       rec.onresult = (e: any) => {
-        const lastResultIndex = e.results.length - 1;
-        const text = e.results[lastResultIndex][0]?.transcript;
+        // Descartar si el asistente está hablando
+        if (isSpeakingRef.current) return;
+
+        const text = e.results[0]?.[0]?.transcript;
         if (text && text.trim()) {
           setTranscript(text);
+          isListeningRef.current = false;
+          setIsListening(false);
           handleCommand(text);
         }
       };
 
-      rec.onerror = (e: any) => {
-        if (e.error !== "no-speech") {
-          console.warn("SpeechRecognition aviso:", e.error);
-        }
+      rec.onerror = () => {
+        isListeningRef.current = false;
+        setIsListening(false);
       };
 
       rec.onend = () => {
-        // Si el modo manos libres está activo, reiniciar automáticamente
-        if (isHandsfreeRef.current) {
-          try {
-            rec.start();
-            setIsListening(true);
-          } catch {
-            setIsListening(false);
-          }
-        } else {
-          setIsListening(false);
-        }
+        isListeningRef.current = false;
+        setIsListening(false);
       };
 
       recognitionRef.current = rec;
     }
   }, [handleCommand]);
 
-  const toggleListening = () => {
+  const toggleListen = () => {
     primeAudioContext();
 
     if (isListening) {
-      setIsHandsfreeActive(false);
       try {
         recognitionRef.current?.stop();
       } catch {}
+      isListeningRef.current = false;
       setIsListening(false);
     } else {
+      // Cancelar cualquier síntesis de audio previa para evitar solapamientos
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
       setTranscript("");
-      setIsHandsfreeActive(true);
       try {
         recognitionRef.current?.start();
+        isListeningRef.current = true;
         setIsListening(true);
       } catch (err) {
-        console.warn("Error al activar micrófono:", err);
+        console.warn("Error al iniciar micrófono:", err);
+        isListeningRef.current = false;
         setIsListening(false);
       }
     }
@@ -178,7 +191,7 @@ export default function FenrirVoiceAssistant() {
 
   return (
     <>
-      {/* 1. NODO BOTÓN FLOTANTE (Visible cuando no está abierto el panel) */}
+      {/* Botón Flotante Activo */}
       {!isOpen && (
         <button
           type="button"
@@ -202,7 +215,7 @@ export default function FenrirVoiceAssistant() {
         </button>
       )}
 
-      {/* 2. MODO COMPACTO PICTURE-IN-PICTURE (HUD Flotante de Cancha) */}
+      {/* Modo Compacto HUD */}
       {isOpen && isCompact && (
         <div className="fixed bottom-6 left-6 z-[99999] flex items-center gap-2.5 bg-[#0c0f17]/95 border-2 border-orange-500/80 backdrop-blur-xl p-2 pr-3.5 rounded-full shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="relative w-9 h-9 rounded-full overflow-hidden border border-orange-400 shrink-0">
@@ -230,7 +243,7 @@ export default function FenrirVoiceAssistant() {
 
           <button
             type="button"
-            onClick={toggleListening}
+            onClick={toggleListen}
             className={`p-2 rounded-full transition cursor-pointer ${
               isListening ? "bg-cyan-500 text-black shadow-cyan-500/50 animate-pulse" : "bg-zinc-800 text-orange-400 hover:text-white"
             }`}
@@ -253,10 +266,14 @@ export default function FenrirVoiceAssistant() {
             onClick={() => {
               if (typeof window !== "undefined" && "speechSynthesis" in window) {
                 window.speechSynthesis.cancel();
+                isSpeakingRef.current = false;
                 setIsSpeaking(false);
               }
+              try {
+                recognitionRef.current?.stop();
+              } catch {}
+              isListeningRef.current = false;
               setIsListening(false);
-              setIsHandsfreeActive(false);
               setIsOpen(false);
             }}
             className="p-1.5 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white transition cursor-pointer"
@@ -267,20 +284,19 @@ export default function FenrirVoiceAssistant() {
         </div>
       )}
 
-      {/* 3. MODO EXPANDIDO (Panel Táctico Completo) */}
+      {/* Modo Expandido */}
       {isOpen && !isCompact && (
         <div className="fixed inset-x-4 bottom-24 sm:left-6 sm:w-96 z-[99999] bg-[#0c0f17]/95 backdrop-blur-2xl border border-orange-500/40 rounded-3xl p-5 shadow-2xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-            <span className="text-xs font-mono font-black text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
-              Fenrir Copiloto • Global HQ
+            <span className="text-xs font-mono font-black text-orange-400 uppercase tracking-wider">
+              Fenrir Copiloto • Wild Wolves
             </span>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setIsCompact(true)}
                 className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
-                title="Minimizar a HUD de Cancha"
+                title="Minimizar a HUD"
               >
                 <Minimize2 className="w-4 h-4" />
               </button>
@@ -289,10 +305,14 @@ export default function FenrirVoiceAssistant() {
                 onClick={() => {
                   if (typeof window !== "undefined" && "speechSynthesis" in window) {
                     window.speechSynthesis.cancel();
+                    isSpeakingRef.current = false;
                     setIsSpeaking(false);
                   }
+                  try {
+                    recognitionRef.current?.stop();
+                  } catch {}
+                  isListeningRef.current = false;
                   setIsListening(false);
-                  setIsHandsfreeActive(false);
                   setIsOpen(false);
                 }}
                 className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition cursor-pointer"
@@ -303,36 +323,33 @@ export default function FenrirVoiceAssistant() {
             </div>
           </div>
 
-          {/* Avatar con Video y Reacción */}
           <div className="py-2">
             <FenrirAvatar mood={mood} isSpeaking={isSpeaking} isListening={isListening} size="md" />
           </div>
 
-          {/* Transcripción y Respuesta */}
-          <div className="bg-[#141824] p-3 rounded-2xl border border-zinc-800 text-xs space-y-1.5 font-sans">
+          <div className="bg-[#141824] p-3 rounded-2xl border border-zinc-800 text-xs space-y-1 font-sans">
             {transcript && <p className="text-orange-400 font-mono text-[11px]">Tú: "{transcript}"</p>}
             <p className="text-zinc-200">{aiReply}</p>
           </div>
 
-          {/* Controles de Acción */}
           <div className="flex items-center justify-center gap-4 pt-2">
             <button
               type="button"
-              onClick={() => speakAudio("Sistemas de Fenrir en línea. Copiloto activo en toda la academia, Coach Ricardo.")}
+              onClick={() => speakAudio("Sistemas listos. ¿Qué orden ejecutamos hoy en duela, Coach Ricardo?")}
               className="p-2.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition cursor-pointer"
-              title="Probar Altavoz"
+              title="Test Audio"
             >
               <Volume2 className="w-4 h-4" />
             </button>
             <button
               type="button"
-              onClick={toggleListening}
+              onClick={toggleListen}
               className={`p-4 rounded-full transition-all shadow-xl active:scale-95 cursor-pointer ${
                 isListening
                   ? "bg-cyan-500 text-black shadow-cyan-500/50 animate-pulse"
                   : "bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-orange-600/40"
               }`}
-              title={isListening ? "Desactivar Escucha Continua" : "Activar Escucha Continua"}
+              title={isListening ? "Detener Micrófono" : "Hablar a Fenrir"}
             >
               {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
             </button>
