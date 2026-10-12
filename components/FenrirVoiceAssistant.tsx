@@ -93,10 +93,13 @@ export default function FenrirVoiceAssistant() {
         setLastAction(actionData);
 
         // Dinámica de Estados Emocionales:
-        // 'happy': Pago registrado o asistencia exitosa
+        // 'happy': Pago registrado o asistencia exitosa (con reset automático a 5s)
         // 'angry': Falta / inasistencia injustificada detectada
         if (actionData.hasPayment || actionData.status === "presente") {
           setMood("happy");
+          setTimeout(() => {
+            setMood("neutral");
+          }, 5000);
         } else if (actionData.status === "falta") {
           setMood("angry");
         } else {
@@ -179,15 +182,35 @@ export default function FenrirVoiceAssistant() {
 
   return (
     <>
-      {/* Botón flotante del Avatar Fenrir (Esquina Inferior Izquierda) */}
+      {/* Botón flotante del Avatar Fenrir (Esquina Inferior Izquierda con miniatura) */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Abrir Fenrir Cyber-Wolf Asistente de Voz"
-        className="fixed bottom-6 left-6 z-50 p-3.5 sm:px-4 sm:py-3.5 rounded-full bg-[#121622] border-2 border-orange-500 shadow-2xl shadow-orange-950/60 hover:scale-105 active:scale-95 transition flex items-center gap-2.5 text-xs font-mono font-bold text-white cursor-pointer"
+        className="fixed bottom-6 left-6 z-50 p-2 pr-4 sm:p-2 sm:pr-4 rounded-full bg-[#121622] border-2 border-orange-500 shadow-2xl shadow-orange-950/70 hover:scale-105 active:scale-95 transition flex items-center gap-3 text-xs font-mono font-bold text-white cursor-pointer group"
       >
-        <div className={`w-3 h-3 rounded-full ${isSpeaking ? "bg-orange-500 animate-ping" : isListening ? "bg-cyan-400 animate-pulse" : "bg-emerald-400"}`} />
-        <span className="hidden sm:inline">FENRIR VOZ</span>
+        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-orange-400 shrink-0 shadow-inner">
+          <img
+            src="/assets/fenrir/avatar.webp"
+            alt="Fenrir Cyber Wolf"
+            className="w-full h-full object-cover object-center"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = "/assets/fenrir/neutral.jpg";
+            }}
+          />
+          <div
+            className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-black ${
+              isSpeaking
+                ? "bg-orange-500 animate-ping"
+                : isListening
+                ? "bg-cyan-400 animate-pulse"
+                : "bg-emerald-400"
+            }`}
+          />
+        </div>
+        <span className="tracking-wider text-[11px] uppercase font-black text-orange-200 group-hover:text-white transition">
+          FENRIR • COMANDO DE VOZ
+        </span>
       </button>
 
       {/* Modal Interactivo de Fenrir */}
@@ -223,9 +246,14 @@ export default function FenrirVoiceAssistant() {
             </button>
           </div>
 
-          {/* AVATAR DINÁMICO DE FENRIR */}
+          {/* AVATAR DINÁMICO DE FENRIR (MULTIMODAL VIDEO Y FOTOS REALES) */}
           <div className="flex flex-col items-center justify-center py-2 space-y-2">
-            <FenrirAvatar mood={mood} isSpeaking={isSpeaking} size="md" />
+            <FenrirAvatar
+              mood={mood}
+              isSpeaking={isSpeaking}
+              isListening={isListening}
+              size="lg"
+            />
 
             <span className="text-[11px] font-mono text-center block">
               {isListening ? (
