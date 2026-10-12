@@ -23,6 +23,7 @@ export interface PendingAction {
 export type QueueItem = PendingAction;
 
 const QUEUE_KEY = "wild_wolves_offline_queue";
+const WW_QUEUE_KEY = "ww_offline_queue";
 const CACHED_STUDENTS_KEY = "wild_wolves_cached_students";
 const LEGACY_QUEUE_KEY = "wildwolves_offline_queue";
 const LEGACY_CACHE_KEY = "wildwolves_cached_roster";
@@ -69,7 +70,10 @@ export const getCachedRoster = (): any[] => {
 export const getOfflineQueue = (): PendingAction[] => {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(QUEUE_KEY) || localStorage.getItem(LEGACY_QUEUE_KEY);
+    const raw =
+      localStorage.getItem(WW_QUEUE_KEY) ||
+      localStorage.getItem(QUEUE_KEY) ||
+      localStorage.getItem(LEGACY_QUEUE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -82,6 +86,7 @@ export const getOfflineQueueCount = (): number => {
 
 export const clearOfflineQueue = () => {
   if (typeof window === "undefined") return;
+  localStorage.removeItem(WW_QUEUE_KEY);
   localStorage.removeItem(QUEUE_KEY);
   localStorage.removeItem(LEGACY_QUEUE_KEY);
   window.dispatchEvent(new CustomEvent("offline_queue_updated", { detail: { count: 0 } }));
@@ -121,6 +126,7 @@ export const enqueueOfflineAction = (
 
     queue.push(newAction);
     const serialized = JSON.stringify(queue);
+    localStorage.setItem(WW_QUEUE_KEY, serialized);
     localStorage.setItem(QUEUE_KEY, serialized);
     localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
 
@@ -218,6 +224,7 @@ export const syncOfflineQueueToSupabase = async (
 
   try {
     const serialized = JSON.stringify(remainingQueue);
+    localStorage.setItem(WW_QUEUE_KEY, serialized);
     localStorage.setItem(QUEUE_KEY, serialized);
     localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
   } catch (err) {

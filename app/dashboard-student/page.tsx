@@ -10,6 +10,7 @@ import SelfieCameraCapture from "@/components/SelfieCameraCapture";
 import TierProgressionBar from "@/components/TierProgressionBar";
 import { RadarChart360 } from "@/components/RadarChart360";
 import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
+import LoboProModal from "@/components/LoboProModal";
 import {
   Camera,
   ExternalLink,
@@ -37,7 +38,8 @@ import {
   Info,
   Eye,
   Crosshair,
-  Shield
+  Shield,
+  Crown
 } from "lucide-react";
 
 // ==============================================================================
@@ -399,6 +401,7 @@ export default function StudentDashboardPage() {
   const [showCommitmentModal, setShowCommitmentModal] = useState(false);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [showLoboProModal, setShowLoboProModal] = useState(false);
   const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
   const [selectedBadgeModal, setSelectedBadgeModal] = useState<any | null>(null);
 
@@ -1222,11 +1225,19 @@ export default function StudentDashboardPage() {
           <div className="lg:col-span-5 xl:col-span-5 space-y-5">
             
             {/* 1. HERO CARD: CYBER WOLVES ELITE PLAYER CARD */}
-            <section className={`relative overflow-hidden rounded-3xl bg-surface-container-low p-5 sm:p-6 border ${activeRank.badgeBorder} ${activeRank.badgeGlow} transition-all duration-500 shadow-2xl`}>
+            <section className={`relative overflow-hidden rounded-3xl bg-surface-container-low p-5 sm:p-6 border transition-all duration-500 shadow-2xl ${
+              activeRank.level === 9
+                ? "border-cyan-300 ring-4 ring-cyan-400/40 shadow-[0_0_50px_rgba(56,189,248,0.7),0_0_80px_rgba(244,114,182,0.5)] animate-pulse"
+                : `${activeRank.badgeBorder} ${activeRank.badgeGlow}`
+            }`}>
+              {/* Aura Neón Plateada/Azul Flotante para Ultra Instinto */}
+              {activeRank.level === 9 && (
+                <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 via-purple-500/10 to-white/20 pointer-events-none animate-pulse" />
+              )}
               <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-primary-container via-secondary to-tertiary"></div>
               
               {/* Header Superior de la Tarjeta */}
-              <div className="flex items-center justify-between text-[11px] font-mono text-secondary mb-4">
+              <div className="flex items-center justify-between text-[11px] font-mono text-secondary mb-4 relative z-10">
                 <span className="flex items-center gap-1.5 font-bold">
                   <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
                   CYBER WOLVES // ATLETA OFICIAL
@@ -1296,9 +1307,14 @@ export default function StudentDashboardPage() {
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-surface-container-high text-secondary border border-secondary/30">
                       {profile?.position || "FORMATIVO"}
                     </span>
-                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-tertiary-container/30 text-tertiary border border-tertiary/20">
-                      CARMEN SERDÁN
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowLoboProModal(true)}
+                      className="text-[10px] font-black px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-400 text-black shadow-md hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Crown className="w-3 h-3 text-black fill-black" />
+                      <span>LOBO PRO</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2253,6 +2269,17 @@ export default function StudentDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL DE SUSCRIPCIÓN LOBO PRO */}
+      <LoboProModal
+        isOpen={showLoboProModal}
+        onClose={() => setShowLoboProModal(false)}
+        studentName={profile?.full_name || "Atleta Wild Wolves"}
+        studentEmail={profile?.email || ""}
+        onActivated={(plan) => {
+          setProfile((prev: any) => ({ ...prev, ai_plan: plan }));
+        }}
+      />
 
     </div>
   );

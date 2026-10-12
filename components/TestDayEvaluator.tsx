@@ -60,6 +60,14 @@ export default function TestDayEvaluator() {
   const [threePointMadeL3, setThreePointMadeL3] = useState<number>(7); // triples de 10 intentos
   const [halfCourtMadeL3, setHalfCourtMadeL3] = useState<number>(1); // tiros media cancha
 
+  // ==========================================
+  // ESCALA DE 9 NIVELES & CHECKLIST ULTRA INSTINTO
+  // ==========================================
+  const [selected9Tier, setSelected9Tier] = useState<string>("principiante");
+  const [ultraCheckReaction, setUltraCheckReaction] = useState<boolean>(false);
+  const [ultraCheckFatigue, setUltraCheckFatigue] = useState<boolean>(false);
+  const [ultraCheckDiscipline, setUltraCheckDiscipline] = useState<boolean>(false);
+
   // Feedback y Control
   const [feedback, setFeedback] = useState<string>(
     "Excelente control postural y avance en resistencia. Mantener enfoque en amortiguación de aterrizaje."
@@ -258,8 +266,29 @@ export default function TestDayEvaluator() {
         console.warn("Supabase detailed_test_records:", detailedError.message);
       }
 
-      // B) Actualizar nivel atlético en profiles
-      await supabase.from("profiles").update({ athletic_level: activeLevel }).eq("id", selectedStudentId);
+      // B) Actualizar nivel atlético y current_level en profiles
+      const certifiedLevel =
+        selected9Tier === "ultra_instinto" && (!ultraCheckReaction || !ultraCheckFatigue || !ultraCheckDiscipline)
+          ? "supremo"
+          : selected9Tier;
+
+      await supabase
+        .from("profiles")
+        .update({
+          athletic_level: activeLevel,
+          current_level: certifiedLevel,
+          current_tier: certifiedLevel
+        })
+        .eq("id", selectedStudentId);
+
+      if (typeof window !== "undefined") {
+        const localBaseline = JSON.parse(localStorage.getItem("ww_student_baseline") || "{}");
+        if (localBaseline[selectedStudentId]) {
+          localBaseline[selectedStudentId].current_tier = certifiedLevel;
+          localBaseline[selectedStudentId].current_level = certifiedLevel;
+          localStorage.setItem("ww_student_baseline", JSON.stringify(localBaseline));
+        }
+      }
 
       // C) Compatibilidad hacia atrás con student_evaluations
       await supabase.from("student_evaluations").upsert(
@@ -408,6 +437,78 @@ export default function TestDayEvaluator() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* ESCALA DE CERTIFICACIÓN OFICIAL: 9 NIVELES & CHECKLIST ULTRA INSTINTO      */}
+        {/* ========================================================================= */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface-container/70 border border-primary-container/30 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surface-container pb-2">
+            <div>
+              <span className="text-xs font-black uppercase text-primary tracking-wider block">
+                Escalafón Oficial de Certificación (9 Niveles)
+              </span>
+              <span className="text-[10px] text-on-surface-variant">
+                Selecciona el nivel que el Coach Ricardo certificará en la Cyber Wolf Card del alumno:
+              </span>
+            </div>
+            <select
+              value={selected9Tier}
+              onChange={(e) => setSelected9Tier(e.target.value)}
+              className="h-10 px-3 bg-surface-container-high border border-outline rounded-xl text-xs font-bold text-on-surface font-mono uppercase focus:outline-none focus:border-secondary cursor-pointer"
+            >
+              <option value="principiante">1. Principiante</option>
+              <option value="basico">2. Básico</option>
+              <option value="intermedio">3. Intermedio</option>
+              <option value="avanzado">4. Avanzado</option>
+              <option value="experto">5. Experto</option>
+              <option value="militar">6. Militar</option>
+              <option value="elite">7. Élite</option>
+              <option value="supremo">8. Supremo</option>
+              <option value="ultra_instinto">9. ULTRA INSTINTO (Cúspide Biológica)</option>
+            </select>
+          </div>
+
+          {/* Checklist de Validación en Duela para Nivel 9 Ultra Instinto */}
+          {selected9Tier === "ultra_instinto" && (
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-950/40 via-fuchsia-950/40 to-cyan-950/40 border border-fuchsia-500/50 space-y-2.5 animate-in fade-in">
+              <span className="text-[11px] font-black uppercase tracking-wider text-fuchsia-300 flex items-center gap-1.5 font-mono">
+                ⚡ Checklist de Validación en Duela: Certificación Ultra Instinto
+              </span>
+              <p className="text-[10px] text-zinc-300">
+                Los 3 criterios deben ser validados en persona en el Deportivo Carmen Serdán para activar el aura neón:
+              </p>
+              <div className="space-y-2 text-xs">
+                <label className="flex items-center gap-2.5 cursor-pointer text-zinc-200">
+                  <input
+                    type="checkbox"
+                    checked={ultraCheckReaction}
+                    onChange={(e) => setUltraCheckReaction(e.target.checked)}
+                    className="w-4 h-4 rounded accent-fuchsia-500 cursor-pointer"
+                  />
+                  <span>1. Reacción motora pura en 5 spots (&lt; 1.2s de liberación)</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer text-zinc-200">
+                  <input
+                    type="checkbox"
+                    checked={ultraCheckFatigue}
+                    onChange={(e) => setUltraCheckFatigue(e.target.checked)}
+                    className="w-4 h-4 rounded accent-fuchsia-500 cursor-pointer"
+                  />
+                  <span>2. Cero fatiga en salto vertical continuo (test de 60s ininterrumpido)</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer text-zinc-200">
+                  <input
+                    type="checkbox"
+                    checked={ultraCheckDiscipline}
+                    onChange={(e) => setUltraCheckDiscipline(e.target.checked)}
+                    className="w-4 h-4 rounded accent-fuchsia-500 cursor-pointer"
+                  />
+                  <span>3. Asistencia perfecta, liderazgo marcial y disciplina de manada</span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ========================================================================= */}

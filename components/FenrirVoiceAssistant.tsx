@@ -14,10 +14,25 @@ export default function FenrirVoiceAssistant() {
   const [transcript, setTranscript] = useState("");
   const [aiReply, setAiReply] = useState("Sistemas listos, Coach Ricardo.");
   const [mood, setMood] = useState<FenrirMood>("neutral");
+  const [isOnline, setIsOnline] = useState<boolean>(true);
 
   const recognitionRef = useRef<any>(null);
   const isSpeakingRef = useRef(false);
   const isListeningRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      const onOn = () => setIsOnline(true);
+      const onOff = () => setIsOnline(false);
+      window.addEventListener("online", onOn);
+      window.addEventListener("offline", onOff);
+      return () => {
+        window.removeEventListener("online", onOn);
+        window.removeEventListener("offline", onOff);
+      };
+    }
+  }, []);
 
   // Audio Priming nativo
   const primeAudioContext = useCallback(() => {
@@ -237,10 +252,19 @@ export default function FenrirVoiceAssistant() {
           </div>
 
           <div className="flex flex-col text-left">
-            <span className="text-[10px] font-mono font-bold text-orange-400 uppercase tracking-tight flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${isListening ? "bg-cyan-400 animate-ping" : "bg-emerald-400"}`} />
-              {isListening ? "Escuchando..." : isSpeaking ? "Hablando..." : "Fenrir Activo"}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono font-bold text-orange-400 uppercase tracking-tight flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${isListening ? "bg-cyan-400 animate-ping" : "bg-emerald-400"}`} />
+                {isListening ? "Escuchando..." : isSpeaking ? "Hablando..." : "Fenrir Activo"}
+              </span>
+              <span className={`text-[8px] font-mono font-bold px-1.5 py-0.2 rounded-full border ${
+                isOnline 
+                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
+                  : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+              }`}>
+                {isOnline ? "🟢 Sincronizado" : "🟠 Guardado Local (Offline)"}
+              </span>
+            </div>
             <span className="text-[9px] font-sans text-zinc-300 max-w-[130px] truncate">
               {transcript || aiReply}
             </span>
