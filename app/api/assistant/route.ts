@@ -2,8 +2,18 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { messages, contextData, customContext } = await req.json();
+    const { messages, contextData, customContext, userRole = "coach", userPlan = "free" } = await req.json();
     const apiKey = process.env.GROQ_API_KEY;
+
+    // Control de Cuotas de IA por Rol y Modalidad:
+    // SuperAdmin / Coach: Ilimitado ($0)
+    // Alumno / Tutor Free: 3 consultas / mes
+    // Lobo Pro ($99): 30 consultas / mes
+    // Lobo Élite Familiar ($149): 60 consultas / mes
+    const isCoach = userRole === "coach" || userRole === "superadmin";
+    const monthlyMax = isCoach ? 9999 : userPlan === "elite_familiar" ? 60 : userPlan === "pro" ? 30 : 3;
+    const currentUsed = (customContext?.usedQueries ?? contextData?.usedQueries ?? 1);
+    const remaining = Math.max(0, monthlyMax - currentUsed);
 
     const systemPrompt = `Eres "Lobo Táctico IA", el copiloto ejecutivo y director técnico digital del Head Coach Ricardo en la academia de básquetbol Wild Wolves CDMX (Sede: Deportivo Carmen Serdán).
 Misión:
@@ -75,7 +85,19 @@ Contexto deportivo actual: ${JSON.stringify(contextData || customContext || {})}
       });
     }
 
-    return NextResponse.json({ reply });
+    if (reply && !isCoach) {
+      reply += `\n\n_📊 Consumo de IA: Ocupaste ${currentUsed} de ${monthlyMax} consultas mensuales (${remaining} restantes)._`;
+    }
+
+    return NextResponse.json({ 
+      reply,
+      quota: {
+        isUnlimited: isCoach,
+        used: currentUsed,
+        total: monthlyMax,
+        remaining
+      }
+    });
   } catch (error: any) {
     console.error("Excepción en asistente:", error);
     return NextResponse.json(
