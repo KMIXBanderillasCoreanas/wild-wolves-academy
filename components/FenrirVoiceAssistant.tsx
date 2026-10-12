@@ -6,6 +6,8 @@ import { offlineStorage } from "@/lib/offlineSync";
 import { queueOfflineAction } from "@/lib/offline/db";
 import { supabase } from "@/lib/supabaseClient";
 
+import FenrirAvatar, { FenrirMood } from "@/components/FenrirAvatar";
+
 interface ExecutedVoiceAction {
   studentName: string;
   status: "presente" | "retardo" | "falta";
@@ -17,6 +19,7 @@ export default function FenrirVoiceAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [mood, setMood] = useState<FenrirMood>("neutral");
   const [transcript, setTranscript] = useState("");
   const [aiReply, setAiReply] = useState("Listo para tus órdenes en duela, Coach Ricardo.");
   const [lastAction, setLastAction] = useState<ExecutedVoiceAction | null>(null);
@@ -88,6 +91,17 @@ export default function FenrirVoiceAssistant() {
       if (data.executedAction) {
         const actionData: ExecutedVoiceAction = data.executedAction;
         setLastAction(actionData);
+
+        // Dinámica de Estados Emocionales:
+        // 'happy': Pago registrado o asistencia exitosa
+        // 'angry': Falta / inasistencia injustificada detectada
+        if (actionData.hasPayment || actionData.status === "presente") {
+          setMood("happy");
+        } else if (actionData.status === "falta") {
+          setMood("angry");
+        } else {
+          setMood("neutral");
+        }
 
         const todayDate = new Date().toISOString().split("T")[0];
         const studentId = `voice_${actionData.studentName.toLowerCase().replace(/\s+/g, "_")}`;
@@ -209,25 +223,9 @@ export default function FenrirVoiceAssistant() {
             </button>
           </div>
 
-          {/* AVATAR VISUAL (Holograma animado) */}
-          <div className="flex flex-col items-center justify-center py-3 space-y-3">
-            <div
-              className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                isListening
-                  ? "border-cyan-400 bg-cyan-950/30 shadow-[0_0_30px_rgba(6,182,212,0.6)] scale-110"
-                  : isSpeaking
-                  ? "border-[#f66018] bg-orange-950/30 shadow-[0_0_30px_rgba(246,96,24,0.6)] scale-105 animate-pulse"
-                  : "border-zinc-700 bg-[#141824]"
-              }`}
-            >
-              {/* Isotipo del Lobo */}
-              <span className="text-4xl select-none">🐺</span>
-
-              {/* Halo reactivo de ondas */}
-              {isSpeaking && (
-                <span className="absolute inset-0 rounded-full border-2 border-orange-500 animate-ping opacity-75 pointer-events-none" />
-              )}
-            </div>
+          {/* AVATAR DINÁMICO DE FENRIR */}
+          <div className="flex flex-col items-center justify-center py-2 space-y-2">
+            <FenrirAvatar mood={mood} isSpeaking={isSpeaking} size="md" />
 
             <span className="text-[11px] font-mono text-center block">
               {isListening ? (

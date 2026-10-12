@@ -2,10 +2,12 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Bot, Send, X, Sparkles, MessageSquare, Dumbbell, ShieldCheck, Flame, RefreshCw } from "lucide-react";
+import FenrirAvatar, { FenrirMood } from "@/components/FenrirAvatar";
 
 export default function TacticalAIAssistant({ athleteContext }: { athleteContext?: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [mood, setMood] = useState<FenrirMood>("neutral");
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([
     {
       role: "assistant",
@@ -36,6 +38,16 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
     if (!customPrompt) setInput("");
     setLoading(true);
 
+    // Detección heurística de emoción según el prompt enviado
+    const lowerPrompt = textToSend.toLowerCase();
+    if (lowerPrompt.includes("inasistencia") || lowerPrompt.includes("falta") || lowerPrompt.includes("adeudo") || lowerPrompt.includes("deuda")) {
+      setMood("angry");
+    } else if (lowerPrompt.includes("completó") || lowerPrompt.includes("victoria") || lowerPrompt.includes("pago") || lowerPrompt.includes("éxito") || lowerPrompt.includes("felicitar")) {
+      setMood("happy");
+    } else {
+      setMood("neutral");
+    }
+
     try {
       const res = await fetch("/api/assistant", {
         method: "POST",
@@ -52,6 +64,14 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
 
       const data = await res.json();
       setMessages([...updatedMessages, { role: "assistant", content: data.reply }]);
+
+      // Refinar emoción según respuesta recibida si es relevante
+      const lowerReply = (data.reply || "").toLowerCase();
+      if (lowerReply.includes("¡felicidades") || lowerReply.includes("excelente") || lowerReply.includes("victoria")) {
+        setMood("happy");
+      } else if (lowerReply.includes("urgente") || lowerReply.includes("disciplina") || lowerReply.includes("inasistencia")) {
+        setMood("angry");
+      }
     } catch {
       setMessages([
         ...updatedMessages,
@@ -89,19 +109,19 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
       {isOpen && (
         <div className="fixed bottom-20 right-4 sm:right-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-[540px] max-h-[80vh] bg-[#0f131d] border border-orange-500/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-zinc-100 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
           
-          {/* Header */}
-          <div className="bg-[#141926] p-4 border-b border-zinc-800 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0">
-                <Sparkles className="w-4 h-4" />
+          {/* Header con FenrirAvatar */}
+          <div className="bg-[#141926] p-3.5 border-b border-zinc-800 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0 scale-75 origin-left -my-2">
+                <FenrirAvatar mood={mood} isSpeaking={loading} size="sm" />
               </div>
               <div>
                 <span className="font-black text-xs uppercase tracking-wider text-white block">
-                  Lobo Táctico • Llama 3.3 Groq LPU
+                  Lobo Táctico • Fenrir IA
                 </span>
                 <span className="text-[10px] text-zinc-400 font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Groq LPU (Ultra Rápido) • Coach Assist
+                  <span className={`w-1.5 h-1.5 rounded-full ${mood === "angry" ? "bg-red-500 animate-ping" : mood === "happy" ? "bg-cyan-400 animate-pulse" : "bg-emerald-400"}`} />
+                  Groq LPU • {mood === "angry" ? "Alerta Táctica" : mood === "happy" ? "Modo Victoria" : "Enfoque en Duela"}
                 </span>
               </div>
             </div>
