@@ -73,7 +73,7 @@ export default function FenrirVoiceAssistant() {
     setLastAction(null);
 
     try {
-      const res = await fetch("/api/voice-command", {
+      const res = await fetch("/api/voice-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: commandText }),
