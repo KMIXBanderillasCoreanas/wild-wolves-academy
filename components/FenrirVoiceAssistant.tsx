@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Mic, MicOff, Sparkles, X, Shield, Volume2, CheckCircle2, DollarSign, UserCheck } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Mic, MicOff, Sparkles, X, Shield, Volume2, UserCheck, Play } from "lucide-react";
 import { offlineStorage } from "@/lib/offlineSync";
 import { queueOfflineAction } from "@/lib/offline/db";
-import { supabase } from "@/lib/supabaseClient";
 
 import FenrirAvatar, { FenrirMood } from "@/components/FenrirAvatar";
 
@@ -23,55 +22,98 @@ export default function FenrirVoiceAssistant() {
   const [transcript, setTranscript] = useState("");
   const [aiReply, setAiReply] = useState("Listo para tus órdenes en duela, Coach Ricardo.");
   const [lastAction, setLastAction] = useState<ExecutedVoiceAction | null>(null);
-  
+
   const recognitionRef = useRef<any>(null);
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
-  useEffect(() => {
-    // Configurar API de voz nativa del celular o navegador
-    if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = "es-MX"; // Español de México
-
-      recognition.onresult = (event: any) => {
-        const text = event.results?.[0]?.[0]?.transcript;
-        if (text) {
-          setTranscript(text);
-          setIsListening(false);
-          processVoiceCommand(text);
-        }
-      };
-
-      recognition.onerror = (e: any) => {
-        console.warn("SpeechRecognition error:", e);
-        setIsListening(false);
-      };
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-      recognitionRef.current = recognition;
+  // 1. Cargar y seleccionar la mejor voz en español (priorizando es-MX y masculinas)
+  const updateAvailableVoices = useCallback(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        availableVoicesRef.current = voices;
+      }
     }
   }, []);
 
-  // 1. Hablar con voz sintetizada marcial y firme en español
-  const speakVoice = (text: string) => {
+  useEffect(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      updateAvailableVoices();
+      window.speechSynthesis.onvoiceschanged = updateAvailableVoices;
+    }
+  }, [updateAvailableVoices]);
+
+  const selectBestSpanishVoice = useCallback((): SpeechSynthesisVoice | null => {
+    const voices = availableVoicesRef.current.length > 0
+      ? availableVoicesRef.current
+      : (typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis.getVoices() : []);
+
+    if (!voices || voices.length === 0) return null;
+
+    // Prioridad 1: Voces específicas es-MX (como Raul, Jorge o Sabina)
+    const mxMaleVoice = voices.find(
+      (v) => v.lang.toLowerCase() === "es-mx" && (v.name.toLowerCase().includes("raul") || v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("jorge"))
+    );
+    if (mxMaleVoice) return mxMaleVoice;
+
+    // Prioridad 2: Cualquier voz de México
+    const mxVoice = voices.find((v) => v.lang.toLowerCase() === "es-mx" || v.lang.toLowerCase().replace("_", "-") === "es-mx");
+    if (mxVoice) return mxVoice;
+
+    // Prioridad 3: Voces masculinas en español (Pablo, Manuel, Diego, etc.)
+    const esMaleVoice = voices.find(
+      (v) => v.lang.toLowerCase().startsWith("es") && (v.name.toLowerCase().includes("pablo") || v.name.toLowerCase().includes("diego") || v.name.toLowerCase().includes("male") || v.name.toLowerCase().includes("alvaro"))
+    );
+    if (esMaleVoice) return esMaleVoice;
+
+    // Prioridad 4: Cualquier voz en español
+    const anyEs = voices.find((v) => v.lang.toLowerCase().startsWith("es"));
+    if (anyEs) return anyEs;
+
+    return voices[0] || null;
+  }, []);
+
+  // 2. Síntesis de voz bidireccional marcial conectada al Avatar
+  const speakVoice = useCallback((text: string, onFinish?: () => void) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    try {
       window.speechSynthesis.cancel();
+
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "es-MX";
-      utterance.rate = 1.05; // Ritmo ágil de cancha
-      utterance.pitch = 0.92; // Tono varonil y seguro
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-    }
-  };
+      utterance.rate = 1.05; // Cadencia ágil de duela
+      utterance.pitch = 0.88; // Tono grave y marcial de entrenador
 
-  // 2. Procesar comando de voz con Groq y ejecutar acciones
-  const processVoiceCommand = async (commandText: string) => {
+      const bestVoice = selectBestSpanishVoice();
+      if (bestVoice) {
+        utterance.voice = bestVoice;
+      }
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        if (onFinish) onFinish();
+      };
+
+      utterance.onerror = (e) => {
+        console.warn("SpeechSynthesis error:", e);
+        setIsSpeaking(false);
+        if (onFinish) onFinish();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("Fallo al reproducir audio TTS:", err);
+      setIsSpeaking(false);
+    }
+  }, [selectBestSpanishVoice]);
+
+  // 3. Procesar comando dictado con Groq LPU y persistir en Supabase
+  const processVoiceCommand = useCallback(async (commandText: string) => {
     setAiReply("Fenrir analizando directiva táctica...");
     setLastAction(null);
 
@@ -85,7 +127,6 @@ export default function FenrirVoiceAssistant() {
 
       const replyMsg = data.message || "Orden recibida por Fenrir.";
       setAiReply(replyMsg);
-      speakVoice(replyMsg);
 
       // Si la IA detectó asistencia o pago, guardar localmente/nube
       if (data.executedAction) {
@@ -153,31 +194,93 @@ export default function FenrirVoiceAssistant() {
           }
         }
       }
+
+      // Reproducir respuesta audible con video de Fenrir
+      speakVoice(replyMsg);
     } catch (e) {
       console.warn("Fallo en procesamiento de voz:", e);
       const failMsg = "Comandante, se guardó la directiva en el búnker desconectado.";
       setAiReply(failMsg);
       speakVoice(failMsg);
     }
-  };
+  }, [speakVoice]);
 
-  const toggleListen = () => {
+  // 4. Configuración del reconocimiento de voz continuo en es-MX
+  useEffect(() => {
+    if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "es-MX";
+
+      recognition.onresult = (event: any) => {
+        const text = event.results?.[0]?.[0]?.transcript;
+        if (text) {
+          setTranscript(text);
+          setIsListening(false);
+          processVoiceCommand(text);
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        // En silencio o interrupción normal, no lanzar alerta roja
+        if (e.error !== "no-speech") {
+          console.warn("SpeechRecognition aviso:", e.error);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, [processVoiceCommand]);
+
+  // 5. Encender/Apagar Micrófono solicitando permisos si es necesario
+  const toggleListen = async () => {
     if (isListening) {
       try {
         recognitionRef.current?.stop();
       } catch {}
       setIsListening(false);
-    } else {
-      setTranscript("");
-      setLastAction(null);
-      try {
-        recognitionRef.current?.start();
-        setIsListening(true);
-      } catch (err) {
-        console.warn("Error al iniciar micrófono:", err);
-        setIsListening(false);
-      }
+      return;
     }
+
+    // Cancelar voz anterior si estaba hablando
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+
+    setTranscript("");
+    setLastAction(null);
+
+    try {
+      // Solicitar permisos de audio al navegador si es la primera vez
+      if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch {
+          // Continuar con recognition directo si getUserMedia falla o no es soportado
+        }
+      }
+
+      recognitionRef.current?.start();
+      setIsListening(true);
+    } catch (err) {
+      console.warn("Error al iniciar captura de audio:", err);
+      setIsListening(false);
+    }
+  };
+
+  // 6. Prueba rápida de audio para desbloquear audio context en móviles y PC
+  const handleTestAudio = () => {
+    speakVoice(
+      "Sistemas en línea, Coach Ricardo. Lobo Central y Fenrir listos para operar en el Deportivo Carmen Serdán."
+    );
   };
 
   return (
@@ -185,7 +288,11 @@ export default function FenrirVoiceAssistant() {
       {/* Botón flotante del Avatar Fenrir (Esquina Inferior Izquierda con miniatura) */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          // Si abre el modal, pre-calentar voces de síntesis
+          updateAvailableVoices();
+        }}
         aria-label="Abrir Fenrir Cyber-Wolf Asistente de Voz"
         className="fixed bottom-6 left-6 z-50 p-2 pr-4 sm:p-2 sm:pr-4 rounded-full bg-[#121622] border-2 border-orange-500 shadow-2xl shadow-orange-950/70 hover:scale-105 active:scale-95 transition flex items-center gap-3 text-xs font-mono font-bold text-white cursor-pointer group"
       >
@@ -237,6 +344,7 @@ export default function FenrirVoiceAssistant() {
               onClick={() => {
                 if (typeof window !== "undefined" && "speechSynthesis" in window) {
                   window.speechSynthesis.cancel();
+                  setIsSpeaking(false);
                 }
                 setIsOpen(false);
               }}
@@ -263,7 +371,7 @@ export default function FenrirVoiceAssistant() {
                 </span>
               ) : isSpeaking ? (
                 <span className="text-orange-400 font-bold flex items-center gap-1.5 justify-center">
-                  <Volume2 className="w-3.5 h-3.5" /> Fenrir respondiendo...
+                  <Volume2 className="w-3.5 h-3.5 animate-pulse" /> Fenrir respondiendo...
                 </span>
               ) : (
                 <span className="text-zinc-400">
@@ -304,19 +412,32 @@ export default function FenrirVoiceAssistant() {
             )}
           </div>
 
-          {/* BOTÓN PRINCIPAL DE MICRÓFONO */}
-          <div className="flex justify-center pt-1">
+          {/* BARRA DE ACCIÓN: MICRÓFONO Y PRUEBA DE AUDIO */}
+          <div className="flex items-center justify-between pt-1 gap-2">
+            <button
+              type="button"
+              onClick={handleTestAudio}
+              className="px-3 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/60 text-zinc-300 hover:text-white transition text-[10px] font-mono font-bold flex items-center gap-1.5 cursor-pointer"
+            >
+              <Volume2 className="w-3.5 h-3.5 text-orange-400" />
+              <span>Probar Voz</span>
+            </button>
+
             <button
               type="button"
               onClick={toggleListen}
-              className={`p-5 rounded-full transition-all shadow-xl active:scale-95 cursor-pointer ${
+              className={`p-4 rounded-full transition-all shadow-xl active:scale-95 cursor-pointer ${
                 isListening
                   ? "bg-cyan-500 text-black shadow-cyan-500/40 animate-pulse scale-105"
                   : "bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-orange-600/40 hover:brightness-110"
               }`}
             >
-              {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
+
+            <div className="text-[10px] font-mono text-zinc-500 text-right">
+              <span>es-MX • Llama 3.1</span>
+            </div>
           </div>
         </div>
       )}
