@@ -75,28 +75,41 @@ export default function FenrirVoiceAssistant() {
     return voices[0] || null;
   }, []);
 
-  // 2. Desbloquear contexto de audio con utterance silencioso instantáneo
+  // 2. Desbloquear contexto de audio con resume() y un utterance silencioso instantáneo
   const primeAudioContext = useCallback(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
-        const silentUtterance = new SpeechSynthesisUtterance("");
-        silentUtterance.volume = 0;
-        window.speechSynthesis.speak(silentUtterance);
+        window.speechSynthesis.resume();
+        const warmUp = new SpeechSynthesisUtterance("");
+        warmUp.volume = 0;
+        window.speechSynthesis.speak(warmUp);
       } catch {}
     }
   }, []);
 
-  // 3. Síntesis de voz bidireccional marcial conectada al Avatar
-  const speakVoice = useCallback((text: string, onFinish?: () => void) => {
+  // 3. Síntesis de voz bidireccional marcial conectada al Avatar con texto limpio
+  const speakVoice = useCallback((rawText: string, onFinish?: () => void) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       if (onFinish) onFinish();
       return;
     }
 
     try {
-      window.speechSynthesis.cancel();
+      // Limpiar texto de asteriscos, numerales y formato Markdown
+      const cleanText = rawText
+        .replace(/[*#_`~>\[\]\(\)]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
 
-      const utterance = new SpeechSynthesisUtterance(text);
+      if (!cleanText) {
+        if (onFinish) onFinish();
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = "es-MX";
       utterance.rate = 1.05; // Cadencia ágil de duela
       utterance.pitch = 0.90; // Tono grave y marcial
@@ -122,6 +135,11 @@ export default function FenrirVoiceAssistant() {
       };
 
       window.speechSynthesis.speak(utterance);
+
+      // Respaldo para navegadores de escritorio que congelan onend si hay suspensión
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
     } catch (err) {
       console.warn("Fallo al reproducir audio TTS:", err);
       setIsSpeaking(false);

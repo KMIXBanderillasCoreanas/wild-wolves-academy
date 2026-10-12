@@ -55,6 +55,30 @@ export default function MasterBunkerHQ() {
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
   const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "home_training" | "guardians" | "coaches">("attendance");
+
+  // Sincronizar pestaña si viene en la URL (?tab=finanzas o ?tab=finance)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const applyTabFromUrl = () => {
+        const params = new URLSearchParams(window.location.search);
+        const tabParam = params.get("tab");
+        if (tabParam) {
+          if (tabParam === "finanzas" || tabParam === "finance") setActiveTab("finance");
+          else if (tabParam === "asistencia" || tabParam === "attendance") setActiveTab("attendance");
+          else if (tabParam === "test_day" || tabParam === "evaluaciones") setActiveTab("test_day");
+          else if (tabParam === "smart_placement" || tabParam === "crm") setActiveTab("smart_placement");
+        }
+      };
+
+      applyTabFromUrl();
+      window.addEventListener("popstate", applyTabFromUrl);
+      window.addEventListener("tab_changed", applyTabFromUrl);
+      return () => {
+        window.removeEventListener("popstate", applyTabFromUrl);
+        window.removeEventListener("tab_changed", applyTabFromUrl);
+      };
+    }
+  }, []);
   const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
   const [testDaySubView, setTestDaySubView] = useState<"express" | "dual" | "ovr">("express");
   const [coaches, setCoaches] = useState<any[]>([]);
