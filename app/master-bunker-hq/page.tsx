@@ -70,11 +70,26 @@ export default function MasterBunkerHQ() {
       };
 
       applyTabFromUrl();
+
+      const handleCustomTab = (e: any) => {
+        const targetTab = e?.detail?.tab;
+        if (targetTab) {
+          if (targetTab === "finanzas" || targetTab === "finance") setActiveTab("finance");
+          else if (targetTab === "asistencia" || targetTab === "attendance") setActiveTab("attendance");
+          else if (targetTab === "test_day" || targetTab === "evaluaciones") setActiveTab("test_day");
+          else if (targetTab === "smart_placement" || targetTab === "crm") setActiveTab("smart_placement");
+        } else {
+          applyTabFromUrl();
+        }
+      };
+
       window.addEventListener("popstate", applyTabFromUrl);
       window.addEventListener("tab_changed", applyTabFromUrl);
+      window.addEventListener("change-bunker-tab", handleCustomTab);
       return () => {
         window.removeEventListener("popstate", applyTabFromUrl);
         window.removeEventListener("tab_changed", applyTabFromUrl);
+        window.removeEventListener("change-bunker-tab", handleCustomTab);
       };
     }
   }, []);

@@ -102,6 +102,11 @@ export default function FenrirVoiceAssistant() {
 
       // NAVEGACIÓN INMEDIATA (Cero retardo sin esperar a que termine el audio)
       if (data.navigateTo) {
+        if (data.navigateTo.includes("tab=finanzas") || data.navigateTo.includes("tab=finance")) {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("change-bunker-tab", { detail: { tab: "finanzas" } }));
+          }
+        }
         router.push(data.navigateTo);
       }
 
