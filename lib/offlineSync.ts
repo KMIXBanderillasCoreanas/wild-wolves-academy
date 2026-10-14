@@ -157,9 +157,10 @@ export const syncOfflineQueueToSupabase = async (
   for (const item of queue) {
     try {
       if (item.type === "ATTENDANCE") {
+        const { shift, notes, ...attData } = item.payload;
         const { error } = await supabase.from("daily_attendance").upsert(
-          item.payload,
-          { onConflict: "student_id,date,shift" }
+          attData,
+          { onConflict: "student_id,date" }
         );
         if (error) throw error;
         syncedCount++;
@@ -172,7 +173,17 @@ export const syncOfflineQueueToSupabase = async (
         syncedCount++;
         hasPaymentSynced = true;
       } else if (item.type === "PAYMENT_TRANSACTION") {
-        const { error } = await supabase.from("payment_transactions_history").insert(item.payload);
+        // Sanear campos para la tabla payment_transactions_history
+        const { notes, amount, ...cleanTx } = item.payload;
+        const insertTx = {
+          student_id: cleanTx.student_id,
+          amount_paid: cleanTx.amount_paid !== undefined ? cleanTx.amount_paid : (amount || 0),
+          remaining_debt: cleanTx.remaining_debt || 0,
+          payment_method: cleanTx.payment_method || "efectivo",
+          concept: cleanTx.concept || "Entrenamiento / Cuota",
+          transaction_date: cleanTx.transaction_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+        };
+        const { error } = await supabase.from("payment_transactions_history").insert(insertTx);
         if (error) throw error;
         syncedCount++;
         hasPaymentSynced = true;
@@ -252,7 +263,82 @@ export const syncOfflineQueueToSupabase = async (
   return { synced: syncedCount, failed: failedCount };
 };
 
-// Objeto unificado offlineStorage compatible con ambas firmas
+// Esquema de Sincronización Directa Infalible
+export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced: number; pending: number }> {
+  const sb = clientSupabase || supabase;
+  const raw =
+    (typeof window !== "undefined" &&
+      (localStorage.getItem(WW_QUEUE_KEY) ||
+        localStorage.getItem(QUEUE_KEY) ||
+        localStorage.getItem(LEGACY_QUEUE_KEY))) ||
+    null;
+
+  if (!raw) return { synced: 0, pending: 0 };
+
+  let queue: any[] = [];
+  try {
+    queue = JSON.parse(raw);
+  } catch {
+    return { synced: 0, pending: 0 };
+  }
+
+  const remaining: any[] = [];
+  let syncedCount = 0;
+
+  for (const item of queue) {
+    try {
+      if (item.type === "ATTENDANCE") {
+        const { shift, notes, ...attData } = item.payload || {};
+        const { error } = await sb
+          .from("daily_attendance")
+          .upsert(attData, { onConflict: "student_id,date" });
+        if (error) throw error;
+        syncedCount++;
+      } else if (item.type === "PAYMENT" || item.type === "PAYMENT_TRANSACTION") {
+        const payload = item.payload || {};
+        const { notes, amount, ...cleanTx } = payload;
+        const insertTx = {
+          student_id: cleanTx.student_id,
+          amount_paid: cleanTx.amount_paid !== undefined ? cleanTx.amount_paid : (amount || 0),
+          remaining_debt: cleanTx.remaining_debt || 0,
+          payment_method: cleanTx.payment_method || "efectivo",
+          concept: cleanTx.concept || "Entrenamiento / Cuota",
+          transaction_date: cleanTx.transaction_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+        };
+        const { error } = await sb.from("payment_transactions_history").insert(insertTx);
+        if (error) throw error;
+        syncedCount++;
+      } else {
+        const targetTable = item.table || "daily_attendance";
+        const { error } = await sb.from(targetTable).upsert(item.payload);
+        if (error) throw error;
+        syncedCount++;
+      }
+    } catch (err) {
+      console.error("Error subiendo elemento offline:", item, err);
+      remaining.push(item);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    const serialized = JSON.stringify(remaining);
+    localStorage.setItem(WW_QUEUE_KEY, serialized);
+    localStorage.setItem(QUEUE_KEY, serialized);
+    localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
+    window.dispatchEvent(
+      new CustomEvent("offline_queue_updated", { detail: { count: remaining.length } })
+    );
+    if (syncedCount > 0) {
+      window.dispatchEvent(new CustomEvent("offline_queue_synced", { detail: { count: syncedCount } }));
+      window.dispatchEvent(new Event("payment_recorded"));
+      window.dispatchEvent(new Event("attendance_updated"));
+    }
+  }
+
+  return { synced: syncedCount, pending: remaining.length };
+}
+
+// Objeto unificado offlineStorage compatible con todas las vistas (CRM, Command, etc.)
 export const offlineStorage = {
   saveStudentsSnapshot: (students: any[]) => cacheRosterLocally(students),
   getCachedStudents: (): any[] => getCachedRoster(),

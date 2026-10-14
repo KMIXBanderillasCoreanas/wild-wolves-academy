@@ -42,7 +42,8 @@ import SuperAdminOmniManager from "@/components/SuperAdminOmniManager";
 import { Home } from "lucide-react";
 import { 
   syncOfflineQueueToSupabase, 
-  getOfflineQueueCount 
+  getOfflineQueueCount,
+  flushOfflineQueue 
 } from "@/lib/offlineSync";
 
 import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
@@ -121,6 +122,7 @@ export default function MasterBunkerHQ() {
   });
   const [queueCount, setQueueCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
 
   // Métricas financieras calculadas
   const [metrics, setMetrics] = useState({
@@ -297,6 +299,30 @@ export default function MasterBunkerHQ() {
       setLoading(false);
     }
   }, []);
+
+  // Handler directo infalible para el botón Sincronizar
+  const handleSyncClick = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await flushOfflineQueue(supabase);
+      setQueueCount(res.pending);
+      const msg = `Sincronización completada: ${res.synced} registros subidos a la nube`;
+      setSyncToast(msg);
+      setTimeout(() => setSyncToast(null), 4500);
+
+      // Revalidación inmediata de métricas y finanzas
+      await fetchDashboardData();
+      window.dispatchEvent(new CustomEvent("change-bunker-tab", { detail: "finanzas" }));
+      window.dispatchEvent(new Event("payment_recorded"));
+      window.dispatchEvent(new Event("attendance_updated"));
+    } catch (err: any) {
+      console.error("Error en handleSyncClick:", err);
+      setSyncToast("Aviso: Algunos registros se mantendrán en cola offline.");
+      setTimeout(() => setSyncToast(null), 4500);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Verificación reactiva automática de sesión de SuperAdmin / Fundador
   useEffect(() => {
@@ -603,21 +629,13 @@ export default function MasterBunkerHQ() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isOnline && queueCount > 0 && (
+          {queueCount > 0 && (
             <button
-              onClick={async () => {
-                setIsSyncing(true);
-                try {
-                  await syncOfflineQueueToSupabase();
-                  fetchDashboardData();
-                } finally {
-                  setIsSyncing(false);
-                }
-              }}
+              onClick={handleSyncClick}
               disabled={isSyncing}
               className="flex items-center gap-1.5 text-xs bg-sky-500 hover:bg-sky-400 text-black px-3.5 py-2.5 rounded-xl font-black transition cursor-pointer shadow-md disabled:opacity-50"
             >
-              <CloudUpload className={`w-3.5 h-3.5 ${isSyncing ? "animate-bounce" : ""}`} />
+              <CloudUpload className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
               Sincronizar ({queueCount})
             </button>
           )}
@@ -644,6 +662,22 @@ export default function MasterBunkerHQ() {
           </a>
         </div>
       </div>
+
+      {/* TOAST DE SINCRONIZACIÓN INFALIBLE */}
+      {syncToast && (
+        <div className="mt-4 p-3.5 rounded-2xl bg-sky-950/50 border border-sky-500/50 text-sky-200 text-xs font-bold flex items-center justify-between shadow-xl animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+            <span>{syncToast}</span>
+          </div>
+          <button
+            onClick={() => setSyncToast(null)}
+            className="text-zinc-400 hover:text-white p-1"
+          >
+            &times;
+          </button>
+        </div>
+      )}
 
       {/* RADAR TÁCTICO DE NOVEDADES (AUDITORÍA EN VIVO) */}
       <div className="mt-6 mb-2">

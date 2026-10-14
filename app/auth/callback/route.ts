@@ -104,7 +104,7 @@ export async function GET(request: Request) {
               .delete()
               .eq("id", provisionalProfile.id);
 
-            // Crear perfil definitivo heredando deuda, nivel y notas
+            // Crear perfil definitivo heredando deuda, nivel, notas y vínculos familiares
             await supabase.from("profiles").upsert({
               id: data.user.id,
               email: data.user.email,
@@ -112,6 +112,8 @@ export async function GET(request: Request) {
               role: "student",
               status: "active",
               is_provisional: false,
+              parent_name: provisionalProfile.parent_name || null,
+              notes: provisionalProfile.notes || null,
               current_debt_amount: provisionalProfile.current_debt_amount || 0,
               financial_status: provisionalProfile.financial_status || "al_corriente",
               training_days: provisionalProfile.training_days || "Lun-Mié-Vie",
@@ -119,6 +121,12 @@ export async function GET(request: Request) {
               scholarship_percentage: provisionalProfile.scholarship_percentage || 0,
               default_class_cost: provisionalProfile.default_class_cost || 50,
             });
+
+            // Si la tutora (Catalina) estaba vinculada al ID provisional, actualizar su enlace
+            await supabase
+              .from("profiles")
+              .update({ linked_student_id: data.user.id })
+              .eq("linked_student_id", provisionalProfile.id);
           } else {
             // Registrar nuevo alumno limpio
             await supabase.from("profiles").upsert({
