@@ -144,7 +144,7 @@ export default function AttendanceTracker({
       try {
         const { data: attData, error: attError } = await supabase
           .from("daily_attendance")
-          .select("id, student_id, status, shift")
+          .select("id, student_id, status")
           .eq("date", todayDateString);
         if (attError) {
           console.warn("Aviso en daily_attendance de AttendanceTracker:", attError.message);
@@ -300,7 +300,6 @@ export default function AttendanceTracker({
     const payload = {
       student_id: studentId,
       date: todayDateString,
-      shift: selectedShift,
       status: status,
     };
 
@@ -316,7 +315,7 @@ export default function AttendanceTracker({
     try {
       const { error } = await supabase
         .from("daily_attendance")
-        .upsert(payload, { onConflict: "student_id,date,shift" });
+        .upsert(payload, { onConflict: "student_id,date" });
 
       if (error) {
         throw error;

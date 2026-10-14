@@ -145,10 +145,12 @@ export default function CourtAttendanceCommand() {
 
           let todayAttendance: any[] = [];
           try {
-            const todayIso = new Date().toISOString().split("T")[0];
+            const todayIso = new Intl.DateTimeFormat("en-CA", {
+              timeZone: "America/Mexico_City",
+            }).format(new Date());
             const { data: attData, error: attError } = await supabase
               .from("daily_attendance")
-              .select("student_id, status, shift")
+              .select("id, student_id, status, date")
               .eq("date", todayIso);
             if (attError) {
               console.warn("Aviso en daily_attendance de CourtAttendanceCommand:", attError.message);
@@ -344,7 +346,6 @@ export default function CourtAttendanceCommand() {
     const payload = {
       student_id: studentId,
       date: todayDate,
-      shift: shiftCode,
       status
     };
 
@@ -362,7 +363,7 @@ export default function CourtAttendanceCommand() {
       setOfflineCount(getOfflineQueueCount());
     } else {
       try {
-        await supabase.from("daily_attendance").upsert(payload, { onConflict: "student_id,date,shift" });
+        await supabase.from("daily_attendance").upsert(payload, { onConflict: "student_id,date" });
       } catch {
         enqueueOfflineAction("ATTENDANCE", payload);
         setOfflineCount(getOfflineQueueCount());

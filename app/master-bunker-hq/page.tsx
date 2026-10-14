@@ -25,7 +25,9 @@ import {
   WifiOff,
   CloudUpload,
   Activity,
-  Sparkles
+  Sparkles,
+  Edit3,
+  Settings
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
 import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
@@ -35,6 +37,7 @@ import SmartPlacementCRM from "@/components/SmartPlacementCRM";
 import BunkerHomeTrainingMonitor from "@/components/BunkerHomeTrainingMonitor";
 import GuardianDirectory from "@/components/GuardianDirectory";
 import CombineExpressTable from "@/components/CombineExpressTable";
+import AdminAttendanceFinanceModal, { AdminModalInitialData } from "@/components/AdminAttendanceFinanceModal";
 import { Home } from "lucide-react";
 import { 
   syncOfflineQueueToSupabase, 
@@ -105,6 +108,10 @@ export default function MasterBunkerHQ() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+
+  // Estado del Modal de Ajuste Retroactivo SuperAdmin
+  const [adminAdjustModalOpen, setAdminAdjustModalOpen] = useState(false);
+  const [adminAdjustInitialData, setAdminAdjustInitialData] = useState<AdminModalInitialData | null>(null);
   
   // Estado Offline-First
   const [isOnline, setIsOnline] = useState<boolean>(() => {
@@ -614,6 +621,15 @@ export default function MasterBunkerHQ() {
             </button>
           )}
           <button
+            onClick={() => {
+              setAdminAdjustInitialData(null);
+              setAdminAdjustModalOpen(true);
+            }}
+            className="flex items-center gap-2 text-xs bg-gradient-to-r from-orange-600 to-amber-600 hover:brightness-110 text-white px-4 py-2.5 rounded-xl font-black transition cursor-pointer shadow-lg shadow-orange-600/30"
+          >
+            <Settings className="w-3.5 h-3.5" /> ⚙️ Ajuste Manual de Registros
+          </button>
+          <button
             onClick={fetchDashboardData}
             className="flex items-center gap-2 text-xs bg-[#161b26] border border-zinc-700 px-4 py-2.5 rounded-xl text-zinc-300 hover:text-white transition cursor-pointer font-bold"
           >
@@ -741,11 +757,26 @@ export default function MasterBunkerHQ() {
                 <span>📅 Registro Histórico por Fecha</span>
               </button>
             </div>
-            <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
-              {attendanceSubView === "command" 
-                ? "Diseño auto-ajustable en tiempo real para móvil, tablet y monitor" 
-                : "Consulta y reportes por fecha de calendario"}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminAdjustInitialData({
+                    type: "attendance",
+                    status: "presente",
+                  });
+                  setAdminAdjustModalOpen(true);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:brightness-110 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-orange-600/20 cursor-pointer"
+              >
+                <Settings className="w-3.5 h-3.5" /> + Asistencia / Pase Manual
+              </button>
+              <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
+                {attendanceSubView === "command" 
+                  ? "Diseño auto-ajustable en tiempo real para móvil, tablet y monitor" 
+                  : "Consulta y reportes por fecha de calendario"}
+              </span>
+            </div>
           </div>
 
           {attendanceSubView === "command" ? (
@@ -794,9 +825,26 @@ export default function MasterBunkerHQ() {
 
           {/* TABLA DE ÚLTIMOS COBROS REGISTRADOS */}
           <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
-            <h3 className="text-sm font-bold uppercase text-zinc-300 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-emerald-400" /> Registro Histórico de Cobros
-            </h3>
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+              <h3 className="text-sm font-bold uppercase text-zinc-300 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-400" /> Registro Histórico de Cobros
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminAdjustInitialData({
+                    type: "payment",
+                    amount: 150,
+                    concept: "Entrenamiento / Cuota",
+                    payment_method: "efectivo",
+                  });
+                  setAdminAdjustModalOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <DollarSign className="w-3.5 h-3.5" /> + Registrar Cobro Manual
+              </button>
+            </div>
 
             {payments.length === 0 ? (
               <div className="py-12 px-4 text-center bg-[#121724]/60 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center">
@@ -817,6 +865,7 @@ export default function MasterBunkerHQ() {
                       <th className="py-3 px-4">Método</th>
                       <th className="py-3 px-4">Monto</th>
                       <th className="py-3 px-4">Estatus</th>
+                      <th className="py-3 px-4 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60 font-sans">
@@ -831,6 +880,48 @@ export default function MasterBunkerHQ() {
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold uppercase">
                             {p.status}
                           </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              title="Modificar Pago"
+                              onClick={() => {
+                                setAdminAdjustInitialData({
+                                  type: "payment",
+                                  transaction_id: p.id,
+                                  student_id: p.student_id,
+                                  student_name: p.profiles?.full_name || p.student_name,
+                                  date: p.payment_date,
+                                  amount: p.amount,
+                                  payment_method: p.payment_method,
+                                  concept: p.concept,
+                                });
+                                setAdminAdjustModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Eliminar Pago"
+                              onClick={() => {
+                                setAdminAdjustInitialData({
+                                  type: "payment",
+                                  transaction_id: p.id,
+                                  student_id: p.student_id,
+                                  student_name: p.profiles?.full_name || p.student_name,
+                                  date: p.payment_date,
+                                  amount: p.amount,
+                                });
+                                setAdminAdjustModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-200 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -964,6 +1055,14 @@ export default function MasterBunkerHQ() {
         </div>
       )}
       </div>
+      <AdminAttendanceFinanceModal
+        isOpen={adminAdjustModalOpen}
+        onClose={() => setAdminAdjustModalOpen(false)}
+        onSuccess={() => {
+          fetchDashboardData();
+        }}
+        initialData={adminAdjustInitialData}
+      />
       <TacticalAIAssistant />
     </>
   );
