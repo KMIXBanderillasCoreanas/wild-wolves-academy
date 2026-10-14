@@ -31,7 +31,8 @@ import {
   MessageCircle,
   Send,
   Share2,
-  UserPlus
+  UserPlus,
+  Zap
 } from "lucide-react";
 import { queueOfflineAction, saveLocalAthletes } from "@/lib/offline/db";
 import ManageStudentFinanceModal, { 
@@ -62,13 +63,17 @@ export interface StudentRosterItem {
   schedules_by_day?: Record<string, string>;
   is_prospect?: boolean;
   prospect_tutor?: string;
+  scholarship_percentage?: number;
+  default_class_cost?: number;
 }
 
 export default function CourtAttendanceCommand() {
-  // Detección Automática de Turno según la hora de la cancha y día
-  const [shift, setShift] = useState<"matutino" | "vespertino">(() => {
+  // Turnos: Matutino (9:00 AM), Vespertino (5:00 PM), Fin de Semana
+  const [shift, setShift] = useState<"matutino" | "vespertino" | "fin_de_semana">(() => {
     if (typeof window === "undefined") return "vespertino";
     const now = new Date();
+    const day = now.getDay();
+    if (day === 0 || day === 6) return "fin_de_semana";
     const hour = now.getHours();
     const minutes = now.getMinutes();
     const timeVal = hour + minutes / 60;
@@ -79,6 +84,17 @@ export default function CourtAttendanceCommand() {
     // De lo contrario -> Turno Vespertino (16:30 - 19:30 o Domingo 16:00 - 18:00)
     return "vespertino";
   });
+  
+  // Selector de fecha CDMX para sesión y filtrado de asistencia
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+    }).format(new Date());
+  });
+
+  // Notificación de guardado instantáneo 1-tap
+  const [instantSaveToast, setInstantSaveToast] = useState<string | null>(null);
+
   const [filterMode, setFilterMode] = useState<"scheduled_today" | "all">("scheduled_today");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "al_corriente" | "adeudo" | "abono_parcial" | "becado">("all");
   const [userTypeFilter, setUserTypeFilter] = useState<"all" | "alumno" | "prospecto" | "visitante" | "tutor">("all");
@@ -145,13 +161,13 @@ export default function CourtAttendanceCommand() {
 
           let todayAttendance: any[] = [];
           try {
-            const todayIso = new Intl.DateTimeFormat("en-CA", {
+            const targetDate = selectedDate || new Intl.DateTimeFormat("en-CA", {
               timeZone: "America/Mexico_City",
             }).format(new Date());
             const { data: attData, error: attError } = await supabase
               .from("daily_attendance")
               .select("id, student_id, status, date")
-              .eq("date", todayIso);
+              .eq("date", targetDate);
             if (attError) {
               console.warn("Aviso en daily_attendance de CourtAttendanceCommand:", attError.message);
             } else if (attData) {
@@ -204,7 +220,10 @@ export default function CourtAttendanceCommand() {
             let finStatus: FinancialStatus = "al_corriente";
             let debtAmt = 0;
 
-            if (p.financial_status) {
+            if (p.scholarship_percentage === 100) {
+              finStatus = "becado";
+              debtAmt = 0;
+            } else if (p.financial_status) {
               finStatus = p.financial_status as FinancialStatus;
               debtAmt = Number(p.current_debt_amount ?? (finStatus === "adeudo_pendiente" ? 150 : 0));
             } else {
@@ -241,7 +260,9 @@ export default function CourtAttendanceCommand() {
               attendance_status: (att?.status as any) || undefined,
               tutor_phone: p.parent_phone || p.emergency_phone || "+525522427769",
               user_type: uType,
-              is_prospect: false
+              is_prospect: false,
+              scholarship_percentage: p.scholarship_percentage ?? 0,
+              default_class_cost: p.default_class_cost ?? 50
             };
           });
 
@@ -297,7 +318,7 @@ export default function CourtAttendanceCommand() {
       console.warn("Fallo cargando roster en CourtAttendanceCommand:", err);
       setStudents([]);
     }
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -343,20 +364,26 @@ export default function CourtAttendanceCommand() {
     // Optimistic UI update
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, attendance_status: status } : s));
 
-    const todayDate = new Intl.DateTimeFormat("en-CA", {
+    // Toast de guardado instantáneo 1-tap
+    setInstantSaveToast("🟢 Guardado al instante");
+    setTimeout(() => {
+      setInstantSaveToast(null);
+    }, 2500);
+
+    const targetDate = selectedDate || new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Mexico_City",
     }).format(new Date());
-    const shiftCode = shift === "matutino" ? "matutino_9_11" : "vespertino_5_7";
+    const shiftCode = shift === "matutino" ? "matutino_9_11" : shift === "fin_de_semana" ? "fin_de_semana" : "vespertino_5_7";
     const payload = {
       student_id: studentId,
-      date: todayDate,
+      date: targetDate,
       status
     };
 
     // Sincronizar en HoopStore
     HoopStore.recordDailyAttendance(
       studentId,
-      todayDate,
+      targetDate,
       shiftCode,
       status,
       "Pase de lista Stitch Command"
@@ -373,6 +400,97 @@ export default function CourtAttendanceCommand() {
         setOfflineCount(getOfflineQueueCount());
       }
     }
+  };
+
+  // 1-TAP COBRO INSTANTÁNEO EN CANCHA (Sin modales lentos)
+  const handleInstantQuickPay = async (st: StudentRosterItem) => {
+    if (st.scholarship_percentage === 100) {
+      setInstantSaveToast("🎓 Alumno Becado 100% (Cuota $0)");
+      setTimeout(() => setInstantSaveToast(null), 2500);
+      return;
+    }
+
+    const studentId = st.id;
+    const amountToCharge = Number(st.current_debt_amount > 0 ? st.current_debt_amount : (st.default_class_cost || 50));
+    const targetDate = selectedDate || new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+    }).format(new Date());
+
+    const currentDebt = Number(st.current_debt_amount) || 0;
+    const nextDebt = Math.max(0, currentDebt - amountToCharge);
+    const nextFinStatus: FinancialStatus = "al_corriente";
+
+    // 1. Actualización optimista de UI
+    setStudents(prev => prev.map(s => {
+      if (s.id !== studentId) return s;
+      return {
+        ...s,
+        current_debt_amount: nextDebt,
+        financial_status: nextFinStatus,
+        last_payment_status: "al_corriente",
+        last_payment_amount: amountToCharge,
+        last_session_date: targetDate,
+      };
+    }));
+
+    // Toast de guardado instantáneo
+    setInstantSaveToast(`🟢 Guardado al instante • Cobro de $${amountToCharge} MXN asentado`);
+    setTimeout(() => {
+      setInstantSaveToast(null);
+    }, 3000);
+
+    // Actualizar caché local
+    const cached = getCachedRoster();
+    if (cached && cached.length > 0) {
+      const updatedCache = cached.map((s: any) => {
+        if (s.id !== studentId) return s;
+        return {
+          ...s,
+          current_debt_amount: nextDebt,
+          financial_status: nextFinStatus,
+          last_payment_status: "al_corriente",
+          last_payment_amount: amountToCharge,
+        };
+      });
+      cacheRosterLocally(updatedCache);
+    }
+
+    // Payload para Supabase payment_transactions_history y profiles
+    const transactionPayload = {
+      student_id: studentId,
+      amount_paid: amountToCharge,
+      remaining_debt: nextDebt,
+      payment_method: "efectivo",
+      concept: `Clase Cancha Carmen Serdán (${targetDate})`,
+      transaction_date: targetDate,
+      created_at: new Date().toISOString(),
+    };
+
+    const profileUpdatePayload = {
+      id: studentId,
+      current_debt_amount: nextDebt,
+      financial_status: nextFinStatus,
+    };
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction("PAYMENT", transactionPayload);
+      enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profileUpdatePayload);
+      setOfflineCount(getOfflineQueueCount());
+    } else {
+      try {
+        await supabase.from("payment_transactions_history").insert(transactionPayload);
+        await supabase.from("profiles").update({
+          current_debt_amount: nextDebt,
+          financial_status: nextFinStatus
+        }).eq("id", studentId);
+      } catch {
+        enqueueOfflineAction("PAYMENT", transactionPayload);
+        enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profileUpdatePayload);
+        setOfflineCount(getOfflineQueueCount());
+      }
+    }
+
+    window.dispatchEvent(new Event("payment_recorded"));
   };
 
   // Cambio rápido inline de Tipo de Usuario
@@ -594,12 +712,33 @@ export default function CourtAttendanceCommand() {
     ? students.filter(s => s.user_type !== "tutor")
     : students;
 
-  // Identificador normalizado del día de hoy en minúsculas (lunes..domingo)
-  const currentDayKey = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][new Date().getDay()];
+  // Identificador del día seleccionado o día actual
+  const getDayKeyFromDateStr = (dateStr: string) => {
+    try {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      const d = new Date(year, month - 1, day);
+      return ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][d.getDay()];
+    } catch {
+      return ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"][new Date().getDay()];
+    }
+  };
+
+  const currentDayKey = getDayKeyFromDateStr(selectedDate);
 
   // Función para determinar si el atleta entrena hoy y en qué turno
-  const isStudentScheduledForSession = (st: StudentRosterItem, targetShift: "matutino" | "vespertino"): boolean => {
-    // 1. Si tiene configuración granular día por día
+  const isStudentScheduledForSession = (st: StudentRosterItem, targetShift: "matutino" | "vespertino" | "fin_de_semana"): boolean => {
+    // 1. Fin de semana especial
+    if (targetShift === "fin_de_semana") {
+      const rawDays = ((st.training_days || "") + " " + (st.schedule_days || "") + " " + (st.training_schedule || "")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const isFinDeSemanaScheduled = rawDays.includes("sab") || rawDays.includes("dom") || rawDays.includes("fin de semana");
+      const hasWeekendInSelected = st.selected_days?.some(d => {
+        const norm = d.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return norm.includes("sab") || norm.includes("dom");
+      });
+      return Boolean(isFinDeSemanaScheduled || hasWeekendInSelected);
+    }
+
+    // 2. Si tiene configuración granular día por día
     if (st.selected_days && st.selected_days.length > 0) {
       const isDaySelected = st.selected_days.some(d => {
         const norm = d.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -615,7 +754,7 @@ export default function CourtAttendanceCommand() {
       }
     }
 
-    // 2. Fallback a cadena de días (ej. Lun-Mié-Vie o Martes)
+    // 3. Fallback a cadena de días (ej. Lun-Mié-Vie o Martes)
     if (st.schedule_days || st.training_days) {
       const rawDays = (st.schedule_days || st.training_days || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const dayPrefix = currentDayKey.slice(0, 3); // lun, mar, mie, jue, vie, sab, dom
@@ -623,13 +762,13 @@ export default function CourtAttendanceCommand() {
       if (!matchesDay) return false;
     }
 
-    // 3. Si el horario explícito contempla turnos combinados (ej. Matutino / Vespertino)
+    // 4. Si el horario explícito contempla turnos combinados (ej. Matutino / Vespertino)
     const scheduleStr = ((st.training_schedule || "") + " " + (st.schedule_days || "")).toLowerCase();
     if (scheduleStr.includes("matutino") && scheduleStr.includes("vespertino")) {
       return true;
     }
 
-    // 4. Fallback de turno general
+    // 5. Fallback de turno general
     if (st.shift) {
       return st.shift === targetShift;
     }
@@ -744,10 +883,21 @@ export default function CourtAttendanceCommand() {
             </div>
           </div>
 
-          {/* Turnos Selector + Sync Status */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            {/* Turno Switcher */}
-            <div className="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800">
+          {/* Turnos Selector + Fecha CDMX + Sync Status */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
+            {/* Selector de Fecha Local CDMX */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono">Fecha:</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer"
+              />
+            </div>
+
+            {/* Turno Switcher: 3 Turnos */}
+            <div className="inline-flex p-1 rounded-xl bg-zinc-950 border border-zinc-800 flex-wrap">
               <button
                 type="button"
                 onClick={() => setShift("matutino")}
@@ -758,7 +908,7 @@ export default function CourtAttendanceCommand() {
                 }`}
               >
                 <Sun className="w-4 h-4 text-amber-400" />
-                <span>Matutino (09:00 - 11:00)</span>
+                <span>☀️ Matutino 9:00 AM</span>
               </button>
               <button
                 type="button"
@@ -770,7 +920,19 @@ export default function CourtAttendanceCommand() {
                 }`}
               >
                 <Activity className="w-4 h-4 text-orange-400" />
-                <span>Vespertino (17:00 - 19:00)</span>
+                <span>🌙 Vespertino 5:00 PM</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShift("fin_de_semana")}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  shift === "fin_de_semana" 
+                    ? "bg-[#f66018] text-white shadow-sm font-black" 
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Zap className="w-4 h-4 text-yellow-400" />
+                <span>⚡ Fin de Semana</span>
               </button>
             </div>
 
@@ -806,6 +968,23 @@ export default function CourtAttendanceCommand() {
 
           </div>
         </div>
+
+        {/* TOAST FLOTANTE DE GUARDADO INSTANTÁNEO 1-TAP */}
+        {instantSaveToast && (
+          <div className="mt-3 p-3 rounded-xl bg-emerald-950/90 border border-emerald-500 text-emerald-300 text-xs font-black flex items-center justify-between shadow-xl animate-bounce">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{instantSaveToast}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setInstantSaveToast(null)}
+              className="text-zinc-400 hover:text-white p-1"
+            >
+              &times;
+            </button>
+          </div>
+        )}
       </section>
 
       {/* 2. QUICK KPI METRICS BANNER (RESPONSIVE 2X2 ON MOBILE, 4-COL ON DESKTOP) */}
@@ -1143,56 +1322,58 @@ export default function CourtAttendanceCommand() {
                   </button>
                 </div>
 
-                {/* Botón Prominente de Cobro en Cancha si tiene saldo pendiente */}
-                {(st.financial_status === "adeudo_pendiente" || st.financial_status === "abono_parcial") ? (
-                  <div className="mt-2.5 flex items-center gap-2">
+                {/* Botón de Cobro Rápido Directo (1-Tap Auto-Sync) */}
+                <div className="mt-2.5 flex items-center gap-2">
+                  {st.scholarship_percentage === 100 ? (
+                    <div className="flex-1 flex items-center justify-center h-10 px-3 rounded-xl bg-sky-950/60 border border-sky-500/40 text-sky-300 font-black text-xs">
+                      🎓 Beca 100% ($0 Beca)
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedAthleteForQuickPay(st);
-                        setQuickPayAmount(Number(st.current_debt_amount || 50));
-                      }}
-                      className="flex-1 flex items-center justify-between h-10 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-110 active:scale-98 text-white font-black text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer"
-                      title="Cobro Rápido Táctil al Finalizar Clase"
+                      onClick={() => handleInstantQuickPay(st)}
+                      className="flex-1 flex items-center justify-between h-10 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-white font-black text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer"
+                      title="1-Tap: Cobrar y guardar al instante en Supabase"
                     >
                       <div className="flex items-center gap-1.5">
                         <DollarSign className="w-4 h-4 text-white" />
-                        <span>💵 Cobrar en Cancha</span>
+                        <span>💵 Cobrar ${st.current_debt_amount > 0 ? st.current_debt_amount : (st.default_class_cost || 50)}</span>
                       </div>
                       <span className="px-2 py-0.5 rounded-full bg-black/30 text-[10px] font-black">
-                        ${st.current_debt_amount} MXN
+                        {st.current_debt_amount > 0 ? "Adeudo" : "Cuota"}
                       </span>
                     </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentForFinance(st)}
+                    className="w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                    title="Ajuste Financiero Detallado"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Botón de agregar a la cancha si no está programado hoy en este turno */}
+                {!isStudentScheduledForSession(st, shift) && (
+                  <div className="mt-2">
                     <button
                       type="button"
-                      onClick={() => setSelectedStudentForFinance(st)}
-                      className="w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
-                      title="Detalle Financiero"
+                      onClick={() => handleMarkAttendance(st.id, "presente")}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-500/30 text-[11px] font-bold transition cursor-pointer"
+                      title="Asistencia extraordinaria en cancha"
                     >
-                      <CreditCard className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedAthleteForQuickPay(st);
-                        setQuickPayAmount(50);
-                      }}
-                      className="w-full flex items-center justify-center gap-1.5 h-8 px-3 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[11px] font-bold transition cursor-pointer"
-                    >
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Registrar Pago / Cuota Rápida</span>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>➕ Agregar a la Cancha (Extraordinario)</span>
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Card Footer: 3-State Attendance Selector */}
+              {/* Card Footer: 3-State Attendance Selector (1-Tap Auto-Sync) */}
               <div className="pt-2 border-t border-zinc-800/80">
                 <div className="text-[10px] uppercase font-bold text-zinc-400 mb-1.5 flex items-center justify-between">
-                  <span>Pase de Lista Hoy</span>
+                  <span>Pase de Lista ({selectedDate})</span>
                   {st.attendance_status && (
                     <span className="capitalize font-black text-[#f66018]">
                       {st.attendance_status}
@@ -1209,10 +1390,10 @@ export default function CourtAttendanceCommand() {
                         ? "bg-emerald-500 text-black font-black shadow-md shadow-emerald-950/50"
                         : "bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                     }`}
-                    title="Marcar Presente"
+                    title="Marcar Presente (Auto-Sync)"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Presente</span>
+                    <span className="hidden sm:inline">🟢 Presente</span>
                   </button>
 
                   <button
@@ -1223,10 +1404,10 @@ export default function CourtAttendanceCommand() {
                         ? "bg-amber-500 text-black font-black shadow-md shadow-amber-950/50"
                         : "bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                     }`}
-                    title="Marcar Retardo"
+                    title="Marcar Retardo (Auto-Sync)"
                   >
                     <Clock className="w-4 h-4" />
-                    <span className="hidden sm:inline">Retardo</span>
+                    <span className="hidden sm:inline">🟡 Retardo</span>
                   </button>
 
                   <button
@@ -1237,10 +1418,10 @@ export default function CourtAttendanceCommand() {
                         ? "bg-red-600 text-white font-black shadow-md shadow-red-950/50"
                         : "bg-zinc-800/80 text-zinc-300 hover:text-white hover:bg-zinc-800"
                     }`}
-                    title="Marcar Falta"
+                    title="Marcar Falta (Auto-Sync)"
                   >
                     <XCircle className="w-4 h-4" />
-                    <span className="hidden sm:inline">Falta</span>
+                    <span className="hidden sm:inline">🔴 Falta</span>
                   </button>
                 </div>
               </div>

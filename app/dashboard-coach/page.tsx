@@ -62,6 +62,9 @@ export default function CoachDashboardPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | 'superadmin'>('coach');
 
+  // Pestañas Principales en Modo Cancha vs Evaluaciones vs Cuerda
+  const [coachActiveTab, setCoachActiveTab] = useState<'cancha' | 'evaluaciones' | 'cuerda'>('cancha');
+
   // Filtros del Roster
   const [filterGender, setFilterGender] = useState<'ALL' | 'M' | 'F'>('ALL');
   const [filterAge, setFilterAge] = useState<'ALL' | 'SUB15' | 'SUB18' | 'SENIOR'>('ALL');
@@ -705,43 +708,115 @@ export default function CoachDashboardPage() {
         </div>
       ) : (
         <>
-          {/* Motor Autónomo: Diagnóstico Exprés de Colocación & Pipeline CRM */}
-          <div className="mb-6">
-            <SmartPlacementCRM />
+          {/* SELECTOR SUPERIOR: MODO CANCHA (DEFAULT) VS EVALUACIONES VS CUERDA & FÍSICO */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#121724] border border-zinc-800 rounded-2xl shadow-xl">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setCoachActiveTab('cancha')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'cancha'
+                    ? 'bg-[#ea580c] text-white shadow-lg shadow-orange-600/30'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>⚡ Modo Cancha (Live Grid)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCoachActiveTab('evaluaciones')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'evaluaciones'
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Activity className="w-4 h-4 text-purple-300" />
+                <span>📊 Evaluaciones &amp; Combine</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCoachActiveTab('cuerda')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'cuerda'
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Target className="w-4 h-4 text-emerald-300" />
+                <span>🏃 Cuerda &amp; Físico</span>
+              </button>
+            </div>
+
+            <div className="text-[11px] font-mono text-zinc-400 px-3 py-1">
+              {coachActiveTab === 'cancha' ? '🔥 Vista Operativa Prioritaria en Duela' : '📋 Registros Técnicos de Academia'}
+            </div>
           </div>
 
-          {/* Comando Táctico Stitch en Cancha */}
-          <div className="mb-6">
-            <CourtAttendanceCommand />
-          </div>
+          {/* VISTA 1: MODO CANCHA (DEFAULT & HIPER-SIMPLIFICADA) */}
+          {coachActiveTab === 'cancha' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Comando Táctico Stitch en Cancha */}
+              <CourtAttendanceCommand />
 
-          {/* 2. Pase de Lista y Asistencia Oficial de Atletas en Cancha */}
-          <AttendanceTracker
-            student={selectedStudent}
-            allStudents={students}
-            readOnly={false}
-            onRecordDailyAttendance={handleRecordDailyAttendance}
-            onPaymentRecorded={() => {
-              setStudents(HoopStore.getStudents());
-            }}
-          />
+              {/* Pase de Lista y Asistencia de Respaldo */}
+              <AttendanceTracker
+                student={selectedStudent}
+                allStudents={students}
+                readOnly={false}
+                onRecordDailyAttendance={handleRecordDailyAttendance}
+                onPaymentRecorded={() => {
+                  setStudents(HoopStore.getStudents());
+                }}
+              />
+            </div>
+          )}
 
-          {/* 3. Módulo Táctico Dual: Diagnóstico Día 1, Preparación Física y Baloncesto */}
-          <div className="mb-6">
-            <DualCoachCommand />
-          </div>
+          {/* VISTA 2: EVALUACIONES & COMBINE */}
+          {coachActiveTab === 'evaluaciones' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Diagnóstico Exprés de Colocación & Pipeline CRM */}
+              <SmartPlacementCRM />
 
-          {/* 4. Módulo de Captura en Cancha: Test Day Biomecánico */}
-          <div className="mb-6">
-            <TestDayEvaluator />
-          </div>
+              {/* Módulo de Captura en Cancha: Test Day Biomecánico */}
+              <TestDayEvaluator />
 
-          {/* 5. Radar 360° del Atleta Seleccionado (Comparativa Mes Actual vs. Mes Anterior) */}
-          <RadarChart360
-            metricsCurrent={selectedStudent.metricsCurrent}
-            metricsPrevious={selectedStudent.metricsPrevious}
-            athleteName={selectedStudent.fullName}
-          />
+              {/* Radar 360° del Atleta Seleccionado */}
+              <RadarChart360
+                metricsCurrent={selectedStudent.metricsCurrent}
+                metricsPrevious={selectedStudent.metricsPrevious}
+                athleteName={selectedStudent.fullName}
+              />
+            </div>
+          )}
+
+          {/* VISTA 3: CUERDA & FÍSICO */}
+          {coachActiveTab === 'cuerda' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Módulo Táctico Dual */}
+              <DualCoachCommand />
+
+              {/* Cuerda & Resistencia */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <RopeTracker
+                  training={trainingData}
+                  readOnly={false}
+                  onToggleDay={handleToggleDay}
+                  onUpdateTargets={handleUpdateRopeTargets}
+                />
+
+                <EnduranceCalendar
+                  training={trainingData}
+                  readOnly={false}
+                  onToggleDay={handleToggleDay}
+                  onUpdateTargets={handleUpdateJoggingTargets}
+                />
+              </div>
+            </div>
+          )}
 
       {/* 4. PASO 3: SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">

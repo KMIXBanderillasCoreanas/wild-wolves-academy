@@ -2,7 +2,7 @@ export type Role = 'coach' | 'student' | 'parent' | 'superadmin' | 'coach_pendin
 
 export type Position = 'Base' | 'Escolta' | 'Alero' | 'Ala-Pívot' | 'Pívot';
 
-export type ShiftType = 'matutino_9_11' | 'vespertino_5_7';
+export type ShiftType = 'matutino_9_11' | 'vespertino_5_7' | 'fin_de_semana';
 
 export type AttendanceStatus = 'presente' | 'falta' | 'retardo';
 

@@ -58,7 +58,7 @@ export default function MasterBunkerHQ() {
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "test_day" | "home_training" | "guardians" | "coaches">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches">("attendance");
 
   // Sincronizar pestaña si viene en la URL (?tab=finanzas o ?tab=finance)
   useEffect(() => {
@@ -68,6 +68,8 @@ export default function MasterBunkerHQ() {
         const tabParam = params.get("tab");
         if (tabParam) {
           if (tabParam === "finanzas" || tabParam === "finance") setActiveTab("finance");
+          else if (tabParam === "roster_becas" || tabParam === "becas") setActiveTab("roster_becas");
+          else if (tabParam === "retroactivo" || tabParam === "correcciones") setActiveTab("retroactivo");
           else if (tabParam === "asistencia" || tabParam === "attendance") setActiveTab("attendance");
           else if (tabParam === "test_day" || tabParam === "evaluaciones") setActiveTab("test_day");
           else if (tabParam === "smart_placement" || tabParam === "crm") setActiveTab("smart_placement");
@@ -719,7 +721,27 @@ export default function MasterBunkerHQ() {
               : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
           }`}
         >
-          <DollarSign className="w-4 h-4" /> Finanzas & Ingresos
+          <DollarSign className="w-4 h-4" /> Finanzas & Caja
+        </button>
+        <button
+          onClick={() => setActiveTab("roster_becas")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "roster_becas"
+              ? "bg-amber-500 text-black font-black shadow-lg shadow-amber-500/20"
+              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          }`}
+        >
+          <Users className="w-4 h-4" /> Roster, Horarios &amp; Becas
+        </button>
+        <button
+          onClick={() => setActiveTab("retroactivo")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "retroactivo"
+              ? "bg-sky-500 text-black font-black shadow-lg shadow-sky-500/20"
+              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          }`}
+        >
+          <Edit3 className="w-4 h-4" /> Registro Retroactivo / Correcciones
         </button>
         <button
           onClick={() => setActiveTab("test_day")}
@@ -968,6 +990,32 @@ export default function MasterBunkerHQ() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* SECCIÓN B: ROSTER, HORARIOS & BECAS */}
+      {activeTab === "roster_becas" && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-amber-400 shrink-0" />
+              <span><strong>Módulo Exclusivo:</strong> Gestión de Días de Entrenamiento, Cuota Base Personalizada ($50 MXN) y Nivel de Beca (0% a 100%).</span>
+            </div>
+          </div>
+          <SuperAdminOmniManager initialSubTab="athletes" onDataChanged={fetchDashboardData} />
+        </div>
+      )}
+
+      {/* SECCIÓN C: REGISTRO RETROACTIVO / CORRECCIONES */}
+      {activeTab === "retroactivo" && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="p-4 rounded-2xl bg-sky-950/20 border border-sky-500/30 text-sky-300 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-sky-400 shrink-0" />
+              <span><strong>Control Total del Head Coach:</strong> Corrección y asentamiento retroactivo de asistencias pasadas o futuras y balance de pagos.</span>
+            </div>
+          </div>
+          <SuperAdminOmniManager initialSubTab="inline_attendance" onDataChanged={fetchDashboardData} />
         </div>
       )}
 

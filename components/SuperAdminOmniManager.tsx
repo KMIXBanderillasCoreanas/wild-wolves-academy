@@ -56,14 +56,22 @@ interface TransactionRecord {
 
 interface SuperAdminOmniManagerProps {
   onDataChanged: () => void;
+  initialSubTab?: "athletes" | "inline_payments" | "inline_attendance";
 }
 
-export default function SuperAdminOmniManager({ onDataChanged }: SuperAdminOmniManagerProps) {
+export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "inline_payments" }: SuperAdminOmniManagerProps) {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<"athletes" | "inline_payments" | "inline_attendance">("inline_payments");
+  const [activeSubTab, setActiveSubTab] = useState<"athletes" | "inline_payments" | "inline_attendance">(initialSubTab);
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
   const [search, setSearch] = useState("");
   const [notification, setNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
