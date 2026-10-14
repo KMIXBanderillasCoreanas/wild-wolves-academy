@@ -25,7 +25,10 @@ export async function POST(req: Request) {
       { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
     );
 
-    const today = new Date().toISOString().split("T")[0];
+    // Normalización de Fecha Local (CDMX) para evitar desfases UTC
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+    }).format(new Date());
 
     // 1. OBTENER MÉTRICAS VIVAS DE SUPABASE
     // A. Asistencias de hoy (presentes)
@@ -68,35 +71,48 @@ export async function POST(req: Request) {
       console.warn("Aviso obteniendo asistencia hoy:", e);
     }
 
-    // B. Finanzas del día (pagos de hoy)
+    // B. Finanzas del día (pagos de hoy en fecha local CDMX)
     let incomeToday = 0;
     try {
-      // 1) Intentar payment_transactions_history
+      // 1) Intentar payment_transactions_history filtrando por transaction_date o created_at local
       const { data: histToday } = await supabase
         .from("payment_transactions_history")
-        .select("amount_paid, amount, created_at")
-        .gte("created_at", `${today}T00:00:00.000Z`)
-        .lte("created_at", `${today}T23:59:59.999Z`);
+        .select("amount_paid, transaction_date")
+        .eq("transaction_date", today);
 
       if (histToday && histToday.length > 0) {
         incomeToday = histToday.reduce(
           (acc: number, curr: any) =>
-            acc + Number(curr.amount_paid || curr.amount || 0),
+            acc + Number(curr.amount_paid || 0),
           0
         );
       } else {
-        // 2) Fallback con membership_payments si no hay en historial
-        const { data: memPayments } = await supabase
-          .from("membership_payments")
-          .select("amount, status")
-          .eq("payment_date", today)
-          .eq("status", "pagado");
+        // Fallback por rango de fecha en created_at
+        const { data: histRange } = await supabase
+          .from("payment_transactions_history")
+          .select("amount_paid, created_at")
+          .gte("created_at", `${today}T00:00:00.000Z`)
+          .lte("created_at", `${today}T23:59:59.999Z`);
 
-        if (memPayments && memPayments.length > 0) {
-          incomeToday = memPayments.reduce(
-            (acc: number, curr: any) => acc + Number(curr.amount || 0),
+        if (histRange && histRange.length > 0) {
+          incomeToday = histRange.reduce(
+            (acc: number, curr: any) => acc + Number(curr.amount_paid || 0),
             0
           );
+        } else {
+          // 2) Fallback con membership_payments si no hay en historial
+          const { data: memPayments } = await supabase
+            .from("membership_payments")
+            .select("amount, status")
+            .eq("payment_date", today)
+            .eq("status", "pagado");
+
+          if (memPayments && memPayments.length > 0) {
+            incomeToday = memPayments.reduce(
+              (acc: number, curr: any) => acc + Number(curr.amount || 0),
+              0
+            );
+          }
         }
       }
     } catch (e) {
@@ -241,63 +257,64 @@ ESQUEMA JSON PURO OBLIGATORIO:
     // 3. PERSISTENCIA EN DUELA (Si dictó asistencia o cobro de algún alumno)
     if (parsed.action?.studentName) {
       try {
+        const studentQueryName = parsed.action.studentName.trim();
+        // Búsqueda flexible tolerante a acentos
         const { data: athletes } = await supabase
           .from("profiles")
-          .select("id, current_debt_amount")
-          .ilike("full_name", `%${parsed.action.studentName}%`)
-          .limit(1);
+          .select("id, full_name, current_debt_amount")
+          .ilike("full_name", `%${studentQueryName}%`)
+          .limit(5);
 
-        let athleteId = athletes?.[0]?.id;
-        const currentDebt = athletes?.[0]?.current_debt_amount || 0;
-
-        if (!athleteId) {
-          athleteId = `voice_${Date.now()}`;
-          await supabase.from("profiles").upsert({
-            id: athleteId,
-            full_name: parsed.action.studentName,
-            role: "student",
-            current_debt_amount:
-              parsed.action.amount && parsed.action.amount > 0
-                ? Math.max(0, 150 - parsed.action.amount)
-                : 0,
-            created_at: new Date().toISOString(),
+        // Si no encontró con acento o sin acento, intentar fallback
+        let matched = athletes?.[0];
+        if (!matched) {
+          const stripped = studentQueryName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const { data: allProfiles } = await supabase.from("profiles").select("id, full_name, current_debt_amount");
+          matched = allProfiles?.find((p: any) => {
+            const pNorm = (p.full_name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            return pNorm.includes(stripped.toLowerCase());
           });
         }
 
-        if (parsed.action.status) {
-          await supabase.from("daily_attendance").upsert(
-            {
+        const athleteId = matched?.id;
+        const currentDebt = Number(matched?.current_debt_amount || 0);
+
+        if (athleteId) {
+          if (parsed.action.status) {
+            await supabase.from("daily_attendance").upsert(
+              {
+                student_id: athleteId,
+                date: today,
+                status: parsed.action.status,
+              },
+              { onConflict: "student_id,date" }
+            );
+          }
+
+          const parsedAmount = Number(parsed.action.amount || 0);
+          if (parsedAmount > 0) {
+            const newDebt = Math.max(0, currentDebt - parsedAmount);
+
+            // Inserción garantizada en historial de transacciones con fecha local CDMX
+            await supabase.from("payment_transactions_history").insert({
               student_id: athleteId,
-              date: today,
-              shift: "vespertino_5_7",
-              status: parsed.action.status,
-              notes: "Registrado por voz Fenrir",
-            },
-            { onConflict: "student_id,date,shift" }
-          );
-        }
+              amount_paid: parsedAmount,
+              remaining_debt: newDebt,
+              payment_method: "efectivo",
+              concept: "Entrenamiento / Cuota",
+              transaction_date: today,
+            });
 
-        if (parsed.action.amount && parsed.action.amount > 0) {
-          await supabase.from("payment_transactions_history").insert({
-            student_id: athleteId,
-            amount_paid: parsed.action.amount,
-            previous_debt: currentDebt,
-            remaining_debt: Math.max(0, currentDebt - parsed.action.amount),
-            payment_method: "efectivo",
-            transaction_type:
-              currentDebt - parsed.action.amount <= 0 ? "pago_completo" : "abono",
-            venue: "Deportivo Carmen Serdán",
-            notes: `Cobro en Cancha Dictado Fenrir (${today})`,
-            created_at: new Date().toISOString(),
-          });
-
-          await supabase
-            .from("profiles")
-            .update({
-              current_debt_amount: Math.max(0, currentDebt - parsed.action.amount),
-              last_payment_date: today,
-            })
-            .eq("id", athleteId);
+            // Descontar de inmediato el adeudo en profiles
+            await supabase
+              .from("profiles")
+              .update({
+                current_debt_amount: newDebt,
+                financial_status: newDebt === 0 ? "al_corriente" : "abono_parcial",
+                last_attended_at: today,
+              })
+              .eq("id", athleteId);
+          }
         }
       } catch (dbErr) {
         console.warn("Aviso persistiendo acción en Supabase:", dbErr);

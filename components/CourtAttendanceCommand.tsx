@@ -337,7 +337,9 @@ export default function CourtAttendanceCommand() {
     // Optimistic UI update
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, attendance_status: status } : s));
 
-    const todayDate = new Date().toISOString().split("T")[0];
+    const todayDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+    }).format(new Date());
     const shiftCode = shift === "matutino" ? "matutino_9_11" : "vespertino_5_7";
     const payload = {
       student_id: studentId,
@@ -397,7 +399,9 @@ export default function CourtAttendanceCommand() {
 
     const studentId = selectedAthleteForQuickPay.id;
     const amount = Number(quickPayAmount) || 0;
-    const todayDate = new Date().toISOString().split("T")[0];
+    const todayDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+    }).format(new Date());
 
     const currentDebt = Number(selectedAthleteForQuickPay.current_debt_amount) || 0;
     const nextDebt = Math.max(0, currentDebt - amount);

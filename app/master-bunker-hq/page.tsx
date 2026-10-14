@@ -74,10 +74,16 @@ export default function MasterBunkerHQ() {
       const handleCustomTab = (e: any) => {
         const targetTab = typeof e?.detail === "string" ? e.detail : e?.detail?.tab;
         if (targetTab) {
-          if (targetTab === "finanzas" || targetTab === "finance") setActiveTab("finance");
-          else if (targetTab === "asistencia" || targetTab === "attendance") setActiveTab("attendance");
-          else if (targetTab === "test_day" || targetTab === "evaluaciones") setActiveTab("test_day");
-          else if (targetTab === "smart_placement" || targetTab === "crm") setActiveTab("smart_placement");
+          if (targetTab === "finanzas" || targetTab === "finance") {
+            setActiveTab("finance");
+            fetchDashboardData();
+          } else if (targetTab === "asistencia" || targetTab === "attendance") {
+            setActiveTab("attendance");
+          } else if (targetTab === "test_day" || targetTab === "evaluaciones") {
+            setActiveTab("test_day");
+          } else if (targetTab === "smart_placement" || targetTab === "crm") {
+            setActiveTab("smart_placement");
+          }
         } else {
           applyTabFromUrl();
         }
@@ -178,41 +184,85 @@ export default function MasterBunkerHQ() {
         setCoaches([]);
       }
 
-      // 2. Cargar pagos desde Supabase
-      const { data: paymentsData } = await supabase
+      // Normalización de Fecha Local (CDMX)
+      const todayMX = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Mexico_City",
+      }).format(new Date());
+
+      // Calcular inicio de semana (Lunes) y mes en curso según hora local CDMX
+      const [yearStr, monthStr, dayStr] = todayMX.split("-");
+      const currentYear = Number(yearStr);
+      const currentMonth = Number(monthStr);
+      const currentDay = Number(dayStr);
+
+      const nowLocal = new Date(currentYear, currentMonth - 1, currentDay);
+      const dayOfWeek = nowLocal.getDay() || 7; // 1 = Lunes, 7 = Domingo
+      const startOfWeek = new Date(nowLocal);
+      startOfWeek.setDate(nowLocal.getDate() - dayOfWeek + 1);
+      const startOfWeekStr = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Mexico_City",
+      }).format(startOfWeek);
+
+      // 2. Cargar pagos desde payment_transactions_history con fallback a membership_payments
+      const { data: txHistory, error: txErr } = await supabase
+        .from("payment_transactions_history")
+        .select("id, student_id, coach_id, amount_paid, remaining_debt, payment_method, concept, transaction_date, created_at, student:profiles!payment_transactions_history_student_id_fkey(full_name, email)")
+        .order("created_at", { ascending: false });
+
+      let combinedPayments: any[] = [];
+
+      if (!txErr && txHistory && txHistory.length > 0) {
+        combinedPayments = txHistory.map((t: any) => ({
+          id: t.id,
+          student_id: t.student_id,
+          student_name: t.student?.full_name || "Atleta",
+          amount: Number(t.amount_paid) || 0,
+          payment_date: t.transaction_date || (t.created_at ? t.created_at.split("T")[0] : todayMX),
+          payment_method: t.payment_method || "efectivo",
+          concept: t.concept || "Entrenamiento / Cuota",
+          status: "completado",
+          profiles: t.student,
+        }));
+      }
+
+      // Complementar con membership_payments si existen
+      const { data: memPayments } = await supabase
         .from("membership_payments")
         .select("*, profiles(full_name, email)")
         .order("payment_date", { ascending: false });
 
-      // Cálculos de métricas financieras
-      const now = new Date();
-      const todayStr = now.toISOString().split("T")[0];
-
-      // Inicio de la semana (Lunes)
-      const dayOfWeek = now.getDay() || 7; 
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - dayOfWeek + 1);
-      const startOfWeekStr = startOfWeek.toISOString().split("T")[0];
-
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
+      if (memPayments && memPayments.length > 0) {
+        memPayments.forEach((mp: any) => {
+          combinedPayments.push({
+            id: mp.id,
+            student_id: mp.student_id,
+            student_name: mp.profiles?.full_name || "Atleta",
+            amount: Number(mp.amount) || 0,
+            payment_date: mp.payment_date || todayMX,
+            payment_method: mp.payment_method || "efectivo",
+            concept: mp.concept || "Mensualidad",
+            status: mp.status || "pagado",
+            profiles: mp.profiles,
+          });
+        });
+      }
 
       let dayTotal = 0;
       let weekTotal = 0;
       let monthTotal = 0;
       let yearTotal = 0;
 
-      if (paymentsData && paymentsData.length > 0) {
-        setPayments(paymentsData);
+      if (combinedPayments.length > 0) {
+        setPayments(combinedPayments);
 
-        paymentsData.forEach((p) => {
+        combinedPayments.forEach((p) => {
           const amt = Number(p.amount) || 0;
-          const pDate = p.payment_date || todayStr;
+          const pDate = p.payment_date || todayMX;
           const parts = pDate.split("-");
           const pY = Number(parts[0]) || currentYear;
           const pM = Number(parts[1]) || currentMonth;
 
-          if (pDate === todayStr) dayTotal += amt;
+          if (pDate === todayMX) dayTotal += amt;
           if (pDate >= startOfWeekStr) weekTotal += amt;
           if (pM === currentMonth && pY === currentYear) monthTotal += amt;
           if (pY === currentYear) yearTotal += amt;
@@ -222,7 +272,7 @@ export default function MasterBunkerHQ() {
           day: dayTotal,
           week: weekTotal,
           month: monthTotal,
-          year: yearTotal
+          year: yearTotal,
         });
       } else {
         setPayments([]);
@@ -230,10 +280,9 @@ export default function MasterBunkerHQ() {
           day: 0,
           week: 0,
           month: 0,
-          year: 0
+          year: 0,
         });
       }
-
     } catch (err) {
       console.error("Error al cargar datos del Búnker:", err);
     } finally {
@@ -351,12 +400,25 @@ export default function MasterBunkerHQ() {
 
     setQueueCount(getOfflineQueueCount());
 
+    // Suscripción en tiempo real de Supabase a payment_transactions_history
+    const financeChannel = supabase
+      .channel("finance-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payment_transactions_history" },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
     return () => {
       window.removeEventListener("payment_recorded", handleRefresh);
       window.removeEventListener("offline_queue_synced", handleRefresh);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("offline_queue_updated", handleQueueUpdated as EventListener);
+      supabase.removeChannel(financeChannel);
     };
   }, [authenticated, fetchDashboardData]);
 
