@@ -162,12 +162,16 @@ export default function CourtAttendanceCommand() {
           }
 
           // Exclusión permanente del Head Coach Ricardo de listas de evaluación
+          // Exclusión permanente del Head Coach Ricardo y tutores/familiares de listas de evaluación en cancha
           const nonCoachProfiles = (profiles || []).filter((p: any) => {
             if (!p) return false;
             const email = (p.email || "").toLowerCase().trim();
             const role = (p.role || "").toLowerCase().trim();
+            const cat = (p.account_category || "").toLowerCase().trim();
             if (email === "wildwolvescdmx@gmail.com" || email === "ricardo@wildwolves.mx") return false;
             if (role === "superadmin" || role === "coach") return false;
+            // Exclusión estricta de tutores de tarjetas de cancha
+            if (role === "guardian" || role === "parent" || cat === "guardian_family") return false;
             return true;
           });
 
@@ -245,11 +249,11 @@ export default function CourtAttendanceCommand() {
           const mappedProspects: StudentRosterItem[] = prospects
             .filter(pr => {
               if (!pr) return false;
-              const prospectName = (pr.athlete_full_name || "").toLowerCase().trim();
+              const prospectName = (pr.athlete_full_name || pr.full_name || "").toLowerCase().trim();
               return !nonCoachProfiles.some(p => {
                 if (!p) return false;
                 const pName = (p.full_name || p.name || "").toLowerCase().trim();
-                return p.id === pr.claimed_user_id || (pName && prospectName && pName === prospectName);
+                return p.id === pr.claimed_user_id || (pName && prospectName && (pName.includes(prospectName) || prospectName.includes(pName)));
               });
             })
             .map((pr, pIdx) => ({
@@ -619,7 +623,13 @@ export default function CourtAttendanceCommand() {
       if (!matchesDay) return false;
     }
 
-    // 3. Fallback de turno general
+    // 3. Si el horario explícito contempla turnos combinados (ej. Matutino / Vespertino)
+    const scheduleStr = ((st.training_schedule || "") + " " + (st.schedule_days || "")).toLowerCase();
+    if (scheduleStr.includes("matutino") && scheduleStr.includes("vespertino")) {
+      return true;
+    }
+
+    // 4. Fallback de turno general
     if (st.shift) {
       return st.shift === targetShift;
     }
