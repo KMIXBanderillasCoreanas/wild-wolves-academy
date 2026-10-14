@@ -38,6 +38,7 @@ import BunkerHomeTrainingMonitor from "@/components/BunkerHomeTrainingMonitor";
 import GuardianDirectory from "@/components/GuardianDirectory";
 import CombineExpressTable from "@/components/CombineExpressTable";
 import AdminAttendanceFinanceModal, { AdminModalInitialData } from "@/components/AdminAttendanceFinanceModal";
+import SuperAdminOmniManager from "@/components/SuperAdminOmniManager";
 import { Home } from "lucide-react";
 import { 
   syncOfflineQueueToSupabase, 
@@ -822,6 +823,9 @@ export default function MasterBunkerHQ() {
               </p>
             </div>
           </div>
+
+          {/* PANEL DE CONTROL TOTAL DEL DUEÑO (MOTOR OMNIPOTENTE) */}
+          <SuperAdminOmniManager onDataChanged={fetchDashboardData} />
 
           {/* TABLA DE ÚLTIMOS COBROS REGISTRADOS */}
           <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">

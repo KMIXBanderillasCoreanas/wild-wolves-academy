@@ -94,7 +94,7 @@ export async function GET(req: Request) {
     // Obtener alumnos, asistencias recientes y pagos históricos
     const { data: athletes } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, current_debt_amount, financial_status")
+      .select("id, full_name, email, role, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost")
       .order("full_name");
 
     const { data: attendance } = await supabase
@@ -291,6 +291,56 @@ export async function POST(req: Request) {
         success: true,
         message: "Nuevo cobro registrado e insertado en transacciones.",
         data: insertedTx,
+      });
+    }
+
+    // 3. UPDATE_ATHLETE_CONFIG (Beca % y Costo Personalizado por Clase)
+    if (action === "UPDATE_ATHLETE_CONFIG") {
+      const {
+        student_id,
+        scholarship_percentage,
+        default_class_cost,
+        financial_status,
+        current_debt_amount,
+      } = body;
+
+      if (!student_id) {
+        return NextResponse.json(
+          { error: "student_id es requerido." },
+          { status: 400 }
+        );
+      }
+
+      const updatePayload: any = {};
+      if (scholarship_percentage !== undefined) {
+        const pct = Math.max(0, Math.min(100, Number(scholarship_percentage) || 0));
+        updatePayload.scholarship_percentage = pct;
+        if (pct === 100) {
+          updatePayload.financial_status = "becado";
+        }
+      }
+      if (default_class_cost !== undefined) {
+        updatePayload.default_class_cost = Math.max(0, Number(default_class_cost) || 0);
+      }
+      if (financial_status !== undefined) {
+        updatePayload.financial_status = financial_status;
+      }
+      if (current_debt_amount !== undefined) {
+        updatePayload.current_debt_amount = Math.max(0, Number(current_debt_amount) || 0);
+      }
+
+      const { data: updatedProfile, error: profErr } = await supabase
+        .from("profiles")
+        .update(updatePayload)
+        .eq("id", student_id)
+        .select();
+
+      if (profErr) throw profErr;
+
+      return NextResponse.json({
+        success: true,
+        message: "Configuración de atleta actualizada con éxito.",
+        data: updatedProfile,
       });
     }
 

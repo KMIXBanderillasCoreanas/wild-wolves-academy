@@ -61,18 +61,75 @@ export async function GET(request: Request) {
             full_name: profile?.full_name || "Coach Ricardo (Director General)",
             role: "superadmin",
             status: "active",
+            is_provisional: false,
           });
         } else if (profile?.role) {
           role = profile.role;
         } else {
-          // Registrar nuevo alumno
-          await supabase.from("profiles").upsert({
-            id: data.user.id,
-            email: data.user.email,
-            full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || "Atleta Wild Wolves",
-            role: "student",
-            status: "active",
-          });
+          // SHADOW PROFILE MERGE:
+          // Verificar si existe un perfil provisional creado previamente en cancha (por nombre o correo)
+          const newUserName =
+            data.user.user_metadata?.full_name ||
+            data.user.user_metadata?.name ||
+            "";
+          const newUserPhone = data.user.user_metadata?.phone || "";
+
+          let provisionalProfile: any = null;
+          if (newUserName.trim()) {
+            const { data: foundProv } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("is_provisional", true)
+              .ilike("full_name", `%${newUserName.trim()}%`)
+              .limit(1)
+              .maybeSingle();
+            provisionalProfile = foundProv;
+          }
+
+          if (provisionalProfile) {
+            // Transferir asistencias y pagos del perfil provisional al ID real
+            await supabase
+              .from("daily_attendance")
+              .update({ student_id: data.user.id })
+              .eq("student_id", provisionalProfile.id);
+
+            await supabase
+              .from("payment_transactions_history")
+              .update({ student_id: data.user.id })
+              .eq("student_id", provisionalProfile.id);
+
+            // Eliminar fila provisional anterior
+            await supabase
+              .from("profiles")
+              .delete()
+              .eq("id", provisionalProfile.id);
+
+            // Crear perfil definitivo heredando deuda, nivel y notas
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: provisionalProfile.full_name || newUserName,
+              role: "student",
+              status: "active",
+              is_provisional: false,
+              current_debt_amount: provisionalProfile.current_debt_amount || 0,
+              financial_status: provisionalProfile.financial_status || "al_corriente",
+              training_days: provisionalProfile.training_days || "Lun-Mié-Vie",
+              training_schedule: provisionalProfile.training_schedule || "17:00 - 19:00",
+              scholarship_percentage: provisionalProfile.scholarship_percentage || 0,
+              default_class_cost: provisionalProfile.default_class_cost || 50,
+            });
+          } else {
+            // Registrar nuevo alumno limpio
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: newUserName || "Atleta Wild Wolves",
+              role: "student",
+              status: "active",
+              is_provisional: false,
+            });
+          }
         }
       } catch (e) {
         console.warn("Aviso en profile de callback:", e);
