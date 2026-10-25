@@ -153,10 +153,22 @@ export default function WhatsAppHubCRM() {
       });
 
       const data = await res.json();
-      if (data.wa_url) {
-        // Abrir ventana en segundo plano o permitir 1-click
-        window.open(data.wa_url, "_blank", "noopener,noreferrer");
-      }
+      
+      // Intentar protocolo nativo whatsapp:// sin abrir pestañas del navegador web
+      const cleanPhone = selectedContact.phone.replace(/\D/g, "");
+      const formattedPhone = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone;
+      const nativeWaUri = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(textToSend)}`;
+      
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = nativeWaUri;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1500);
+
       await loadData();
     } catch (err: any) {
       alert("Error al enviar mensaje: " + err.message);

@@ -296,25 +296,29 @@ export default function CourtAttendanceCommand() {
                 return p.id === pr.claimed_user_id || (pName && prospectName && (pName.includes(prospectName) || prospectName.includes(pName)));
               });
             })
-            .map((pr, pIdx) => ({
-              id: pr.id || `prospect_${pr.athlete_full_name}`,
-              full_name: pr.athlete_full_name,
-              number: `#P${pIdx + 1}`,
-              category: "PROSPECTO EN CANCHA",
-              schedule_days: "Lun-Mié-Vie",
-              training_days: "Lun-Mié-Vie",
-              training_schedule: "Vespertino: 17:00 - 19:00",
-              shift: "vespertino",
-              attendance_rate: 100,
-              financial_status: "al_corriente",
-              current_debt_amount: 0,
-              last_payment_status: "al_corriente",
-              last_payment_amount: 0,
-              tutor_phone: pr.contact_phone || pr.emergency_phone || "+525522427769",
-              user_type: "prospecto",
-              is_prospect: true,
-              prospect_tutor: pr.guardian_name || pr.tutor_name || "Catalina Lopez"
-            }));
+            .map((pr, pIdx) => {
+              const pFullName = pr.full_name || pr.athlete_full_name || "Prospecto Wild Wolves";
+              const rawDays = Array.isArray(pr.training_days) ? pr.training_days.join("-") : (pr.training_days || "Lun-Mié-Vie");
+              return {
+                id: pr.id || `prospect_${pFullName}`,
+                full_name: pFullName,
+                number: `#P${pIdx + 1}`,
+                category: pr.category || "U-15 FORMATIVO",
+                schedule_days: rawDays,
+                training_days: rawDays,
+                training_schedule: pr.training_schedule || "Vespertino: 17:00 - 19:00",
+                shift: (pr.shift || (pr.training_schedule?.toLowerCase().includes("matutino") ? "matutino" : "vespertino")) as any,
+                attendance_rate: 100,
+                financial_status: (pr.financial_status || "al_corriente") as FinancialStatus,
+                current_debt_amount: Number(pr.debt_amount || 0),
+                last_payment_status: "al_corriente",
+                last_payment_amount: 0,
+                tutor_phone: pr.contact_phone || pr.emergency_phone || "+525522427769",
+                user_type: "prospecto",
+                is_prospect: true,
+                prospect_tutor: pr.guardian_name || pr.tutor_name || pr.parent_name || "Tutor"
+              };
+            });
 
           const finalRoster = [...mapped, ...mappedProspects];
           setStudents(finalRoster);
@@ -666,16 +670,19 @@ export default function CourtAttendanceCommand() {
     cacheRosterLocally([newAthleteItem, ...cached]);
     saveLocalAthletes([newAthleteItem, ...cached]);
 
-    // 3. Payload para prospect_athletes
+    // 3. Payload para prospect_athletes (compatible con esquema de Supabase)
     const prospectPayload = {
       id: newId,
-      athlete_full_name: cleanName,
+      full_name: cleanName,
       category: fastAthleteCategory,
-      shift: fastAthleteShift,
-      tutor_name: fastAthleteTutor.trim() || "Catalina Lopez",
-      contact_phone: fastAthletePhone.trim() || "+525522427769",
-      notes: "Pre-ficha rápida creada en cancha por Head Coach Ricardo.",
-      created_at: new Date().toISOString()
+      training_days: fastAthleteShift === "matutino" ? ["lunes", "miercoles", "viernes"] : ["martes", "jueves", "sabado"],
+      training_schedule: fastAthleteShift === "matutino" ? "Matutino: 09:00 - 11:00" : "Vespertino: 17:00 - 19:00",
+      guardian_name: fastAthleteTutor.trim() || "Tutor",
+      parent_name: fastAthleteTutor.trim() || "Tutor",
+      financial_status: "al_corriente",
+      debt_amount: 0,
+      current_tier: "principiante",
+      notes: "Pre-ficha rápida creada en cancha por Head Coach Ricardo."
     };
 
     if (!navigator.onLine) {
@@ -688,7 +695,7 @@ export default function CourtAttendanceCommand() {
       setOfflineCount(getOfflineQueueCount());
     } else {
       try {
-        await supabase.from("prospect_athletes").upsert(prospectPayload, { onConflict: "athlete_full_name" });
+        await supabase.from("prospect_athletes").upsert(prospectPayload, { onConflict: "id" });
       } catch {
         queueOfflineAction({
           type: "PROSPECT_STUDENT",
@@ -1651,7 +1658,7 @@ export default function CourtAttendanceCommand() {
               {/* Botón WhatsApp */}
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   const cleanPhone = paymentSuccessReceipt.tutorPhone.replace(/\D/g, "");
                   const validPhone = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone.length === 12 && cleanPhone.startsWith("52") ? cleanPhone : "525522427769";
                   
@@ -1666,13 +1673,39 @@ export default function CourtAttendanceCommand() {
                     `_Agradecemos tu confianza y compromiso con el desarrollo de la manada._ 🐺🔥\n` +
                     `*Head Coach Ricardo • Wild Wolves Academy*`;
 
-                  const waUrl = `https://wa.me/${validPhone}?text=${encodeURIComponent(messageText)}`;
-                  window.open(waUrl, "_blank");
+                  // Enviar directamente vía API del CRM sin abrir pestaña web externa
+                  try {
+                    await fetch("/api/whatsapp/send-message", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        recipientPhone: validPhone,
+                        recipientName: paymentSuccessReceipt.athleteName,
+                        messageText: messageText,
+                        athleteName: paymentSuccessReceipt.athleteName,
+                      }),
+                    });
+                  } catch (e) {
+                    console.warn("Aviso al registrar WhatsApp en CRM:", e);
+                  }
+
+                  // Abrir esquema nativo whatsapp:// si está disponible en móvil o fallback en iframe oculto
+                  const nativeWaUri = `whatsapp://send?phone=${validPhone}&text=${encodeURIComponent(messageText)}`;
+                  const iframe = document.createElement("iframe");
+                  iframe.style.display = "none";
+                  iframe.src = nativeWaUri;
+                  document.body.appendChild(iframe);
+                  setTimeout(() => {
+                    document.body.removeChild(iframe);
+                  }, 1500);
+
+                  setInstantSaveToast("📲 Mensaje despachado directo a WhatsApp");
+                  setTimeout(() => setInstantSaveToast(null), 3000);
                 }}
                 className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 transition cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4 fill-white" />
-                <span>📲 Enviar Comprobante WhatsApp al Tutor</span>
+                <span>📲 Enviar Comprobante WhatsApp (Directo en App)</span>
               </button>
 
               <button
