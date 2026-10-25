@@ -243,8 +243,9 @@ export default function CourtAttendanceCommand() {
               finStatus = "becado";
               debtAmt = 0;
             } else if (p.financial_status) {
-              finStatus = p.financial_status as FinancialStatus;
-              debtAmt = Number(p.current_debt_amount ?? (finStatus === "adeudo_pendiente" ? 150 : 0));
+              // Normalizar 'adeudo' a 'adeudo_pendiente' para compatibilidad completa
+              finStatus = (p.financial_status === "adeudo" ? "adeudo_pendiente" : p.financial_status) as FinancialStatus;
+              debtAmt = Number(p.current_debt_amount ?? (finStatus === "adeudo_pendiente" ? (p.default_class_cost || 50) : 0));
             } else {
               const isPaid = pay ? pay.status === "pagado" : false;
               if (isPaid) {
@@ -252,7 +253,7 @@ export default function CourtAttendanceCommand() {
                 debtAmt = 0;
               } else {
                 finStatus = "adeudo_pendiente";
-                debtAmt = pay ? Number(pay.amount) : 150;
+                debtAmt = pay ? Number(pay.amount) : (p.default_class_cost || 50);
               }
             }
 

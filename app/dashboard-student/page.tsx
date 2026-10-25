@@ -394,6 +394,11 @@ export default function StudentDashboardPage() {
   const [profile, setProfile] = useState<any>(null);
   const [commitment, setCommitment] = useState<any>(null);
   const [lastPayment, setLastPayment] = useState<any>(null);
+  const [profileFinancialData, setProfileFinancialData] = useState<{
+    current_debt_amount: number;
+    financial_status: string;
+    notes?: string;
+  }>({ current_debt_amount: 0, financial_status: "al_corriente" });
   const [attendanceStats, setAttendanceStats] = useState({ total: 0, goal: 16, percentage: 100 });
   const [toastVisible, setToastVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -526,6 +531,14 @@ export default function StudentDashboardPage() {
           prof = p;
           comm = c;
           pay = py;
+
+          if (p) {
+            setProfileFinancialData({
+              current_debt_amount: Number(p.current_debt_amount || 0),
+              financial_status: p.financial_status || "al_corriente",
+              notes: p.notes,
+            });
+          }
 
           // Asistencias reales en Supabase
           const { count: attCount } = await supabase
@@ -1578,27 +1591,64 @@ export default function StudentDashboardPage() {
                   <CreditCard className="w-5 h-5 text-emerald-400" />
                   <h2 className="text-sm font-bold text-white uppercase tracking-wide">Estatus Financiero</h2>
                 </div>
-                <span className="text-[10px] font-bold uppercase text-on-tertiary bg-tertiary-container px-2.5 py-0.5 rounded-full">
-                  {lastPayment?.status === "pagado" ? "Membresía Activa" : "Registro Activo"}
-                </span>
+                {profileFinancialData.current_debt_amount > 0 ? (
+                  <span className="text-[10px] font-black uppercase text-red-300 bg-red-950/80 border border-red-500/50 px-2.5 py-1 rounded-full animate-pulse flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    Adeudo Pendiente
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-black uppercase text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Al Corriente ($0 Adeudo)
+                  </span>
+                )}
               </div>
 
-              <div className="bg-surface-container p-4 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
-                <div>
-                  <span className="text-sm font-bold text-white block">
-                    {lastPayment?.status === "pagado" ? "Mensualidad Vigente" : "Inscripción en Cancha"}
-                  </span>
-                  <span className="text-xs text-zinc-400">Cubre Academia Formativa Carmen Serdán</span>
+              {/* Tarjeta de Saldo / Deuda */}
+              {profileFinancialData.current_debt_amount > 0 ? (
+                <div className="bg-gradient-to-br from-red-950/40 via-[#181116] to-[#0d1017] p-4 rounded-2xl border-2 border-red-500/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs uppercase font-black text-red-400 block tracking-wider">
+                        Saldo Pendiente por Liquidar
+                      </span>
+                      <span className="text-[11px] text-zinc-400">
+                        Clase de Entrenamiento • Cancha Deportivo Carmen Serdán
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-red-400 font-mono block">
+                        ${profileFinancialData.current_debt_amount} MXN
+                      </span>
+                      <span className="text-[10px] text-red-300/80 font-bold uppercase">
+                        Cuota de Clase
+                      </span>
+                    </div>
+                  </div>
+                  {profileFinancialData.notes && (
+                    <div className="pt-2 border-t border-red-500/20 text-[11px] text-zinc-300 italic">
+                      "{profileFinancialData.notes}"
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
-                  <span className="text-lg font-black text-tertiary">
-                    {lastPayment?.amount ? `$${lastPayment.amount} MXN` : "Cuotas $50 / $150 / $600"}
-                  </span>
-                  <span className="text-[10px] text-zinc-400 block font-mono">
-                    {lastPayment?.status === "pagado" ? "/ Mes Pagado" : "Pago en Cancha"}
-                  </span>
+              ) : (
+                <div className="bg-surface-container p-4 rounded-2xl flex items-center justify-between border border-surface-container-high/60">
+                  <div>
+                    <span className="text-sm font-bold text-white block">
+                      {lastPayment?.status === "pagado" ? "Mensualidad Vigente" : "Inscripción en Cancha"}
+                    </span>
+                    <span className="text-xs text-zinc-400">Cubre Academia Formativa Carmen Serdán</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-black text-emerald-400 font-mono">
+                      $0 MXN
+                    </span>
+                    <span className="text-[10px] text-zinc-400 block font-mono">
+                      Al Corriente
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2 pt-1">
                 <a
