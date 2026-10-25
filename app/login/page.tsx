@@ -36,6 +36,7 @@ function LoginContent() {
   // Campos de formulario
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -124,6 +125,7 @@ function LoginContent() {
           options: {
             data: {
               full_name: name || "Atleta Wild Wolves",
+              phone: phone ? phone.replace(/\D/g, "") : "",
               assigned_role: "student",
             },
           },
@@ -149,12 +151,15 @@ function LoginContent() {
 
         if (data.user) {
           try {
+            const cleanUserPhone = phone ? phone.replace(/\D/g, "") : null;
             await supabase.from("profiles").upsert({
               id: data.user.id,
               email: email,
               full_name: officialName,
               role: assignedRole,
               status: "active",
+              phone_number: cleanUserPhone,
+              emergency_phone: cleanUserPhone,
             });
           } catch (profileErr) {
             console.warn("Perfil Supabase sync aviso:", profileErr);
@@ -459,22 +464,43 @@ function LoginContent() {
           {/* Formulario Principal de Correo y Contraseña */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
             {isRegister && activePortal === "student" && (
-              <div>
-                <label className="block text-[11px] font-semibold uppercase text-zinc-400 mb-1 font-mono">
-                  Nombre Completo del Atleta o Tutor
-                </label>
-                <div className="relative">
-                  <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. Rodrigo Mendoza"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-xs text-white transition placeholder-zinc-600 font-sans"
-                  />
+              <>
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-zinc-400 mb-1 font-mono">
+                    Nombre Completo del Atleta o Tutor
+                  </label>
+                  <div className="relative">
+                    <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Rodrigo Mendoza"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-xs text-white transition placeholder-zinc-600 font-sans"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-semibold uppercase text-zinc-400 font-mono">
+                      Número Celular / WhatsApp
+                    </label>
+                    <span className="text-[10px] text-zinc-500 font-mono">(Opcional para menores o tutores)</span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-mono">📱</span>
+                    <input
+                      type="tel"
+                      placeholder="Ej. 55 1234 5678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-xs text-white transition placeholder-zinc-600 font-sans font-mono"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div>

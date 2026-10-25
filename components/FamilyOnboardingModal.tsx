@@ -18,6 +18,10 @@ export default function FamilyOnboardingModal({ userId, userEmail, onComplete }:
   const [relationship, setRelationship] = useState<string>("propio_atleta");
   const [linkedStudentName, setLinkedStudentName] = useState<string>("");
   const [emergencyPhone, setEmergencyPhone] = useState<string>("");
+
+  // Atribución de Marketing y Recomendación
+  const [originChannel, setOriginChannel] = useState<string>("redes_sociales");
+  const [referredBy, setReferredBy] = useState<string>("Coach Ricardo");
   
   // Días y turnos pactados
   const [selectedDays, setSelectedDays] = useState<string[]>(["lunes", "miercoles", "viernes"]);
@@ -32,22 +36,19 @@ export default function FamilyOnboardingModal({ userId, userEmail, onComplete }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phoneNumber.replace(/\D/g, "");
-    if (!cleanPhone || cleanPhone.length < 10) {
-      alert("Por favor ingresa un número de teléfono/WhatsApp válido a 10 dígitos.");
-      return;
-    }
 
     setSaving(true);
     try {
       const payload: any = {
         full_name: fullName.trim() || userEmail.split("@")[0],
-        phone_number: cleanPhone,
+        phone_number: cleanPhone || null,
         account_category: isGuardian ? "guardian_family" : "student",
         relationship_type: isGuardian ? relationship : "propio_atleta",
         linked_student_name: isGuardian ? linkedStudentName.trim() : null,
-        emergency_phone: emergencyPhone.replace(/\D/g, "") || cleanPhone,
+        emergency_phone: emergencyPhone.replace(/\D/g, "") || cleanPhone || null,
         selected_days: selectedDays,
         schedules_by_day: schedules,
+        notes: `Origen: ${originChannel}. Recomendado por: ${referredBy || "Coach Ricardo"}.`,
       };
 
       const { error } = await supabase.from("profiles").update(payload).eq("id", userId);
@@ -57,8 +58,10 @@ export default function FamilyOnboardingModal({ userId, userEmail, onComplete }:
 
       if (typeof window !== "undefined") {
         localStorage.setItem("ww_account_category", isGuardian ? "guardian_family" : "student");
-        localStorage.setItem("ww_user_phone", cleanPhone);
+        if (cleanPhone) localStorage.setItem("ww_user_phone", cleanPhone);
         localStorage.setItem("ww_student_name", fullName.trim() || userEmail.split("@")[0]);
+        localStorage.setItem("ww_origin_channel", originChannel);
+        localStorage.setItem("ww_referred_by", referredBy);
         window.dispatchEvent(new Event("profile_updated"));
       }
 
@@ -137,19 +140,54 @@ export default function FamilyOnboardingModal({ userId, userEmail, onComplete }:
             </div>
 
             <div>
-              <label className="text-zinc-400 block mb-1">Teléfono WhatsApp (10 dígitos):</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-zinc-400 block">Teléfono WhatsApp:</label>
+                <span className="text-[10px] text-zinc-500 font-mono">(Opcional / Menores o Tutores)</span>
+              </div>
               <input
                 type="tel"
-                required
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="55 1234 5678"
-                className="w-full h-11 px-3 bg-[#161b26] border border-zinc-700 rounded-xl font-bold text-white focus:outline-none focus:border-orange-500"
+                className="w-full h-11 px-3 bg-[#161b26] border border-zinc-700 rounded-xl font-bold text-white focus:outline-none focus:border-orange-500 font-mono"
               />
             </div>
           </div>
 
-          {/* 3. CAMPOS ESPECÍFICOS DE TUTOR/FAMILIAR */}
+          {/* 3. ATRIBUCIÓN: ¿CÓMO SUPIERON DE NOSOTROS? */}
+          <div className="bg-[#141923] border border-orange-500/20 p-4 rounded-2xl space-y-3 text-xs">
+            <span className="text-xs font-mono uppercase text-orange-400 block font-bold">
+              ¿Cómo supiste de Wild Wolves CDMX?
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-zinc-400 block mb-1">Medio o Canal:</label>
+                <select
+                  value={originChannel}
+                  onChange={(e) => setOriginChannel(e.target.value)}
+                  className="w-full h-11 px-3 bg-[#10131a] border border-zinc-700 rounded-xl font-bold text-white focus:outline-none focus:border-orange-500"
+                >
+                  <option value="redes_sociales">Redes Sociales (TikTok, Instagram, Facebook)</option>
+                  <option value="recomendacion">Recomendado por Alguien</option>
+                  <option value="cancha_carmen_serdan">Vi el entrenamiento en Canchas Carmen Serdán</option>
+                  <option value="otro">Otro Canal</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-zinc-400 block mb-1">¿Quién te recomendó o invitó?</label>
+                <input
+                  type="text"
+                  value={referredBy}
+                  onChange={(e) => setReferredBy(e.target.value)}
+                  placeholder="Ej. Coach Ricardo, Amigo o Familiar"
+                  className="w-full h-11 px-3 bg-[#10131a] border border-zinc-700 rounded-xl font-bold text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 4. CAMPOS ESPECÍFICOS DE TUTOR/FAMILIAR */}
           {isGuardian && (
             <div className="bg-[#161b26] border border-purple-500/30 p-4 rounded-2xl space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
