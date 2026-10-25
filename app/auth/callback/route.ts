@@ -66,27 +66,68 @@ export async function GET(request: Request) {
         } else if (profile?.role) {
           role = profile.role;
         } else {
-          // SHADOW PROFILE MERGE:
-          // Verificar si existe un perfil provisional creado previamente en cancha (por nombre o correo)
-          const newUserName =
+          // SHADOW PROFILE & PROSPECT MERGE:
+          // Verificar si existe un prospecto o perfil provisional creado previamente en cancha
+          const newUserName = (
             data.user.user_metadata?.full_name ||
             data.user.user_metadata?.name ||
-            "";
+            ""
+          ).trim();
           const newUserPhone = data.user.user_metadata?.phone || "";
 
+          // 1. Buscar en prospect_athletes primero (caso Bruno Sánchez, Osmar, etc.)
+          let matchedProspect: any = null;
+          if (newUserName) {
+            const { data: foundPr } = await supabase
+              .from("prospect_athletes")
+              .select("*")
+              .ilike("full_name", `%${newUserName}%`)
+              .limit(1)
+              .maybeSingle();
+            matchedProspect = foundPr;
+          }
+
           let provisionalProfile: any = null;
-          if (newUserName.trim()) {
+          if (newUserName) {
             const { data: foundProv } = await supabase
               .from("profiles")
               .select("*")
               .eq("is_provisional", true)
-              .ilike("full_name", `%${newUserName.trim()}%`)
+              .ilike("full_name", `%${newUserName}%`)
               .limit(1)
               .maybeSingle();
             provisionalProfile = foundProv;
           }
 
-          if (provisionalProfile) {
+          if (matchedProspect) {
+            // Reclamar y fusionar datos del prospecto creado en cancha
+            await supabase
+              .from("prospect_athletes")
+              .update({ claimed_user_id: data.user.id })
+              .eq("id", matchedProspect.id);
+
+            const tDays = Array.isArray(matchedProspect.training_days)
+              ? matchedProspect.training_days.join("-")
+              : (matchedProspect.training_days || "Lun-Mié-Vie");
+
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: matchedProspect.full_name || newUserName,
+              role: "student",
+              user_type: "student",
+              account_category: "student",
+              status: "active",
+              is_provisional: false,
+              parent_name: matchedProspect.guardian_name || matchedProspect.parent_name || null,
+              notes: matchedProspect.notes || null,
+              current_debt_amount: Number(matchedProspect.debt_amount || 0),
+              financial_status: matchedProspect.financial_status || "al_corriente",
+              training_days: tDays,
+              training_schedule: matchedProspect.training_schedule || "17:00 - 19:00",
+              phone_number: matchedProspect.contact_phone || newUserPhone || null,
+            });
+          } else if (provisionalProfile) {
             // Transferir asistencias y pagos del perfil provisional al ID real
             await supabase
               .from("daily_attendance")
@@ -110,6 +151,8 @@ export async function GET(request: Request) {
               email: data.user.email,
               full_name: provisionalProfile.full_name || newUserName,
               role: "student",
+              user_type: "student",
+              account_category: "student",
               status: "active",
               is_provisional: false,
               parent_name: provisionalProfile.parent_name || null,
@@ -134,6 +177,8 @@ export async function GET(request: Request) {
               email: data.user.email,
               full_name: newUserName || "Atleta Wild Wolves",
               role: "student",
+              user_type: "student",
+              account_category: "student",
               status: "active",
               is_provisional: false,
             });
