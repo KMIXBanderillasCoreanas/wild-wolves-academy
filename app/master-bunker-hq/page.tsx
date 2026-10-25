@@ -27,6 +27,7 @@ import {
   Activity,
   Sparkles,
   Edit3,
+  MessageSquare,
   Settings
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
@@ -50,6 +51,7 @@ import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
 import TacticalAIAssistant from "@/components/TacticalAIAssistant";
 import MasterAICockpit from "@/components/MasterAICockpit";
 import TacticalRadarAlerts from "@/components/TacticalRadarAlerts";
+import WhatsAppHubCRM from "@/components/WhatsAppHubCRM";
 
 export default function MasterBunkerHQ() {
   const router = useRouter();
@@ -58,7 +60,7 @@ export default function MasterBunkerHQ() {
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches" | "whatsapp_crm">("attendance");
 
   // Sincronizar pestaña si viene en la URL (?tab=finanzas o ?tab=finance)
   useEffect(() => {
@@ -73,6 +75,7 @@ export default function MasterBunkerHQ() {
           else if (tabParam === "asistencia" || tabParam === "attendance") setActiveTab("attendance");
           else if (tabParam === "test_day" || tabParam === "evaluaciones") setActiveTab("test_day");
           else if (tabParam === "smart_placement" || tabParam === "crm") setActiveTab("smart_placement");
+          else if (tabParam === "whatsapp" || tabParam === "whatsapp_crm") setActiveTab("whatsapp_crm");
         }
       };
 
@@ -90,6 +93,8 @@ export default function MasterBunkerHQ() {
             setActiveTab("test_day");
           } else if (targetTab === "smart_placement" || targetTab === "crm") {
             setActiveTab("smart_placement");
+          } else if (targetTab === "whatsapp" || targetTab === "whatsapp_crm") {
+            setActiveTab("whatsapp_crm");
           }
         } else {
           applyTabFromUrl();
@@ -718,6 +723,16 @@ export default function MasterBunkerHQ() {
           <Sparkles className="w-4 h-4 text-purple-300" /> Diagnóstico Exprés & CRM
         </button>
         <button
+          onClick={() => setActiveTab("whatsapp_crm")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "whatsapp_crm"
+              ? "bg-emerald-500 text-black font-black shadow-lg shadow-emerald-500/20"
+              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" /> WhatsApp Hub CRM
+        </button>
+        <button
           onClick={() => setActiveTab("finance")}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "finance"
@@ -851,6 +866,12 @@ export default function MasterBunkerHQ() {
       {activeTab === "smart_placement" && (
         <div className="space-y-4 animate-fade-in">
           <SmartPlacementCRM />
+        </div>
+      )}
+
+      {activeTab === "whatsapp_crm" && (
+        <div className="space-y-4 animate-fade-in">
+          <WhatsAppHubCRM />
         </div>
       )}
 
