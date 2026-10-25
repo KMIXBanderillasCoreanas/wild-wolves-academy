@@ -94,7 +94,7 @@ export async function GET(req: Request) {
     // Obtener alumnos, asistencias recientes y pagos históricos
     const { data: athletes } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, account_category, user_type, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost")
+      .select("id, full_name, email, role, account_category, user_type, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost, origin_channel, referred_by")
       .order("full_name");
 
     const { data: attendance } = await supabase
@@ -306,6 +306,8 @@ export async function POST(req: Request) {
         user_type,
         account_category,
         full_name,
+        origin_channel,
+        referred_by,
       } = body;
 
       if (!student_id) {
@@ -318,6 +320,12 @@ export async function POST(req: Request) {
       const updatePayload: any = {};
       if (full_name !== undefined && full_name.trim()) {
         updatePayload.full_name = full_name.trim();
+      }
+      if (origin_channel !== undefined) {
+        updatePayload.origin_channel = origin_channel;
+      }
+      if (referred_by !== undefined) {
+        updatePayload.referred_by = referred_by;
       }
       if (role !== undefined) {
         updatePayload.role = role;

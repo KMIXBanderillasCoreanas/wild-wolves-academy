@@ -100,6 +100,21 @@ export async function POST(request: Request) {
 
     console.log(`[CRM WhatsApp Inbound] Mensaje recibido de ${senderName} (${senderPhone}):`, senderMessage);
 
+    // SISTEMA NERVIOSO: Despertar dispositivos con Alerta Push en segundo plano (incluso con app cerrada)
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+      fetch(`${siteUrl}/api/push/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `💬 WhatsApp: ${senderName}`,
+          body: senderMessage.length > 90 ? `${senderMessage.slice(0, 90)}...` : senderMessage,
+          url: "/master-bunker-hq?tab=whatsapp",
+          tag: `wa_${senderPhone}`,
+        }),
+      }).catch(() => {});
+    } catch {}
+
     return NextResponse.json({
       success: true,
       message_id: savedRecord.id,

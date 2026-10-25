@@ -52,6 +52,7 @@ import TacticalAIAssistant from "@/components/TacticalAIAssistant";
 import MasterAICockpit from "@/components/MasterAICockpit";
 import TacticalRadarAlerts from "@/components/TacticalRadarAlerts";
 import WhatsAppHubCRM from "@/components/WhatsAppHubCRM";
+import ExpensesManager from "@/components/ExpensesManager";
 
 export default function MasterBunkerHQ() {
   const router = useRouter();
@@ -907,6 +908,9 @@ export default function MasterBunkerHQ() {
 
           {/* PANEL DE CONTROL TOTAL DEL DUEÑO (MOTOR OMNIPOTENTE) */}
           <SuperAdminOmniManager onDataChanged={fetchDashboardData} />
+
+          {/* MÓDULO DE EGRESOS & GASTOS OPERATIVOS */}
+          <ExpensesManager onExpenseChanged={fetchDashboardData} />
 
           {/* TABLA DE ÚLTIMOS COBROS REGISTRADOS */}
           <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">

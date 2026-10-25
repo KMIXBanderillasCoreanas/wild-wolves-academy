@@ -35,6 +35,8 @@ interface Athlete {
   is_provisional?: boolean;
   scholarship_percentage?: number;
   default_class_cost?: number;
+  origin_channel?: string;
+  referred_by?: string;
 }
 
 interface AttendanceRecord {
@@ -83,6 +85,8 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
   const [athleteRole, setAthleteRole] = useState<string>("student");
   const [athleteUserType, setAthleteUserType] = useState<string>("alumno");
   const [athleteAccountCategory, setAthleteAccountCategory] = useState<string>("student");
+  const [athleteOrigin, setAthleteOrigin] = useState<string>("redes_sociales");
+  const [athleteReferredBy, setAthleteReferredBy] = useState<string>("");
   const [athleteScholarship, setAthleteScholarship] = useState<number>(0);
   const [athleteCost, setAthleteCost] = useState<number>(50);
   const [athleteDebt, setAthleteDebt] = useState<number>(0);
@@ -296,6 +300,8 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
           role: athleteRole,
           user_type: athleteUserType,
           account_category: athleteAccountCategory,
+          origin_channel: athleteOrigin,
+          referred_by: athleteReferredBy,
           scholarship_percentage: athleteScholarship,
           default_class_cost: athleteCost,
           current_debt_amount: athleteDebt,
@@ -727,6 +733,8 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
                         setAthleteRole(ath.role || "student");
                         setAthleteUserType(ath.user_type || (ath.role === "guardian" || ath.role === "parent" ? "tutor" : "alumno"));
                         setAthleteAccountCategory(ath.account_category || (ath.role === "guardian" || ath.role === "parent" ? "guardian_family" : "student"));
+                        setAthleteOrigin(ath.origin_channel || "redes_sociales");
+                        setAthleteReferredBy(ath.referred_by || "");
                         setAthleteScholarship(scholarship);
                         setAthleteCost(cost);
                         setAthleteDebt(ath.current_debt_amount || 0);
@@ -837,6 +845,41 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
                     ? "✓ Marcado como Tutor legal. No aparecerá en el pase de lista de cancha ni en métricas de atletas."
                     : "✓ Marcado como Atleta. Aparece en el Roster de duela, pase de lista y Combine."}
                 </p>
+              </div>
+
+              {/* ORIGEN & RECOMENDACIÓN (ATRIBUCIÓN DE MARKETING) */}
+              <div className="p-3 rounded-2xl bg-[#121724] border border-zinc-800 space-y-2.5">
+                <label className="text-[11px] font-mono text-emerald-400 uppercase font-bold block">
+                  🎯 Origen & Atribución del Alumno
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] text-zinc-400 block mb-1">¿Cómo se enteró de la academia?</label>
+                    <select
+                      value={athleteOrigin}
+                      onChange={(e) => setAthleteOrigin(e.target.value)}
+                      className="w-full bg-[#0a0d14] border border-zinc-700 rounded-xl py-1.5 px-2.5 text-xs text-white"
+                    >
+                      <option value="redes_sociales">Redes Sociales (FB, IG, TikTok)</option>
+                      <option value="cancha_carmen_serdan">Lona / Vio clase en Carmen Serdán</option>
+                      <option value="recomendacion_alumno">Recomendado por otro alumno</option>
+                      <option value="torneo_partido">Vio a Wild Wolves en Torneo</option>
+                      <option value="escuela_externa">Escuela / Colegio</option>
+                      <option value="otro">Otro medio</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-zinc-400 block mb-1">¿Quién lo recomendó? (Nombre o Atleta)</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Isaac, Osmar, Primo..."
+                      value={athleteReferredBy}
+                      onChange={(e) => setAthleteReferredBy(e.target.value)}
+                      className="w-full bg-[#0a0d14] border border-zinc-700 rounded-xl py-1.5 px-2.5 text-xs text-amber-300 font-bold"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Beca % */}
