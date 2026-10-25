@@ -552,6 +552,8 @@ export default function CourtAttendanceCommand() {
 
     const currentDebt = Number(selectedAthleteForQuickPay.current_debt_amount) || 0;
     const nextDebt = Math.max(0, currentDebt - amount);
+    // En Supabase el check solo acepta 'al_corriente', 'adeudo', 'becado'
+    const dbFinStatus = nextDebt <= 0 ? "al_corriente" : "adeudo";
     const nextFinStatus: FinancialStatus = nextDebt <= 0 ? "al_corriente" : "abono_parcial";
 
     // 1. Optimistic UI update en el estado local de alumnos
@@ -596,7 +598,7 @@ export default function CourtAttendanceCommand() {
     const profileUpdatePayload = {
       id: studentId,
       current_debt_amount: nextDebt,
-      financial_status: nextFinStatus,
+      financial_status: dbFinStatus,
     };
 
     if (!navigator.onLine) {
@@ -608,7 +610,7 @@ export default function CourtAttendanceCommand() {
         await supabase.from("payment_transactions_history").insert(transactionPayload);
         await supabase.from("profiles").update({
           current_debt_amount: nextDebt,
-          financial_status: nextFinStatus,
+          financial_status: dbFinStatus,
         }).eq("id", studentId);
       } catch {
         enqueueOfflineAction("PAYMENT_TRANSACTION", transactionPayload);
@@ -1349,7 +1351,7 @@ export default function CourtAttendanceCommand() {
                   </button>
                 </div>
 
-                {/* Botón de Cobro Rápido Directo (1-Tap Auto-Sync) */}
+                {/* Botón de Cobro Rápido / Abono Parcial (1-Tap Auto-Sync) */}
                 <div className="mt-2.5 flex items-center gap-2">
                   {st.scholarship_percentage === 100 ? (
                     <div className="flex-1 flex items-center justify-center h-10 px-3 rounded-xl bg-sky-950/60 border border-sky-500/40 text-sky-300 font-black text-xs">
@@ -1360,17 +1362,29 @@ export default function CourtAttendanceCommand() {
                       type="button"
                       onClick={() => handleInstantQuickPay(st)}
                       className="flex-1 flex items-center justify-between h-10 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-white font-black text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer"
-                      title="1-Tap: Cobrar y guardar al instante en Supabase"
+                      title="1-Tap: Cobrar total adeudado y guardar al instante en Supabase"
                     >
-                      <div className="flex items-center gap-1.5">
-                        <DollarSign className="w-4 h-4 text-white" />
-                        <span>💵 Cobrar ${st.current_debt_amount > 0 ? st.current_debt_amount : (st.default_class_cost || 50)}</span>
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <DollarSign className="w-4 h-4 text-white shrink-0" />
+                        <span>Pagar Total ${st.current_debt_amount > 0 ? st.current_debt_amount : (st.default_class_cost || 50)}</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-black/30 text-[10px] font-black">
-                        {st.current_debt_amount > 0 ? "Adeudo" : "Cuota"}
+                      <span className="px-2 py-0.5 rounded-full bg-black/30 text-[10px] font-black shrink-0">
+                        {st.current_debt_amount > 0 ? "Liquidar" : "Cuota"}
                       </span>
                     </button>
                   )}
+                  {/* Botón táctil para Abono Parcial (elegir cuánto abona ej. 50, 60, 80) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAthleteForQuickPay(st);
+                      setQuickPayAmount(st.current_debt_amount > 0 ? Math.min(50, st.current_debt_amount) : 50);
+                    }}
+                    className="h-10 px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black flex items-center gap-1 transition cursor-pointer shrink-0"
+                    title="Abono Parcial (Cobrar lo que puedan dar: $50, $80...)"
+                  >
+                    <span>💵 Abono</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setSelectedStudentForFinance(st)}
@@ -1379,14 +1393,17 @@ export default function CourtAttendanceCommand() {
                   >
                     <CreditCard className="w-4 h-4" />
                   </button>
-                  {/* Botón de Pruebas Deportivas (Tiro & Velocidad) */}
+                </div>
+
+                {/* Botón de Pruebas Deportivas (Tiro & Velocidad) */}
+                <div className="mt-2">
                   <button
                     type="button"
                     onClick={() => setSelectedAthleteForSportsTest(st)}
-                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-[11px] font-bold transition active:scale-95 cursor-pointer shadow-sm"
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold transition active:scale-95 cursor-pointer shadow-sm"
                     title="Evaluar Pruebas Deportivas (Tiro 20 TL, Velocidad 100m, T-Test)"
                   >
-                    <Target className="w-3.5 h-3.5 text-purple-400" />
+                    <Target className="w-4 h-4 text-purple-400" />
                     <span>🎯 Pruebas Deportivas (Tiro & Velocidad)</span>
                   </button>
                 </div>
@@ -1507,16 +1524,24 @@ export default function CourtAttendanceCommand() {
             </div>
 
             <form onSubmit={handleRegisterQuickPayment} className="space-y-4">
+              {/* Resumen de Adeudo Actual */}
+              {selectedAthleteForQuickPay.current_debt_amount > 0 && (
+                <div className="p-3 bg-red-950/30 border border-red-500/30 rounded-2xl flex items-center justify-between text-xs font-mono">
+                  <span className="text-red-300 font-bold">Adeudo Actual Total:</span>
+                  <span className="text-red-400 font-black text-sm">${selectedAthleteForQuickPay.current_debt_amount} MXN</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
-                  Monto Recibido ($ MXN)
+                  Monto Recibido en Cancha ($ MXN)
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-lg">$</span>
                   <input
                     type="number"
-                    min="0"
-                    step="10"
+                    min="1"
+                    step="5"
                     value={quickPayAmount}
                     onChange={(e) => setQuickPayAmount(Number(e.target.value) || 0)}
                     className="w-full pl-9 pr-4 py-3 bg-zinc-900 border border-zinc-700 rounded-xl text-white font-black text-xl focus:border-emerald-500 focus:outline-none"
@@ -1525,22 +1550,30 @@ export default function CourtAttendanceCommand() {
                     required
                   />
                 </div>
-                {/* Botones de sugerencias rápidas */}
+                {/* Botones de sugerencias rápidas adaptados al adeudo */}
                 <div className="flex gap-2 mt-2">
-                  {[50, 100, 150, 200].map((amt) => (
+                  {[50, 60, 80, selectedAthleteForQuickPay.current_debt_amount || 150].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map((amt) => (
                     <button
                       key={amt}
                       type="button"
                       onClick={() => setQuickPayAmount(amt)}
                       className={`flex-1 py-1 text-xs font-bold rounded-lg border transition ${
                         quickPayAmount === amt
-                          ? "bg-emerald-500 text-black border-emerald-400"
+                          ? "bg-emerald-500 text-black border-emerald-400 font-black"
                           : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
                       }`}
                     >
-                      ${amt}
+                      ${amt} {amt === selectedAthleteForQuickPay.current_debt_amount ? "(Total)" : ""}
                     </button>
                   ))}
+                </div>
+
+                {/* Previsualización del Saldo Restante */}
+                <div className="mt-3 p-2.5 rounded-xl bg-black/40 border border-zinc-800 text-[11px] flex justify-between items-center font-mono">
+                  <span className="text-zinc-400">Restante después de este cobro:</span>
+                  <span className={`font-black ${Math.max(0, (selectedAthleteForQuickPay.current_debt_amount || 0) - quickPayAmount) === 0 ? "text-emerald-400" : "text-amber-400"}`}>
+                    ${Math.max(0, (selectedAthleteForQuickPay.current_debt_amount || 0) - quickPayAmount)} MXN
+                  </span>
                 </div>
               </div>
 

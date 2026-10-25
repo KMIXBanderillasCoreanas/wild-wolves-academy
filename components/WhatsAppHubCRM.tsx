@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import {
   MessageSquare,
   Send,
@@ -80,6 +81,45 @@ export default function WhatsAppHubCRM() {
         lastMessage: "Sesión matutina completada.",
         lastTime: "09:30",
       });
+
+      // Contacto de Bruno Sánchez
+      contactMap.set("525522427768", {
+        phone: "525522427768",
+        name: "Tutor de Bruno Sánchez",
+        athleteName: "Bruno Sánchez",
+        role: "student",
+        lastMessage: "Adeudo de clase de $50 MXN registrado.",
+        lastTime: "20:30",
+      });
+
+      // Cargar dinámicamente desde profiles de Supabase
+      try {
+        const { data: dbProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone_number, emergency_phone, parent_name, account_category")
+          .not("phone_number", "is", null);
+
+        if (dbProfiles && dbProfiles.length > 0) {
+          dbProfiles.forEach((p: any) => {
+            const rawP = p.phone_number || p.emergency_phone;
+            if (!rawP) return;
+            const digits = rawP.replace(/\D/g, "");
+            const formatted = digits.length === 10 ? `52${digits}` : digits;
+            if (!contactMap.has(formatted)) {
+              contactMap.set(formatted, {
+                phone: formatted,
+                name: p.parent_name || `Tutor de ${p.full_name}`,
+                athleteName: p.full_name,
+                role: p.account_category === "guardian_family" ? "tutor" : "student",
+                lastMessage: "Atleta registrado en academia.",
+                lastTime: "Hoy",
+              });
+            }
+          });
+        }
+      } catch (errP) {
+        console.warn("Aviso al consultar perfiles en WhatsApp CRM:", errP);
+      }
 
       // Cruce con mensajes almacenados
       allMsgs.forEach((m) => {

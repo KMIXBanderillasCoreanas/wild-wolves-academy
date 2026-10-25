@@ -137,8 +137,11 @@ export default function MasterBunkerHQ() {
     day: 0,
     week: 0,
     month: 0,
-    year: 0
+    year: 0,
+    totalDebt: 0,
+    debtCount: 0
   });
+  const [debtorsList, setDebtorsList] = useState<any[]>([]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -265,6 +268,31 @@ export default function MasterBunkerHQ() {
         });
       }
 
+      // 3. Consultar alumnos con adeudo en profiles
+      let totalDebts = 0;
+      let debtorsFound: any[] = [];
+      try {
+        const { data: dbAthletes } = await supabase
+          .from("profiles")
+          .select("id, full_name, current_debt_amount, financial_status, phone_number, parent_name, notes")
+          .or("current_debt_amount.gt.0,financial_status.eq.adeudo");
+
+        if (dbAthletes && dbAthletes.length > 0) {
+          debtorsFound = dbAthletes.map((a: any) => ({
+            id: a.id,
+            name: a.full_name,
+            debt: Number(a.current_debt_amount) || 50,
+            status: a.financial_status,
+            phone: a.phone_number || "+52 55 2242 7769",
+            notes: a.notes || "Clase de entrenamiento pendiente",
+          }));
+          totalDebts = debtorsFound.reduce((acc, curr) => acc + curr.debt, 0);
+        }
+      } catch (errD) {
+        console.warn("Aviso al consultar deudores:", errD);
+      }
+      setDebtorsList(debtorsFound);
+
       let dayTotal = 0;
       let weekTotal = 0;
       let monthTotal = 0;
@@ -291,6 +319,8 @@ export default function MasterBunkerHQ() {
           week: weekTotal,
           month: monthTotal,
           year: yearTotal,
+          totalDebt: totalDebts,
+          debtCount: debtorsFound.length,
         });
       } else {
         setPayments([]);
@@ -299,6 +329,8 @@ export default function MasterBunkerHQ() {
           week: 0,
           month: 0,
           year: 0,
+          totalDebt: totalDebts,
+          debtCount: debtorsFound.length,
         });
       }
     } catch (err) {
@@ -658,7 +690,7 @@ export default function MasterBunkerHQ() {
             }}
             className="flex items-center gap-2 text-xs bg-gradient-to-r from-orange-600 to-amber-600 hover:brightness-110 text-white px-4 py-2.5 rounded-xl font-black transition cursor-pointer shadow-lg shadow-orange-600/30"
           >
-            <Settings className="w-3.5 h-3.5" /> ⚙️ Ajuste Manual de Registros
+            <Settings className="w-3.5 h-3.5" /> Ajuste Manual de Registros
           </button>
           <button
             onClick={fetchDashboardData}
@@ -878,33 +910,94 @@ export default function MasterBunkerHQ() {
 
       {activeTab === "finance" && (
         <div className="space-y-6 animate-fade-in">
-          {/* TARJETAS KPI DE INGRESOS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-[#121724] border border-zinc-800 p-5 rounded-2xl">
+          {/* TARJETAS KPI DE INGRESOS Y SALDOS PENDIENTES */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+            <div className="bg-[#121724] border border-zinc-800 p-4 sm:p-5 rounded-2xl">
               <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider">Ingresos de Hoy</span>
-              <p className="text-2xl font-black text-white mt-1">
+              <p className="text-xl sm:text-2xl font-black text-white mt-1">
                 ${metrics.day} <span className="text-xs text-zinc-500 font-normal">MXN</span>
               </p>
             </div>
-            <div className="bg-[#121724] border border-zinc-800 p-5 rounded-2xl">
+            <div className="bg-[#121724] border border-zinc-800 p-4 sm:p-5 rounded-2xl">
               <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider">Esta Semana</span>
-              <p className="text-2xl font-black text-[#38bdf8] mt-1">
+              <p className="text-xl sm:text-2xl font-black text-[#38bdf8] mt-1">
                 ${metrics.week} <span className="text-xs text-zinc-500 font-normal">MXN</span>
               </p>
             </div>
-            <div className="bg-[#121724] border border-zinc-800 p-5 rounded-2xl">
+            <div className="bg-[#121724] border border-zinc-800 p-4 sm:p-5 rounded-2xl">
               <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider">Mes en Curso</span>
-              <p className="text-2xl font-black text-[#22c55e] mt-1">
+              <p className="text-xl sm:text-2xl font-black text-[#22c55e] mt-1">
                 ${metrics.month} <span className="text-xs text-zinc-500 font-normal">MXN</span>
               </p>
             </div>
-            <div className="bg-[#121724] border border-zinc-800 p-5 rounded-2xl">
+            <div className="bg-[#121724] border border-zinc-800 p-4 sm:p-5 rounded-2xl">
               <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold tracking-wider">Año Acumulado</span>
-              <p className="text-2xl font-black text-[#ea580c] mt-1">
+              <p className="text-xl sm:text-2xl font-black text-[#ea580c] mt-1">
                 ${metrics.year} <span className="text-xs text-zinc-500 font-normal">MXN</span>
               </p>
             </div>
+            <div className="bg-[#1f1217] border-2 border-red-500/40 p-4 sm:p-5 rounded-2xl col-span-2 md:col-span-1 shadow-lg shadow-red-950/40">
+              <span className="text-[10px] font-mono text-red-400 uppercase font-black tracking-wider flex items-center justify-between">
+                <span>Por Cobrar</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-300 font-bold">{metrics.debtCount} al.</span>
+              </span>
+              <p className="text-xl sm:text-2xl font-black text-red-400 mt-1 font-mono">
+                ${metrics.totalDebt} <span className="text-xs text-red-300/70 font-normal">MXN</span>
+              </p>
+            </div>
           </div>
+
+          {/* BANNER DESGLOSE DE DEUDORES: QUIÉN DEBE Y CUÁNTO */}
+          {debtorsList.length > 0 && (
+            <div className="bg-gradient-to-r from-red-950/40 via-[#181116] to-[#121724] border-2 border-red-500/30 rounded-3xl p-5 shadow-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-red-400" />
+                  <h3 className="text-sm font-black uppercase tracking-wider text-red-300">
+                    Alumnos con Saldo Pendiente por Liquidar ({debtorsList.length})
+                  </h3>
+                </div>
+                <span className="text-xs font-black text-red-400 font-mono bg-red-900/40 px-3 py-1 rounded-xl border border-red-500/30">
+                  Total Adeudado: ${metrics.totalDebt} MXN
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {debtorsList.map((d) => (
+                  <div key={d.id} className="bg-[#0b0e16] border border-red-500/30 rounded-2xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-black text-white block">{d.name}</span>
+                      <span className="text-[10px] text-zinc-400 block font-mono">
+                        {d.notes || "Clase de entrenamiento"}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-black text-red-400 font-mono block">
+                        ${d.debt} MXN
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminAdjustInitialData({
+                            type: "payment",
+                            student_id: d.id,
+                            student_name: d.name,
+                            amount: d.debt,
+                            concept: "Liquidación de Clase",
+                            payment_method: "efectivo",
+                          });
+                          setAdminAdjustModalOpen(true);
+                        }}
+                        className="text-[10px] text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer mt-0.5 block"
+                      >
+                        Cobrar / Ajustar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* PANEL DE CONTROL TOTAL DEL DUEÑO (MOTOR OMNIPOTENTE) */}
           <SuperAdminOmniManager onDataChanged={fetchDashboardData} />

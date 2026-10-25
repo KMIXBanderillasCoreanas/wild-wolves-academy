@@ -224,9 +224,22 @@ export const syncOfflineQueueToSupabase = async (
         if (error) throw error;
         syncedCount++;
       } else if (item.type === "PROSPECT_STUDENT") {
+        // Compatibilidad total de columnas para prospect_athletes
+        const cleanPayload = {
+          id: item.payload.id,
+          full_name: item.payload.full_name || item.payload.athlete_full_name || "Prospecto",
+          category: item.payload.category || "U-15 FORMATIVO",
+          training_days: item.payload.training_days || ["lunes", "miercoles", "viernes"],
+          training_schedule: item.payload.training_schedule || "Vespertino: 17:00 - 19:00",
+          guardian_name: item.payload.guardian_name || item.payload.tutor_name || "Tutor",
+          parent_name: item.payload.parent_name || item.payload.tutor_name || "Tutor",
+          financial_status: item.payload.financial_status === "adeudo" ? "adeudo" : "al_corriente",
+          debt_amount: Number(item.payload.debt_amount || item.payload.current_debt_amount || 0),
+          notes: item.payload.notes || "Pre-ficha registrada en cancha."
+        };
         const { error } = await supabase.from("prospect_athletes").upsert(
-          item.payload,
-          { onConflict: "athlete_full_name" }
+          cleanPayload,
+          { onConflict: "id" }
         );
         if (error) throw error;
         syncedCount++;
@@ -322,6 +335,31 @@ export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced:
           transaction_date: cleanTx.transaction_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
         };
         const { error } = await sb.from("payment_transactions_history").insert(insertTx);
+        if (error) throw error;
+        syncedCount++;
+      } else if (item.type === "PROFILE_FINANCIAL_UPDATE") {
+        const { id, ...updateData } = item.payload || {};
+        if (updateData.financial_status === "adeudo_pendiente") {
+          updateData.financial_status = "adeudo";
+        }
+        const { error } = await sb.from("profiles").update(updateData).eq("id", id);
+        if (error) throw error;
+        syncedCount++;
+      } else if (item.type === "PROSPECT_STUDENT") {
+        const payload = item.payload || {};
+        const cleanPayload = {
+          id: payload.id,
+          full_name: payload.full_name || payload.athlete_full_name || "Prospecto",
+          category: payload.category || "U-15 FORMATIVO",
+          training_days: payload.training_days || ["lunes", "miercoles", "viernes"],
+          training_schedule: payload.training_schedule || "Vespertino: 17:00 - 19:00",
+          guardian_name: payload.guardian_name || payload.tutor_name || "Tutor",
+          parent_name: payload.parent_name || payload.tutor_name || "Tutor",
+          financial_status: payload.financial_status === "adeudo" ? "adeudo" : "al_corriente",
+          debt_amount: Number(payload.debt_amount || payload.current_debt_amount || 0),
+          notes: payload.notes || "Pre-ficha registrada en cancha."
+        };
+        const { error } = await sb.from("prospect_athletes").upsert(cleanPayload, { onConflict: "id" });
         if (error) throw error;
         syncedCount++;
       } else {
