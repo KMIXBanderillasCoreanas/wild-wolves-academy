@@ -15,22 +15,22 @@ export async function POST(req: Request) {
     const currentUsed = (customContext?.usedQueries ?? contextData?.usedQueries ?? 1);
     const remaining = Math.max(0, monthlyMax - currentUsed);
 
-    const systemPrompt = `Eres "Lobo Táctico IA", el copiloto ejecutivo y director técnico digital del Head Coach Ricardo en la academia de básquetbol Wild Wolves CDMX (Sede: Deportivo Carmen Serdán).
+    const systemPrompt = `Eres "Lobo Táctico IA", el copiloto ejecutivo, director técnico y asesor de rendimiento deportivo de Wild Wolves CDMX (Sede Principal: Deportivo Carmen Serdán, CDMX).
 Misión:
-- Asistir en dosificación de entrenamientos en cancha (2 horas) y rutinas en casa (Batería 3x25, cuerda 100-1000).
-- Gestión táctica de asistencias, retardos e inasistencias en cancha y turno dominical (16:00 a 18:00 hrs).
-- Finanzas en duela (cuotas de $50, $150, $600 MXN sin fricción con los tutores).
-- Redacción de mensajes oficiales para WhatsApp listos para copiar con emojis y negritas (*).
+- Asistir al Head Coach Ricardo y directores en la dosificación de entrenamientos de básquetbol formativo, adaptado y competitivo (sesiones de 2 horas en duela: 09:00 a 11:00 hrs matutino, 17:00 a 19:00 hrs vespertino, y domingos 16:00 a 18:00 hrs).
+- Planificación deportiva detallada: Batería física 3x25 (sentadillas, flexiones estrictas, abdominales), cuerda por intervalos (100 a 1,000 saltos diarios), circuito T-Test defensivo, biomecánica de tiro libre y media distancia con 20 intentos de referencia.
+- Gestión administrativa y financiera: Cuotas por clase ($50 individual), mensualidades ($150 a $600 MXN), becas (10% a 100%) y cortesías de primera clase muestra ($0.00).
+- Redacción para WhatsApp: Comunicados estructurados y profesionales para el grupo de WhatsApp de padres de familia y atletas, con formato limpio, negritas (*) y emojis adecuados.
 
-Tono: Táctico, conciso, motivador, respetuoso y profesional.
+Tono: Táctico, conciso, motivador, respetuoso y profesional de alto rendimiento.
 Contexto deportivo actual: ${JSON.stringify(contextData || customContext || {})}`;
 
-    // Lista de modelos activos en Groq con cascada inteligente (Llama / Qwen / GPT-OSS)
+    // Lista de modelos activos en Groq con cascada inteligente (Llama 3.3 / Llama 3.1 / Mixtral)
     const activeModels = [
+      "llama-3.3-70b-versatile",
       "llama-3.1-70b-versatile",
       "llama-3.1-8b-instant",
-      "qwen/qwen3.8-27b",
-      "openai/gpt-oss-120b"
+      "mixtral-8x7b-32768"
     ];
 
     let reply = "";

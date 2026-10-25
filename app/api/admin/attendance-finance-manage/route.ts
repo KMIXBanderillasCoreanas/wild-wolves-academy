@@ -94,7 +94,7 @@ export async function GET(req: Request) {
     // Obtener alumnos, asistencias recientes y pagos históricos
     const { data: athletes } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost")
+      .select("id, full_name, email, role, account_category, user_type, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost")
       .order("full_name");
 
     const { data: attendance } = await supabase
@@ -294,7 +294,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. UPDATE_ATHLETE_CONFIG (Beca % y Costo Personalizado por Clase)
+    // 3. UPDATE_ATHLETE_CONFIG (Beca %, Costo por Clase, Rol y Tipo de Usuario: Alumno vs Tutor/Padre)
     if (action === "UPDATE_ATHLETE_CONFIG") {
       const {
         student_id,
@@ -302,6 +302,10 @@ export async function POST(req: Request) {
         default_class_cost,
         financial_status,
         current_debt_amount,
+        role,
+        user_type,
+        account_category,
+        full_name,
       } = body;
 
       if (!student_id) {
@@ -312,6 +316,18 @@ export async function POST(req: Request) {
       }
 
       const updatePayload: any = {};
+      if (full_name !== undefined && full_name.trim()) {
+        updatePayload.full_name = full_name.trim();
+      }
+      if (role !== undefined) {
+        updatePayload.role = role;
+      }
+      if (user_type !== undefined) {
+        updatePayload.user_type = user_type;
+      }
+      if (account_category !== undefined) {
+        updatePayload.account_category = account_category;
+      }
       if (scholarship_percentage !== undefined) {
         const pct = Math.max(0, Math.min(100, Number(scholarship_percentage) || 0));
         updatePayload.scholarship_percentage = pct;
@@ -339,7 +355,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: "Configuración de atleta actualizada con éxito.",
+        message: "Perfil y rol de usuario actualizado con éxito.",
         data: updatedProfile,
       });
     }
@@ -539,49 +555,80 @@ export async function DELETE(req: Request) {
       });
     }
 
-    // 4. DELETE_PAYMENT
+    // 4. DELETE_PAYMENT (Soporta transacciones de payment_transactions_history y membership_payments)
     if (action === "DELETE_PAYMENT") {
       const { transaction_id } = body;
 
       if (!transaction_id) {
         return NextResponse.json(
-          { error: "transaction_id es obligatorio." },
+          { error: "transaction_id es obligatorio para eliminar un cobro." },
           { status: 400 }
         );
       }
 
-      // Obtener monto y student_id de la transacción
-      const { data: tx, error: fetchErr } = await supabase
+      let refundedAmount = 0;
+      let studentId: string | null = null;
+      let deletedFromHistory = false;
+      let deletedFromMembership = false;
+
+      // 1. Intentar buscar en payment_transactions_history
+      const { data: tx, error: fetchTxErr } = await supabase
         .from("payment_transactions_history")
         .select("student_id, amount_paid")
         .eq("id", transaction_id)
-        .single();
+        .maybeSingle();
 
-      if (fetchErr || !tx) {
+      if (tx) {
+        refundedAmount = Number(tx.amount_paid || 0);
+        studentId = tx.student_id;
+
+        const { error: delTxErr } = await supabase
+          .from("payment_transactions_history")
+          .delete()
+          .eq("id", transaction_id);
+
+        if (delTxErr) throw delTxErr;
+        deletedFromHistory = true;
+      }
+
+      // 2. Intentar buscar también en membership_payments (por si proviene de cuotas previas o sincronizadas)
+      const { data: mem, error: fetchMemErr } = await supabase
+        .from("membership_payments")
+        .select("student_id, amount")
+        .eq("id", transaction_id)
+        .maybeSingle();
+
+      if (mem) {
+        if (!refundedAmount) {
+          refundedAmount = Number(mem.amount || 0);
+        }
+        if (!studentId) {
+          studentId = mem.student_id;
+        }
+
+        const { error: delMemErr } = await supabase
+          .from("membership_payments")
+          .delete()
+          .eq("id", transaction_id);
+
+        if (delMemErr) throw delMemErr;
+        deletedFromMembership = true;
+      }
+
+      if (!deletedFromHistory && !deletedFromMembership) {
         return NextResponse.json(
-          { error: "Transacción no encontrada." },
+          { error: "Cobro no localizado en los registros financieros." },
           { status: 404 }
         );
       }
 
-      const refundedAmount = Number(tx.amount_paid || 0);
-      const studentId = tx.student_id;
-
-      // Borrar la fila de payment_transactions_history
-      const { error: delErr } = await supabase
-        .from("payment_transactions_history")
-        .delete()
-        .eq("id", transaction_id);
-
-      if (delErr) throw delErr;
-
-      // Restituir el monto eliminado sumándolo nuevamente a profiles.current_debt_amount
-      if (studentId) {
+      // Restituir el monto eliminado sumándolo nuevamente a profiles.current_debt_amount si corresponde
+      if (studentId && refundedAmount > 0) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("current_debt_amount")
           .eq("id", studentId)
-          .single();
+          .maybeSingle();
 
         const currentDebt = Number(profile?.current_debt_amount || 0);
         const restoredDebt = currentDebt + refundedAmount;
@@ -597,8 +644,10 @@ export async function DELETE(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message:
-          "Transacción eliminada con éxito. Monto restituido al adeudo del alumno.",
+        message: "Cobro erróneo eliminado con éxito. Balance y deuda recalculados en tiempo real.",
+        deleted_id: transaction_id,
+        refunded_amount: refundedAmount,
+        student_id: studentId,
       });
     }
 

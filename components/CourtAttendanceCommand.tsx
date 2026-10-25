@@ -142,12 +142,26 @@ export default function CourtAttendanceCommand() {
 
   const loadRoster = useCallback(async () => {
     try {
-      // 1. Intentar cargar desde Supabase si hay conexión
+      // 1. Intentar cargar desde Supabase si hay conexión con timeout de protección
       if (typeof window !== "undefined" && navigator.onLine) {
-        const { data: profiles } = await supabase
+        const fetchProfilesPromise = supabase
           .from("profiles")
           .select("*")
           .order("created_at", { ascending: false });
+
+        // Timeout de 3.5 segundos para no colgar la UI en canchas con baja señal celular
+        const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout de red en duela")), 3500)
+        );
+
+        let profiles: any[] | null = null;
+        try {
+          const res: any = await Promise.race([fetchProfilesPromise, timeoutPromise]);
+          profiles = res?.data || null;
+        } catch {
+          // Si timeout o red inestable, saltar de inmediato al caché local
+          profiles = null;
+        }
 
         if (profiles && profiles.length > 0) {
           const { data: comms } = await supabase

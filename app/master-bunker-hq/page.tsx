@@ -429,6 +429,8 @@ export default function MasterBunkerHQ() {
     };
 
     window.addEventListener("payment_recorded", handleRefresh);
+    window.addEventListener("payment_deleted", handleRefresh);
+    window.addEventListener("attendance_updated", handleRefresh);
     window.addEventListener("offline_queue_synced", handleRefresh);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -450,6 +452,8 @@ export default function MasterBunkerHQ() {
 
     return () => {
       window.removeEventListener("payment_recorded", handleRefresh);
+      window.removeEventListener("payment_deleted", handleRefresh);
+      window.removeEventListener("attendance_updated", handleRefresh);
       window.removeEventListener("offline_queue_synced", handleRefresh);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
@@ -965,17 +969,35 @@ export default function MasterBunkerHQ() {
                             </button>
                             <button
                               type="button"
-                              title="Eliminar Pago"
-                              onClick={() => {
-                                setAdminAdjustInitialData({
-                                  type: "payment",
-                                  transaction_id: p.id,
-                                  student_id: p.student_id,
-                                  student_name: p.profiles?.full_name || p.student_name,
-                                  date: p.payment_date,
-                                  amount: p.amount,
-                                });
-                                setAdminAdjustModalOpen(true);
+                              title="Eliminar Pago Inmediato"
+                              onClick={async () => {
+                                if (!confirm(`⚠️ ¿Eliminar inmediatamente el pago de $${p.amount} de ${p.profiles?.full_name || p.student_name || "este alumno"}?`)) return;
+                                // Optimista
+                                setPayments(prev => prev.filter(item => item.id !== p.id));
+                                try {
+                                  const adminSecret = localStorage.getItem("ww_superadmin_secret") || localStorage.getItem("ww_user_role") || "WW-SUPERADMIN-FULL-2026";
+                                  const adminEmail = localStorage.getItem("ww_user_email") || "wildwolvescdmx@gmail.com";
+                                  const res = await fetch("/api/admin/attendance-finance-manage", {
+                                    method: "DELETE",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                      "x-admin-secret": adminSecret,
+                                      "x-admin-email": adminEmail,
+                                    },
+                                    body: JSON.stringify({
+                                      action: "DELETE_PAYMENT",
+                                      transaction_id: p.id,
+                                    }),
+                                  });
+                                  if (!res.ok) {
+                                    const errData = await res.json();
+                                    throw new Error(errData.error || "Fallo al eliminar pago.");
+                                  }
+                                  fetchDashboardData();
+                                } catch (err: any) {
+                                  alert(err.message || "Error al eliminar pago.");
+                                  fetchDashboardData();
+                                }
                               }}
                               className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-200 transition cursor-pointer"
                             >

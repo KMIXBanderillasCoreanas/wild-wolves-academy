@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { openLocalDB, saveLocalAthletes, getLocalAthletes, queueOfflineAction as idbQueueAction, getPendingQueue as idbGetQueue, removeQueueItem as idbRemoveItem } from "./offline/db";
 
 export type OfflineActionType = 
   | "ATTENDANCE" 
@@ -9,7 +10,8 @@ export type OfflineActionType =
   | "BASKETBALL_LOG" 
   | "DETAILED_TEST"
   | "PROFILE_FINANCIAL_UPDATE"
-  | "PAYMENT_TRANSACTION";
+  | "PAYMENT_TRANSACTION"
+  | "PROSPECT_STUDENT";
 
 export interface PendingAction {
   id: string;
@@ -28,13 +30,13 @@ const CACHED_STUDENTS_KEY = "wild_wolves_cached_students";
 const LEGACY_QUEUE_KEY = "wildwolves_offline_queue";
 const LEGACY_CACHE_KEY = "wildwolves_cached_roster";
 
-// Generador de UUID seguro con compatibilidad para entornos móviles
+// Generador de UUID seguro con compatibilidad total para iOS, Android y Navegadores
 export const generateUUID = (): string => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     try {
       return crypto.randomUUID();
     } catch {
-      // Fallback si no está en contexto seguro
+      // Fallback
     }
   }
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -44,13 +46,15 @@ export const generateUUID = (): string => {
   });
 };
 
-// 1. Snapshot y Caché Local de Alumnos (Dual Keys para compatibilidad)
+// 1. Snapshot y Caché Local de Alumnos (Doble capa: IndexedDB + LocalStorage)
 export const cacheRosterLocally = (rosterData: any[]) => {
   if (typeof window === "undefined") return;
   try {
     const serialized = JSON.stringify(rosterData || []);
     localStorage.setItem(CACHED_STUDENTS_KEY, serialized);
     localStorage.setItem(LEGACY_CACHE_KEY, serialized);
+    // Sincronizar también con IndexedDB de forma no bloqueante
+    saveLocalAthletes(rosterData || []).catch(() => {});
   } catch (err) {
     console.warn("Error al guardar snapshot de atletas:", err);
   }
@@ -60,10 +64,14 @@ export const getCachedRoster = (): any[] => {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(CACHED_STUDENTS_KEY) || localStorage.getItem(LEGACY_CACHE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
   } catch {
-    return [];
+    // Continuar a fallback
   }
+  return [];
 };
 
 // 2. Manejo de Cola Desconectada
@@ -103,12 +111,13 @@ export const enqueueOfflineAction = (
     const actionId = payload.id || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const actionTable = table || (
       type === "ATTENDANCE" ? "daily_attendance" :
-      type === "PAYMENT" ? "membership_payments" :
+      type === "PAYMENT" ? "payment_transactions_history" :
       type === "PAYMENT_TRANSACTION" ? "payment_transactions_history" :
       type === "BASELINE" ? "student_initial_baseline" :
       type === "PHYSICAL_LOG" ? "physical_training_logs" :
       type === "BASKETBALL_LOG" ? "basketball_skills_logs" :
       type === "DETAILED_TEST" ? "detailed_test_records" :
+      type === "PROSPECT_STUDENT" ? "prospect_athletes" :
       type === "PROFILE_FINANCIAL_UPDATE" ? "profiles" : "daily_attendance"
     );
 
@@ -129,6 +138,13 @@ export const enqueueOfflineAction = (
     localStorage.setItem(WW_QUEUE_KEY, serialized);
     localStorage.setItem(QUEUE_KEY, serialized);
     localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
+
+    // Espejo en IndexedDB para máxima redundancia
+    idbQueueAction({
+      type: type as any,
+      table: actionTable,
+      payload: newAction.payload,
+    }).catch(() => {});
 
     window.dispatchEvent(new CustomEvent("offline_queue_updated", { detail: { count: queue.length } }));
     return newAction;
@@ -164,16 +180,8 @@ export const syncOfflineQueueToSupabase = async (
         );
         if (error) throw error;
         syncedCount++;
-      } else if (item.type === "PAYMENT") {
-        const { error } = await supabase.from("membership_payments").upsert(
-          item.payload,
-          { onConflict: "id" }
-        );
-        if (error) throw error;
-        syncedCount++;
-        hasPaymentSynced = true;
-      } else if (item.type === "PAYMENT_TRANSACTION") {
-        // Sanear campos para la tabla payment_transactions_history
+      } else if (item.type === "PAYMENT" || item.type === "PAYMENT_TRANSACTION") {
+        // Inserción blindada en payment_transactions_history
         const { notes, amount, ...cleanTx } = item.payload;
         const insertTx = {
           student_id: cleanTx.student_id,
@@ -212,6 +220,13 @@ export const syncOfflineQueueToSupabase = async (
         const { error } = await supabase.from("detailed_test_records").upsert(
           item.payload,
           { onConflict: "student_id,evaluation_date" }
+        );
+        if (error) throw error;
+        syncedCount++;
+      } else if (item.type === "PROSPECT_STUDENT") {
+        const { error } = await supabase.from("prospect_athletes").upsert(
+          item.payload,
+          { onConflict: "athlete_full_name" }
         );
         if (error) throw error;
         syncedCount++;
@@ -258,6 +273,7 @@ export const syncOfflineQueueToSupabase = async (
     if (hasPaymentSynced) {
       window.dispatchEvent(new Event("payment_recorded"));
     }
+    window.dispatchEvent(new Event("attendance_updated"));
   }
 
   return { synced: syncedCount, failed: failedCount };

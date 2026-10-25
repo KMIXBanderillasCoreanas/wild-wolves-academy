@@ -28,6 +28,8 @@ interface Athlete {
   full_name: string;
   email: string;
   role: string;
+  account_category?: string;
+  user_type?: string;
   current_debt_amount: number;
   financial_status: string;
   is_provisional?: boolean;
@@ -77,6 +79,10 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
 
   // Modal para configuración de atleta individual
   const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
+  const [athleteFullName, setAthleteFullName] = useState<string>("");
+  const [athleteRole, setAthleteRole] = useState<string>("student");
+  const [athleteUserType, setAthleteUserType] = useState<string>("alumno");
+  const [athleteAccountCategory, setAthleteAccountCategory] = useState<string>("student");
   const [athleteScholarship, setAthleteScholarship] = useState<number>(0);
   const [athleteCost, setAthleteCost] = useState<number>(50);
   const [athleteDebt, setAthleteDebt] = useState<number>(0);
@@ -172,9 +178,28 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
     }
   };
 
-  // Eliminar Pago Inline
+  // Eliminar Pago Inline con Optimismo Inmediato
   const handleDeleteTx = async (txId: string) => {
     if (!confirm("⚠️ ¿Eliminar este pago y restituir el monto al adeudo del alumno?")) return;
+
+    // Actualización optimista inmediata en UI
+    const txToDelete = transactions.find((t) => t.id === txId);
+    setTransactions((prev) => prev.filter((t) => t.id !== txId));
+    if (txToDelete) {
+      setAthletes((prev) =>
+        prev.map((a) => {
+          if (a.id === txToDelete.student_id) {
+            const newDebt = (a.current_debt_amount || 0) + (txToDelete.amount_paid || 0);
+            return {
+              ...a,
+              current_debt_amount: newDebt,
+              financial_status: newDebt > 0 ? "adeudo_pendiente" : "al_corriente",
+            };
+          }
+          return a;
+        })
+      );
+    }
 
     try {
       const res = await fetch("/api/admin/attendance-finance-manage", {
@@ -189,13 +214,15 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Fallo al eliminar pago.");
 
-      showToast("success", "Pago eliminado y adeudo restituido.");
+      showToast("success", "Pago eliminado y adeudo recalculado al instante.");
       await loadOmniData();
       onDataChanged();
       window.dispatchEvent(new Event("payment_recorded"));
+      window.dispatchEvent(new Event("payment_deleted"));
       window.dispatchEvent(new CustomEvent("change-bunker-tab", { detail: "finanzas" }));
     } catch (err: any) {
       showToast("error", err.message || "Error al eliminar pago.");
+      await loadOmniData(); // Revertir si falló
     }
   };
 
@@ -253,7 +280,7 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
     }
   };
 
-  // Guardar Configuración de Atleta (Beca & Costo por Clase)
+  // Guardar Configuración de Atleta (Beca, Costo por Clase y Rol: Alumno vs Tutor)
   const handleSaveAthleteConfig = async () => {
     if (!editingAthlete) return;
     setSavingConfig(true);
@@ -265,6 +292,10 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
         body: JSON.stringify({
           action: "UPDATE_ATHLETE_CONFIG",
           student_id: editingAthlete.id,
+          full_name: athleteFullName,
+          role: athleteRole,
+          user_type: athleteUserType,
+          account_category: athleteAccountCategory,
           scholarship_percentage: athleteScholarship,
           default_class_cost: athleteCost,
           current_debt_amount: athleteDebt,
@@ -275,10 +306,11 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Fallo al actualizar atleta.");
 
-      showToast("success", `✅ Configuración guardada para ${editingAthlete.full_name}`);
+      showToast("success", `✅ Configuración y rol guardados para ${athleteFullName || editingAthlete.full_name}`);
       setEditingAthlete(null);
       await loadOmniData();
       onDataChanged();
+      window.dispatchEvent(new Event("attendance_updated"));
     } catch (err: any) {
       showToast("error", err.message || "Error al guardar configuración.");
     } finally {
@@ -691,6 +723,10 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
                     <button
                       onClick={() => {
                         setEditingAthlete(ath);
+                        setAthleteFullName(ath.full_name || "");
+                        setAthleteRole(ath.role || "student");
+                        setAthleteUserType(ath.user_type || (ath.role === "guardian" || ath.role === "parent" ? "tutor" : "alumno"));
+                        setAthleteAccountCategory(ath.account_category || (ath.role === "guardian" || ath.role === "parent" ? "guardian_family" : "student"));
                         setAthleteScholarship(scholarship);
                         setAthleteCost(cost);
                         setAthleteDebt(ath.current_debt_amount || 0);
@@ -698,7 +734,7 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
                       }}
                       className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500 hover:text-black text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                     >
-                      <Sliders className="w-3 h-3" /> Ajustar
+                      <Sliders className="w-3 h-3" /> Ajustar Rol & Beca
                     </button>
                   </div>
 
@@ -745,6 +781,64 @@ export default function SuperAdminOmniManager({ onDataChanged, initialSubTab = "
             </div>
 
             <div className="space-y-4 text-xs">
+              {/* Nombre Completo */}
+              <div>
+                <label className="text-[11px] font-mono text-zinc-400 uppercase font-bold block mb-1">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  value={athleteFullName}
+                  onChange={(e) => setAthleteFullName(e.target.value)}
+                  className="w-full bg-[#121724] border border-zinc-800 rounded-xl py-2 px-3 text-xs text-white font-bold"
+                />
+              </div>
+
+              {/* TIPO DE CUENTA: ALUMNO VS PADRE/TUTOR */}
+              <div className="p-3 rounded-2xl bg-[#121724] border border-amber-500/30 space-y-2">
+                <label className="text-[11px] font-mono text-amber-400 uppercase font-bold flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5" /> Rol y Clasificación de Usuario
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAthleteRole("student");
+                      setAthleteUserType("alumno");
+                      setAthleteAccountCategory("student");
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition border cursor-pointer ${
+                      athleteRole === "student" && athleteUserType !== "tutor"
+                        ? "bg-emerald-600 text-white border-emerald-500 shadow-md"
+                        : "bg-[#0b0e14] text-zinc-400 border-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    🏀 Alumno / Atleta
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAthleteRole("guardian");
+                      setAthleteUserType("tutor");
+                      setAthleteAccountCategory("guardian_family");
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition border cursor-pointer ${
+                      athleteRole === "guardian" || athleteRole === "parent" || athleteUserType === "tutor"
+                        ? "bg-purple-600 text-white border-purple-500 shadow-md"
+                        : "bg-[#0b0e14] text-zinc-400 border-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    👨‍👩‍👧 Padre / Tutor
+                  </button>
+                </div>
+                <p className="text-[10px] text-zinc-400">
+                  {athleteRole === "guardian" || athleteUserType === "tutor"
+                    ? "✓ Marcado como Tutor legal. No aparecerá en el pase de lista de cancha ni en métricas de atletas."
+                    : "✓ Marcado como Atleta. Aparece en el Roster de duela, pase de lista y Combine."}
+                </p>
+              </div>
+
               {/* Beca % */}
               <div>
                 <div className="flex items-center justify-between mb-1">
