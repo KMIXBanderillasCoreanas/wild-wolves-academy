@@ -32,8 +32,10 @@ import {
   Send,
   Share2,
   UserPlus,
-  Zap
+  Zap,
+  Target
 } from "lucide-react";
+import SportsTestExpressModal from "@/components/SportsTestExpressModal";
 import { queueOfflineAction, saveLocalAthletes } from "@/lib/offline/db";
 import ManageStudentFinanceModal, { 
   StudentFinanceData, 
@@ -120,6 +122,9 @@ export default function CourtAttendanceCommand() {
 
   // Modal táctil de finanzas y horarios
   const [selectedStudentForFinance, setSelectedStudentForFinance] = useState<StudentRosterItem | null>(null);
+
+  // Modal para Pruebas Deportivas Express en Cancha (Tiro & Velocidad)
+  const [selectedAthleteForSportsTest, setSelectedAthleteForSportsTest] = useState<StudentRosterItem | null>(null);
 
   // Modal de Registro Rápido en Cancha [+ Nuevo Atleta en Cancha] (Caso Osmar López)
   const [isFastAthleteModalOpen, setIsFastAthleteModalOpen] = useState<boolean>(false);
@@ -1366,6 +1371,16 @@ export default function CourtAttendanceCommand() {
                   >
                     <CreditCard className="w-4 h-4" />
                   </button>
+                  {/* Botón de Pruebas Deportivas (Tiro & Velocidad) */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAthleteForSportsTest(st)}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-[11px] font-bold transition active:scale-95 cursor-pointer shadow-sm"
+                    title="Evaluar Pruebas Deportivas (Tiro 20 TL, Velocidad 100m, T-Test)"
+                  >
+                    <Target className="w-3.5 h-3.5 text-purple-400" />
+                    <span>🎯 Pruebas Deportivas (Tiro & Velocidad)</span>
+                  </button>
                 </div>
 
                 {/* Botón de agregar a la cancha si no está programado hoy en este turno */}
@@ -1446,6 +1461,21 @@ export default function CourtAttendanceCommand() {
       </section>
 
       {/* 5. MODAL TÁCTIL: COBRO RÁPIDO EN CANCHA AL FINALIZAR CLASE */}
+      {selectedAthleteForSportsTest && (
+        <SportsTestExpressModal
+          athlete={{
+            id: selectedAthleteForSportsTest.id,
+            full_name: selectedAthleteForSportsTest.full_name,
+            category: selectedAthleteForSportsTest.category || "U-15",
+          }}
+          onClose={() => setSelectedAthleteForSportsTest(null)}
+          onSaved={() => {
+            setInstantSaveToast(`🎯 Pruebas guardadas para ${selectedAthleteForSportsTest.full_name}`);
+            setTimeout(() => setInstantSaveToast(null), 3000);
+            setSelectedAthleteForSportsTest(null);
+          }}
+        />
+      )}
       {selectedAthleteForQuickPay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="bg-[#121724] border border-zinc-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative">
