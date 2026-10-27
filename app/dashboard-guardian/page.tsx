@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
+import LoboProModal from "@/components/LoboProModal";
 import { 
   Users, 
   User, 
@@ -35,6 +36,7 @@ export default function GuardianDashboardPage() {
   const [badges, setBadges] = useState<any[]>([]);
   const [homeLogs, setHomeLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showProModal, setShowProModal] = useState<boolean>(false);
 
   useEffect(() => {
     loadGuardianData();
@@ -465,7 +467,46 @@ export default function GuardianDashboardPage() {
           </div>
         )}
 
+        {/* BANNER PROMOCIONAL FREEMIUM DE ENTRENADOR IA PARA PADRES */}
+        <div className="bg-gradient-to-r from-orange-950/40 via-[#16121e] to-[#0d1017] border border-orange-500/40 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                  Prueba Gratuita Incluida
+                </span>
+                <span className="text-[10px] font-mono font-bold text-zinc-400">
+                  15 análisis de video al mes
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-black uppercase text-white mt-0.5">
+                Entrenador Asistente IA para {studentName}
+              </h3>
+              <p className="text-xs text-zinc-300 mt-1 max-w-xl">
+                Tu hijo tiene acceso a corrección de postura en tiempo real por cámara y conteo de saltos de cuerda. Si deseas reportes detallados y análisis ilimitado, puedes activar el Pack Lobo Pro.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowProModal(true)}
+            className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-400 text-black font-black text-xs uppercase tracking-wider shadow-lg hover:scale-105 transition cursor-pointer shrink-0"
+          >
+            Conocer Pack Lobo Pro
+          </button>
+        </div>
+
       </main>
+
+      {/* MODAL PRO FAMILIAR */}
+      <LoboProModal
+        isOpen={showProModal}
+        onClose={() => setShowProModal(false)}
+        studentName={studentName}
+      />
 
       {/* FOOTER */}
       <footer className="border-t border-zinc-800/80 py-4 px-4 text-center text-[10px] font-mono text-zinc-500">

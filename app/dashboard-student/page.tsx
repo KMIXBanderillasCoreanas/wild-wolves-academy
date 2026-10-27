@@ -12,6 +12,7 @@ import { RadarChart360 } from "@/components/RadarChart360";
 import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import LoboProModal from "@/components/LoboProModal";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
+import VisionAssistantModal from "@/components/VisionAssistantModal";
 import {
   Camera,
   ExternalLink,
@@ -408,6 +409,7 @@ export default function StudentDashboardPage() {
   const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
   const [showLoboProModal, setShowLoboProModal] = useState(false);
+  const [showVisionModal, setShowVisionModal] = useState(false);
   const [earnedBadges, setEarnedBadges] = useState<any[]>([]);
   const [selectedBadgeModal, setSelectedBadgeModal] = useState<any | null>(null);
 
@@ -1321,6 +1323,14 @@ export default function StudentDashboardPage() {
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-surface-container-high text-secondary border border-secondary/30">
                       {profile?.position || "FORMATIVO"}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowVisionModal(true)}
+                      className="text-[10px] font-black px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Camera className="w-3 h-3 text-white" />
+                      <span>ENTRENADOR ASISTENTE IA</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setShowLoboProModal(true)}
@@ -2357,6 +2367,15 @@ export default function StudentDashboardPage() {
         onActivated={(plan) => {
           setProfile((prev: any) => ({ ...prev, ai_plan: plan }));
         }}
+      />
+
+      {/* MODAL DE VISIÓN ASISTENTE IA EN TIEMPO REAL */}
+      <VisionAssistantModal
+        isOpen={showVisionModal}
+        onClose={() => setShowVisionModal(false)}
+        studentId={profile?.id}
+        studentName={profile?.full_name}
+        isProSubscriber={profile?.ai_plan === "pro" || profile?.ai_plan === "elite_familiar"}
       />
 
     </div>
