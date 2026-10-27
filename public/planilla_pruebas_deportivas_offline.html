@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planilla Offline de Pruebas Deportivas • Wild Wolves CDMX</title>
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: #0f131d;
+      --card-inner: #151926;
+      --border: #27272a;
+      --orange: #f66018;
+      --amber: #f59e0b;
+      --blue: #38bdf8;
+      --emerald: #10b981;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 16px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+    }
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(246, 96, 24, 0.2);
+      border: 1px solid var(--orange);
+      color: #ff8a4c;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+    h1 { font-size: 22px; font-weight: 900; text-transform: uppercase; margin-top: 4px; }
+    .status-pill {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--emerald);
+      color: #6ee7b7;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 800;
+      font-family: monospace;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--orange);
+      letter-spacing: 0.5px;
+      margin: 20px 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .form-group { margin-bottom: 14px; }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--orange);
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .spot-card {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+    .spot-card span {
+      display: block;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .spot-card input {
+      text-align: center;
+      font-size: 16px;
+      font-family: monospace;
+      padding: 6px 4px;
+    }
+    .btn-save {
+      width: 100%;
+      background: linear-gradient(135deg, var(--orange), #c2410c);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      margin-top: 24px;
+      box-shadow: 0 10px 20px rgba(246, 96, 24, 0.3);
+      transition: transform 0.1s, filter 0.2s;
+    }
+    .btn-save:active { transform: scale(0.98); }
+    .btn-export {
+      width: 100%;
+      background: var(--card-inner);
+      color: #6ee7b7;
+      border: 1px solid var(--emerald);
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .history-card {
+      background: #0a0c13;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .toast {
+      display: none;
+      background: var(--emerald);
+      color: black;
+      font-weight: 800;
+      text-align: center;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <div id="successToast" class="toast">
+      ✓ Prueba deportiva guardada en la memoria interna del teléfono. Lista para sincronizar al tener internet.
+    </div>
+
+    <div class="header">
+      <div>
+        <span class="badge">Wild Wolves CDMX • Modo Cancha Offline</span>
+        <h1>Registro de Pruebas Deportivas</h1>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Sede: Deportivo Carmen Serdán • Funciona 100% sin internet
+        </p>
+      </div>
+      <div class="status-pill" id="offlineCounter">
+        Cola: 0 Pruebas
+      </div>
+    </div>
+
+    <!-- DATOS DEL ATLETA -->
+    <div class="section-title">1. Datos del Alumno / Atleta</div>
+    
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Nombre Completo del Atleta</label>
+        <input type="text" id="athleteName" placeholder="Ej. Bruno Díaz" value="Bruno Díaz" required>
+      </div>
+      <div class="form-group">
+        <label>Dorsal / Jersey #</label>
+        <input type="number" id="jerseyNumber" placeholder="Ej. 11" value="11">
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="form-group">
+        <label>Edad (Años)</label>
+        <input type="number" id="athleteAge" value="15">
+      </div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <select id="athleteCategory">
+          <option value="U-15 FORMATIVO (12-14 AÑOS)">U-15 Formativo</option>
+          <option value="U-17 COMPETITIVO (15-16 AÑOS)" selected>U-17 Competitivo</option>
+          <option value="U-20 JUVENIL / ÉLITE (17-19 AÑOS)">U-20 Élite</option>
+          <option value="ADULTOS LIBRES (+20 AÑOS)">Adultos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fecha de la Prueba</label>
+        <input type="date" id="testDate">
+      </div>
+    </div>
+
+    <!-- BATERÍA DE TIRO (55 LANZAMIENTOS) -->
+    <div class="section-title">2. Batería de Tiro Oficial (Calibración Cancha)</div>
+
+    <div class="grid-3">
+      <div class="form-group">
+        <label>Tiros Libres (De 10)</label>
+        <input type="number" id="freeThrows" min="0" max="10" placeholder="0 - 10" value="7">
+      </div>
+      <div class="form-group">
+        <label>Media Izquierda (De 10)</label>
+        <input type="number" id="midRangeLeft" min="0" max="10" placeholder="0 - 10" value="6">
+      </div>
+      <div class="form-group">
+        <label>Media Derecha (De 10)</label>
+        <input type="number" id="midRangeRight" min="0" max="10" placeholder="0 - 10" value="6">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Triples en 5 Spots (5 Tiros por posición = 25 Totales)</label>
+      <div class="grid-5">
+        <div class="spot-card">
+          <span>Esquina Izq</span>
+          <input type="number" id="spotCornerLeft" min="0" max="5" value="3">
+        </div>
+        <div class="spot-card">
+          <span>45° Izq</span>
+          <input type="number" id="spotWingLeft" min="0" max="5" value="3">
+        </div>
+        <div class="spot-card">
+          <span>Centro</span>
+          <input type="number" id="spotTopKey" min="0" max="5" value="4">
+        </div>
+        <div class="spot-card">
+          <span>45° Der</span>
+          <input type="number" id="spotWingRight" min="0" max="5" value="3">
+        </div>
+        <div class="spot-card">
+          <span>Esquina Der</span>
+          <input type="number" id="spotCornerRight" min="0" max="5" value="2">
+        </div>
+      </div>
+    </div>
+
+    <!-- PRUEBAS FÍSICAS Y VELOCIDAD DE DUELA -->
+    <div class="section-title">3. Pruebas Físicas de Duela & Agilidad</div>
+
+    <div class="grid-3">
+      <div class="form-group">
+        <label>Saltos de Cuerda (Mín 10)</label>
+        <input type="number" id="jumpRope" min="0" placeholder="Reps continuas" value="45">
+      </div>
+      <div class="form-group">
+        <label>Circuito Línea a Línea (s)</label>
+        <input type="number" id="circuitLines" step="0.1" placeholder="Segundos" value="22.5">
+      </div>
+      <div class="form-group">
+        <label>Sprint 100m Duela (s)</label>
+        <input type="number" id="sprint100m" step="0.1" placeholder="Segundos" value="13.9">
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Salto Vertical Estimado (cm)</label>
+        <input type="number" id="verticalJump" placeholder="Ej. 45" value="45">
+      </div>
+      <div class="form-group">
+        <label>Batería 3x25 Sentadillas</label>
+        <select id="squatsDone">
+          <option value="true" selected>Completada (Profundidad 90°)</option>
+          <option value="false">En desarrollo (Incompleta)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Observaciones del Head Coach Ricardo</label>
+      <textarea id="coachNotes" rows="2" placeholder="Detalles de postura, aceleración o recomendaciones...">Mecánica fluida en suspensión. Buena parábola de tiro en libres y velocidad de reacción en el circuito de líneas.</textarea>
+    </div>
+
+    <button type="button" class="btn-save" onclick="saveOfflineRecord()">
+      💾 Guardar Registro en Memoria del Teléfono
+    </button>
+
+    <button type="button" class="btn-export" onclick="exportDataToApp()">
+      📲 Descargar Archivo de Sincronización (.json)
+    </button>
+
+    <!-- HISTORIAL LOCAL GUARDADO -->
+    <div style="margin-top: 24px;">
+      <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">
+        Pruebas Guardadas en este Dispositivo:
+      </div>
+      <div id="recordsList"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // Fecha de hoy por defecto
+    document.getElementById("testDate").value = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
+
+    const STORAGE_KEY = "ww_offline_sports_tests";
+
+    function getLocalRecords() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function updateCounter() {
+      const records = getLocalRecords();
+      document.getElementById("offlineCounter").innerText = "Memoria: " + records.length + " pruebas";
+      renderList();
+    }
+
+    function renderList() {
+      const records = getLocalRecords();
+      const listEl = document.getElementById("recordsList");
+      if (records.length === 0) {
+        listEl.innerHTML = '<p style="font-size: 12px; color: #52525b; margin-top: 6px;">No hay registros pendientes en este dispositivo.</p>';
+        return;
+      }
+
+      listEl.innerHTML = records.map((r, idx) => `
+        <div class="history-card">
+          <div>
+            <b style="color: white;">${r.athlete_name}</b> (#${r.jersey_number || '--'})
+            <span style="color: var(--text-muted); display: block; font-size: 11px;">
+              ${r.evaluation_date} • Libres: ${r.free_throws_made}/10 • Triples: ${r.three_point_made}/25 • Cuerda: ${r.jump_rope_count}s
+            </span>
+          </div>
+          <button onclick="deleteRecord(${idx})" style="background: none; border: 1px solid #71717a; color: #a1a1aa; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;">
+            Borrar
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function saveOfflineRecord() {
+      const name = document.getElementById("athleteName").value.trim();
+      if (!name) {
+        alert("Por favor escribe el nombre del atleta.");
+        return;
+      }
+
+      const ft = parseInt(document.getElementById("freeThrows").value) || 0;
+      const ml = parseInt(document.getElementById("midRangeLeft").value) || 0;
+      const mr = parseInt(document.getElementById("midRangeRight").value) || 0;
+      const cLeft = parseInt(document.getElementById("spotCornerLeft").value) || 0;
+      const wLeft = parseInt(document.getElementById("spotWingLeft").value) || 0;
+      const topK = parseInt(document.getElementById("spotTopKey").value) || 0;
+      const wRight = parseInt(document.getElementById("spotWingRight").value) || 0;
+      const cRight = parseInt(document.getElementById("spotCornerRight").value) || 0;
+      const threesTotal = cLeft + wLeft + topK + wRight + cRight;
+
+      // Cálculo de OVR estimado estilo Wild Wolves
+      const shootingScore = Math.min(100, Math.round(((ft + ml + mr + threesTotal) / 55) * 100));
+      const overallOvr = Math.max(50, Math.min(99, Math.round(shootingScore * 0.7 + 25)));
+
+      const newRecord = {
+        id: "offline_test_" + Date.now(),
+        athlete_name: name,
+        jersey_number: parseInt(document.getElementById("jerseyNumber").value) || 11,
+        age: parseInt(document.getElementById("athleteAge").value) || 15,
+        category: document.getElementById("athleteCategory").value,
+        evaluation_date: document.getElementById("testDate").value,
+        overall_ovr: overallOvr,
+        free_throws_made: ft,
+        mid_range_made: ml + mr,
+        mid_range_left_made: ml,
+        mid_range_right_made: mr,
+        three_point_made: threesTotal,
+        spot_corner_left: cLeft,
+        spot_wing_left: wLeft,
+        spot_top_key: topK,
+        spot_wing_right: wRight,
+        spot_corner_right: cRight,
+        jump_rope_count: parseInt(document.getElementById("jumpRope").value) || 0,
+        lines_round_trip_seconds: parseFloat(document.getElementById("circuitLines").value) || null,
+        sprint_100m_seconds: parseFloat(document.getElementById("sprint100m").value) || null,
+        vertical_jump_cm: parseInt(document.getElementById("verticalJump").value) || 45,
+        squats_3x25_done: document.getElementById("squatsDone").value === "true",
+        coach_feedback: document.getElementById("coachNotes").value,
+        saved_at: new Date().toISOString()
+      };
+
+      const records = getLocalRecords();
+      records.unshift(newRecord);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+
+      // Sincronizar también con la cola del Búnker para que la app principal lo absorba directamente
+      try {
+        const bunkerQueueKey = "ww_offline_queue";
+        const currentBunkerQueue = JSON.parse(localStorage.getItem(bunkerQueueKey) || "[]");
+        currentBunkerQueue.push({
+          id: newRecord.id,
+          type: "DETAILED_TEST",
+          table: "detailed_test_records",
+          payload: {
+            student_id: "00000000-0000-0000-0000-000000000000", // placeholder o link por nombre
+            athlete_full_name: newRecord.athlete_name,
+            evaluation_date: newRecord.evaluation_date,
+            overall_ovr: newRecord.overall_ovr,
+            free_throws_made: newRecord.free_throws_made,
+            mid_range_made: newRecord.mid_range_made,
+            three_point_made: newRecord.three_point_made,
+            spot_corner_left: newRecord.spot_corner_left,
+            spot_wing_left: newRecord.spot_wing_left,
+            spot_top_key: newRecord.spot_top_key,
+            spot_wing_right: newRecord.spot_wing_right,
+            spot_corner_right: newRecord.spot_corner_right,
+            jump_rope_count: newRecord.jump_rope_count,
+            lines_round_trip_seconds: newRecord.lines_round_trip_seconds,
+            sprint_100m_seconds: newRecord.sprint_100m_seconds,
+            vertical_jump_cm: newRecord.vertical_jump_cm,
+            coach_feedback: newRecord.coach_feedback
+          }
+        });
+        localStorage.setItem(bunkerQueueKey, JSON.stringify(currentBunkerQueue));
+      } catch (e) {
+        console.warn("Bunker link:", e);
+      }
+
+      updateCounter();
+
+      const toast = document.getElementById("successToast");
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 4000);
+    }
+
+    function deleteRecord(index) {
+      const records = getLocalRecords();
+      records.splice(index, 1);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      updateCounter();
+    }
+
+    function exportDataToApp() {
+      const records = getLocalRecords();
+      if (records.length === 0) {
+        alert("No hay registros para exportar. Guarda al menos una prueba primero.");
+        return;
+      }
+
+      const jsonStr = JSON.stringify(records, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Pruebas_Deportivas_WildWolves_" + new Date().toISOString().slice(0, 10) + ".json";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    // Inicializar lista
+    updateCounter();
+  </script>
+</body>
+</html>
