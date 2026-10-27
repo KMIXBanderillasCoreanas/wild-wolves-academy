@@ -26,7 +26,8 @@ import {
   ExternalLink,
   ChevronRight,
   Flame,
-  Sparkles
+  Sparkles,
+  Download
 } from "lucide-react";
 
 export default function GuardianDashboardPage() {
