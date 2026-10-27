@@ -665,6 +665,40 @@ export default function StudentDashboardPage() {
               ...detailedData,
               isReal: true
             }));
+          } else if (typeof window !== "undefined") {
+            // FALLBACK LOCAL: Si se guardó en la planilla offline o en la memoria local
+            const localTests = JSON.parse(localStorage.getItem("ww_offline_sports_tests") || "[]");
+            if (localTests.length > 0) {
+              const matched = localTests.find((t: any) => 
+                (effectiveName && t.athlete_name && t.athlete_name.toLowerCase().includes(effectiveName.toLowerCase().split(" ")[0])) ||
+                (t.athlete_name && t.athlete_name.toLowerCase().includes("bruno"))
+              ) || localTests[0];
+
+              if (matched) {
+                setEvaluation((prev: any) => ({
+                  ...prev,
+                  ...matched,
+                  isReal: true
+                }));
+                setCurrentPerformance((prev: any) => ({
+                  ...prev,
+                  free_throws_made: matched.free_throws_made,
+                  mid_range_made: matched.mid_range_made,
+                  three_point_made: matched.three_point_made,
+                  spot_corner_left: matched.spot_corner_left,
+                  spot_wing_left: matched.spot_wing_left,
+                  spot_top_key: matched.spot_top_key,
+                  spot_wing_right: matched.spot_wing_right,
+                  spot_corner_right: matched.spot_corner_right,
+                  jump_rope_count: matched.jump_rope_count,
+                  sprint_100m_seconds: matched.sprint_100m_seconds,
+                  lines_round_trip_seconds: matched.lines_round_trip_seconds,
+                  vertical_jump_cm: matched.vertical_jump_cm,
+                  coach_notes: matched.coach_feedback,
+                  isReal: true
+                }));
+              }
+            }
           }
 
           // E) Consultar Medallas Ganadas

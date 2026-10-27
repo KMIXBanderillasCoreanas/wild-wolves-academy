@@ -125,7 +125,16 @@ export default function GuardianDashboardPage() {
           .order("evaluation_date", { ascending: false })
           .limit(1)
           .maybeSingle();
-        setLatestTest(test);
+        
+        if (test) {
+          setLatestTest(test);
+        } else if (typeof window !== "undefined") {
+          // Fallback memoria local offline
+          const localTests = JSON.parse(localStorage.getItem("ww_offline_sports_tests") || "[]");
+          if (localTests.length > 0) {
+            setLatestTest(localTests[0]);
+          }
+        }
 
         // Medallas
         const { data: bData } = await supabase
