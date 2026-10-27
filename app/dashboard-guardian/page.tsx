@@ -479,14 +479,14 @@ export default function GuardianDashboardPage() {
                   Próximamente • En Pruebas de Duela
                 </span>
                 <span className="text-[10px] font-mono font-bold text-zinc-400">
-                  10 análisis de cortesía al mes
+                  3 informes completos de cortesía al mes
                 </span>
               </div>
               <h3 className="text-sm sm:text-base font-black uppercase text-white mt-0.5">
                 Entrenador Asistente IA (Visión por Computadora)
               </h3>
               <p className="text-xs text-zinc-300 mt-1 max-w-xl">
-                Estamos concluyendo la calibración en cancha de Carmen Serdán. Cada alumno contará con 10 análisis automáticos de tiro y cuerda al mes. Cuando esté completamente listo, las familias podrán activar Lobo Pro para seguimiento y reportes ilimitados.
+                Estamos concluyendo la calibración en cancha de Carmen Serdán. Cada alumno contará con 3 informes automáticos de tiro, postura y salud al mes. Con la membresía Lobo Pro, las familias acceden a 100 informes mensuales con táctica frente a defensas más altos y reportes descargables.
               </p>
             </div>
           </div>

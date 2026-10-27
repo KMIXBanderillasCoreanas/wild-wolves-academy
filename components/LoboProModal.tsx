@@ -128,15 +128,15 @@ export default function LoboProModal({
               <ul className="text-[11px] text-zinc-300 space-y-1.5 mt-3 font-sans">
                 <li className="flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span>50 Consultas IA / mes</span>
+                  <span><b>100 Informes IA / mes</b> (Detección y Biomecánica)</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span>Plan nutricional personalizado</span>
+                  <span>Táctica frente a defensores más altos</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span>Análisis de biomecánica de tiro</span>
+                  <span>Corrección estricta de técnica y salto</span>
                 </li>
               </ul>
             </div>

@@ -40,7 +40,8 @@ export default function VisionAssistantModal({
   const [repsCount, setRepsCount] = useState(0);
   const [targetReps, setTargetReps] = useState(10);
   const [feedbackMsg, setFeedbackMsg] = useState("Coloca tu celular vertical en una banca o trípode a 2-3 metros.");
-  const [freeShotsRemaining, setFreeShotsRemaining] = useState(10); // 10 análisis gratuitos al mes para alumnos
+  const [freeShotsRemaining, setFreeShotsRemaining] = useState(3); // Modelo Oficial: 3 informes/análisis gratuitos al mes
+  const [totalPlanReports, setTotalPlanReports] = useState(isProSubscriber ? 100 : 3);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
 
@@ -50,7 +51,7 @@ export default function VisionAssistantModal({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedFreeReps = localStorage.getItem("ww_free_ai_reps");
+      const storedFreeReps = localStorage.getItem("ww_free_ai_reports");
       if (storedFreeReps !== null) {
         setFreeShotsRemaining(Number(storedFreeReps));
       }
@@ -162,12 +163,12 @@ export default function VisionAssistantModal({
                 {!isProSubscriber ? (
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-amber-300 border border-zinc-700 flex items-center gap-1">
                     <Flame className="w-3 h-3 text-amber-400" />
-                    {freeShotsRemaining} reps de prueba gratis
+                    {freeShotsRemaining} / 3 informes de prueba al mes
                   </span>
                 ) : (
                   <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                     <Crown className="w-3 h-3 text-amber-400" />
-                    Lobo Pro Ilimitado
+                    Lobo Pro (100 Informes al mes)
                   </span>
                 )}
               </div>
@@ -249,7 +250,7 @@ export default function VisionAssistantModal({
               <div>
                 <h4 className="text-sm font-bold text-white uppercase">Visión Artificial en Desarrollo</h4>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto mt-1">
-                  El Head Coach Ricardo está calibrando las pruebas piloto de homografía y detección de aro en Deportivo Carmen Serdán. Puedes probar la vista previa con 10 análisis de cortesía incluidos en tu registro.
+                  El Head Coach Ricardo está calibrando las pruebas piloto de homografía y detección de aro en Deportivo Carmen Serdán. Puedes probar la vista previa con 3 informes completos de cortesía incluidos cada mes.
                 </p>
               </div>
               <button
@@ -257,7 +258,7 @@ export default function VisionAssistantModal({
                 className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#f66018] to-orange-600 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-950/50 transition cursor-pointer flex items-center gap-2 mx-auto"
               >
                 <Play className="w-3.5 h-3.5 fill-white" />
-                <span>Probar Demo (10 Créditos Gratis)</span>
+                <span>Probar Demo (3 Informes Gratis al Mes)</span>
               </button>
             </div>
           )}
@@ -314,7 +315,7 @@ export default function VisionAssistantModal({
                 Membresía Lobo Pro • Entrenamiento Inteligente
               </h4>
               <p className="text-[11px] text-zinc-400">
-                10 análisis de video gratuitos al mes para todos los alumnos. Con Lobo Pro desbloqueas repeticiones ilimitadas, corrección de postura en tiempo real y reportes exportables para tus papás.
+                3 informes completos al mes para todos los alumnos. Con Lobo Pro desbloqueas 100 informes al mes, corrección biomecánica estricta, táctica frente a rivales más altos y reportes ejecutivos para tus papás.
               </p>
             </div>
           </div>
