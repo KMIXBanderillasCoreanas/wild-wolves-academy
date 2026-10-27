@@ -62,8 +62,8 @@ export default function CoachDashboardPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | 'superadmin'>('coach');
 
-  // Pestañas Principales en Modo Cancha vs Evaluaciones vs Cuerda
-  const [coachActiveTab, setCoachActiveTab] = useState<'cancha' | 'evaluaciones' | 'cuerda'>('cancha');
+  // Pestañas Principales en Modo Cancha vs Evaluaciones vs Cuerda vs Finanzas
+  const [coachActiveTab, setCoachActiveTab] = useState<'cancha' | 'evaluaciones' | 'cuerda' | 'finanzas'>('cancha');
 
   // Filtros del Roster
   const [filterGender, setFilterGender] = useState<'ALL' | 'M' | 'F'>('ALL');
@@ -749,6 +749,19 @@ export default function CoachDashboardPage() {
                 <Target className="w-4 h-4 text-emerald-300" />
                 <span>🏃 Cuerda &amp; Físico</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setCoachActiveTab('finanzas')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'finanzas'
+                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <span className="text-amber-400 font-bold">$</span>
+                <span>💰 Finanzas &amp; Caja</span>
+              </button>
             </div>
 
             <div className="text-[11px] font-mono text-zinc-400 px-3 py-1">
@@ -815,6 +828,17 @@ export default function CoachDashboardPage() {
                   onUpdateTargets={handleUpdateJoggingTargets}
                 />
               </div>
+            </div>
+          )}
+
+          {/* VISTA 4: FINANZAS & CONTROL DE PAGOS */}
+          {coachActiveTab === 'finanzas' && (
+            <div className="space-y-6 animate-fadeIn">
+              <FinanceManager
+                students={students}
+                onRecordPayment={handleRecordPayment}
+                onUpdateFrequency={handleUpdateFrequency}
+              />
             </div>
           )}
 
