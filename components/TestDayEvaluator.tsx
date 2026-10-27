@@ -25,9 +25,9 @@ interface StudentItem {
   athletic_level?: AthleticLevel;
 }
 
-export default function TestDayEvaluator() {
+export default function TestDayEvaluator({ preselectedStudentId }: { preselectedStudentId?: string }) {
   const [students, setStudents] = useState<StudentItem[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(preselectedStudentId || "");
   const [activeLevel, setActiveLevel] = useState<AthleticLevel>("iniciacion_adaptacion");
 
   // ==========================================
@@ -102,9 +102,13 @@ export default function TestDayEvaluator() {
             athletic_level: (d.athletic_level as AthleticLevel) || "iniciacion_adaptacion"
           }));
           setStudents(mapped);
-          setSelectedStudentId((prev) => (prev ? prev : (mapped.length > 0 ? mapped[0].id : "")));
-          if (mapped[0].athletic_level) {
-            setActiveLevel(mapped[0].athletic_level);
+          const initialId = preselectedStudentId && mapped.some(m => m.id === preselectedStudentId)
+            ? preselectedStudentId
+            : (mapped.length > 0 ? mapped[0].id : "");
+          setSelectedStudentId(initialId);
+          const currentTarget = mapped.find(m => m.id === initialId);
+          if (currentTarget?.athletic_level) {
+            setActiveLevel(currentTarget.athletic_level);
           }
           return;
         }

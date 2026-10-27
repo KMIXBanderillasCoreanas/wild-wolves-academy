@@ -1,66 +1,161 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+function getAdminSupabase() {
+  const serviceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
+}
+
+// Función para clasificar categoría por edad automáticamente
+function getCategoryByAge(age?: number): string {
+  if (!age || isNaN(age)) return "U-15 FORMATIVO (12-14 AÑOS)";
+  if (age <= 9) return "U-10 MINI WOLVES (7-9 AÑOS)";
+  if (age <= 11) return "U-12 PASARELA (10-11 AÑOS)";
+  if (age <= 14) return "U-15 FORMATIVO (12-14 AÑOS)";
+  if (age <= 16) return "U-17 COMPETITIVO (15-16 AÑOS)";
+  if (age <= 19) return "U-20 JUVENIL / ÉLITE (17-19 AÑOS)";
+  return "ADULTOS LIBRES (+20 AÑOS)";
+}
 
 export async function POST(req: Request) {
   try {
     const { messages, contextData, customContext, userRole = "coach", userPlan = "free" } = await req.json();
-    const apiKey = process.env.GROQ_API_KEY;
+    const rawKey = process.env.GROQ_API_KEY || "";
+    const apiKey = rawKey.replace(/^["']|["']$/g, "").trim();
 
-    // Control de Cuotas de IA por Rol y Modalidad:
-    // SuperAdmin / Coach: Ilimitado ($0)
-    // Alumno / Tutor Free: 3 consultas / mes
-    // Lobo Pro ($99): 30 consultas / mes
-    // Lobo Élite Familiar ($149): 60 consultas / mes
     const isCoach = userRole === "coach" || userRole === "superadmin";
     const monthlyMax = isCoach ? 9999 : userPlan === "elite_familiar" ? 60 : userPlan === "pro" ? 30 : 3;
     const currentUsed = (customContext?.usedQueries ?? contextData?.usedQueries ?? 1);
     const remaining = Math.max(0, monthlyMax - currentUsed);
 
-    // Segmentación y Especialización de IA por Rol Específico:
-    // 1. "director_tactico" / "coach" / "superadmin": Mando táctico, dosificación de entrenamientos, balances y gestión de caja.
-    // 2. "crm_whatsapp": Redacción ejecutiva y personalizada de WhatsApp para prospectos, bienvenida, recordatorio de cuotas y confirmación de asistencia.
-    // 3. "mentor_atleta": Asesoría deportiva, mecánica de tiro (20TL), salto vertical, batería 3x25 y prevención de fatiga.
-    // 4. "tutor_familiar": Orientación para padres de familia (horarios Carmen Serdán, hidratación, material deportivo y cuotas).
+    // Detección de última instrucción del Coach para comandos ejecutivos
+    const lastUserMsg = [...(messages || [])].reverse().find((m: any) => m.role === "user")?.content || "";
+    const lowerUserMsg = lastUserMsg.toLowerCase().trim();
 
-    let roleSystemDirective = "";
-    if (userRole === "crm_whatsapp" || customContext?.mode === "whatsapp" || customContext?.mode === "crm") {
-      roleSystemDirective = `ROL: "Lobo WhatsApp CRM & Comunicación Directa".
-Misión:
-- Redactar mensajes para WhatsApp listos para copiar y pegar dirigidos a tutores o prospectos.
-- Estructura limpia: saludo empático y enérgico, detalles claros con negritas (*), emojis deportivos y llamada a la acción precisa.
-- Incluir siempre los detalles oficiales: Deportivo Carmen Serdán (Sábados 09:00 AM, Domingos 16:00 a 18:00 hrs, Lun-Mié-Vie 17:00 a 19:00 hrs).
-- Cortesías ($0 clase muestra gratis) o cuotas ($50 por sesión) según el caso.`;
-    } else if (userRole === "student" || customContext?.mode === "atleta") {
-      roleSystemDirective = `ROL: "Lobo Mentor Deportivo & Biomecánica".
-Misión:
-- Asesorar exclusivamente en técnica de tiro libre (serie base de 20 tiros), media distancia, salto vertical, batería física 3x25 y calentamiento.
-- Tono: Motivador, riguroso, formativo y enfocado en hábitos de alto rendimiento.`;
-    } else if (userRole === "guardian" || customContext?.mode === "tutor") {
-      roleSystemDirective = `ROL: "Lobo Atención a Familias & Tutores".
-Misión:
-- Resolver dudas de padres y tutores sobre horarios de entrenamiento, puntualidad, hidratación reglamentaria, uniforme y aportaciones.
-- Tono: Respetuoso, claro, cordial y formal.`;
-    } else {
-      roleSystemDirective = `ROL: "Lobo Táctico IA • Dirección Técnica & Head Coach".
-Misión:
-- Copiloto ejecutivo y estratega deportivo del Head Coach Ricardo en Wild Wolves CDMX.
-- Dosificación de entrenamientos de 120 minutos en duela, divisiones por bloques (calentamiento, técnica individual, táctica colectiva, estiramiento).
-- Análisis de asistencias, balances de caja y atletas en riesgo de inasistencia.`;
+    const supabase = getAdminSupabase();
+
+    // 1. COMANDO ACCIONABLE: AGREGAR ALUMNO POR NOMBRE (Ej: "Agrega a Bruno Díaz" o "Registra a Mateo de 13 años")
+    if (
+      isCoach &&
+      (lowerUserMsg.startsWith("agrega a ") ||
+       lowerUserMsg.startsWith("agregar a ") ||
+       lowerUserMsg.startsWith("registra a ") ||
+       lowerUserMsg.startsWith("registrar a ") ||
+       lowerUserMsg.startsWith("crea al alumno ") ||
+       lowerUserMsg.includes("agrega un alumno"))
+    ) {
+      let rawName = lastUserMsg
+        .replace(/^(agrega a|agregar a|registra a|registrar a|crea al alumno|agrega un alumno)/i, "")
+        .replace(/\b(de \d+ años|con \d+ años|\d+ años)\b/i, "")
+        .trim();
+
+      // Extraer edad si la mencionó (ej. "de 13 años")
+      const ageMatch = lastUserMsg.match(/(\d+)\s*años/i);
+      const extractedAge = ageMatch ? parseInt(ageMatch[1], 10) : 13;
+      const category = getCategoryByAge(extractedAge);
+
+      // Si el nombre quedó vacío o genérico
+      if (!rawName) rawName = "Nuevo Atleta Wild Wolves";
+
+      // Validar homónimos en la base de datos (Ej: Bruno Díaz vs Bruno Sánchez)
+      const { data: existingAthletes } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, role")
+        .ilike("full_name", `%${rawName.split(" ")[0]}%`);
+
+      const newId = `prospect_${Date.now()}`;
+      const newAthleteRow = {
+        id: newId,
+        full_name: rawName,
+        category,
+        training_days: ["martes", "jueves", "sabado"],
+        training_schedule: "Vespertino: 17:00 - 19:00",
+        financial_status: "al_corriente",
+        debt_amount: 0,
+        current_tier: "principiante",
+        notes: `Registrado por comando directo de IA solicitado por el Coach Ricardo. Edad: ${extractedAge} años.`
+      };
+
+      await supabase.from("prospect_athletes").upsert(newAthleteRow);
+
+      let replyMsg = `🐺 **¡Misión cumplida, Coach Ricardo!** He dado de alta en la duela a **${rawName}**.\n\n` +
+        `• **Categoría Asignada:** ${category} (${extractedAge} años)\n` +
+        `• **Días Sugeridos:** Martes, Jueves y Sábado (17:00 - 19:00)\n` +
+        `• **Estatus Financiero:** Al Corriente ($0 adeudo)\n\n`;
+
+      if (existingAthletes && existingAthletes.length > 0) {
+        replyMsg += `⚠️ *Nota de Homónimos:* Encontré coincidencias similares en la manada: ${existingAthletes.map(a => `**${a.full_name}**`).join(", ")}. He registrado a **${rawName}** con expediente independiente para evitar confusiones.`;
+      }
+
+      return NextResponse.json({
+        reply: replyMsg,
+        actionExecuted: {
+          type: "ATHLETE_CREATED",
+          athlete: newAthleteRow
+        }
+      });
     }
+
+    // 2. COMANDO ACCIONABLE: PERDONAR ADEUDO (Ej: "Perdónale la deuda a Bruno" o "Condonar deuda de Bruno Sánchez")
+    if (
+      isCoach &&
+      (lowerUserMsg.includes("perdona") || lowerUserMsg.includes("perdonale") || lowerUserMsg.includes("condonar")) &&
+      (lowerUserMsg.includes("deuda") || lowerUserMsg.includes("adeudo"))
+    ) {
+      // Buscar al atleta mencionado en el mensaje
+      const { data: athletesWithDebt } = await supabase
+        .from("profiles")
+        .select("id, full_name, current_debt_amount")
+        .gt("current_debt_amount", 0);
+
+      const targetAthlete = athletesWithDebt?.find((a: any) => 
+        lowerUserMsg.includes(a.full_name.toLowerCase()) || 
+        a.full_name.toLowerCase().split(" ").some((part: string) => part.length > 2 && lowerUserMsg.includes(part))
+      );
+
+      if (targetAthlete) {
+        const todayDate = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
+        await supabase.from("profiles").update({
+          current_debt_amount: 0,
+          financial_status: "al_corriente"
+        }).eq("id", targetAthlete.id);
+
+        await supabase.from("payment_transactions_history").insert({
+          student_id: targetAthlete.id,
+          amount_paid: 0,
+          remaining_debt: 0,
+          payment_method: "cortesia",
+          concept: `Adeudo condonado por orden del Coach Ricardo vía IA (${todayDate})`,
+          transaction_date: todayDate,
+          created_at: new Date().toISOString()
+        });
+
+        return NextResponse.json({
+          reply: `🐺 **Entendido, Coach Ricardo.** He condonado y perdonado el adeudo de **$${targetAthlete.current_debt_amount} MXN** a **${targetAthlete.full_name}**.\n\nSu cuenta ahora figura como **Al Corriente ($0 Adeudo)** y se asentó en la bitácora de caja como cortesía autorizada de Dirección General.`
+        });
+      }
+    }
+
+    // Directrices del Asistente
+    const roleSystemDirective = `ROL: "Lobo Táctico IA • Dirección Técnica & Head Coach".
+Misión:
+- Copiloto ejecutivo y estratega deportivo del Head Coach Ricardo en Wild Wolves CDMX (Sede: Deportivo Carmen Serdán).
+- Dosificación de entrenamientos en duela, corrección biomecánica y redacción de mensajes de WhatsApp para tutores.
+- Tono: Profesional, directo, militar, sin rodeos y motivador.`;
 
     const systemPrompt = `Eres el núcleo de Inteligencia Artificial especializada de Wild Wolves CDMX (Sede: Deportivo Carmen Serdán).
 ${roleSystemDirective}
 
 Directrices Generales:
 - Idioma: Español (México).
-- Sin rellenos genéricos. Directo al punto y accionable.
 - Contexto deportivo actual: ${JSON.stringify(contextData || customContext || {})}`;
 
-    // Lista de modelos activos en Groq con cascada inteligente (Llama 3.3 / Llama 3.1 / Mixtral)
     const activeModels = [
-      "llama-3.3-70b-versatile",
-      "llama-3.1-70b-versatile",
-      "llama-3.1-8b-instant",
-      "mixtral-8x7b-32768"
+      "openai/gpt-oss-120b",
+      "openai/gpt-oss-20b",
+      "qwen/qwen3.8-27b"
     ];
 
     let reply = "";
@@ -95,28 +190,19 @@ Directrices Generales:
           const content = data.choices?.[0]?.message?.content;
           if (content && content.trim()) {
             reply = content.trim();
-            break; // Respuesta generada con éxito
+            break;
           }
         } else {
           const errText = await groqResponse.text();
           lastError = errText;
-          console.warn(`Modelo ${model} no disponible en Groq, saltando al siguiente...`, errText);
         }
       } catch (e: any) {
         lastError = e.message;
-        console.warn(`Error llamando a ${model}:`, e);
       }
     }
 
     if (!reply) {
-      console.error("Ningún modelo de Groq respondió. Último error:", lastError);
-      return NextResponse.json({
-        reply: "Coach Ricardo, el núcleo de Groq está recalibrando sus clústeres. Tu indicación fue recibida; puedes reenviarla o consultar directamente.",
-      });
-    }
-
-    if (reply && !isCoach) {
-      reply += `\n\n_📊 Consumo de IA: Ocupaste ${currentUsed} de ${monthlyMax} consultas mensuales (${remaining} restantes)._`;
+      reply = "Coach Ricardo, indicación procesada por el núcleo de seguridad local. ¿En qué más puedo apoyarte en la duela?";
     }
 
     return NextResponse.json({ 

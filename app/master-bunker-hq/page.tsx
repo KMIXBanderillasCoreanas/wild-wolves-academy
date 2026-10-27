@@ -104,17 +104,29 @@ export default function MasterBunkerHQ() {
         }
       };
 
+      const handleOpenTestDay = (e: any) => {
+        const studentId = e?.detail?.studentId;
+        if (studentId) {
+          setSelectedAthleteForTestDay(studentId);
+          setActiveTab("attendance");
+          setAttendanceSubView("test_day_ovr");
+        }
+      };
+
       window.addEventListener("popstate", applyTabFromUrl);
       window.addEventListener("tab_changed", applyTabFromUrl);
       window.addEventListener("change-bunker-tab", handleCustomTab);
+      window.addEventListener("open_test_day_evaluator", handleOpenTestDay);
       return () => {
         window.removeEventListener("popstate", applyTabFromUrl);
         window.removeEventListener("tab_changed", applyTabFromUrl);
         window.removeEventListener("change-bunker-tab", handleCustomTab);
+        window.removeEventListener("open_test_day_evaluator", handleOpenTestDay);
       };
     }
   }, []);
-  const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical" | "combine">("command");
+  const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical" | "combine" | "test_day_ovr">("command");
+  const [selectedAthleteForTestDay, setSelectedAthleteForTestDay] = useState<string>("");
   const [testDaySubView, setTestDaySubView] = useState<"express" | "dual" | "ovr">("express");
   const [coaches, setCoaches] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -831,7 +843,18 @@ export default function MasterBunkerHQ() {
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
-                <span>🎯 Combine & Test Day</span>
+                <span>🎯 Combine Express</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAttendanceSubView("test_day_ovr")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  attendanceSubView === "test_day_ovr"
+                    ? "bg-amber-500 text-black shadow-md shadow-amber-500/20 font-black"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>⚡ Test Day Individual OVR</span>
               </button>
             </div>
             <div className="flex items-center gap-2">
@@ -860,8 +883,10 @@ export default function MasterBunkerHQ() {
             <CourtAttendanceCommand />
           ) : attendanceSubView === "historical" ? (
             <AttendanceTracker />
-          ) : (
+          ) : attendanceSubView === "combine" ? (
             <CombineExpressTable />
+          ) : (
+            <TestDayEvaluator preselectedStudentId={selectedAthleteForTestDay} />
           )}
         </div>
       )}

@@ -638,6 +638,76 @@ export default function CourtAttendanceCommand() {
     }
   };
 
+  // CONDONAR / PERDONAR ADEUDO (CORTESÍA DIRECCIÓN GENERAL COACH RICARDO)
+  const handleForgiveDebt = async (st: StudentRosterItem) => {
+    const studentId = st.id;
+    const previousDebt = Number(st.current_debt_amount) || 0;
+    if (previousDebt <= 0) return;
+
+    const confirmForgive = window.confirm(
+      `¿Deseas perdonar/condonar el adeudo de $${previousDebt} MXN a ${st.full_name}?\n\nEsta acción dejará su cuenta al corriente ($0 adeudo) y registrará una cortesía autorizada por el Coach Ricardo.`
+    );
+    if (!confirmForgive) return;
+
+    const todayDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+    }).format(new Date());
+
+    // 1. Optimistic UI update
+    setStudents(prev => prev.map(s => {
+      if (s.id !== studentId) return s;
+      return {
+        ...s,
+        current_debt_amount: 0,
+        financial_status: "al_corriente",
+        last_payment_status: "al_corriente",
+        notes: "Adeudo condonado por cortesía de Dirección General.",
+      };
+    }));
+
+    setInstantSaveToast(`🟢 Adeudo de $${previousDebt} MXN perdonado a ${st.full_name}`);
+    setTimeout(() => setInstantSaveToast(null), 3500);
+
+    // 2. Transacción de condonación y actualización de perfil
+    const transactionPayload = {
+      student_id: studentId,
+      amount_paid: 0,
+      remaining_debt: 0,
+      payment_method: "cortesia",
+      concept: `Adeudo de $${previousDebt} MXN condonado por Dirección General (${todayDate})`,
+      transaction_date: todayDate,
+      created_at: new Date().toISOString(),
+    };
+
+    const profileUpdatePayload = {
+      id: studentId,
+      current_debt_amount: 0,
+      financial_status: "al_corriente",
+    };
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction("PAYMENT_TRANSACTION", transactionPayload);
+      enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profileUpdatePayload);
+      setOfflineCount(getOfflineQueueCount());
+    } else {
+      try {
+        await supabase.from("payment_transactions_history").insert(transactionPayload);
+        await supabase.from("profiles").update({
+          current_debt_amount: 0,
+          financial_status: "al_corriente",
+        }).eq("id", studentId);
+      } catch {
+        enqueueOfflineAction("PAYMENT_TRANSACTION", transactionPayload);
+        enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profileUpdatePayload);
+        setOfflineCount(getOfflineQueueCount());
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("payment_recorded"));
+    }
+  };
+
   // 3. PASO: ALTA RÁPIDA DE ATLETA EN CANCHA (CASO OSMAR LÓPEZ)
   const handleCreateFastAthlete = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1395,6 +1465,19 @@ export default function CourtAttendanceCommand() {
                   >
                     <span>💵 Abono</span>
                   </button>
+
+                  {/* Botón Perdonar / Condonar Adeudo (Coach Ricardo) */}
+                  {st.current_debt_amount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleForgiveDebt(st)}
+                      className="h-10 px-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/40 text-[10px] font-black flex items-center gap-1 transition cursor-pointer shrink-0"
+                      title="Perdonar Adeudo ($0 MXN - Cortesía del Coach Ricardo)"
+                    >
+                      <span>🤝 Perdonar</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => setSelectedStudentForFinance(st)}
@@ -1405,16 +1488,30 @@ export default function CourtAttendanceCommand() {
                   </button>
                 </div>
 
-                {/* Botón de Pruebas Deportivas (Tiro & Velocidad) */}
-                <div className="mt-2">
+                {/* Botón de Pruebas Deportivas (Tiro & Velocidad) y Evaluación Test Day */}
+                <div className="mt-2 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedAthleteForSportsTest(st)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold transition active:scale-95 cursor-pointer shadow-sm"
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-[11px] font-bold transition active:scale-95 cursor-pointer shadow-sm truncate"
                     title="Evaluar Pruebas Deportivas (Tiro 20 TL, Velocidad 100m, T-Test)"
                   >
-                    <Target className="w-4 h-4 text-purple-400" />
-                    <span>🎯 Pruebas Deportivas (Tiro & Velocidad)</span>
+                    <Target className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span className="truncate">🎯 Pruebas Express</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent("open_test_day_evaluator", { detail: { studentId: st.id, studentName: st.full_name } }));
+                      }
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-black transition active:scale-95 cursor-pointer shadow-sm truncate"
+                    title="Calificar Test Day Completo (Nivel 1, 2 o 3 y OVR)"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate">⚡ Test Day OVR</span>
                   </button>
                 </div>
 
