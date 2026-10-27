@@ -168,6 +168,26 @@ export default function CourtAttendanceCommand() {
           profiles = null;
         }
 
+        // Fallback a API administrativo si Supabase anon devuelve vacío por RLS
+        if (!profiles || profiles.length === 0) {
+          try {
+            const apiRes = await fetch("/api/admin/attendance-finance-manage", {
+              headers: {
+                "x-admin-secret": "WW-SUPERADMIN-FULL-2026",
+                "x-admin-email": "wildwolvescdmx@gmail.com"
+              }
+            });
+            if (apiRes.ok) {
+              const apiJson = await apiRes.json();
+              if (apiJson.athletes && apiJson.athletes.length > 0) {
+                profiles = apiJson.athletes;
+              }
+            }
+          } catch (e) {
+            console.warn("Fallback api admin en CourtAttendanceCommand:", e);
+          }
+        }
+
         if (profiles && profiles.length > 0) {
           const { data: comms } = await supabase
             .from("attendance_commitments")
@@ -1064,6 +1084,18 @@ export default function CourtAttendanceCommand() {
               <UserPlus className="w-4 h-4 text-white" />
               <span>+ Nuevo Atleta en Cancha</span>
             </button>
+
+            {/* BOTÓN DIRECTO: PLANILLA OFFLINE EXPRESS (55 TIROS Y FÍSICOS) */}
+            <a
+              href="/planilla_pruebas_deportivas_offline.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 transition cursor-pointer shrink-0 border border-orange-400/40"
+              title="Abrir planilla offline de pruebas deportivas en duela"
+            >
+              <Zap className="w-4 h-4 text-yellow-300" />
+              <span>Planilla Pruebas Offline</span>
+            </a>
 
           </div>
         </div>

@@ -1341,12 +1341,12 @@ export default function StudentDashboardPage() {
               {/* Información del Jugador y Avatar Oficial */}
               <div className="flex gap-4 sm:gap-5 items-center">
                 {/* Holographic Avatar Box con Fotografía Real del Atleta */}
-                <div className="relative shrink-0 w-28 h-32 sm:w-32 sm:h-36 rounded-2xl overflow-hidden bg-surface-container-highest border border-orange-500/40 shadow-xl group">
+                <div className="relative shrink-0 w-28 h-32 sm:w-32 sm:h-36 max-w-[128px] max-h-[144px] rounded-2xl overflow-hidden bg-surface-container-highest border border-orange-500/40 shadow-xl group">
                   {hasRealSelfie ? (
                     <img 
                       src={profile?.avatar_url} 
                       alt={profile?.full_name || "Foto Oficial del Atleta"}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover max-w-full max-h-full transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = "/logo-official.png";
                       }}

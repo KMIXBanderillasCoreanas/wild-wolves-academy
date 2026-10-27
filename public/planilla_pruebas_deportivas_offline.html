@@ -468,6 +468,27 @@
       const toast = document.getElementById("successToast");
       toast.style.display = "block";
       setTimeout(() => { toast.style.display = "none"; }, 4000);
+
+      // Limpiar formulario de forma automática e inteligente para continuar rápido con el siguiente alumno
+      document.getElementById("athleteName").value = "";
+      document.getElementById("jerseyNumber").value = "";
+      document.getElementById("freeThrows").value = "";
+      document.getElementById("midRangeLeft").value = "";
+      document.getElementById("midRangeRight").value = "";
+      document.getElementById("spotCornerLeft").value = "";
+      document.getElementById("spotWingLeft").value = "";
+      document.getElementById("spotTopKey").value = "";
+      document.getElementById("spotWingRight").value = "";
+      document.getElementById("spotCornerRight").value = "";
+      document.getElementById("jumpRope").value = "";
+      document.getElementById("circuitLines").value = "";
+      document.getElementById("sprint100m").value = "";
+      document.getElementById("verticalJump").value = "";
+      document.getElementById("coachNotes").value = "Mecánica fluida en suspensión.";
+      
+      // Enfocar cursor en el nombre del siguiente alumno
+      document.getElementById("athleteName").focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function deleteRecord(index) {
