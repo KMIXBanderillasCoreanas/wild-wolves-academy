@@ -82,21 +82,25 @@ export default function BasketballCourtHeatmap({
   const totalShotsAttempts = total2PtAttempts + total3PtAttempts;
   const overallPct = totalShotsAttempts > 0 ? Math.round((totalShotsMade / totalShotsAttempts) * 100) : 0;
 
-  // Función de calor térmico estilo HomeCourt
+  // Función de calor térmico estilo HomeCourt con semáforo intuitivo:
+  // Verde brillante para zonas dominadas / buenas (>=70%)
+  // Amarillo / Ámbar para zonas intermedias (50% a 69%)
+  // Naranja para zonas regulares (30% a 49%)
+  // Rojo intenso para zonas débiles / malas que requieren trabajo (<30%)
   const getZoneColor = (pct: number, attempts: number) => {
-    if (attempts === 0) return { bg: "rgba(39, 39, 42, 0.7)", border: "rgba(82, 82, 91, 0.4)", text: "text-zinc-400" };
+    if (attempts === 0) return { bg: "rgba(39, 39, 42, 0.7)", border: "rgba(82, 82, 91, 0.4)", text: "text-zinc-400", label: "Sin tiros" };
     if (pct >= 70) {
-      // Hot Zone (Naranja Fuego)
-      return { bg: "rgba(249, 115, 22, 0.85)", border: "rgb(234, 88, 12)", text: "text-white" };
+      // Zona Excelente / Buena (Verde Esmeralda Dominante)
+      return { bg: "rgba(16, 185, 129, 0.88)", border: "rgb(5, 150, 105)", text: "text-white", label: "Excelente (Verde)" };
     } else if (pct >= 50) {
-      // Warm Zone (Ámbar)
-      return { bg: "rgba(245, 158, 11, 0.75)", border: "rgb(217, 119, 6)", text: "text-white" };
+      // Zona Aceptable / Favorable (Amarillo / Lima)
+      return { bg: "rgba(234, 179, 8, 0.85)", border: "rgb(202, 138, 4)", text: "text-black", label: "Regular (Amarillo)" };
     } else if (pct >= 30) {
-      // Cool Zone (Azul Claro)
-      return { bg: "rgba(56, 189, 248, 0.65)", border: "rgb(14, 165, 233)", text: "text-white" };
+      // Zona Fría / Advertencia (Naranja Alerta)
+      return { bg: "rgba(249, 115, 22, 0.85)", border: "rgb(234, 88, 12)", text: "text-white", label: "Por Mejorar (Naranja)" };
     } else {
-      // Cold Zone (Azul Oscuro Frío)
-      return { bg: "rgba(30, 58, 138, 0.75)", border: "rgb(59, 130, 246)", text: "text-blue-100" };
+      // Zona Crítica / Mala (Rojo Fuerte)
+      return { bg: "rgba(239, 68, 68, 0.90)", border: "rgb(220, 38, 38)", text: "text-white", label: "Punto Débil (Rojo)" };
     }
   };
 
@@ -221,18 +225,23 @@ export default function BasketballCourtHeatmap({
       {/* 2. MEDIA CANCHA INTERACTIVA (SVG SHOT HEATMAP) */}
       <div className="relative w-full max-w-[620px] mx-auto bg-[#07090e] rounded-3xl p-3 sm:p-4 border border-zinc-800/80 shadow-inner overflow-hidden">
         
-        {/* LEYENDA TÉRMICA HOT / COLD */}
-        <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 mb-2 px-2">
+        {/* LEYENDA TÉRMICA BIOMECÁNICA: ROJO (DÉBIL) A VERDE (BUENO) */}
+        <div className="flex flex-wrap items-center justify-between text-[10px] font-mono text-zinc-300 mb-2.5 px-2 bg-zinc-900/60 p-2 rounded-xl border border-zinc-800">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-            <span>Cold (&lt;50%)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-24 h-2 rounded-full bg-gradient-to-r from-blue-600 via-amber-500 to-orange-500"></div>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+            <span className="text-red-400 font-bold">Malo (&lt;30%)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
-            <span>Hot (≥70%)</span>
+            <span className="text-orange-400 font-bold">Regular (30-49%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
+            <span className="text-yellow-300 font-bold">Favorable (50-69%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+            <span className="text-emerald-400 font-bold">Excelente (≥70%)</span>
           </div>
         </div>
 

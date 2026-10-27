@@ -928,14 +928,19 @@ export default function CourtAttendanceCommand() {
   });
 
   // Métricas calculadas para la barra táctica (excluyendo tutores)
+  // Si filterMode es "all", calcula sobre todo el plantel registrado.
+  // Si filterMode es "scheduled_today", calcula sobre el turno seleccionado.
   const sessionStudents = onCourtCandidates.filter(s => filterMode === "all" || isStudentScheduledForSession(s, shift));
-  const totalInSession = sessionStudents.length;
-  const presentCount = sessionStudents.filter(s => s.attendance_status === "presente").length;
-  const lateCount = sessionStudents.filter(s => s.attendance_status === "retardo").length;
-  const absentCount = sessionStudents.filter(s => s.attendance_status === "falta").length;
+  // En caso de que el turno actual no tenga alumnos asignados pero haya alumnos en el plantel,
+  // mostrar al menos los deudores globales para que el coach siempre vea los cobros pendientes
+  const allDebtorStudents = onCourtCandidates.filter(s => s.financial_status === "adeudo_pendiente" || s.financial_status === "abono_parcial");
+  const totalInSession = filterMode === "all" ? onCourtCandidates.length : sessionStudents.length;
+  const presentCount = (filterMode === "all" ? onCourtCandidates : sessionStudents).filter(s => s.attendance_status === "presente").length;
+  const lateCount = (filterMode === "all" ? onCourtCandidates : sessionStudents).filter(s => s.attendance_status === "retardo").length;
+  const absentCount = (filterMode === "all" ? onCourtCandidates : sessionStudents).filter(s => s.attendance_status === "falta").length;
   
   // Total de alumnos con saldo por cobrar (adeudo pendiente o abono parcial)
-  const debtorStudents = sessionStudents.filter(s => s.financial_status === "adeudo_pendiente" || s.financial_status === "abono_parcial");
+  const debtorStudents = filterMode === "all" ? allDebtorStudents : (sessionStudents.filter(s => s.financial_status === "adeudo_pendiente" || s.financial_status === "abono_parcial").length > 0 ? sessionStudents.filter(s => s.financial_status === "adeudo_pendiente" || s.financial_status === "abono_parcial") : allDebtorStudents);
   const debtorCount = debtorStudents.length;
   const totalDebtAmount = debtorStudents.reduce((acc, curr) => acc + (curr.current_debt_amount || 0), 0);
   const attendanceRatePct = totalInSession > 0 ? Math.round((presentCount / totalInSession) * 100) : 0;
