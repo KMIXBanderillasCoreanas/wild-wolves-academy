@@ -151,6 +151,22 @@ export default function GuardianDashboardPage() {
           .order("training_date", { ascending: false })
           .limit(5);
         setHomeLogs(hLogs || []);
+      } else if (typeof window !== "undefined") {
+        // MODO OFFLINE O SIN SESIÓN DE SUPABASE: Cargar prueba guardada localmente
+        const localTests = JSON.parse(localStorage.getItem("ww_offline_sports_tests") || "[]");
+        if (localTests.length > 0) {
+          const testItem = localTests[0];
+          setLatestTest(testItem);
+          if (!studentProfile) {
+            setStudentProfile({
+              full_name: testItem.athlete_name || "Bruno Díaz",
+              email: "bruno@wildwolves.mx",
+              jersey_number: 11,
+              position: "GUARD (SG)",
+              role: "student"
+            });
+          }
+        }
       }
     } catch (err) {
       console.warn("Error cargando dashboard de tutor:", err);

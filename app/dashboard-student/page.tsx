@@ -507,8 +507,17 @@ export default function StudentDashboardPage() {
 
         // Si no hay usuario ni credenciales guardadas, cargar modo invitado seguro sin expulsar
         if (!user && !storedEmail) {
+          // Revisar si hay pruebas deportivas guardadas localmente offline
+          let localEval: any = null;
+          if (typeof window !== "undefined") {
+            const localTests = JSON.parse(localStorage.getItem("ww_offline_sports_tests") || "[]");
+            if (localTests.length > 0) {
+              localEval = localTests[0];
+            }
+          }
+
           setProfile({
-            full_name: "Atleta Wild Wolves",
+            full_name: localEval?.athlete_name || "Bruno Díaz (Atleta)",
             email: "atleta@wildwolves.mx",
             role: "student",
             isGuest: true,
@@ -516,6 +525,32 @@ export default function StudentDashboardPage() {
             jersey_number: 11,
             position: "GUARD (SG)"
           });
+
+          if (localEval) {
+            setEvaluation((prev: any) => ({
+              ...prev,
+              ...localEval,
+              isReal: true
+            }));
+            setCurrentPerformance((prev: any) => ({
+              ...prev,
+              free_throws_made: localEval.free_throws_made ?? 8,
+              mid_range_made: localEval.mid_range_made ?? 7,
+              three_point_made: localEval.three_point_made ?? 5,
+              spot_corner_left: localEval.spot_corner_left ?? 1,
+              spot_wing_left: localEval.spot_wing_left ?? 1,
+              spot_top_key: localEval.spot_top_key ?? 1,
+              spot_wing_right: localEval.spot_wing_right ?? 1,
+              spot_corner_right: localEval.spot_corner_right ?? 1,
+              jump_rope_count: localEval.jump_rope_count ?? 1000,
+              sprint_100m_seconds: localEval.sprint_100m_seconds ?? 10,
+              lines_round_trip_seconds: localEval.lines_round_trip_seconds ?? 15,
+              vertical_jump_cm: localEval.vertical_jump_cm ?? 110,
+              coach_notes: localEval.coach_feedback,
+              isReal: true
+            }));
+          }
+
           setLoading(false);
           return;
         }
