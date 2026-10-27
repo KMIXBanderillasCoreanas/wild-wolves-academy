@@ -1326,10 +1326,11 @@ export default function StudentDashboardPage() {
                     <button
                       type="button"
                       onClick={() => setShowVisionModal(true)}
-                      className="text-[10px] font-black px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+                      className="text-[10px] font-black px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-surface-variant text-amber-300 border border-amber-500/40 shadow-sm hover:scale-105 active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Camera className="w-3 h-3 text-white" />
-                      <span>ENTRENADOR ASISTENTE IA</span>
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>IA ASISTENTE</span>
+                      <span className="text-[8px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded font-mono uppercase">Próximamente</span>
                     </button>
                     <button
                       type="button"

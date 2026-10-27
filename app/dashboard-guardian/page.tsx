@@ -475,27 +475,27 @@ export default function GuardianDashboardPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                  Prueba Gratuita Incluida
+                <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  Próximamente • En Pruebas de Duela
                 </span>
                 <span className="text-[10px] font-mono font-bold text-zinc-400">
-                  15 análisis de video al mes
+                  10 análisis de cortesía al mes
                 </span>
               </div>
               <h3 className="text-sm sm:text-base font-black uppercase text-white mt-0.5">
-                Entrenador Asistente IA para {studentName}
+                Entrenador Asistente IA (Visión por Computadora)
               </h3>
               <p className="text-xs text-zinc-300 mt-1 max-w-xl">
-                Tu hijo tiene acceso a corrección de postura en tiempo real por cámara y conteo de saltos de cuerda. Si deseas reportes detallados y análisis ilimitado, puedes activar el Pack Lobo Pro.
+                Estamos concluyendo la calibración en cancha de Carmen Serdán. Cada alumno contará con 10 análisis automáticos de tiro y cuerda al mes. Cuando esté completamente listo, las familias podrán activar Lobo Pro para seguimiento y reportes ilimitados.
               </p>
             </div>
           </div>
 
           <button
             onClick={() => setShowProModal(true)}
-            className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-400 text-black font-black text-xs uppercase tracking-wider shadow-lg hover:scale-105 transition cursor-pointer shrink-0"
+            className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-amber-300 border border-amber-500/30 font-black text-xs uppercase tracking-wider transition cursor-pointer shrink-0"
           >
-            Conocer Pack Lobo Pro
+            Ver Beneficios Lobo Pro
           </button>
         </div>
 

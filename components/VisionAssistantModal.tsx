@@ -40,7 +40,7 @@ export default function VisionAssistantModal({
   const [repsCount, setRepsCount] = useState(0);
   const [targetReps, setTargetReps] = useState(10);
   const [feedbackMsg, setFeedbackMsg] = useState("Coloca tu celular vertical en una banca o trípode a 2-3 metros.");
-  const [freeShotsRemaining, setFreeShotsRemaining] = useState(15); // Modelo Freemium estilo HomeCourt: 15 repeticiones de prueba gratuitas
+  const [freeShotsRemaining, setFreeShotsRemaining] = useState(10); // 10 análisis gratuitos al mes para alumnos
   const [showPaywall, setShowPaywall] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
 
@@ -239,20 +239,25 @@ export default function VisionAssistantModal({
           {/* Placeholder cuando la cámara está apagada */}
           {!isStreaming && (
             <div className="text-center p-6 space-y-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold uppercase tracking-wider mb-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Próximamente • Fase de Calibración en Duela</span>
+              </div>
               <div className="w-16 h-16 rounded-3xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mx-auto">
-                <Camera className="w-8 h-8 text-zinc-400" />
+                <Camera className="w-8 h-8 text-amber-400" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white uppercase">Cámara en espera</h4>
+                <h4 className="text-sm font-bold text-white uppercase">Visión Artificial en Desarrollo</h4>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto mt-1">
-                  Activa tu cámara para que la inteligencia artificial analice tu postura, cuente tus repeticiones y mida la biomecánica en tiempo real estilo HomeCourt.
+                  El Head Coach Ricardo está calibrando las pruebas piloto de homografía y detección de aro en Deportivo Carmen Serdán. Puedes probar la vista previa con 10 análisis de cortesía incluidos en tu registro.
                 </p>
               </div>
               <button
                 onClick={startCamera}
-                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#f66018] to-orange-600 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-950/50 transition cursor-pointer"
+                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#f66018] to-orange-600 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-950/50 transition cursor-pointer flex items-center gap-2 mx-auto"
               >
-                Encender Visión IA
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Probar Demo (10 Créditos Gratis)</span>
               </button>
             </div>
           )}
@@ -309,7 +314,7 @@ export default function VisionAssistantModal({
                 Membresía Lobo Pro • Entrenamiento Inteligente
               </h4>
               <p className="text-[11px] text-zinc-400">
-                15 análisis de video gratuitos al mes para todos los alumnos. Con Lobo Pro desbloqueas repeticiones ilimitadas, corrección de postura en tiempo real y reportes exportables para tus papás.
+                10 análisis de video gratuitos al mes para todos los alumnos. Con Lobo Pro desbloqueas repeticiones ilimitadas, corrección de postura en tiempo real y reportes exportables para tus papás.
               </p>
             </div>
           </div>
