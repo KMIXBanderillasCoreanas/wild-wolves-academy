@@ -778,22 +778,19 @@ export default function StudentDashboardPage() {
         const isSuperAdmin = prof?.role === "superadmin" || isSuperAdminEmail || storedRole === "superadmin";
         const isCoachOrAdmin = isSuperAdmin || prof?.role === "coach" || storedRole === "coach";
 
-        if (isSuperAdmin) {
-          if (typeof window !== "undefined") {
-            window.location.href = "/master-bunker-hq";
-            return;
-          }
-        }
+        // Si el SuperAdmin o Coach entra a este dashboard para supervisar o como alumno demo (Bruno Díaz),
+        // permitirle navegar y ver sus métricas de prueba sin forzar redirección al búnker.
+        const isDemoStudentMode = isSuperAdminEmail || prof?.role === "superadmin";
 
         setProfile({
           id: effectiveId,
-          full_name: isSuperAdmin ? "Coach Ricardo (Director General)" : (prof?.full_name || effectiveName),
+          full_name: isDemoStudentMode ? "Bruno Díaz (Alumno Demo • Wolves CDMX)" : (prof?.full_name || effectiveName),
           email: effectiveEmail,
           role: isSuperAdmin ? "superadmin" : (prof?.role || storedRole || "student"),
           avatar_url: prof?.avatar_url || null,
-          jersey_number: isSuperAdmin ? "00" : (prof?.jersey_number || 11),
-          position: isSuperAdmin ? "DIRECTOR GENERAL • NIVEL 0" : (prof?.position || "GUARD (SG)"),
-          current_tier: prof?.current_tier || null,
+          jersey_number: isDemoStudentMode ? 11 : (prof?.jersey_number || 11),
+          position: isDemoStudentMode ? "GUARD (SG) • NIVEL COMPETITIVO" : (prof?.position || "GUARD (SG)"),
+          current_tier: prof?.current_tier || "competitivo_elite",
           isSuperAdmin: isSuperAdmin,
           isCoachOrAdmin: isCoachOrAdmin,
           isGuest: false
