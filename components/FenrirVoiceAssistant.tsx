@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Mic, MicOff, Volume2, X, Minimize2, Maximize2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import FenrirAvatar, { FenrirMood } from "./FenrirAvatar";
 
 export default function FenrirVoiceAssistant() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -15,6 +16,11 @@ export default function FenrirVoiceAssistant() {
   const [aiReply, setAiReply] = useState("Sistemas listos, Coach Ricardo.");
   const [mood, setMood] = useState<FenrirMood>("neutral");
   const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  // Ocultar Fenrir del portal exclusivo de Padres o Tutores para no obstaculizar su lectura ni deformar la vista
+  if (pathname === "/dashboard-guardian" || pathname?.startsWith("/dashboard-guardian")) {
+    return null;
+  }
 
   const recognitionRef = useRef<any>(null);
   const isSpeakingRef = useRef(false);

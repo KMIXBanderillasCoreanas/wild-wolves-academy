@@ -13,6 +13,12 @@ body {
   overflow-x: hidden;
 }
 
+/* Regla de oro para evitar desbordes o imágenes gigantes */
+img, svg, video {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Scrollbar deportivo de alta densidad */
 ::-webkit-scrollbar {
   width: 6px;
