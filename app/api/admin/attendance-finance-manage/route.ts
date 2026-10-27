@@ -94,7 +94,7 @@ export async function GET(req: Request) {
     // Obtener alumnos, asistencias recientes y pagos históricos
     const { data: athletes } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, account_category, user_type, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost, origin_channel, referred_by")
+      .select("id, full_name, email, role, account_category, user_type, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost")
       .order("full_name");
 
     const { data: attendance } = await supabase
