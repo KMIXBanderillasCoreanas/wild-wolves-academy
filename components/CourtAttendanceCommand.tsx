@@ -97,7 +97,7 @@ export default function CourtAttendanceCommand() {
   // Notificación de guardado instantáneo 1-tap
   const [instantSaveToast, setInstantSaveToast] = useState<string | null>(null);
 
-  const [filterMode, setFilterMode] = useState<"scheduled_today" | "all">("scheduled_today");
+  const [filterMode, setFilterMode] = useState<"scheduled_today" | "all">("all");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "al_corriente" | "adeudo" | "abono_parcial" | "becado">("all");
   const [userTypeFilter, setUserTypeFilter] = useState<"all" | "alumno" | "prospecto" | "visitante" | "tutor">("all");
   const [search, setSearch] = useState("");
@@ -1290,6 +1290,16 @@ export default function CourtAttendanceCommand() {
                             <span className="text-[10px] text-zinc-400 font-medium">
                               {st.training_days || st.schedule_days}
                             </span>
+                            {/* Distintivo de Turno Hoy vs Otro Día */}
+                            {isStudentScheduledForSession(st, shift) ? (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
+                                🟢 Turno Hoy
+                              </span>
+                            ) : (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">
+                                📅 Otro Rol
+                              </span>
+                            )}
                           </>
                         )}
                       </div>

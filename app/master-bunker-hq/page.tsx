@@ -53,6 +53,7 @@ import MasterAICockpit from "@/components/MasterAICockpit";
 import TacticalRadarAlerts from "@/components/TacticalRadarAlerts";
 import WhatsAppHubCRM from "@/components/WhatsAppHubCRM";
 import ExpensesManager from "@/components/ExpensesManager";
+import SecurityBackupManager from "@/components/SecurityBackupManager";
 
 export default function MasterBunkerHQ() {
   const router = useRouter();
@@ -61,7 +62,8 @@ export default function MasterBunkerHQ() {
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "smart_placement" | "finance" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches" | "whatsapp_crm">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "roster_community" | "security_sentinel" | "smart_placement" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches" | "whatsapp_crm">("attendance");
+  const [rosterSubView, setRosterSubView] = useState<"all_roster" | "guardians" | "smart_placement" | "whatsapp" | "staff_coaches">("all_roster");
 
   // Sincronizar pestaña si viene en la URL (?tab=finanzas o ?tab=finance)
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function MasterBunkerHQ() {
       };
     }
   }, []);
-  const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical">("command");
+  const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical" | "combine">("command");
   const [testDaySubView, setTestDaySubView] = useState<"express" | "dual" | "ovr">("express");
   const [coaches, setCoaches] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -249,7 +251,7 @@ export default function MasterBunkerHQ() {
       // Complementar con membership_payments si existen
       const { data: memPayments } = await supabase
         .from("membership_payments")
-        .select("*, profiles(full_name, email)")
+        .select("*, profiles!membership_payments_student_id_fkey(full_name, email)")
         .order("payment_date", { ascending: false });
 
       if (memPayments && memPayments.length > 0) {
@@ -733,107 +735,62 @@ export default function MasterBunkerHQ() {
         <MasterAICockpit />
       </div>
 
-      {/* PESTAÑAS PRINCIPALES DE GESTIÓN */}
-      <div className="flex flex-wrap gap-2.5 my-6 border-b border-zinc-800 pb-3">
+      {/* PESTAÑAS PRINCIPALES DE GESTIÓN: 4 GRANDES CENTROS DE MANDO TÁCTICOS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 my-6 border-b border-zinc-800 pb-4">
+        {/* HUB 1: DUELA & ASISTENCIA */}
         <button
           onClick={() => setActiveTab("attendance")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`p-3 rounded-2xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 cursor-pointer border ${
             activeTab === "attendance"
-              ? "bg-[#ea580c] text-white shadow-lg shadow-[#ea580c]/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+              ? "bg-[#ea580c] text-white border-orange-500 shadow-lg shadow-orange-600/30 font-black"
+              : "bg-[#10141e] text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700"
           }`}
         >
-          <Calendar className="w-4 h-4" /> Control de Asistencia y Cancha
+          <Calendar className="w-5 h-5 text-orange-400" />
+          <span className="uppercase tracking-tight text-[11px] font-black">1. Duela & Cancha</span>
+          <span className="text-[9px] text-zinc-300 font-normal">Pase 1-Tap • Asistencia</span>
         </button>
-        <button
-          onClick={() => setActiveTab("smart_placement")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "smart_placement"
-              ? "bg-purple-600 text-white font-black shadow-lg shadow-purple-600/30"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-purple-300" /> Diagnóstico Exprés & CRM
-        </button>
-        <button
-          onClick={() => setActiveTab("whatsapp_crm")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "whatsapp_crm"
-              ? "bg-emerald-500 text-black font-black shadow-lg shadow-emerald-500/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
-          }`}
-        >
-          <MessageSquare className="w-4 h-4" /> WhatsApp Hub CRM
-        </button>
+
+        {/* HUB 2: FINANZAS & CAJA */}
         <button
           onClick={() => setActiveTab("finance")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`p-3 rounded-2xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 cursor-pointer border ${
             activeTab === "finance"
-              ? "bg-[#22c55e] text-black font-black shadow-lg shadow-emerald-500/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+              ? "bg-[#16a34a] text-white border-emerald-400 shadow-lg shadow-emerald-600/30 font-black"
+              : "bg-[#10141e] text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700"
           }`}
         >
-          <DollarSign className="w-4 h-4" /> Finanzas & Caja
+          <DollarSign className="w-5 h-5 text-emerald-400" />
+          <span className="uppercase tracking-tight text-[11px] font-black">2. Finanzas & Caja</span>
+          <span className="text-[9px] text-zinc-300 font-normal">Cobros • Abonos • Deudores</span>
         </button>
+
+        {/* HUB 3: ATLETAS & COMUNIDAD */}
         <button
-          onClick={() => setActiveTab("roster_becas")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "roster_becas"
-              ? "bg-amber-500 text-black font-black shadow-lg shadow-amber-500/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          onClick={() => setActiveTab("roster_community")}
+          className={`p-3 rounded-2xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 cursor-pointer border ${
+            activeTab === "roster_community"
+              ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-600/30 font-black"
+              : "bg-[#10141e] text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700"
           }`}
         >
-          <Users className="w-4 h-4" /> Roster, Horarios &amp; Becas
+          <Users className="w-5 h-5 text-purple-300" />
+          <span className="uppercase tracking-tight text-[11px] font-black">3. Roster & Familias</span>
+          <span className="text-[9px] text-zinc-300 font-normal">Atletas • WhatsApp • Tutores</span>
         </button>
+
+        {/* HUB 4: SEGURIDAD, RESPALDOS & CENTINELA */}
         <button
-          onClick={() => setActiveTab("retroactivo")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "retroactivo"
-              ? "bg-sky-500 text-black font-black shadow-lg shadow-sky-500/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
+          onClick={() => setActiveTab("security_sentinel")}
+          className={`p-3 rounded-2xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 cursor-pointer border ${
+            activeTab === "security_sentinel"
+              ? "bg-amber-500 text-black border-amber-300 shadow-lg shadow-amber-500/30 font-black"
+              : "bg-[#10141e] text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700"
           }`}
         >
-          <Edit3 className="w-4 h-4" /> Registro Retroactivo / Correcciones
-        </button>
-        <button
-          onClick={() => setActiveTab("test_day")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "test_day"
-              ? "bg-[#8b5cf6] text-white font-black shadow-lg shadow-purple-500/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
-          }`}
-        >
-          <Activity className="w-4 h-4" /> Test Day & Evaluaciones
-        </button>
-        <button
-          onClick={() => setActiveTab("home_training")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "home_training"
-              ? "bg-amber-500 text-black font-black shadow-lg shadow-amber-500/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
-          }`}
-        >
-          <Home className="w-4 h-4" /> Entrenamiento en Casa
-        </button>
-        <button
-          onClick={() => setActiveTab("guardians")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "guardians"
-              ? "bg-purple-600 text-white font-black shadow-lg shadow-purple-600/30"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
-          }`}
-        >
-          <Users className="w-4 h-4 text-purple-300" /> Directorio Familiar &amp; Tutores
-        </button>
-        <button
-          onClick={() => setActiveTab("coaches")}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "coaches"
-              ? "bg-[#0284c7] text-white shadow-lg shadow-sky-500/20"
-              : "bg-[#121724] text-zinc-400 hover:text-white border border-zinc-800"
-          }`}
-        >
-          <Users className="w-4 h-4" /> Staff y Coaches ({coaches.filter((c) => c.role === "coach_pending" || c.status === "pending").length} pendientes)
+          <ShieldAlert className="w-5 h-5 text-amber-400" />
+          <span className="uppercase tracking-tight text-[11px] font-black">4. Respaldos & IA Sentinel</span>
+          <span className="text-[9px] text-zinc-300 font-normal">Copias JSON • Anti-Hackeo</span>
         </button>
       </div>
 
@@ -865,6 +822,17 @@ export default function MasterBunkerHQ() {
               >
                 <span>📅 Registro Histórico por Fecha</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setAttendanceSubView("combine")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  attendanceSubView === "combine"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <span>🎯 Combine & Test Day</span>
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -890,8 +858,10 @@ export default function MasterBunkerHQ() {
 
           {attendanceSubView === "command" ? (
             <CourtAttendanceCommand />
-          ) : (
+          ) : attendanceSubView === "historical" ? (
             <AttendanceTracker />
+          ) : (
+            <CombineExpressTable />
           )}
         </div>
       )}
@@ -1133,151 +1103,143 @@ export default function MasterBunkerHQ() {
         </div>
       )}
 
-      {/* SECCIÓN B: ROSTER, HORARIOS & BECAS */}
-      {activeTab === "roster_becas" && (
+      {/* HUB 3: ROSTER, ATLETAS & COMUNIDAD (CONSOLIDA EXPEDIENTES, SMART CRM, FAMILIAS & WHATSAPP) */}
+      {activeTab === "roster_community" && (
         <div className="space-y-6 animate-fade-in">
-          <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-amber-400 shrink-0" />
-              <span><strong>Módulo Exclusivo:</strong> Gestión de Días de Entrenamiento, Cuota Base Personalizada ($50 MXN) y Nivel de Beca (0% a 100%).</span>
-            </div>
-          </div>
-          <SuperAdminOmniManager initialSubTab="athletes" onDataChanged={fetchDashboardData} />
-        </div>
-      )}
-
-      {/* SECCIÓN C: REGISTRO RETROACTIVO / CORRECCIONES */}
-      {activeTab === "retroactivo" && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="p-4 rounded-2xl bg-sky-950/20 border border-sky-500/30 text-sky-300 text-xs flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Edit3 className="w-4 h-4 text-sky-400 shrink-0" />
-              <span><strong>Control Total del Head Coach:</strong> Corrección y asentamiento retroactivo de asistencias pasadas o futuras y balance de pagos.</span>
-            </div>
-          </div>
-          <SuperAdminOmniManager initialSubTab="inline_attendance" onDataChanged={fetchDashboardData} />
-        </div>
-      )}
-
-      {activeTab === "test_day" && (
-        <div className="space-y-4 animate-fade-in">
-          {/* Sub-selector de Vista Test Day */}
-          <div className="flex items-center justify-between flex-wrap gap-2 pb-2">
-            <div className="inline-flex p-1 rounded-xl bg-[#121724] border border-zinc-800 flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={() => setTestDaySubView("express")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
-                  testDaySubView === "express"
-                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <span>⚡ Combine Express (Tabla Masiva de Toda la Cancha)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTestDaySubView("dual")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
-                  testDaySubView === "dual"
-                    ? "bg-[#8b5cf6] text-white shadow-md shadow-purple-600/20"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <span>🎯 Control Dual (Día 1, Físico & Batería)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTestDaySubView("ovr")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
-                  testDaySubView === "ovr"
-                    ? "bg-[#ea580c] text-white shadow-md shadow-orange-600/20"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <span>📊 Evaluación por Nivel (OVR)</span>
-              </button>
-            </div>
-            <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
-              {testDaySubView === "express" 
-                ? "Califica a toda la lista de alumnos en una sola tabla táctil" 
-                : testDaySubView === "dual"
-                ? "Línea base de llegada y entrenamiento modular con interruptores ON/OFF" 
-                : "Calificación y cálculo de Overall Rating OVR por nivel"}
-            </span>
+          {/* Sub-selector para Atletas & Familias */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setRosterSubView("all_roster")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                rosterSubView === "all_roster"
+                  ? "bg-purple-600 text-white font-black shadow-md shadow-purple-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Users className="w-4 h-4 text-purple-300" />
+              <span>Plantel Completo & Becas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRosterSubView("guardians")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                rosterSubView === "guardians"
+                  ? "bg-purple-600 text-white font-black shadow-md shadow-purple-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Users className="w-4 h-4 text-purple-300" />
+              <span>Directorio Familiar (Tutores)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRosterSubView("smart_placement")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                rosterSubView === "smart_placement"
+                  ? "bg-purple-600 text-white font-black shadow-md shadow-purple-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-purple-300" />
+              <span>Diagnóstico Exprés CRM</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRosterSubView("whatsapp")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                rosterSubView === "whatsapp"
+                  ? "bg-emerald-500 text-black font-black shadow-md shadow-emerald-500/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp Hub</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRosterSubView("staff_coaches")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                rosterSubView === "staff_coaches"
+                  ? "bg-sky-600 text-white font-black shadow-md shadow-sky-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Users className="w-4 h-4 text-sky-300" />
+              <span>Staff Técnico & Postulantes</span>
+            </button>
           </div>
 
-          {testDaySubView === "express" ? (
-            <CombineExpressTable />
-          ) : testDaySubView === "dual" ? (
-            <DualCoachCommand />
-          ) : (
-            <TestDayEvaluator />
+          {rosterSubView === "all_roster" && (
+            <SuperAdminOmniManager initialSubTab="athletes" onDataChanged={fetchDashboardData} />
+          )}
+
+          {rosterSubView === "guardians" && (
+            <GuardianDirectory />
+          )}
+
+          {rosterSubView === "smart_placement" && (
+            <SmartPlacementCRM />
+          )}
+
+          {rosterSubView === "whatsapp" && (
+            <WhatsAppHubCRM />
+          )}
+
+          {rosterSubView === "staff_coaches" && (
+            <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
+              <h3 className="text-sm font-bold uppercase text-zinc-300 mb-4 flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#0284c7]" /> Entrenadores y Postulantes
+              </h3>
+              {coaches.length === 0 ? (
+                <div className="p-8 text-center text-xs text-zinc-500">No hay registros de coaches.</div>
+              ) : (
+                <div className="space-y-3">
+                  {coaches.map((c) => {
+                    const isPending = c.role === "coach_pending" || c.status === "pending";
+                    return (
+                      <div key={c.id} className="bg-[#121724] border border-zinc-800 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                          <h4 className="text-sm font-bold text-white">{c.full_name || "Sin nombre"}</h4>
+                          <p className="text-xs text-zinc-400">{c.email}</p>
+                          <span className={`inline-block mt-2 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                            !isPending
+                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                          }`}>
+                            {!isPending ? "COACH ACTIVO" : "PENDIENTE DE APROBACIÓN"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isPending && (
+                            <button
+                              onClick={() => approveCoach(c.id)}
+                              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-md"
+                            >
+                              <Check className="w-4 h-4" /> Aprobar Coach
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteUser(c.id)}
+                            className="p-2.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-xl text-xs transition cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {activeTab === "home_training" && (
-        <div className="space-y-4 animate-fade-in">
-          <BunkerHomeTrainingMonitor />
-        </div>
-      )}
-
-      {activeTab === "guardians" && (
-        <div className="space-y-4 animate-fade-in">
-          <GuardianDirectory />
-        </div>
-      )}
-
-      {activeTab === "coaches" && (
-        <div className="space-y-4 animate-fade-in">
-          <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
-            <h3 className="text-sm font-bold uppercase text-zinc-300 mb-4 flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#0284c7]" /> Entrenadores y Postulantes
-            </h3>
-
-            {coaches.length === 0 ? (
-              <div className="p-8 text-center text-xs text-zinc-500">No hay registros de coaches.</div>
-            ) : (
-              <div className="space-y-3">
-                {coaches.map((c) => {
-                  const isPending = c.role === "coach_pending" || c.status === "pending";
-                  return (
-                    <div key={c.id} className="bg-[#121724] border border-zinc-800 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-white">{c.full_name || "Sin nombre"}</h4>
-                        <p className="text-xs text-zinc-400">{c.email}</p>
-                        <span className={`inline-block mt-2 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                          !isPending
-                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                        }`}>
-                          {!isPending ? "COACH ACTIVO" : "PENDIENTE DE APROBACIÓN"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {isPending && (
-                          <button
-                            onClick={() => approveCoach(c.id)}
-                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-md"
-                          >
-                            <Check className="w-4 h-4" /> Aprobar Coach
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteUser(c.id)}
-                          className="p-2.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-xl text-xs transition cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+      {/* HUB 4: SEGURIDAD, RESPALDOS & CENTINELA ANTI-HACKEO */}
+      {activeTab === "security_sentinel" && (
+        <div className="space-y-6 animate-fade-in">
+          <SecurityBackupManager />
         </div>
       )}
       </div>
