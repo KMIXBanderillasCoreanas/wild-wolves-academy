@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import LoboProModal from "@/components/LoboProModal";
+import { generateFullReportHTML } from "@/lib/reportGenerator";
 import { 
   Users, 
   User, 
@@ -173,6 +174,60 @@ export default function GuardianDashboardPage() {
     `Hola Coach Ricardo, le escribe el tutor de ${studentName} de la Academia Wild Wolves CDMX. Quisiera consultar sobre su proceso y entrenamientos en cancha.`
   )}`;
 
+  // Descargar Reporte Completo en HTML
+  const handleDownloadFullReport = () => {
+    const reportHtml = generateFullReportHTML({
+      studentName,
+      jerseyNumber: studentProfile?.jersey_number || 11,
+      category: studentProfile?.category || "U-17 Competitivo",
+      age: 15,
+      heightCm: 176,
+      wingspanCm: 180,
+      verticalJumpCm: latestTest?.vertical_jump_cm || 45,
+      evaluationDate: latestTest?.evaluation_date || "27 Octubre 2026",
+      overallOvr: latestTest?.overall_ovr || 72,
+      tierName: studentProfile?.current_tier || "Intermedio",
+      freeThrowsMade: latestTest?.free_throws_made ?? 7,
+      midRangeLeftMade: latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 6,
+      midRangeRightMade: latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 5,
+      threeCornerLeftMade: latestTest?.spot_corner_left ?? 3,
+      threeWingLeftMade: latestTest?.spot_wing_left ?? 3,
+      threeTopKeyMade: latestTest?.spot_top_key ?? 4,
+      threeWingRightMade: latestTest?.spot_wing_right ?? 3,
+      threeCornerRightMade: latestTest?.spot_corner_right ?? 2,
+      jumpRopeCount: latestTest?.jump_rope_count ?? 45,
+      circuitLinesSeconds: latestTest?.lines_round_trip_seconds ?? 22.4,
+      sprint100mSeconds: latestTest?.sprint_100m_seconds ?? 13.8,
+      attendanceCount,
+      attendanceGoal: 16,
+      financialStatus,
+      currentDebtAmount: debtAmount,
+      goodHabits: [
+        "Alineación simétrica de pies en tiros libres y fase de carga con rodillas flexionadas.",
+        "Excelente tiempo de reacción en el circuito de agilidad lateral en Deportivo Carmen Serdán.",
+        "Compromiso y puntualidad verificada por el cuerpo técnico."
+      ],
+      badHabitsToFix: [
+        "Tiende a bajar la mano derecha antes de que el balón entre en tiros de tres puntos (rompe el follow-through).",
+        "En la batería 3x25, apresura las últimas 5 sentadillas perdiendo los 90° de profundidad requeridos."
+      ],
+      tallDefenderStrategy: "Por su estatura de 1.76m frente a defensas de más de 1.85m: Debe evitar bandejas rectas bajo el tablero. Se recomienda utilizar finta de tiro en suspensión a media distancia, flotadora bombeada y salida rápida con paso lateral (step-back).",
+      wristMechanicsNotes: "En lanzamientos de alta velocidad: Mantener el quiebre de muñeca (" + '"' + "mano en el tarro de galletas" + '"' + ") durante 1 segundo tras soltar el balón para imprimir rotación óptima al tiro.",
+      nutritionSleepNotes: "Dormir mínimo 8.5 horas continuas para favorecer la hormona de crecimiento y la recuperación del sistema nervioso central tras entrenamientos intensos en duela.",
+      coachFeedback: latestTest?.coach_feedback || "Atleta con enorme potencial y disciplina en cancha. Enfocado en consolidar el rango Avanzado."
+    });
+
+    const blob = new Blob([reportHtml], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Expediente_Oficial_${studentName.replace(/\s+/g, "_")}_WildWolves.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-[#07090e] text-zinc-100 flex flex-col font-sans">
       
@@ -199,6 +254,15 @@ export default function GuardianDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadFullReport}
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-sm transition cursor-pointer"
+              title="Descargar expediente en un solo archivo HTML interactivo"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Descargar Expediente HTML</span>
+            </button>
+
             <a
               href={coachWhatsAppUrl}
               target="_blank"

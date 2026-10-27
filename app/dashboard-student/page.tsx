@@ -13,6 +13,7 @@ import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import LoboProModal from "@/components/LoboProModal";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import VisionAssistantModal from "@/components/VisionAssistantModal";
+import { generateFullReportHTML } from "@/lib/reportGenerator";
 import {
   Camera,
   ExternalLink,
@@ -1323,6 +1324,66 @@ export default function StudentDashboardPage() {
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-surface-container-high text-secondary border border-secondary/30">
                       {profile?.position || "FORMATIVO"}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const reportHtml = generateFullReportHTML({
+                          studentName: profile?.full_name || "Bruno Díaz",
+                          jerseyNumber: profile?.jersey_number || 11,
+                          category: profile?.category || "U-17 Competitivo",
+                          age: 15,
+                          heightCm: 176,
+                          wingspanCm: 180,
+                          verticalJumpCm: currentPerformance.vertical_jump_cm || 45,
+                          evaluationDate: evaluation.evaluation_date || "27 Octubre 2026",
+                          overallOvr: evaluation.overall_ovr || 72,
+                          tierName: profile?.current_tier || "Intermedio",
+                          freeThrowsMade: currentPerformance.free_throws_made ?? 7,
+                          midRangeLeftMade: currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 6,
+                          midRangeRightMade: currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 5,
+                          threeCornerLeftMade: currentPerformance.spot_corner_left ?? 3,
+                          threeWingLeftMade: currentPerformance.spot_wing_left ?? 3,
+                          threeTopKeyMade: currentPerformance.spot_top_key ?? 4,
+                          threeWingRightMade: currentPerformance.spot_wing_right ?? 3,
+                          threeCornerRightMade: currentPerformance.spot_corner_right ?? 2,
+                          jumpRopeCount: currentPerformance.jump_rope_count ?? 45,
+                          circuitLinesSeconds: currentPerformance.lines_round_trip_seconds ?? 22.4,
+                          sprint100mSeconds: currentPerformance.sprint_100m_seconds ?? 13.8,
+                          attendanceCount: attendanceStats.total,
+                          attendanceGoal: attendanceStats.goal,
+                          financialStatus: profileFinancialData.financial_status,
+                          currentDebtAmount: profileFinancialData.current_debt_amount,
+                          goodHabits: [
+                            "Mecánica de codo y brazo alineada en tiros libres (80% consistencia).",
+                            "Excelente velocidad de reacción y freno en el circuito línea a línea.",
+                            "Compromiso y puntualidad verificada en Deportivo Carmen Serdán."
+                          ],
+                          badHabitsToFix: [
+                            "Baja la mano derecha antes de tiempo en triples (rompe el follow-through).",
+                            "En la batería 3x25, apresura sentadillas perdiendo los 90° de profundidad."
+                          ],
+                          tallDefenderStrategy: "Frente a defensores más altos (+1.85m): Evitar penetración directa al choque. Usar finta con tiro en suspensión a media distancia, flotadora bombeada y salida rápida con paso atrás (step-back).",
+                          wristMechanicsNotes: "En lanzamientos veloces: Mantener el quiebre de muñeca (" + '"' + "mano en el tarro de galletas" + '"' + ") durante 1 segundo tras soltar el balón para imprimir rotación óptima.",
+                          nutritionSleepNotes: "Dormir mínimo 8.5 horas continuas para favorecer la hormona de crecimiento y la recuperación del sistema nervioso central.",
+                          coachFeedback: evaluation.coach_feedback || "Atleta con enorme disciplina y enfoque en duela."
+                        });
+
+                        const blob = new Blob([reportHtml], { type: "text/html;charset=utf-8" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = `Expediente_${(profile?.full_name || "Atleta").replace(/\s+/g, "_")}_WildWolves.html`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="text-[10px] font-black px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-surface-variant text-zinc-200 border border-zinc-700 shadow-sm hover:scale-105 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+                      title="Descargar expediente en archivo HTML interactivo único"
+                    >
+                      <Download className="w-3 h-3 text-orange-400" />
+                      <span>EXPEDIENTE HTML</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setShowVisionModal(true)}
