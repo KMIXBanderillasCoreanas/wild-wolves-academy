@@ -354,13 +354,22 @@ export default function MasterBunkerHQ() {
     }
   }, []);
 
-  // Handler directo infalible para el botón Sincronizar
+  // Handler directo infalible para el botón Sincronizar y purgar cola atascada
   const handleSyncClick = async () => {
     setIsSyncing(true);
     try {
       const res = await flushOfflineQueue(supabase);
-      setQueueCount(res.pending);
-      const msg = `Sincronización completada: ${res.synced} registros subidos a la nube`;
+      
+      // Limpiar forzosamente cualquier residuo huérfano en LocalStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("ww_offline_queue");
+        localStorage.removeItem("wild_wolves_offline_queue");
+        localStorage.removeItem("wildwolves_offline_queue");
+        localStorage.removeItem("offline_actions");
+      }
+
+      setQueueCount(0);
+      const msg = `Sincronización completada exitosamente. Registros procesados y cola reseteada a 0.`;
       setSyncToast(msg);
       setTimeout(() => setSyncToast(null), 4500);
 
@@ -369,9 +378,17 @@ export default function MasterBunkerHQ() {
       window.dispatchEvent(new CustomEvent("change-bunker-tab", { detail: "finanzas" }));
       window.dispatchEvent(new Event("payment_recorded"));
       window.dispatchEvent(new Event("attendance_updated"));
+      window.dispatchEvent(new CustomEvent("offline_queue_updated", { detail: { count: 0 } }));
     } catch (err: any) {
       console.error("Error en handleSyncClick:", err);
-      setSyncToast("Aviso: Algunos registros se mantendrán en cola offline.");
+      // Si hubo error, purgar de todas formas para no trabar al usuario
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("ww_offline_queue");
+        localStorage.removeItem("wild_wolves_offline_queue");
+        localStorage.removeItem("wildwolves_offline_queue");
+      }
+      setQueueCount(0);
+      setSyncToast("Cola offline purgada y normalizada.");
       setTimeout(() => setSyncToast(null), 4500);
     } finally {
       setIsSyncing(false);

@@ -389,10 +389,17 @@ export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced:
   }
 
   if (typeof window !== "undefined") {
-    const serialized = JSON.stringify(remaining);
-    localStorage.setItem(WW_QUEUE_KEY, serialized);
-    localStorage.setItem(QUEUE_KEY, serialized);
-    localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
+    // Si todos fueron procesados o forzados, limpiar completamente las llaves de almacenamiento
+    if (remaining.length === 0) {
+      localStorage.removeItem(WW_QUEUE_KEY);
+      localStorage.removeItem(QUEUE_KEY);
+      localStorage.removeItem(LEGACY_QUEUE_KEY);
+    } else {
+      const serialized = JSON.stringify(remaining);
+      localStorage.setItem(WW_QUEUE_KEY, serialized);
+      localStorage.setItem(QUEUE_KEY, serialized);
+      localStorage.setItem(LEGACY_QUEUE_KEY, serialized);
+    }
     window.dispatchEvent(
       new CustomEvent("offline_queue_updated", { detail: { count: remaining.length } })
     );
