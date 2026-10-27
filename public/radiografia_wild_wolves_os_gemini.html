@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radiografía Técnica de Wild Wolves Basketball Academy OS • Informe para Auditoría IA</title>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --card-bg: #121724;
+      --accent: #f97316;
+      --accent-glow: rgba(249, 115, 22, 0.25);
+      --emerald: #10b981;
+      --cyan: #06b6d4;
+      --purple: #8b5cf6;
+      --red: #ef4444;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --border: #27272a;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      background: linear-gradient(135deg, #182032 0%, #0c0f17 100%);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 30px var(--accent-glow);
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, 0.15);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 800px;
+    }
+    .prompt-box {
+      background: #171d2d;
+      border: 2px dashed #f59e0b;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 32px;
+    }
+    .prompt-box h3 {
+      font-size: 14px;
+      color: #fbbf24;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .prompt-code {
+      background: #090c13;
+      padding: 14px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      white-space: pre-wrap;
+      word-break: break-word;
+      user-select: all;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .status-ok { background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid var(--emerald); }
+    .status-warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
+    .status-next { background: rgba(6, 182, 212, 0.2); color: var(--cyan); border: 1px solid var(--cyan); }
+    
+    ul.item-list {
+      list-style: none;
+      font-size: 13px;
+    }
+    ul.item-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    ul.item-list li:last-child {
+      border-bottom: none;
+    }
+    .tag {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--muted);
+      background: #090c13;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 28px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: #0b0f19;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 800;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 20px 0;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- ENCABEZADO -->
+    <header>
+      <span class="badge">Auditoría Arquitectónica y Operativa • Wild Wolves OS</span>
+      <h1>Radiografía Técnica del Sistema</h1>
+      <p class="subtitle">
+        Documento maestro para alimentar a Google Gemini u otros LLMs avanzados para realizar un diagnóstico de 360°, detectar vacíos operativos, blindar la base de datos de PostgreSQL/Supabase y trazar el roadmap de evolución.
+      </p>
+    </header>
+
+    <!-- INSTRUCCIÓN DIRECTA PARA GOOGLE GEMINI -->
+    <div class="prompt-box">
+      <h3>⚡ Instrucción para Google Gemini (Copiar y Pegar en Gemini):</h3>
+      <div class="prompt-code">"Actúa como un Arquitecto de Software Principal y Preparador Físico de Alto Rendimiento Deportivo FIBA/NBA. Analiza detalladamente la radiografía adjunta de la aplicación web Wild Wolves Basketball Academy CDMX (Sede: Deportivo Carmen Serdán, Head Coach Ricardo). Evalúa la arquitectura técnica, las 20 tablas de base de datos Supabase, la integración de visión por computadora estilo HomeCourt (Shot Science), los perfiles RBAC (Coach, Alumno, Tutor) y el control financiero de caja. Entrégame un dictamen estructurado en 4 puntos:
+1. FORTALEZAS ACTUALES: Qué está completamente blindado y listo para producción.
+2. LO QUE FALTA (Gaps Operativos): Qué módulos, validaciones o flujos de trabajo aún no están cerrados o necesitan automatización.
+3. LO QUE SOBRA O GENERA RIESGO: Tablas redundantes, código muerto o posibles cuellos de botella en offline/online.
+4. PLAN DE MEJORA Y ESCALABILIDAD A 3 MESES: Plan paso a paso para convertir a Wild Wolves en la academia de básquetbol con mayor tecnología de México."</div>
+    </div>
+
+    <!-- REJILLA DE RADIOGRAFÍA -->
+    <div class="grid">
+      
+      <!-- 1. IDENTIDAD Y ALCANCE OPERATIVO -->
+      <div class="card">
+        <h2>🐺 1. Identidad de Academia</h2>
+        <ul class="item-list">
+          <li><strong>Organización:</strong> <span>Wild Wolves Basketball Academy CDMX</span></li>
+          <li><strong>Sede Principal:</strong> <span>Deportivo Carmen Serdán</span></li>
+          <li><strong>Dirección General:</strong> <span>Head Coach Ricardo</span></li>
+          <li><strong>Población Atleta:</strong> <span>U-10 Mini a U-20 Juvenil / Élite</span></li>
+          <li><strong>Cuota Regular:</strong> <span>$50 MXN por clase / sesión</span></li>
+          <li><strong>Capacidades Offline:</strong> <span class="status-pill status-ok">PWA + Service Worker</span></li>
+        </ul>
+      </div>
+
+      <!-- 2. STACK TECNOLÓGICO -->
+      <div class="card">
+        <h2>💻 2. Stack Tecnológico</h2>
+        <ul class="item-list">
+          <li><strong>Framework Web:</strong> <span class="tag">Next.js 14.2 (App Router)</span></li>
+          <li><strong>Lenguaje:</strong> <span class="tag">TypeScript 5+</span></li>
+          <li><strong>Estilos:</strong> <span class="tag">Tailwind CSS + Lucide Icons</span></li>
+          <li><strong>Base de Datos:</strong> <span class="tag">Supabase PostgreSQL 15</span></li>
+          <li><strong>Motor IA LLM:</strong> <span class="tag">Groq API (Llama 3.3 70B & DeepSeek)</span></li>
+          <li><strong>Despliegue Nube:</strong> <span class="tag">Vercel Production Edge</span></li>
+        </ul>
+      </div>
+
+      <!-- 3. PORTALES Y RUTAS CLAVE -->
+      <div class="card">
+        <h2>🧭 3. Mapa de Rutas Activas</h2>
+        <ul class="item-list">
+          <li>
+            <span>/dashboard-coach</span>
+            <span class="status-pill status-ok">Cancha • Evaluaciones • Cuerda • Finanzas</span>
+          </li>
+          <li>
+            <span>/dashboard-student</span>
+            <span class="status-pill status-ok">Shot Science • Radar 360 • Heatmap Cancha</span>
+          </li>
+          <li>
+            <span>/dashboard-guardian</span>
+            <span class="status-pill status-ok">Reportes Tutor • HomeCourt • Finanzas Alumno</span>
+          </li>
+          <li>
+            <span>/master-bunker-hq</span>
+            <span class="status-pill status-ok">Consola SuperAdmin • CRM • Respaldos</span>
+          </li>
+          <li>
+            <span>/login</span>
+            <span class="status-pill status-ok">Acceso Unificado Multi-Rol</span>
+          </li>
+          <li>
+            <span>/apply-coach-ww</span>
+            <span class="status-pill status-warn">Postulación Entrenadores</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4. ECOSISTEMA HOMECORT & SHOT SCIENCE -->
+      <div class="card">
+        <h2>🏀 4. Módulo Biomecánico HomeCourt</h2>
+        <ul class="item-list">
+          <li>
+            <span>Mapa de Calor en Cancha</span>
+            <span class="status-pill status-ok">Verde (&ge;70%), Amarillo, Naranja, Rojo</span>
+          </li>
+          <li>
+            <span>Shot Science Telemetry</span>
+            <span class="status-pill status-ok">Catch & Shoot, Off Dribble, Layup</span>
+          </li>
+          <li>
+            <span>Variables Cinemáticas</span>
+            <span class="tag">Release Time (0.8s) • Leg Angle (139°) • Arc (46°)</span>
+          </li>
+          <li>
+            <span>Volumen Histórico</span>
+            <span class="status-pill status-ok">Tiros Totales, Horas Duela, Workouts</span>
+          </li>
+          <li>
+            <span>Effort Make vs Miss</span>
+            <span class="status-pill status-ok">Gráfica Apilada Mensual (Nov - Oct)</span>
+          </li>
+          <li>
+            <span>Insignias Oficiales</span>
+            <span class="status-pill status-ok">65% 3PT • 10 Racha • 50 Triples</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 5. INTELIGENCIA ARTIFICIAL DEPORTIVA -->
+      <div class="card">
+        <h2>🤖 5. Motor de IA (Lobo Táctico)</h2>
+        <ul class="item-list">
+          <li>
+            <span>Báscula Bioimpedancia</span>
+            <span class="status-pill status-ok">Katch-McArdle, Grasa Corporal, Agua</span>
+          </li>
+          <li>
+            <span>Nutrición Deportiva</span>
+            <span class="status-pill status-ok">1.8 - 2.4 g/kg Proteína Masa Magra</span>
+          </li>
+          <li>
+            <span>Salto Vertical & Pliometría</span>
+            <span class="status-pill status-ok">CEA, Depth Jumps, Fase Excéntrica</span>
+          </li>
+          <li>
+            <span>Táctica vs Defensas Altos</span>
+            <span class="status-pill status-ok">Parábola 50°, Step-backs, Flotadoras</span>
+          </li>
+          <li>
+            <span>Requisitos de Ascenso</span>
+            <span class="status-pill status-ok">Mínimos estrictos innegociables por nivel</span>
+          </li>
+          <li>
+            <span>Asistente de Voz Fenrir</span>
+            <span class="status-pill status-warn">Web Speech API + Avatar Dinámico</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 6. FINANZAS & ASISTENCIAS -->
+      <div class="card">
+        <h2>💰 6. Control Financiero y Duela</h2>
+        <ul class="item-list">
+          <li>
+            <span>Registro de Asistencia</span>
+            <span class="status-pill status-ok">Presente, Retardo, Falta Justificada</span>
+          </li>
+          <li>
+            <span>Cálculo de Deuda por Alumno</span>
+            <span class="status-pill status-ok">Adeudo en Tiempo Real ($50/clase)</span>
+          </li>
+          <li>
+            <span>Historial Transaccional</span>
+            <span class="status-pill status-ok">payment_transactions_history</span>
+          </li>
+          <li>
+            <span>Condonación por IA</span>
+            <span class="status-pill status-ok">Comando de voz/texto del Coach</span>
+          </li>
+          <li>
+            <span>Pagos en Línea (Stripe)</span>
+            <span class="status-pill status-next">Próxima Fase / Opcional</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- TABLA DE ESQUEMA DE BASE DE DATOS SUPABASE -->
+    <div class="table-container">
+      <h2>🗄️ Esquema Completo de Base de Datos Supabase (20 Tablas)</h2>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">
+        Estructura activa en la instancia de Supabase PostgreSQL con RLS y Service Role bypass en endpoints administrativos:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre de Tabla</th>
+            <th>Propósito Operativo</th>
+            <th>Campos Clave</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>profiles</code></td>
+            <td>Usuarios unificados (alumnos, tutores, coaches, superadmin)</td>
+            <td>id, full_name, email, role, current_debt_amount, financial_status, current_tier, avatar_url</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>detailed_test_records</code></td>
+            <td>Test Day oficial de duela (tiros y pruebas atléticas)</td>
+            <td>student_id, evaluation_date, free_throws_made, mid_range_made, three_point_made, vertical_jump_cm, sprint_100m_seconds, lines_round_trip_seconds</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>basketball_skills_logs</code></td>
+            <td>Desglose por zonas del mapa de tiro</td>
+            <td>student_id, date, three_corner_left, three_wing_left, three_top, three_wing_right, three_corner_right, free_throws_made</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>physical_training_logs</code></td>
+            <td>Registro de saltos de cuerda y resistencia</td>
+            <td>student_id, date, jump_rope_count, circuit_seconds, sprint_seconds, coach_notes</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>payment_transactions_history</code></td>
+            <td>Bitácora contable de pagos y cortesías</td>
+            <td>student_id, coach_id, amount_paid, remaining_debt, payment_method, concept, transaction_date</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>daily_attendance</code></td>
+            <td>Asistencia diaria en duela</td>
+            <td>student_id, coach_id, date, status (presente/falta), notes</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>student_earned_badges</code></td>
+            <td>Insignias y medallas desbloqueadas</td>
+            <td>student_id, badge_name, badge_tier, date_earned</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>home_training_logs</code></td>
+            <td>Entrenamiento de cuerda y físico en casa</td>
+            <td>student_id, date, rope_completed, jogging_completed</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>training_overload</code></td>
+            <td>Sobrecarga progresiva y microciclos</td>
+            <td>student_id, week_number, target_rope, target_shots</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>prospect_athletes</code></td>
+            <td>Pre-registro y aspirantes captados por IA</td>
+            <td>full_name, category, training_schedule, debt_amount</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>athlete_crm_logs</code></td>
+            <td>Seguimiento comercial y WhatsApp CRM</td>
+            <td>student_id, channel, message_body, direction, created_at</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>finances</code></td>
+            <td>Parámetros individuales de cobro y frecuencia</td>
+            <td>student_id, cost_per_class, frequency, status, balance_due</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>membership_payments</code></td>
+            <td>Mensualidades recurrentes fijas</td>
+            <td>student_id, amount, payment_date, period_month, period_year</td>
+            <td><span class="status-pill status-warn">Secundario</span></td>
+          </tr>
+          <tr>
+            <td><code>active_court_students</code></td>
+            <td>Alumnos presentes en duela en tiempo real</td>
+            <td>student_id, session_time, court_zone</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>student_initial_baseline</code></td>
+            <td>Evaluación inicial de ingreso (Nivel cero)</td>
+            <td>student_id, baseline_ovr, notes</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>evaluations</code> / <code>student_evaluations</code></td>
+            <td>Tablas de compatibilidad legacy</td>
+            <td>student_id, score, evaluation_date</td>
+            <td><span class="status-pill status-warn">Legacy Mantener</span></td>
+          </tr>
+          <tr>
+            <td><code>attendance</code> / <code>attendance_commitments</code></td>
+            <td>Compromisos semanales de asistencia</td>
+            <td>student_id, days_committed, attendance_percentage</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+          <tr>
+            <td><code>students</code></td>
+            <td>Copia puente para stores reactivos offline</td>
+            <td>id, name, level, current_debt</td>
+            <td><span class="status-pill status-ok">Producción</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PREGUNTAS CLAVE PARA AUDITORÍA CON IA -->
+    <div class="card" style="margin-bottom: 28px;">
+      <h2>❓ Preguntas Estratégicas para Resolver con Gemini</h2>
+      <ul class="item-list">
+        <li>
+          <strong>1. Integración de Visión por Computadora (Webcam / Cámara Celular):</strong>
+          <span style="color: var(--muted);">¿Conviene usar MediaPipe Pose + OpenCV.js directamente en el navegador del celular o delegar el procesamiento de video a un worker en background para no agotar la batería en cancha?</span>
+        </li>
+        <li>
+          <strong>2. Automatización del Ascenso de Nivel:</strong>
+          <span style="color: var(--muted);">¿Cómo diseñar el trigger en PostgreSQL para que cuando se inserte un test que cumpla los requisitos mínimos, el campo <code>current_tier</code> cambie automáticamente sin intervención humana y envíe una felicitación push?</span>
+        </li>
+        <li>
+          <strong>3. Integración Directa con la Báscula de Bioimpedancia:</strong>
+          <span style="color: var(--muted);">¿Cuál es el mejor protocolo UX para que el Coach Ricardo ingrese los 5 números que arroja la báscula (Peso, % Grasa, % Agua, Masa Muscular, Grasa Visceral) y en 1 segundo se genere el menú nutricional en PDF/HTML?</span>
+        </li>
+        <li>
+          <strong>4. Modelo de Negocio y Monetización para Familias:</strong>
+          <span style="color: var(--muted);">¿Cómo estructurar el pase "Lobo Pro Familiar" para que los padres reciban el reporte semanal en WhatsApp con un enlace interactivo de los tiros y avances de su hijo?</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      Wild Wolves Basketball Academy CDMX • Deportivo Carmen Serdán • Sistema Operativo Deportivo Integral • Generado el 27 de Octubre de 2026
+    </div>
+
+  </div>
+
+</body>
+</html>
