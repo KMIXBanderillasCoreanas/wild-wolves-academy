@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
+import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import LoboProModal from "@/components/LoboProModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
 import { 
@@ -491,6 +492,12 @@ export default function GuardianDashboardPage() {
             athleteName: studentName
           }}
           showPhysicals={true}
+        />
+
+        {/* SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECOURT PARA PADRES */}
+        <ShotScienceDashboard 
+          athleteName={studentName}
+          isCoachView={false}
         />
 
         {/* SECCIÓN DE MEDALLAS DESBLOQUEADAS */}

@@ -12,6 +12,7 @@ import { RadarChart360 } from "@/components/RadarChart360";
 import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import LoboProModal from "@/components/LoboProModal";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
+import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import VisionAssistantModal from "@/components/VisionAssistantModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
 import {
@@ -2184,6 +2185,14 @@ export default function StudentDashboardPage() {
                   athleteName: profile?.full_name
                 }}
                 showPhysicals={true}
+              />
+            </section>
+
+            {/* 4.1 SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECORT */}
+            <section className="space-y-4">
+              <ShotScienceDashboard 
+                athleteName={profile?.full_name || "Bruno Díaz"}
+                isCoachView={Boolean(profile?.isCoachOrAdmin)}
               />
             </section>
 
