@@ -870,8 +870,8 @@ export default function StudentDashboardPage() {
     window.location.href = "/login";
   };
 
-  // Verificación de evaluación real (por desempeño, línea base o Tier asignado en profile)
-  const isEvaluated = Boolean(currentPerformance.isReal || baseline.isReal || profile?.current_tier);
+  // Verificación de evaluación real (por desempeño, línea base, detailed_test_records o Tier asignado en profile)
+  const isEvaluated = Boolean(currentPerformance.isReal || baseline.isReal || evaluation.isReal || profile?.current_tier);
   const baseMastery = checkBaseExercisesMastery(currentPerformance, baseline);
   const hasRealSelfie = Boolean(
     profile?.avatar_url && 

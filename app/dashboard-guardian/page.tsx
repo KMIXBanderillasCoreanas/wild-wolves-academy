@@ -330,25 +330,28 @@ export default function GuardianDashboardPage() {
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-purple-400" /> Calificación OVR
+                  <Target className="w-3.5 h-3.5 text-purple-400" /> Nivel de Juego (OVR)
                 </span>
-                <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  {latestTest ? "Evaluado Oficial" : "Pendiente"}
+                <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded border ${
+                  latestTest ? "bg-purple-500/20 text-purple-300 border-purple-500/30" : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                }`}>
+                  {latestTest ? `${latestTest.athletic_level_assessed?.replace("_", " ").toUpperCase() || "FORMATIVO"}` : "Día 1 Pendiente"}
                 </span>
               </div>
 
               <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-black font-mono text-white">
-                  {latestTest ? `${latestTest.overall_ovr} pts` : "--"}
+                <div className="text-2xl sm:text-3xl font-black font-mono text-purple-400">
+                  {latestTest ? `${latestTest.overall_ovr} OVR` : "Sin Calificar"}
                 </div>
-                <p className="text-[11px] text-zinc-400 mt-1">
-                  {latestTest?.coach_feedback || "El Head Coach calibrará sus 6 ejes deportivos en el próximo Test Day."}
+                <p className="text-[11px] text-zinc-300 mt-1 leading-relaxed">
+                  {latestTest?.coach_feedback || "El Head Coach Ricardo calibrará sus 6 ejes biomecánicos (resistencia, tiro libre, salto vertical y batería 3x25) en su próxima evaluación en duela."}
                 </p>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-zinc-800/80 text-[10px] font-mono text-zinc-400">
-              Escala de rendimiento oficial Wild Wolves CDMX
+            <div className="pt-3 border-t border-zinc-800/80 text-[10px] font-mono text-zinc-400 flex justify-between items-center">
+              <span>Escala Oficial Wild Wolves</span>
+              <span className="text-purple-400 font-bold">{studentProfile?.current_tier?.toUpperCase() || "TIER PRINCIPIANTE"}</span>
             </div>
           </div>
 
