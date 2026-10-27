@@ -11,6 +11,7 @@ import TierProgressionBar from "@/components/TierProgressionBar";
 import { RadarChart360 } from "@/components/RadarChart360";
 import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import LoboProModal from "@/components/LoboProModal";
+import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import {
   Camera,
   ExternalLink,
@@ -2021,7 +2022,34 @@ export default function StudentDashboardPage() {
               </div>
             </section>
 
-            {/* 4. RADAR COMBINE BIOMECÁNICO OFICIAL (6 EJES SIN MOCKS) */}
+            {/* 4. MAPA DE CALOR ESTILO HOMECOURT (SHOT HEATMAP OFICIAL) */}
+            <section className="space-y-4">
+              <BasketballCourtHeatmap
+                data={{
+                  freeThrowsMade: currentPerformance.free_throws_made ?? evaluation.free_throws_made ?? 0,
+                  freeThrowsAttempts: 10,
+                  midRangeLeftMade: currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 0,
+                  midRangeLeftAttempts: 10,
+                  midRangeRightMade: currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 0,
+                  midRangeRightAttempts: 10,
+                  threeCornerLeftMade: currentPerformance.spot_corner_left ?? 0,
+                  threeWingLeftMade: currentPerformance.spot_wing_left ?? 0,
+                  threeTopKeyMade: currentPerformance.spot_top_key ?? 0,
+                  threeWingRightMade: currentPerformance.spot_wing_right ?? 0,
+                  threeCornerRightMade: currentPerformance.spot_corner_right ?? 0,
+                  threeAttemptsPerSpot: 5,
+                  jumpRopeCount: currentPerformance.jump_rope_count ?? evaluation.jump_rope_count ?? 0,
+                  circuitLinesSeconds: currentPerformance.lines_round_trip_seconds ?? null,
+                  sprint100mSeconds: currentPerformance.sprint_100m_seconds ?? null,
+                  overallOvr: evaluation.overall_ovr,
+                  evaluationDate: evaluation.evaluation_date,
+                  athleteName: profile?.full_name
+                }}
+                showPhysicals={true}
+              />
+            </section>
+
+            {/* 5. RADAR COMBINE BIOMECÁNICO OFICIAL (6 EJES SIN MOCKS) */}
             <section className="space-y-4">
               <RadarChart360
                 hasOfficialTest={Boolean(officialTestsCount > 0 && currentPerformance?.isReal)}

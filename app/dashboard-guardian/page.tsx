@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import { 
   Users, 
   User, 
@@ -344,10 +345,28 @@ export default function GuardianDashboardPage() {
                   {latestTest ? `${latestTest.overall_ovr} OVR` : "Sin Calificar"}
                 </div>
                 <p className="text-[11px] text-zinc-300 mt-1 leading-relaxed">
-                  {latestTest?.coach_feedback || "El Head Coach Ricardo calibrará sus 6 ejes biomecánicos (resistencia, tiro libre, salto vertical y batería 3x25) en su próxima evaluación en duela."}
+                  {latestTest?.coach_feedback || "El Head Coach Ricardo calibrará sus 6 pruebas deportivas oficiales (10 tiros libres, 10 media izquierda, 10 media derecha, 25 triples en 5 spots, saltos de cuerda y los 2 circuitos de velocidad) en su próxima evaluación en duela."}
                 </p>
               </div>
             </div>
+
+            {/* Resumen del último Test Oficial */}
+            {latestTest && (
+              <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-2.5 rounded-xl border border-zinc-800/80 text-center font-mono">
+                <div>
+                  <span className="text-[9px] text-zinc-500 block">Tiros Libres</span>
+                  <span className="text-xs font-bold text-emerald-400">{latestTest.free_throws_made ?? 0}/10</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 block">Triples (5 spots)</span>
+                  <span className="text-xs font-bold text-amber-400">{latestTest.three_point_made ?? 0}/25</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 block">Cuerda / Sprint</span>
+                  <span className="text-xs font-bold text-sky-400">{latestTest.jump_rope_count ?? 0}s / {latestTest.sprint_100m_seconds ? `${latestTest.sprint_100m_seconds}s` : "--"}</span>
+                </div>
+              </div>
+            )}
 
             <div className="pt-3 border-t border-zinc-800/80 text-[10px] font-mono text-zinc-400 flex justify-between items-center">
               <span>Escala Oficial Wild Wolves</span>
@@ -356,6 +375,31 @@ export default function GuardianDashboardPage() {
           </div>
 
         </div>
+
+        {/* MAPA DE CALOR ESTILO HOMECOURT PARA FAMILIAS Y TUTORES */}
+        <BasketballCourtHeatmap
+          data={{
+            freeThrowsMade: latestTest?.free_throws_made ?? 0,
+            freeThrowsAttempts: 10,
+            midRangeLeftMade: latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 0,
+            midRangeLeftAttempts: 10,
+            midRangeRightMade: latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 0,
+            midRangeRightAttempts: 10,
+            threeCornerLeftMade: latestTest?.spot_corner_left ?? 0,
+            threeWingLeftMade: latestTest?.spot_wing_left ?? 0,
+            threeTopKeyMade: latestTest?.spot_top_key ?? 0,
+            threeWingRightMade: latestTest?.spot_wing_right ?? 0,
+            threeCornerRightMade: latestTest?.spot_corner_right ?? 0,
+            threeAttemptsPerSpot: 5,
+            jumpRopeCount: latestTest?.jump_rope_count ?? 0,
+            circuitLinesSeconds: latestTest?.lines_round_trip_seconds ?? null,
+            sprint100mSeconds: latestTest?.sprint_100m_seconds ?? null,
+            overallOvr: latestTest?.overall_ovr,
+            evaluationDate: latestTest?.evaluation_date,
+            athleteName: studentName
+          }}
+          showPhysicals={true}
+        />
 
         {/* SECCIÓN DE MEDALLAS DESBLOQUEADAS */}
         <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
