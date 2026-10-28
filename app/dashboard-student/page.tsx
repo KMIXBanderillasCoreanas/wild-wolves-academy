@@ -623,7 +623,7 @@ export default function StudentDashboardPage() {
               setProfileFinancialData({
                 current_debt_amount: Number(targetProfile.current_debt_amount || 0),
                 financial_status: targetProfile.financial_status || "al_corriente",
-                notes: null,
+                notes: undefined,
               });
             }
           } else if (isCoachDemo) {
