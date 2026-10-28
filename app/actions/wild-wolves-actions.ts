@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
+import { auditPayloadWithGroq } from '@/lib/security/groq-guard';
 
 // Inicializar cliente Supabase con Server Role o Credenciales de Producción
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -86,6 +87,16 @@ export async function sincronizarDatosDesdeArchivo(fileContent: string, fileType
   try {
     if (!fileContent || !fileContent.trim()) {
       return { success: false, error: 'El archivo está vacío o no contiene texto legible.' };
+    }
+
+    // Filtro Anti-Hackeo activo con Groq WAF Shield
+    const securityAudit = await auditPayloadWithGroq(fileContent.slice(0, 4000), 'file_upload');
+    if (!securityAudit.isSafe) {
+      console.error('ALERTA ANTI-HACKEO GROQ:', securityAudit);
+      return {
+        success: false,
+        error: `Acción bloqueada por Groq Security Shield: Amenaza detectada (${securityAudit.detectedThreat || 'Inyección Maliciosa'}).`
+      };
     }
 
     // Paso A: Usar Gemini para estructurar el archivo crudo en un JSON limpio de pruebas deportivas
