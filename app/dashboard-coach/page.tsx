@@ -30,6 +30,7 @@ import DualCoachCommand from '@/components/DualCoachCommand';
 import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
 import BioimpedanceWizard from '@/components/BioimpedanceWizard';
+import OfflineSyncUploader from '@/components/OfflineSyncUploader';
 import BunkerSyncCommandBar from '@/components/BunkerSyncCommandBar';
 import confetti from 'canvas-confetti';
 import { 
@@ -844,10 +845,12 @@ export default function CoachDashboardPage() {
           )}
 
           {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-4">
             <BioimpedanceWizard
               students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
             />
+            {/* INGESTIÓN Y SINCRONIZACIÓN OFFLINE DE PLANILLAS DE DUELA */}
+            <OfflineSyncUploader />
           </div>
 
       {/* 4. PASO 3: SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}
