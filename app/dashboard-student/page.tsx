@@ -836,7 +836,6 @@ export default function StudentDashboardPage() {
         }
 
         const cleanEmail = effectiveEmail.toLowerCase().trim();
-        const isSuperAdminEmail = cleanEmail === "wildwolvescdmx@gmail.com";
         const isSuperAdmin = prof?.role === "superadmin" || isSuperAdminEmail || storedRole === "superadmin";
         const isCoachOrAdmin = isSuperAdmin || prof?.role === "coach" || storedRole === "coach";
 
