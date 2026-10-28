@@ -34,6 +34,7 @@ import OfflineSyncUploader from '@/components/OfflineSyncUploader';
 import OfflineCourtSyncBox from '@/components/OfflineCourtSyncBox';
 import WhatsAppAIEngine from '@/components/WhatsAppAIEngine';
 import CourtVisionHUD from '@/components/CourtVisionHUD';
+import CourtHeatmapPro from '@/components/CourtHeatmapPro';
 import BunkerSyncCommandBar from '@/components/BunkerSyncCommandBar';
 import confetti from 'canvas-confetti';
 import { 
@@ -849,6 +850,26 @@ export default function CoachDashboardPage() {
 
           {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
           <div className="pt-2 space-y-4">
+            {/* MAPA DE TIRO DE PRECISIÓN EN DUELA (HOMECOURT SVG PRO V4) */}
+            <CourtHeatmapPro
+              freeThrowsMade={selectedStudent?.metricsCurrent?.freeThrow ? Math.round(selectedStudent.metricsCurrent.freeThrow / 10) : 10}
+              freeThrowsAttempted={10}
+              midLeftMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 10}
+              midLeftAttempted={10}
+              midRightMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 10}
+              midRightAttempted={10}
+              cornerLeftMade={3}
+              cornerLeftAttempted={5}
+              wingLeftMade={3}
+              wingLeftAttempted={5}
+              topKeyMade={selectedStudent?.metricsCurrent?.threePoint ? Math.round(selectedStudent.metricsCurrent.threePoint / 25) : 4}
+              topKeyAttempted={5}
+              wingRightMade={3}
+              wingRightAttempted={5}
+              cornerRightMade={2}
+              cornerRightAttempted={5}
+            />
+
             <BioimpedanceWizard
               students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
             />

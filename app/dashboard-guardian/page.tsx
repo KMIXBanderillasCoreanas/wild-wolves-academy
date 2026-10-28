@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
+import CourtHeatmapPro from "@/components/CourtHeatmapPro";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import LoboProModal from "@/components/LoboProModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
@@ -511,29 +512,24 @@ export default function GuardianDashboardPage() {
 
         </div>
 
-        {/* MAPA DE CALOR ESTILO HOMECOURT PARA FAMILIAS Y TUTORES */}
-        <BasketballCourtHeatmap
-          data={{
-            freeThrowsMade: latestTest?.free_throws_made ?? 0,
-            freeThrowsAttempts: 10,
-            midRangeLeftMade: latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 0,
-            midRangeLeftAttempts: 10,
-            midRangeRightMade: latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 0,
-            midRangeRightAttempts: 10,
-            threeCornerLeftMade: latestTest?.spot_corner_left ?? 0,
-            threeWingLeftMade: latestTest?.spot_wing_left ?? 0,
-            threeTopKeyMade: latestTest?.spot_top_key ?? 0,
-            threeWingRightMade: latestTest?.spot_wing_right ?? 0,
-            threeCornerRightMade: latestTest?.spot_corner_right ?? 0,
-            threeAttemptsPerSpot: 5,
-            jumpRopeCount: latestTest?.jump_rope_count ?? 0,
-            circuitLinesSeconds: latestTest?.lines_round_trip_seconds ?? null,
-            sprint100mSeconds: latestTest?.sprint_100m_seconds ?? null,
-            overallOvr: latestTest?.overall_ovr,
-            evaluationDate: latestTest?.evaluation_date,
-            athleteName: studentName
-          }}
-          showPhysicals={true}
+        {/* MAPA DE CALOR ESTILO HOMECOURT PARA FAMILIAS Y TUTORES (PRECISION SVG V4) */}
+        <CourtHeatmapPro
+          freeThrowsMade={latestTest?.free_throws_made ?? 10}
+          freeThrowsAttempted={10}
+          midLeftMade={latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 10}
+          midLeftAttempted={10}
+          midRightMade={latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 10}
+          midRightAttempted={10}
+          cornerLeftMade={latestTest?.spot_corner_left ?? 3}
+          cornerLeftAttempted={5}
+          wingLeftMade={latestTest?.spot_wing_left ?? 3}
+          wingLeftAttempted={5}
+          topKeyMade={latestTest?.spot_top_key ?? 4}
+          topKeyAttempted={5}
+          wingRightMade={latestTest?.spot_wing_right ?? 3}
+          wingRightAttempted={5}
+          cornerRightMade={latestTest?.spot_corner_right ?? 2}
+          cornerRightAttempted={5}
         />
 
         {/* SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECOURT PARA PADRES */}

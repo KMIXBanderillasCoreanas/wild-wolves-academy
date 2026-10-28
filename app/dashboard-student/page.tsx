@@ -12,6 +12,7 @@ import { RadarChart360 } from "@/components/RadarChart360";
 import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import LoboProModal from "@/components/LoboProModal";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
+import CourtHeatmapPro from "@/components/CourtHeatmapPro";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import VisionAssistantModal from "@/components/VisionAssistantModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
@@ -2221,30 +2222,25 @@ export default function StudentDashboardPage() {
               </div>
             </section>
 
-            {/* 4. MAPA DE CALOR ESTILO HOMECOURT (SHOT HEATMAP OFICIAL) */}
+            {/* 4. MAPA DE CALOR ESTILO HOMECOURT PRO (SHOT HEATMAP PRECISION SVG V4) */}
             <section className="space-y-4">
-              <BasketballCourtHeatmap
-                data={{
-                  freeThrowsMade: currentPerformance.free_throws_made ?? evaluation.free_throws_made ?? 0,
-                  freeThrowsAttempts: 10,
-                  midRangeLeftMade: currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 0,
-                  midRangeLeftAttempts: 10,
-                  midRangeRightMade: currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 0,
-                  midRangeRightAttempts: 10,
-                  threeCornerLeftMade: currentPerformance.spot_corner_left ?? 0,
-                  threeWingLeftMade: currentPerformance.spot_wing_left ?? 0,
-                  threeTopKeyMade: currentPerformance.spot_top_key ?? 0,
-                  threeWingRightMade: currentPerformance.spot_wing_right ?? 0,
-                  threeCornerRightMade: currentPerformance.spot_corner_right ?? 0,
-                  threeAttemptsPerSpot: 5,
-                  jumpRopeCount: currentPerformance.jump_rope_count ?? evaluation.jump_rope_count ?? 0,
-                  circuitLinesSeconds: currentPerformance.lines_round_trip_seconds ?? null,
-                  sprint100mSeconds: currentPerformance.sprint_100m_seconds ?? null,
-                  overallOvr: evaluation.overall_ovr,
-                  evaluationDate: evaluation.evaluation_date,
-                  athleteName: profile?.full_name
-                }}
-                showPhysicals={true}
+              <CourtHeatmapPro
+                freeThrowsMade={currentPerformance.free_throws_made ?? evaluation.free_throws_made ?? 10}
+                freeThrowsAttempted={10}
+                midLeftMade={currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 10}
+                midLeftAttempted={10}
+                midRightMade={currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 10}
+                midRightAttempted={10}
+                cornerLeftMade={currentPerformance.spot_corner_left ?? 3}
+                cornerLeftAttempted={5}
+                wingLeftMade={currentPerformance.spot_wing_left ?? 3}
+                wingLeftAttempted={5}
+                topKeyMade={currentPerformance.spot_top_key ?? 4}
+                topKeyAttempted={5}
+                wingRightMade={currentPerformance.spot_wing_right ?? 3}
+                wingRightAttempted={5}
+                cornerRightMade={currentPerformance.spot_corner_right ?? 2}
+                cornerRightAttempted={5}
               />
             </section>
 
