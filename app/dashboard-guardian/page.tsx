@@ -9,6 +9,7 @@ import CourtHeatmapPro from "@/components/CourtHeatmapPro";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import LoboProModal from "@/components/LoboProModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
+import { generarReporteWhatsAppTutor } from "@/app/actions/wild-wolves-actions";
 import { 
   Users, 
   User, 
@@ -41,6 +42,9 @@ export default function GuardianDashboardPage() {
   const [homeLogs, setHomeLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showProModal, setShowProModal] = useState<boolean>(false);
+  const [aiReportGenerating, setAiReportGenerating] = useState<boolean>(false);
+  const [aiReportModalOpen, setAiReportModalOpen] = useState<boolean>(false);
+  const [aiReportText, setAiReportText] = useState<string>("");
 
   useEffect(() => {
     loadGuardianData();
@@ -298,6 +302,33 @@ export default function GuardianDashboardPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Generador Automático de Reporte WhatsApp con IA Kimi CRM
+  const handleGenerateKimiReport = async () => {
+    try {
+      setAiReportGenerating(true);
+      const tier = studentProfile?.current_tier || latestTest?.calculated_tier || "En Formación";
+      const res = await generarReporteWhatsAppTutor(studentName, tier, debtAmount);
+
+      if (res.success && res.data) {
+        setAiReportText(res.data);
+      } else {
+        // Fallback local motivacional en caso de fallo de red
+        setAiReportText(
+          `🐺 *Wild Wolves Basketball Academy CDMX*\nSede: Deportivo Carmen Serdán\n\nEstimada familia de *${studentName}*:\nEsperamos que se encuentren muy bien. Les compartimos que ${studentName} se encuentra actualmente en nivel *${tier}*, demostrando un gran avance táctico y disciplina en la duela.\n\nLe recordamos amablemente que cuenta con un saldo pendiente de *$${debtAmount} MXN* correspondientes a sus entrenamientos. ¡Agradecemos enormemente su apoyo a la manada!\n\nAtentamente,\n*Cuerpo Técnico Wild Wolves*`
+        );
+      }
+      setAiReportModalOpen(true);
+    } catch (err) {
+      console.error("Error generando reporte Kimi:", err);
+      setAiReportText(
+        `🐺 *Wild Wolves Basketball Academy CDMX*\nEstimada familia de *${studentName}*: Les informamos que el atleta avanza con gran compromiso en el Deportivo Carmen Serdán. Saldo pendiente: *$${debtAmount} MXN*.`
+      );
+      setAiReportModalOpen(true);
+    } finally {
+      setAiReportGenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#07090e] text-zinc-100 flex flex-col font-sans">
       
@@ -427,8 +458,16 @@ export default function GuardianDashboardPage() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-zinc-800/80 text-[10px] font-mono text-zinc-400">
-              Cuota regular: $50 MXN por sesión en duela
+            <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-mono text-zinc-400">Cuota: $50 MXN / sesión</span>
+              <button
+                onClick={handleGenerateKimiReport}
+                disabled={aiReportGenerating}
+                className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+              >
+                <Sparkles className={`w-3 h-3 ${aiReportGenerating ? "animate-spin text-amber-400" : ""}`} />
+                <span>{aiReportGenerating ? "Redactando con Kimi..." : "Reporte WhatsApp (Kimi IA)"}</span>
+              </button>
             </div>
           </div>
 
@@ -642,6 +681,53 @@ export default function GuardianDashboardPage() {
         onClose={() => setShowProModal(false)}
         studentName={studentName}
       />
+
+      {/* MODAL DE REPORTE WHATSAPP GENERADO CON KIMI IA */}
+      {aiReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#0f131d] border border-zinc-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <h3 className="font-black text-sm uppercase text-white tracking-wide">
+                  Reporte Familiar WhatsApp (Kimi CRM IA)
+                </h3>
+              </div>
+              <button
+                onClick={() => setAiReportModalOpen(false)}
+                className="text-zinc-400 hover:text-white text-xs font-mono px-2 py-1 rounded-lg bg-zinc-800"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="bg-black/40 border border-zinc-800 rounded-2xl p-4 text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto selection:bg-emerald-500/30">
+              {aiReportText}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(aiReportText);
+                  alert("¡Mensaje copiado al portapapeles!");
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition"
+              >
+                Copiar Texto
+              </button>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(aiReportText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Abrir en WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer className="border-t border-zinc-800/80 py-4 px-4 text-center text-[10px] font-mono text-zinc-500">

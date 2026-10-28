@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { sincronizarDatosDesdeArchivo } from '@/app/actions/wild-wolves-actions';
 import { 
   queueOfflineSportsTest, 
   getPendingOfflineTests, 
@@ -266,7 +267,7 @@ export default function OfflineSyncUploader() {
     }];
   };
 
-  // 5. Manejador de Carga de Archivos
+  // 5. Manejador de Carga de Archivos con AI Parser Server Action y Respaldo Offline
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -277,6 +278,27 @@ export default function OfflineSyncUploader() {
     reader.onload = async (event) => {
       try {
         const content = event.target?.result as string;
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'txt';
+
+        // 1. Si estamos ONLINE: Intentar procesar e ingerir directamente con la Server Action asistida por IA Gemini
+        if (navigator.onLine) {
+          setStatus(`Procesando ${file.name} con IA Gemini Parser en Supabase...`);
+          try {
+            const serverActionRes = await sincronizarDatosDesdeArchivo(content, fileExt);
+            if (serverActionRes.success) {
+              setStatus(`✓ ${serverActionRes.message}`);
+              await refreshQueue();
+              window.dispatchEvent(new Event('attendance_updated'));
+              return;
+            } else {
+              console.warn('Aviso de Server Action IA, usando parser local:', serverActionRes.error);
+            }
+          } catch (serverErr) {
+            console.warn('Fallo al invocar Server Action, pasando a modo offline/local:', serverErr);
+          }
+        }
+
+        // 2. Si estamos OFFLINE o falló la acción remota: procesar localmente y encolar en IndexedDB
         const parsedRecords = parseRawFileContent(content, file.name);
 
         if (parsedRecords.length === 0) {
