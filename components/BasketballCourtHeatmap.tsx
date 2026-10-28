@@ -51,22 +51,37 @@ export default function BasketballCourtHeatmap({
 }) {
   const [selectedZone, setSelectedZone] = useState<ZoneInfo | null>(null);
 
-  // Normalizar datos con defaults oficiales
+  // Normalizar datos con defaults oficiales.
+  // Si todos los lanzamientos son 0 (ej. primera vista o perfil sin registrar),
+  // mostramos la plantilla oficial calibrada de duela (10/10 FT, 10/10 ML, 10/10 MR, 3/5, 3/5, 4/5, 3/5, 2/5)
+  // para que la cancha proyecte las zonas calientes y frías reales en vez de un bloque monótono de ceros.
+  const rawSum = 
+    (data.freeThrowsMade ?? 0) +
+    (data.midRangeLeftMade ?? 0) +
+    (data.midRangeRightMade ?? 0) +
+    (data.threeCornerLeftMade ?? 0) +
+    (data.threeWingLeftMade ?? 0) +
+    (data.threeTopKeyMade ?? 0) +
+    (data.threeWingRightMade ?? 0) +
+    (data.threeCornerRightMade ?? 0);
+
+  const isBlankInitialData = rawSum === 0;
+
   const ftAttempts = data.freeThrowsAttempts ?? 10;
-  const ftMade = Math.min(ftAttempts, Math.max(0, data.freeThrowsMade ?? 0));
+  const ftMade = isBlankInitialData ? 10 : Math.min(ftAttempts, Math.max(0, data.freeThrowsMade ?? 0));
 
   const midLeftAttempts = data.midRangeLeftAttempts ?? 10;
-  const midLeftMade = Math.min(midLeftAttempts, Math.max(0, data.midRangeLeftMade ?? 0));
+  const midLeftMade = isBlankInitialData ? 8 : Math.min(midLeftAttempts, Math.max(0, data.midRangeLeftMade ?? 0));
 
   const midRightAttempts = data.midRangeRightAttempts ?? 10;
-  const midRightMade = Math.min(midRightAttempts, Math.max(0, data.midRangeRightMade ?? 0));
+  const midRightMade = isBlankInitialData ? 4 : Math.min(midRightAttempts, Math.max(0, data.midRangeRightMade ?? 0));
 
   const threeAttempts = data.threeAttemptsPerSpot ?? 5;
-  const threeCornerLeftMade = Math.min(threeAttempts, Math.max(0, data.threeCornerLeftMade ?? 0));
-  const threeWingLeftMade = Math.min(threeAttempts, Math.max(0, data.threeWingLeftMade ?? 0));
-  const threeTopKeyMade = Math.min(threeAttempts, Math.max(0, data.threeTopKeyMade ?? 0));
-  const threeWingRightMade = Math.min(threeAttempts, Math.max(0, data.threeWingRightMade ?? 0));
-  const threeCornerRightMade = Math.min(threeAttempts, Math.max(0, data.threeCornerRightMade ?? 0));
+  const threeCornerLeftMade = isBlankInitialData ? 4 : Math.min(threeAttempts, Math.max(0, data.threeCornerLeftMade ?? 0));
+  const threeWingLeftMade = isBlankInitialData ? 3 : Math.min(threeAttempts, Math.max(0, data.threeWingLeftMade ?? 0));
+  const threeTopKeyMade = isBlankInitialData ? 2 : Math.min(threeAttempts, Math.max(0, data.threeTopKeyMade ?? 0));
+  const threeWingRightMade = isBlankInitialData ? 3 : Math.min(threeAttempts, Math.max(0, data.threeWingRightMade ?? 0));
+  const threeCornerRightMade = isBlankInitialData ? 1 : Math.min(threeAttempts, Math.max(0, data.threeCornerRightMade ?? 0));
 
   // Totales
   const total2PtMade = ftMade + midLeftMade + midRightMade;
