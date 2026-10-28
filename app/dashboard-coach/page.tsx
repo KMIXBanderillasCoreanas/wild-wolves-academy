@@ -31,6 +31,7 @@ import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
 import BioimpedanceWizard from '@/components/BioimpedanceWizard';
 import OfflineSyncUploader from '@/components/OfflineSyncUploader';
+import OfflineCourtSyncBox from '@/components/OfflineCourtSyncBox';
 import BunkerSyncCommandBar from '@/components/BunkerSyncCommandBar';
 import confetti from 'canvas-confetti';
 import { 
@@ -849,6 +850,8 @@ export default function CoachDashboardPage() {
             <BioimpedanceWizard
               students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
             />
+            {/* RECEPTOR 1-CLIC Y COPIAR/PEGAR DE PRUEBAS DE DUELA (GEMINI PROTOCOL V2) */}
+            <OfflineCourtSyncBox />
             {/* INGESTIÓN Y SINCRONIZACIÓN OFFLINE DE PLANILLAS DE DUELA */}
             <OfflineSyncUploader />
           </div>

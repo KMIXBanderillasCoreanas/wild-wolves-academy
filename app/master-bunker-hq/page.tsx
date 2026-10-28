@@ -40,6 +40,7 @@ import GuardianDirectory from "@/components/GuardianDirectory";
 import CombineExpressTable from "@/components/CombineExpressTable";
 import AdminAttendanceFinanceModal, { AdminModalInitialData } from "@/components/AdminAttendanceFinanceModal";
 import SuperAdminOmniManager from "@/components/SuperAdminOmniManager";
+import OfflineCourtSyncBox from "@/components/OfflineCourtSyncBox";
 import { Home } from "lucide-react";
 import { 
   syncOfflineQueueToSupabase, 
@@ -960,9 +961,15 @@ export default function MasterBunkerHQ() {
           ) : attendanceSubView === "historical" ? (
             <AttendanceTracker />
           ) : attendanceSubView === "combine" ? (
-            <CombineExpressTable />
+            <div className="space-y-4">
+              <OfflineCourtSyncBox />
+              <CombineExpressTable />
+            </div>
           ) : (
-            <TestDayEvaluator preselectedStudentId={selectedAthleteForTestDay} />
+            <div className="space-y-4">
+              <OfflineCourtSyncBox />
+              <TestDayEvaluator preselectedStudentId={selectedAthleteForTestDay} />
+            </div>
           )}
         </div>
       )}
