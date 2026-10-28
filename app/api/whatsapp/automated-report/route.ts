@@ -116,7 +116,7 @@ export async function POST(req: Request) {
       metadata: {
         student_id: studentId,
         athlete_name: studentName,
-        event_type: type
+        concept: type
       }
     });
 

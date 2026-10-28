@@ -314,17 +314,15 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
 
       // Auto-limpieza de campos numéricos para pasar inmediatamente al siguiente alumno sin fricción
       setTimeout(() => {
-        setFreeThrowsMade(0);
-        setMidShotsL1(0);
+        setShortShotsMade(0);
         setMidShotsL2(0);
-        setThreeSpot1(0);
-        setThreeSpot2(0);
-        setThreeSpot3(0);
-        setThreeSpot4(0);
-        setThreeSpot5(0);
-        setRopeCount(0);
-        setSprint100m(14.0);
-        setLinesCircuit(25.0);
+        setThreePointMadeL3(0);
+        setHalfCourtMadeL3(0);
+        setJumpRopeL1(0);
+        setJumpRopeL2(0);
+        setJumpRopeL3(0);
+        setJoggingMinL2(0);
+        setJoggingMinL3(0);
       }, 1200);
     } catch (err: any) {
       console.warn("Error de conexión, guardado local exitoso:", err?.message);
@@ -333,17 +331,15 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
 
       // Auto-limpieza de campos numéricos para pasar inmediatamente al siguiente alumno sin fricción
       setTimeout(() => {
-        setFreeThrowsMade(0);
-        setMidShotsL1(0);
+        setShortShotsMade(0);
         setMidShotsL2(0);
-        setThreeSpot1(0);
-        setThreeSpot2(0);
-        setThreeSpot3(0);
-        setThreeSpot4(0);
-        setThreeSpot5(0);
-        setRopeCount(0);
-        setSprint100m(14.0);
-        setLinesCircuit(25.0);
+        setThreePointMadeL3(0);
+        setHalfCourtMadeL3(0);
+        setJumpRopeL1(0);
+        setJumpRopeL2(0);
+        setJumpRopeL3(0);
+        setJoggingMinL2(0);
+        setJoggingMinL3(0);
       }, 1200);
     } finally {
       setSaving(false);

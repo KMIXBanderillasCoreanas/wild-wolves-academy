@@ -846,7 +846,7 @@ export default function CoachDashboardPage() {
           {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
           <div className="pt-2">
             <BioimpedanceWizard
-              students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: s.currentTier }))}
+              students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
             />
           </div>
 
