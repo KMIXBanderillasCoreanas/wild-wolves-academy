@@ -71,6 +71,21 @@ export async function POST(request: Request) {
       const linesSec = r.lines_round_trip_seconds ? Number(r.lines_round_trip_seconds) : null;
       const sprintSec = r.sprint_100m_seconds ? Number(r.sprint_100m_seconds) : null;
 
+      // Función para mapear a los valores permitidos por el check constraint de Supabase:
+      // ('iniciacion_adaptacion', 'formativo_desarrollo', 'competitivo_elite')
+      const mapCheckLevel = (ovr: number, tier?: string) => {
+        const t = (tier || '').toLowerCase();
+        if (ovr >= 70 || t.includes('elite') || t.includes('alfa') || t.includes('leyenda') || t.includes('competitivo')) {
+          return 'competitivo_elite';
+        }
+        if (ovr >= 55 || t.includes('cazador') || t.includes('formativo')) {
+          return 'formativo_desarrollo';
+        }
+        return 'iniciacion_adaptacion';
+      };
+
+      const validAssessedLevel = mapCheckLevel(Number(r.overall_ovr || 75), r.calculated_tier);
+
       // 1. Actualizar el tier del atleta
       await supabaseAdmin
         .from('profiles')
@@ -81,10 +96,10 @@ export async function POST(request: Request) {
         .eq('id', studentId);
 
       // 2. Tabla detailed_test_records (adaptada a las columnas reales del esquema)
-      const { error: testErr } = await supabaseAdmin.from('detailed_test_records').insert({
+      const { error: testErr } = await supabaseAdmin.from('detailed_test_records').upsert({
         student_id: studentId,
         evaluation_date: evaluationDate,
-        athletic_level_assessed: r.calculated_tier || 'competitivo_elite',
+        athletic_level_assessed: validAssessedLevel,
         court_laps_count: 20,
         squats_count: r.squats_3x25_done ? 75 : 50,
         pushups_count: 35,
@@ -96,7 +111,7 @@ export async function POST(request: Request) {
         half_court_shots_made: 0,
         overall_ovr: Number(r.overall_ovr || 78),
         coach_feedback: r.coach_feedback || 'Sincronizado vía Motor de Cancha V2.'
-      });
+      }, { onConflict: 'student_id,evaluation_date' });
 
       if (testErr) {
         console.warn(`Aviso detailed_test_records para ${athleteName}:`, testErr.message);

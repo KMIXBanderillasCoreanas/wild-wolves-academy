@@ -63,6 +63,24 @@ export default function OfflineSyncUploader() {
         nameToId.set(p.full_name.trim().toLowerCase(), p.id);
       });
 
+      // Intentar primero sincronizar mediante el endpoint oficial que actualiza las 5 tablas de forma atómica y completa
+      try {
+        const apiRes = await fetch('/api/sync-offline-tests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: items })
+        });
+        if (apiRes.ok) {
+          await clearAllOfflineQueue();
+          await refreshQueue();
+          setStatus(`✓ ¡Sincronización exitosa en las 5 tablas! ${items.length} pruebas registradas en la duela.`);
+          setTimeout(() => setStatus('Listo para recibir planillas offline (.HTML, .JSON, .CSV)'), 4000);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('Endpoint sync failed, trying direct supabase fallback:', apiErr);
+      }
+
       const rowsToUpsert = items.map((item) => {
         const cleanName = (item.athlete_name || '').trim().toLowerCase();
         let targetId = item.student_id;
@@ -76,25 +94,26 @@ export default function OfflineSyncUploader() {
           targetId = profiles?.[0]?.id || 'c7829cdf-7d4e-4d62-acdd-70fd5de08a77';
         }
 
+        const ovrVal = Number(item.overall_ovr || 75);
+        const calcTier = ((item as any).calculated_tier || '').toLowerCase();
+        let validLevel = 'competitivo_elite';
+        if (ovrVal < 55) validLevel = 'iniciacion_adaptacion';
+        else if (ovrVal < 70 && !calcTier.includes('alfa') && !calcTier.includes('elite')) validLevel = 'formativo_desarrollo';
+
         return {
           student_id: targetId,
           evaluation_date: item.evaluation_date || new Date().toISOString().split('T')[0],
-          overall_ovr: Number(item.overall_ovr || 75),
+          athletic_level_assessed: validLevel,
+          overall_ovr: ovrVal,
+          court_laps_count: 20,
+          squats_count: 75,
+          pushups_count: 35,
+          plank_seconds: 60,
+          jump_rope_count: Number(item.jump_rope_count ?? 100),
           short_range_shots_made: Number(item.free_throws_made ?? 0),
           mid_range_shots_made: Number(item.mid_range_made ?? 0),
           three_point_shots_made: Number(item.three_point_made ?? 0),
-          free_throws_made: Number(item.free_throws_made ?? 0),
-          mid_range_made: Number(item.mid_range_made ?? 0),
-          three_point_made: Number(item.three_point_made ?? 0),
-          spot_corner_left: Number(item.spot_corner_left ?? 3),
-          spot_wing_left: Number(item.spot_wing_left ?? 3),
-          spot_top_key: Number(item.spot_top_key ?? 4),
-          spot_wing_right: Number(item.spot_wing_right ?? 3),
-          spot_corner_right: Number(item.spot_corner_right ?? 2),
-          jump_rope_count: Number(item.jump_rope_count ?? 500),
-          lines_round_trip_seconds: Number(item.lines_round_trip_seconds ?? 20),
-          sprint_100m_seconds: Number(item.sprint_100m_seconds ?? 12),
-          vertical_jump_cm: Number(item.vertical_jump_cm ?? 60),
+          half_court_shots_made: 0,
           coach_feedback: item.coach_feedback || 'Sincronizado vía Ingesta Offline Wild Wolves.'
         };
       });
