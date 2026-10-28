@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
+import DemoRoleSwitcher from "@/components/DemoRoleSwitcher";
 import { 
   Lock, 
   Mail, 
@@ -282,6 +283,8 @@ function LoginContent() {
             router.push("/master-bunker-hq");
           } else if (userRole === "coach") {
             router.push("/dashboard-coach");
+          } else if (userRole === "guardian" || userRole === "parent") {
+            router.push("/dashboard-guardian");
           } else {
             router.push("/dashboard-student");
           }
@@ -592,6 +595,8 @@ function LoginContent() {
           </div>
         </div>
       </div>
+      {/* Simulador de Modo Demo flotante para auditoría y evaluación visual */}
+      <DemoRoleSwitcher currentRole={activePortal} variant="floating" />
     </div>
   );
 }

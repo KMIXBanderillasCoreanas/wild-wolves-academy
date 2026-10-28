@@ -40,6 +40,7 @@ import GuardianDirectory from "@/components/GuardianDirectory";
 import CombineExpressTable from "@/components/CombineExpressTable";
 import AdminAttendanceFinanceModal, { AdminModalInitialData } from "@/components/AdminAttendanceFinanceModal";
 import SuperAdminOmniManager from "@/components/SuperAdminOmniManager";
+import DemoRoleSwitcher from "@/components/DemoRoleSwitcher";
 import { Home } from "lucide-react";
 import TacticalAIAssistant from "@/components/TacticalAIAssistant";
 import MasterAICockpit from "@/components/MasterAICockpit";
@@ -697,6 +698,7 @@ export default function MasterBunkerHQ() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <DemoRoleSwitcher currentRole="superadmin" variant="header" />
           <button
             onClick={() => {
               setAdminAdjustInitialData(null);
