@@ -598,10 +598,35 @@ export default function StudentDashboardPage() {
             });
           }
 
-          // Determinar qué student_id consultar para pruebas: si el usuario logueado es Coach Ricardo / Superadmin, consultar el registro de Bruno Díaz
+          // Determinar qué student_id consultar para pruebas:
+          // Soporta selector por URL (?student=Jesus o ?student=Isaac o ?student=Bruno) o localStorage
           const isCoachDemo = p?.role === "superadmin" || isSuperAdminEmail;
           let queryTargetId = effectiveId;
-          if (isCoachDemo) {
+
+          const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const urlStudent = urlParams?.get("student") || urlParams?.get("alumno") || (typeof window !== "undefined" ? localStorage.getItem("ww_inspected_student") : null);
+
+          if (urlStudent) {
+            const { data: targetProfile } = await supabase
+              .from("profiles")
+              .select("id, full_name, current_tier, financial_status, current_debt_amount")
+              .ilike("full_name", `%${urlStudent}%`)
+              .maybeSingle();
+
+            if (targetProfile?.id) {
+              queryTargetId = targetProfile.id;
+              setProfile((prev: any) => ({
+                ...prev,
+                full_name: targetProfile.full_name,
+                current_tier: targetProfile.current_tier
+              }));
+              setProfileFinancialData({
+                current_debt_amount: Number(targetProfile.current_debt_amount || 0),
+                financial_status: targetProfile.financial_status || "al_corriente",
+                notes: null,
+              });
+            }
+          } else if (isCoachDemo) {
             const { data: brunoProfile } = await supabase
               .from("profiles")
               .select("id")
