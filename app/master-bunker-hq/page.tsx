@@ -40,15 +40,7 @@ import GuardianDirectory from "@/components/GuardianDirectory";
 import CombineExpressTable from "@/components/CombineExpressTable";
 import AdminAttendanceFinanceModal, { AdminModalInitialData } from "@/components/AdminAttendanceFinanceModal";
 import SuperAdminOmniManager from "@/components/SuperAdminOmniManager";
-import OfflineCourtSyncBox from "@/components/OfflineCourtSyncBox";
 import { Home } from "lucide-react";
-import { 
-  syncOfflineQueueToSupabase, 
-  getOfflineQueueCount,
-  flushOfflineQueue 
-} from "@/lib/offlineSync";
-
-import BunkerSyncCommandBar from "@/components/BunkerSyncCommandBar";
 import TacticalAIAssistant from "@/components/TacticalAIAssistant";
 import MasterAICockpit from "@/components/MasterAICockpit";
 import TacticalRadarAlerts from "@/components/TacticalRadarAlerts";
@@ -143,7 +135,6 @@ export default function MasterBunkerHQ() {
     if (typeof window !== "undefined") return navigator.onLine;
     return true;
   });
-  const [queueCount, setQueueCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
@@ -414,47 +405,6 @@ export default function MasterBunkerHQ() {
     }
   }, []);
 
-  // Handler directo infalible para el botón Sincronizar y purgar cola atascada
-  const handleSyncClick = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await flushOfflineQueue(supabase);
-      
-      // Limpiar forzosamente cualquier residuo huérfano en LocalStorage
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("ww_offline_queue");
-        localStorage.removeItem("wild_wolves_offline_queue");
-        localStorage.removeItem("wildwolves_offline_queue");
-        localStorage.removeItem("offline_actions");
-      }
-
-      setQueueCount(0);
-      const msg = `Sincronización completada exitosamente. Registros procesados y cola reseteada a 0.`;
-      setSyncToast(msg);
-      setTimeout(() => setSyncToast(null), 4500);
-
-      // Revalidación inmediata de métricas y finanzas
-      await fetchDashboardData();
-      window.dispatchEvent(new CustomEvent("change-bunker-tab", { detail: "finanzas" }));
-      window.dispatchEvent(new Event("payment_recorded"));
-      window.dispatchEvent(new Event("attendance_updated"));
-      window.dispatchEvent(new CustomEvent("offline_queue_updated", { detail: { count: 0 } }));
-    } catch (err: any) {
-      console.error("Error en handleSyncClick:", err);
-      // Si hubo error, purgar de todas formas para no trabar al usuario
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("ww_offline_queue");
-        localStorage.removeItem("wild_wolves_offline_queue");
-        localStorage.removeItem("wildwolves_offline_queue");
-      }
-      setQueueCount(0);
-      setSyncToast("Cola offline purgada y normalizada.");
-      setTimeout(() => setSyncToast(null), 4500);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   // Verificación reactiva automática de sesión de SuperAdmin / Fundador
   useEffect(() => {
     async function verifySuperAdminSession() {
@@ -540,32 +490,18 @@ export default function MasterBunkerHQ() {
 
     const handleOnline = async () => {
       setIsOnline(true);
-      setIsSyncing(true);
-      try {
-        await syncOfflineQueueToSupabase();
-        fetchDashboardData();
-      } finally {
-        setIsSyncing(false);
-      }
+      fetchDashboardData();
     };
 
     const handleOffline = () => {
       setIsOnline(false);
     };
 
-    const handleQueueUpdated = (e: any) => {
-      setQueueCount(e.detail?.count ?? getOfflineQueueCount());
-    };
-
     window.addEventListener("payment_recorded", handleRefresh);
     window.addEventListener("payment_deleted", handleRefresh);
     window.addEventListener("attendance_updated", handleRefresh);
-    window.addEventListener("offline_queue_synced", handleRefresh);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    window.addEventListener("offline_queue_updated", handleQueueUpdated as EventListener);
-
-    setQueueCount(getOfflineQueueCount());
 
     // Suscripción en tiempo real de Supabase a payment_transactions_history
     const financeChannel = supabase
@@ -583,10 +519,8 @@ export default function MasterBunkerHQ() {
       window.removeEventListener("payment_recorded", handleRefresh);
       window.removeEventListener("payment_deleted", handleRefresh);
       window.removeEventListener("attendance_updated", handleRefresh);
-      window.removeEventListener("offline_queue_synced", handleRefresh);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("offline_queue_updated", handleQueueUpdated as EventListener);
       supabase.removeChannel(financeChannel);
     };
   }, [authenticated, fetchDashboardData]);
@@ -729,7 +663,6 @@ export default function MasterBunkerHQ() {
 
   return (
     <>
-      <BunkerSyncCommandBar />
       <div className="min-h-screen bg-[#07090e] text-zinc-100 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto font-sans">
       {/* HEADER BÚNKER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800 gap-4">
@@ -764,16 +697,6 @@ export default function MasterBunkerHQ() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {queueCount > 0 && (
-            <button
-              onClick={handleSyncClick}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 text-xs bg-sky-500 hover:bg-sky-400 text-black px-3.5 py-2.5 rounded-xl font-black transition cursor-pointer shadow-md disabled:opacity-50"
-            >
-              <CloudUpload className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-              Sincronizar ({queueCount})
-            </button>
-          )}
           <button
             onClick={() => {
               setAdminAdjustInitialData(null);
@@ -962,12 +885,10 @@ export default function MasterBunkerHQ() {
             <AttendanceTracker />
           ) : attendanceSubView === "combine" ? (
             <div className="space-y-4">
-              <OfflineCourtSyncBox />
               <CombineExpressTable />
             </div>
           ) : (
             <div className="space-y-4">
-              <OfflineCourtSyncBox />
               <TestDayEvaluator preselectedStudentId={selectedAthleteForTestDay} />
             </div>
           )}

@@ -30,12 +30,9 @@ import DualCoachCommand from '@/components/DualCoachCommand';
 import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
 import BioimpedanceWizard from '@/components/BioimpedanceWizard';
-import OfflineSyncUploader from '@/components/OfflineSyncUploader';
-import OfflineCourtSyncBox from '@/components/OfflineCourtSyncBox';
 import WhatsAppAIEngine from '@/components/WhatsAppAIEngine';
 import CourtVisionHUD from '@/components/CourtVisionHUD';
 import CourtHeatmapPro from '@/components/CourtHeatmapPro';
-import BunkerSyncCommandBar from '@/components/BunkerSyncCommandBar';
 import confetti from 'canvas-confetti';
 import { 
   PlusCircle, 
@@ -498,7 +495,6 @@ export default function CoachDashboardPage() {
 
   return (
     <>
-      <BunkerSyncCommandBar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
       {/* 1. Panel Superior de Control con Roster y RBAC Indicator */}
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
@@ -894,10 +890,6 @@ export default function CoachDashboardPage() {
                 student_id: s.id
               }))}
             />
-            {/* RECEPTOR 1-CLIC Y COPIAR/PEGAR DE PRUEBAS DE DUELA (GEMINI PROTOCOL V2) */}
-            <OfflineCourtSyncBox />
-            {/* INGESTIÓN Y SINCRONIZACIÓN OFFLINE DE PLANILLAS DE DUELA */}
-            <OfflineSyncUploader />
           </div>
 
       {/* 4. PASO 3: SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}

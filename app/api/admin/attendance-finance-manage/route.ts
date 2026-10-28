@@ -293,6 +293,96 @@ export async function POST(req: Request) {
       });
     }
 
+    // 2.5 SAVE_TEST_EVALUATION
+    if (action === "SAVE_TEST_EVALUATION") {
+      const {
+        student_id,
+        evaluation_date,
+        athletic_level_assessed,
+        court_laps_count,
+        squats_count,
+        pushups_count,
+        plank_seconds,
+        jump_rope_count,
+        short_range_shots_made,
+        jogging_minutes,
+        stairs_jumps_count,
+        jump_rope_series_count,
+        mid_range_shots_made,
+        elite_jogging_minutes,
+        elite_plank_seconds,
+        elite_jump_rope_count,
+        plyometric_circuit_minutes,
+        three_point_shots_made,
+        half_court_shots_made,
+        overall_ovr,
+        coach_feedback,
+        certified_level
+      } = body;
+
+      if (!student_id || !evaluation_date) {
+        return NextResponse.json(
+          { error: "Faltan campos obligatorios: student_id y evaluation_date." },
+          { status: 400 }
+        );
+      }
+
+      let validAssessedLevel = "iniciacion_adaptacion";
+      if (athletic_level_assessed === "formativo_desarrollo") validAssessedLevel = "formativo_desarrollo";
+      if (athletic_level_assessed === "competitivo_elite") validAssessedLevel = "competitivo_elite";
+
+      const detailedPayload = {
+        student_id,
+        evaluation_date,
+        athletic_level_assessed: validAssessedLevel,
+        court_laps_count: court_laps_count || 0,
+        squats_count: squats_count || 0,
+        pushups_count: pushups_count || 0,
+        plank_seconds: plank_seconds || 0,
+        jump_rope_count: jump_rope_count || 0,
+        short_range_shots_made: short_range_shots_made || 0,
+        jogging_minutes: jogging_minutes || 0,
+        stairs_jumps_count: stairs_jumps_count || 0,
+        jump_rope_series_count: jump_rope_series_count || 0,
+        mid_range_shots_made: mid_range_shots_made || 0,
+        elite_jogging_minutes: elite_jogging_minutes || 0,
+        elite_plank_seconds: elite_plank_seconds || 0,
+        elite_jump_rope_count: elite_jump_rope_count || 0,
+        plyometric_circuit_minutes: plyometric_circuit_minutes || 0,
+        three_point_shots_made: three_point_shots_made || 0,
+        half_court_shots_made: half_court_shots_made || 0,
+        overall_ovr: overall_ovr || 70,
+        coach_feedback: coach_feedback || ""
+      };
+
+      const { data: savedTest, error: testErr } = await supabase
+        .from("detailed_test_records")
+        .upsert(detailedPayload, { onConflict: "student_id,evaluation_date" })
+        .select();
+
+      if (testErr) {
+        console.error("Error al guardar test en detailed_test_records:", testErr);
+        throw testErr;
+      }
+
+      if (certified_level) {
+        await supabase
+          .from("profiles")
+          .update({
+            athletic_level: validAssessedLevel,
+            current_level: certified_level,
+            current_tier: certified_level
+          })
+          .eq("id", student_id);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Evaluación Test Day guardada y persistida en Supabase con éxito.",
+        data: savedTest
+      });
+    }
+
     // 3. UPDATE_ATHLETE_CONFIG (Beca %, Costo por Clase, Rol y Tipo de Usuario: Alumno vs Tutor/Padre)
     if (action === "UPDATE_ATHLETE_CONFIG") {
       const {
