@@ -29,6 +29,7 @@ import TestDayEvaluator from '@/components/TestDayEvaluator';
 import DualCoachCommand from '@/components/DualCoachCommand';
 import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
+import BioimpedanceWizard from '@/components/BioimpedanceWizard';
 import BunkerSyncCommandBar from '@/components/BunkerSyncCommandBar';
 import confetti from 'canvas-confetti';
 import { 
@@ -841,6 +842,13 @@ export default function CoachDashboardPage() {
               />
             </div>
           )}
+
+          {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
+          <div className="pt-2">
+            <BioimpedanceWizard
+              students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: s.currentTier }))}
+            />
+          </div>
 
       {/* 4. PASO 3: SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}
       <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
