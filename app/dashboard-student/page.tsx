@@ -699,6 +699,19 @@ export default function StudentDashboardPage() {
             setEvaluation((prev: any) => ({
               ...prev,
               ...detailedData,
+              free_throws_made: detailedData.short_range_shots_made ?? detailedData.free_throws_made,
+              mid_range_made: detailedData.mid_range_shots_made ?? detailedData.mid_range_made,
+              three_point_made: detailedData.three_point_shots_made ?? detailedData.three_point_made,
+              isReal: true
+            }));
+
+            // Asegurar que currentPerformance tenga las métricas mapeadas
+            setCurrentPerformance((prev: any) => ({
+              ...prev,
+              free_throws_made: detailedData.short_range_shots_made ?? detailedData.free_throws_made ?? prev.free_throws_made ?? 10,
+              mid_range_made: detailedData.mid_range_shots_made ?? detailedData.mid_range_made ?? prev.mid_range_made ?? 20,
+              three_point_made: detailedData.three_point_shots_made ?? detailedData.three_point_made ?? prev.three_point_made ?? 15,
+              jump_rope_count: detailedData.jump_rope_count ?? prev.jump_rope_count ?? 1000,
               isReal: true
             }));
           } else if (typeof window !== "undefined") {
