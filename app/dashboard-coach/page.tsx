@@ -863,7 +863,7 @@ export default function CoachDashboardPage() {
                 athlete_name: s.fullName,
                 jersey_number: s.jerseyNumber || 11,
                 category: (s as any).category || 'U-17 Competitivo',
-                overall_ovr: s.ovr || 85,
+                overall_ovr: (s as any).ovr || 85,
                 free_throws_made: s.metricsCurrent?.freeThrow ? Math.round(s.metricsCurrent.freeThrow / 10) : 10,
                 three_point_made: s.metricsCurrent?.threePoint ? Math.round(s.metricsCurrent.threePoint / 4) : 15,
                 vertical_jump_cm: s.metricsCurrent?.verticalJump || 110,
