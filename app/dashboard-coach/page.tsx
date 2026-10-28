@@ -655,23 +655,33 @@ export default function CoachDashboardPage() {
                       <img
                         src={st.avatarUrl || '/logo-official.png'}
                         alt={st.fullName}
-                        className="w-9 h-9 rounded-lg object-cover border border-zinc-700 flex-shrink-0"
+                        className="w-10 h-10 rounded-xl object-cover border border-zinc-700 flex-shrink-0"
                       />
                       <div className="truncate">
-                        <div className="text-xs font-bold text-white truncate">
-                          {st.fullName}
+                        <div className="text-xs font-black text-white truncate flex items-center gap-1.5">
+                          <span>{st.fullName}</span>
+                          <span className="text-[10px] text-orange-400 font-mono">#{st.jerseyNumber || '—'}</span>
                         </div>
-                        <div className="text-[10px] font-mono text-zinc-400">
-                          {st.position} • #{st.jerseyNumber || '—'}
+                        <div className="text-[10px] font-mono text-zinc-400 flex items-center gap-1">
+                          <span>{st.position}</span>
+                          <span>•</span>
+                          <span className="text-purple-400 font-bold">{(st as any).currentTier || 'Lobo'}</span>
                         </div>
                       </div>
                     </div>
 
-                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                      st.finances?.status === 'al_corriente' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                    }`}>
-                      {st.finances?.status === 'al_corriente' ? '$0' : `$${st.finances?.balanceDue || 50}`}
-                    </span>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                        st.finances?.status === 'al_corriente' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {st.finances?.status === 'al_corriente' ? '$0' : `$${st.finances?.balanceDue || 50}`}
+                      </span>
+                      {st.evaluations && st.evaluations.length > 0 && (
+                        <span className="text-[9px] font-mono font-black text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1 rounded">
+                          {(st.evaluations[0] as any).overallOvr ? `${(st.evaluations[0] as any).overallOvr} OVR` : `${st.evaluations.length} test`}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
