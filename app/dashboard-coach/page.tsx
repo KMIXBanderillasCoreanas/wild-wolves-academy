@@ -32,6 +32,8 @@ import { FinanceManager } from '@/components/FinanceManager';
 import BioimpedanceWizard from '@/components/BioimpedanceWizard';
 import OfflineSyncUploader from '@/components/OfflineSyncUploader';
 import OfflineCourtSyncBox from '@/components/OfflineCourtSyncBox';
+import WhatsAppAIEngine from '@/components/WhatsAppAIEngine';
+import CourtVisionHUD from '@/components/CourtVisionHUD';
 import BunkerSyncCommandBar from '@/components/BunkerSyncCommandBar';
 import confetti from 'canvas-confetti';
 import { 
@@ -849,6 +851,27 @@ export default function CoachDashboardPage() {
           <div className="pt-2 space-y-4">
             <BioimpedanceWizard
               students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
+            />
+            {/* OJOS Y OÍDOS DE LA CANCHA: VISIÓN ARTIFICIAL & SHOT SCIENCE HUD */}
+            <CourtVisionHUD 
+              studentId={selectedStudent?.id}
+              studentName={selectedStudent?.fullName}
+            />
+            {/* GENERADOR DE REPORTES AUTOMATIZADOS CON IA & WHATSAPP CRM */}
+            <WhatsAppAIEngine 
+              records={students.map(s => ({
+                athlete_name: s.fullName,
+                jersey_number: s.jerseyNumber || 11,
+                category: (s as any).category || 'U-17 Competitivo',
+                overall_ovr: s.ovr || 85,
+                free_throws_made: s.metricsCurrent?.freeThrow ? Math.round(s.metricsCurrent.freeThrow / 10) : 10,
+                three_point_made: s.metricsCurrent?.threePoint ? Math.round(s.metricsCurrent.threePoint / 4) : 15,
+                vertical_jump_cm: s.metricsCurrent?.verticalJump || 110,
+                coach_feedback: 'Evaluación técnica completada en duela Carmen Serdán.',
+                tutor_phone: (s as any).parentPhone || (s as any).phone || '5522427769',
+                parent_name: (s as any).parentName,
+                student_id: s.id
+              }))}
             />
             {/* RECEPTOR 1-CLIC Y COPIAR/PEGAR DE PRUEBAS DE DUELA (GEMINI PROTOCOL V2) */}
             <OfflineCourtSyncBox />
