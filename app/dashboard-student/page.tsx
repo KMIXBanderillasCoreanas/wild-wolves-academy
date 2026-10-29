@@ -13,6 +13,7 @@ import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import LoboProModal from "@/components/LoboProModal";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import CourtHeatmapPro from "@/components/CourtHeatmapPro";
+import DuelaHolografica3D from "@/components/DuelaHolografica3D";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import VisionAssistantModal from "@/components/VisionAssistantModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
@@ -2247,14 +2248,14 @@ export default function StudentDashboardPage() {
               </div>
             </section>
 
-            {/* 4. MAPA DE CALOR ESTILO HOMECOURT PRO (SHOT HEATMAP PRECISION SVG V4) */}
+            {/* 4. DUELA HOLOGRÁFICA 3D // SHOT SCIENCE CIBERNÉTICO V3.2 */}
             <section className="space-y-4">
-              <CourtHeatmapPro
-                freeThrowsMade={currentPerformance.free_throws_made ?? evaluation.free_throws_made ?? 10}
+              <DuelaHolografica3D
+                freeThrowsMade={currentPerformance.free_throws_made ?? evaluation.free_throws_made ?? 7}
                 freeThrowsAttempted={10}
-                midLeftMade={currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 10}
+                midLeftMade={currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 6}
                 midLeftAttempted={10}
-                midRightMade={currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 10}
+                midRightMade={currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 6}
                 midRightAttempted={10}
                 cornerLeftMade={currentPerformance.spot_corner_left ?? 3}
                 cornerLeftAttempted={5}

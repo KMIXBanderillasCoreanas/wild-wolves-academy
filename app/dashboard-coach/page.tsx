@@ -33,6 +33,7 @@ import BioimpedanceWizard from '@/components/BioimpedanceWizard';
 import WhatsAppAIEngine from '@/components/WhatsAppAIEngine';
 import CourtVisionHUD from '@/components/CourtVisionHUD';
 import CourtHeatmapPro from '@/components/CourtHeatmapPro';
+import DuelaHolografica3D from '@/components/DuelaHolografica3D';
 import confetti from 'canvas-confetti';
 import { 
   PlusCircle, 
@@ -856,13 +857,13 @@ export default function CoachDashboardPage() {
 
           {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
           <div className="pt-2 space-y-4">
-            {/* MAPA DE TIRO DE PRECISIÓN EN DUELA (HOMECOURT SVG PRO V4) */}
-            <CourtHeatmapPro
-              freeThrowsMade={selectedStudent?.metricsCurrent?.freeThrow ? Math.round(selectedStudent.metricsCurrent.freeThrow / 10) : 10}
+            {/* CANCHA HOLOGRÁFICA 3D (HUD CIBERNÉTICO // SHOT SCIENCE V3.2) */}
+            <DuelaHolografica3D
+              freeThrowsMade={selectedStudent?.metricsCurrent?.freeThrow ? Math.round(selectedStudent.metricsCurrent.freeThrow / 10) : 7}
               freeThrowsAttempted={10}
-              midLeftMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 10}
+              midLeftMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 6}
               midLeftAttempted={10}
-              midRightMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 10}
+              midRightMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 6}
               midRightAttempted={10}
               cornerLeftMade={3}
               cornerLeftAttempted={5}

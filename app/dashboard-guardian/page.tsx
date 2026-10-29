@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import CourtHeatmapPro from "@/components/CourtHeatmapPro";
+import DuelaHolografica3D from "@/components/DuelaHolografica3D";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import LoboProModal from "@/components/LoboProModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
@@ -551,13 +552,13 @@ export default function GuardianDashboardPage() {
 
         </div>
 
-        {/* MAPA DE CALOR ESTILO HOMECOURT PARA FAMILIAS Y TUTORES (PRECISION SVG V4) */}
-        <CourtHeatmapPro
-          freeThrowsMade={latestTest?.free_throws_made ?? 10}
+        {/* DUELA HOLOGRÁFICA 3D (HUD CIBERNÉTICO V3.2) */}
+        <DuelaHolografica3D
+          freeThrowsMade={latestTest?.free_throws_made ?? 7}
           freeThrowsAttempted={10}
-          midLeftMade={latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 10}
+          midLeftMade={latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 6}
           midLeftAttempted={10}
-          midRightMade={latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 10}
+          midRightMade={latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 6}
           midRightAttempted={10}
           cornerLeftMade={latestTest?.spot_corner_left ?? 3}
           cornerLeftAttempted={5}
