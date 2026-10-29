@@ -1,4 +1,6 @@
 // lib/apinex-gateway.ts
+import { checkAndConsumeAIQuota, AIPlanType, QuotaCheckResult } from './ai-quota-manager';
+import { MASTER_TACTICAL_WOLF_SYSTEM_PROMPT } from './prompts/master-tactical-wolf';
 
 export const APINEX_BASE_URL = process.env.APINEX_BASE_URL || 'https://api.apinex.bond/v1';
 export const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-apxb1ecfd912c6eb91fc2e9808e75ae8d4110e56df12b0ba15';
@@ -17,37 +19,66 @@ export interface ApinexRequest {
   systemPrompt?: string;
   userPrompt: string;
   temperature?: number;
+  userId?: string;
+  planType?: AIPlanType;
+}
+
+export interface ApinexResponse {
+  success: boolean;
+  text?: string;
+  error?: string;
+  quota?: QuotaCheckResult;
 }
 
 /**
- * Enrutador inteligente que detecta si el modelo es de Anthropic (Claude) o estándar (OpenAI)
- * y utiliza el endpoint correcto (/v1/mensajes o /v1/chat/completions).
+ * Enrutador inteligente con Middleware de Control de Cuota y Contexto Maestro del Lobo Táctico.
  */
-export async function consultarApinexAI({ model, systemPrompt, userPrompt, temperature = 0.7 }: ApinexRequest) {
+export async function consultarApinexAI({
+  model,
+  systemPrompt,
+  userPrompt,
+  temperature = 0.7,
+  userId = 'guest-student',
+  planType = 'free'
+}: ApinexRequest): Promise<ApinexResponse> {
   try {
+    // 1. MIDDLEWARE DE CONTROL DE LÍMITES DE CONSULTA
+    const quotaCheck = await checkAndConsumeAIQuota(userId, planType);
+    if (!quotaCheck.allowed) {
+      return {
+        success: false,
+        error: quotaCheck.message || 'Límite mensual de consultas excedido para tu plan.',
+        quota: quotaCheck
+      };
+    }
+
+    // 2. ENRIQUECIMIENTO CON PROMPT MAESTRO REGLAMENTARIO Y BIOMECÁNICO
+    const effectiveSystemPrompt = systemPrompt
+      ? `${MASTER_TACTICAL_WOLF_SYSTEM_PROMPT}\n\n[INSTRUCCIÓN ESPECÍFICA]:\n${systemPrompt}`
+      : MASTER_TACTICAL_WOLF_SYSTEM_PROMPT;
+
     const isClaude = model.toLowerCase().includes('claude');
     const endpoint = isClaude ? `${APINEX_BASE_URL}/mensajes` : `${APINEX_BASE_URL}/chat/completions`;
 
     let bodyData: any = {};
 
     if (isClaude) {
-      // Protocolo 02: Mensajes Antrópicos (Claude nativo)
+      // Protocolo Anthropic (Claude nativo)
       bodyData = {
         model,
         max_tokens: 4000,
-        system: systemPrompt || 'Eres un asistente de IA experto en gestión deportiva.',
+        system: effectiveSystemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
         temperature
       };
     } else {
-      // Protocolo 01: SDK de OpenAI (DeepSeek, Gemini, Qwen, Kimi)
-      const messages = [];
-      if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-      messages.push({ role: 'user', content: userPrompt });
-
+      // Protocolo OpenAI (DeepSeek, Gemini, Qwen, Kimi)
       bodyData = {
         model,
-        messages,
+        messages: [
+          { role: 'system', content: effectiveSystemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
         temperature
       };
     }
@@ -68,14 +99,21 @@ export async function consultarApinexAI({ model, systemPrompt, userPrompt, tempe
 
     const data = await response.json();
 
-    // Extraer la respuesta según el protocolo devuelto
-    if (isClaude) {
-      return { success: true, text: data.content?.[0]?.text || 'Sin respuesta de Claude.' };
-    } else {
-      return { success: true, text: data.choices?.[0]?.message?.content || 'Sin respuesta del modelo.' };
-    }
+    // Extraer respuesta según el protocolo devuelto
+    const textOutput = isClaude
+      ? data.content?.[0]?.text || 'Sin respuesta generada por Claude.'
+      : data.choices?.[0]?.message?.content || 'Sin respuesta generada por el modelo.';
+
+    return {
+      success: true,
+      text: textOutput,
+      quota: quotaCheck
+    };
   } catch (error: any) {
     console.error('Falla en la consulta a Apinex AI:', error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }

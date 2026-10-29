@@ -14,6 +14,8 @@ import LoboProModal from "@/components/LoboProModal";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import CourtHeatmapPro from "@/components/CourtHeatmapPro";
 import DuelaHolografica3D from "@/components/DuelaHolografica3D";
+import BiomechanicsProBenchmark from "@/components/BiomechanicsProBenchmark";
+import PrehabRecoveryCard from "@/components/PrehabRecoveryCard";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import VisionAssistantModal from "@/components/VisionAssistantModal";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
@@ -2267,6 +2269,35 @@ export default function StudentDashboardPage() {
                 wingRightAttempted={5}
                 cornerRightMade={currentPerformance.spot_corner_right ?? 2}
                 cornerRightAttempted={5}
+              />
+            </section>
+
+            {/* 4.01 COMPARATIVA BIOMECÁNICA ALUMNO VS ESTÁNDAR PRO NBA */}
+            <section className="space-y-4">
+              <BiomechanicsProBenchmark
+                athleteName={profile?.full_name || "Bruno Sánchez"}
+                studentId={profile?.id || "demo-student"}
+                studentMetrics={{
+                  reactionTimeMs: 285,
+                  gatheringTimeMs: 410,
+                  releaseTimeMs: 360,
+                  jumpApexHeightCm: evaluation.vertical_jump ?? 52,
+                  defensiveStanceScore: 80,
+                  hipTrackingAwareness: 84
+                }}
+              />
+            </section>
+
+            {/* 4.02 SALUD PREVENTIVA Y ESTIRAMIENTOS (PRE-HAB & COOL-DOWN) */}
+            <section className="space-y-4">
+              <PrehabRecoveryCard
+                athleteName={profile?.full_name || "Bruno Sánchez"}
+                studentId={profile?.id || "demo-student"}
+                bioimpedance={{
+                  fatPercent: profile?.fat_percentage ?? 18.2,
+                  waterPercent: profile?.water_percentage ?? 54.5,
+                  muscleMassKg: profile?.muscle_mass_kg ?? 42.0
+                }}
               />
             </section>
 

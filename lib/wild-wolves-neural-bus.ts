@@ -1,5 +1,7 @@
 // lib/wild-wolves-neural-bus.ts
 import { createClient } from '@supabase/supabase-js';
+import { MASTER_TACTICAL_WOLF_SYSTEM_PROMPT } from './prompts/master-tactical-wolf';
+import { checkAndConsumeAIQuota, AIPlanType } from './ai-quota-manager';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey =
@@ -20,20 +22,36 @@ export const NEURAL_MODELS = {
 };
 
 /**
- * MOTOR DE SEÑALES NEURONALES (AI Gateway Unificado: OpenAI + Anthropic Claude)
+ * MOTOR DE SEÑALES NEURONALES (AI Gateway Unificado con Blindaje Reglamentario y Cuotas)
  */
 export async function sendNeuralSignal({
   model,
   systemPrompt,
   userPrompt,
-  temperature = 0.7
+  temperature = 0.7,
+  userId = 'system-coach',
+  planType = 'standard_99'
 }: {
   model: string;
   systemPrompt?: string;
   userPrompt: string;
   temperature?: number;
+  userId?: string;
+  planType?: AIPlanType;
 }) {
   try {
+    // Verificación de cuota previa (salvo para llamadas administrativas internas)
+    if (userId !== 'system-coach') {
+      const quota = await checkAndConsumeAIQuota(userId, planType);
+      if (!quota.allowed) {
+        return `⚠️ ${quota.message}`;
+      }
+    }
+
+    const effectiveSystemPrompt = systemPrompt
+      ? `${MASTER_TACTICAL_WOLF_SYSTEM_PROMPT}\n\n[CONTEXTO OPERATIVO]:\n${systemPrompt}`
+      : MASTER_TACTICAL_WOLF_SYSTEM_PROMPT;
+
     const isClaude = model.toLowerCase().includes('claude');
     const endpoint = isClaude ? `${APINEX_BASE_URL}/mensajes` : `${APINEX_BASE_URL}/chat/completions`;
 
@@ -41,14 +59,14 @@ export async function sendNeuralSignal({
       ? {
           model,
           max_tokens: 4000,
-          system: systemPrompt || 'Eres un asistente de IA deportivo de alto rendimiento FIBA.',
+          system: effectiveSystemPrompt,
           messages: [{ role: 'user', content: userPrompt }],
           temperature
         }
       : {
           model,
           messages: [
-            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+            { role: 'system', content: effectiveSystemPrompt },
             { role: 'user', content: userPrompt }
           ],
           temperature
@@ -78,8 +96,91 @@ export async function sendNeuralSignal({
 }
 
 /**
- * REFLEJO AUTOMÁTICO 1: Evaluación y Promoción de Nivel (Trigger Lógico en Servidor)
- * Se ejecuta al registrar un test de duela. Evalúa si el atleta asciende de tier y otorga insignias.
+ * ANÁLISIS BIOMECÁNICO Y CINEMÁTICO AVANZADO DEL "LOBO TÁCTICO"
+ * Compara los parámetros reales del deportista con los estándares de la NBA
+ */
+export async function analizarMovimientoBiomecanico({
+  athleteName,
+  shotType = 'jump_shot_apex',
+  reactionTimeMs,
+  gatheringTimeMs,
+  releaseTimeMs,
+  jumpApexHeightCm,
+  defensiveStanceScore,
+  hipTrackingAwareness
+}: {
+  athleteName: string;
+  shotType?: string;
+  reactionTimeMs: number;
+  gatheringTimeMs: number;
+  releaseTimeMs: number;
+  jumpApexHeightCm: number;
+  defensiveStanceScore: number;
+  hipTrackingAwareness: number;
+}) {
+  const userPrompt = `
+AUDITORÍA CINEMÁTICA Y BIOMECÁNICA DEL ATLETA: ${athleteName}
+- Tipo de mecánica evaluada: ${shotType}
+- Tiempo de Reacción inicial: ${reactionTimeMs} ms (Estándar Pro NBA: 200 - 240 ms)
+- Tiempo de Gathering (armado de tiro): ${gatheringTimeMs} ms (Estándar Pro NBA: 300 - 360 ms)
+- Tiempo de Release (soltura del balón): ${releaseTimeMs} ms (Estándar Pro NBA: 300 - 360 ms)
+- Altura en el Apex del Salto: ${jumpApexHeightCm} cm (Estándar Pro NBA: 65 - 85 cm)
+- Puntuación de Postura Defensiva: ${defensiveStanceScore}/100 pts (Estándar Pro NBA: >85 pts)
+- Nivel de Seguimiento de Cadera Ofensiva (Hip Tracking): ${hipTrackingAwareness}/100 pts (Estándar Pro NBA: >90 pts)
+
+Proporciona el veredicto con la estructura exacta:
+a) LO QUE HICISTE BIEN
+b) FALLA TÉCNICA EXACTA EN LA DUELA (Con brecha milimétrica o de ms vs NBA)
+c) RUTINA DE PESO CORPORAL CORRECTIVA (Ejercicios funcionales pre-hab con series y reps)
+`;
+
+  return await sendNeuralSignal({
+    model: NEURAL_MODELS.BIOMECHANICS,
+    systemPrompt: 'Genera el diagnóstico biomecánico oficial para el atleta de Wild Wolves Academy.',
+    userPrompt,
+    temperature: 0.4
+  });
+}
+
+/**
+ * CONSULTA QUIROPRÁCTICA Y DE SALUD ARTICULAR (Pre-hab & Cool-down)
+ */
+export async function consultarSaludArticular({
+  athleteName,
+  targetArea,
+  symptom,
+  bioimpedanceFatPercent,
+  bioimpedanceWaterPercent
+}: {
+  athleteName: string;
+  targetArea: 'tobillo' | 'rodilla' | 'isquiotibiales' | 'lumbar' | 'general';
+  symptom: string;
+  bioimpedanceFatPercent?: number;
+  bioimpedanceWaterPercent?: number;
+}) {
+  const userPrompt = `
+CONSULTA DE SALUD ARTICULAR Y RECUPERACIÓN - WILD WOLVES PRE-HAB:
+- Atleta: ${athleteName}
+- Zona corporal de atención: ${targetArea}
+- Síntoma o reporte del atleta: "${symptom}"
+- Datos de Báscula Bioimpedancia: Grasa: ${bioimpedanceFatPercent ?? 'N/A'}%, Agua Corporal: ${bioimpedanceWaterPercent ?? 'N/A'}%
+
+Entrega la prescripción de quiropráctica deportiva:
+1. Diagnóstico funcional y prevención de lesiones agudas (ej. esguince por inversión, tendinitis rotuliana, lumbalgia).
+2. Protocolo de estiramiento pasivo/activo inmediato (Cool-down) con tiempos de tensión.
+3. Indicación de hidratación e impacto según su bioimpedancia.
+`;
+
+  return await sendNeuralSignal({
+    model: NEURAL_MODELS.BIOMECHANICS,
+    systemPrompt: 'Actúa como el especialista quiropráctico de Wild Wolves Academy.',
+    userPrompt,
+    temperature: 0.3
+  });
+}
+
+/**
+ * REFLEJO AUTOMÁTICO: Evaluación y Promoción de Nivel (Trigger Lógico en Servidor)
  */
 export async function procesarReflejoTestDuela(
   studentId: string,
@@ -100,52 +201,33 @@ export async function procesarReflejoTestDuela(
       badgeTier = 'Silver';
     }
 
-    // 1. Actualizar Supabase (profiles)
-    const { error: profileError } = await supabase
+    const { error: profileErr } = await supabase
       .from('profiles')
-      .update({ current_tier: nuevoTier })
+      .update({
+        certification_tier: nuevoTier,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', studentId);
 
-    if (profileError) {
-      console.warn('Aviso actualizando tier en profiles:', profileError.message);
+    if (profileErr) {
+      console.warn('Advertencia actualizando tier en profiles:', profileErr.message);
     }
 
-    // 2. Registrar insignia automática si la tabla está disponible
-    try {
-      await supabase.from('student_earned_badges').insert({
+    await supabase.from('student_earned_badges').upsert(
+      {
         student_id: studentId,
+        badge_code: badgeName.toLowerCase().replace(/\s+/g, '_'),
         badge_name: badgeName,
-        badge_tier: badgeTier
-      });
-    } catch (badgeErr) {
-      console.warn('Aviso insertando insignia:', badgeErr);
-    }
+        badge_category: 'shooting',
+        badge_tier: badgeTier,
+        date_earned: new Date().toISOString()
+      },
+      { onConflict: 'student_id,badge_code' }
+    );
 
-    return { success: true, nuevoTier, badgeName, badgeTier };
-  } catch (err: any) {
+    return { success: true, tier: nuevoTier, badge: badgeName };
+  } catch (err) {
     console.error('Falla en procesarReflejoTestDuela:', err);
-    return { success: false, error: err.message };
-  }
-}
-
-/**
- * REFLEJO AUTOMÁTICO 2: Sincronización Offline-First (Ingesta de Archivos / HTML / JSON)
- */
-export async function procesarColaOfflineSync(registrosLocales: any[]) {
-  try {
-    if (!registrosLocales || registrosLocales.length === 0) {
-      return { success: true, syncedCount: 0 };
-    }
-
-    // Inserta masivamente los datos recolectados sin internet hacia Supabase
-    const { error } = await supabase
-      .from('detailed_test_records')
-      .upsert(registrosLocales, { onConflict: 'student_id, evaluation_date' });
-
-    if (error) throw error;
-    return { success: true, syncedCount: registrosLocales.length };
-  } catch (err: any) {
-    console.error('Falla en procesarColaOfflineSync:', err);
-    return { success: false, error: err.message };
+    return { success: false, error: err };
   }
 }
