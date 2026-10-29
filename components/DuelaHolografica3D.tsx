@@ -271,9 +271,18 @@ export default function DuelaHolografica3D({
           style={{ maxHeight: '560px' }}
         >
           <defs>
-            {/* Filtro de resplandor para las tarjetas flotantes y líneas */}
+            {/* Filtro de resplandor para las tarjetas flotantes */}
             <filter id="courtGlow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000000" floodOpacity="0.8" />
+            </filter>
+
+            {/* Filtro de resplandor Neón Cian para las líneas de la duela */}
+            <filter id="courtLinesNeonGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
             </filter>
           </defs>
 
@@ -307,51 +316,53 @@ export default function DuelaHolografica3D({
             })}
           </g>
 
-          {/* CAPA 2: LÍNEAS REGLAMENTARIAS BLANCAS DE DUELA (2D CENITAL PRECISA) */}
+          {/* CAPA 2: LÍNEAS REGLAMENTARIAS AZUL / CIAN NEÓN QUE CRUZAN POR ENCIMA DE LOS RELLENOS */}
           <g
-            stroke="rgba(255, 255, 255, 0.75)"
-            strokeWidth="2"
+            stroke="#06b6d4"
+            strokeWidth="2.2"
             fill="none"
+            filter="url(#courtLinesNeonGlow)"
             className="pointer-events-none"
+            opacity="0.95"
           >
             {/* Perímetro de la media cancha */}
-            <rect x="10" y="10" width="480" height="430" rx="4" />
+            <rect x="10" y="10" width="480" height="430" rx="4" stroke="#06b6d4" strokeWidth="2.5" />
 
             {/* Líneas de esquina recta de triple */}
-            <line x1="44" y1="10" x2="44" y2="140" stroke="rgba(255,255,255,0.75)" strokeWidth="2.5" />
-            <line x1="456" y1="10" x2="456" y2="140" stroke="rgba(255,255,255,0.75)" strokeWidth="2.5" />
+            <line x1="44" y1="10" x2="44" y2="140" stroke="#06b6d4" strokeWidth="2.5" />
+            <line x1="456" y1="10" x2="456" y2="140" stroke="#06b6d4" strokeWidth="2.5" />
 
             {/* Llave / Pintura Reglamentaria (170 a 330, Y=10 a 200) */}
-            <rect x="170" y="10" width="160" height="190" fill="rgba(0,0,0,0.12)" />
+            <rect x="170" y="10" width="160" height="190" fill="rgba(6, 182, 212, 0.05)" stroke="#06b6d4" strokeWidth="2.2" />
 
             {/* Marcas de rebote en los postes de la llave */}
-            <line x1="162" y1="80" x2="170" y2="80" />
-            <line x1="162" y1="110" x2="170" y2="110" />
-            <line x1="162" y1="140" x2="170" y2="140" />
-            <line x1="162" y1="170" x2="170" y2="170" />
-            <line x1="330" y1="80" x2="338" y2="80" />
-            <line x1="330" y1="110" x2="338" y2="110" />
-            <line x1="330" y1="140" x2="338" y2="140" />
-            <line x1="330" y1="170" x2="338" y2="170" />
+            <line x1="162" y1="80" x2="170" y2="80" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="162" y1="110" x2="170" y2="110" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="162" y1="140" x2="170" y2="140" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="162" y1="170" x2="170" y2="170" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="330" y1="80" x2="338" y2="80" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="330" y1="110" x2="338" y2="110" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="330" y1="140" x2="338" y2="140" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="330" y1="170" x2="338" y2="170" stroke="#22d3ee" strokeWidth="2" />
 
             {/* Círculo de Tiro Libre */}
-            <path d="M 190 200 A 60 60 0 0 1 310 200" strokeDasharray="6 6" stroke="rgba(255,255,255,0.7)" />
-            <path d="M 190 200 A 60 60 0 0 0 310 200" />
+            <path d="M 190 200 A 60 60 0 0 1 310 200" strokeDasharray="6 6" stroke="#22d3ee" strokeWidth="2" />
+            <path d="M 190 200 A 60 60 0 0 0 310 200" stroke="#06b6d4" strokeWidth="2.2" />
 
             {/* Arco de 3 Puntos Reglamentario FIBA (R=215 con vértice exacto) */}
-            <path d="M 44 140 A 215 215 0 0 0 456 140" strokeWidth="2.5" />
+            <path d="M 44 140 A 215 215 0 0 0 456 140" stroke="#06b6d4" strokeWidth="2.8" />
 
             {/* Semicírculo de no-carga bajo el aro */}
-            <path d="M 210 40 L 210 52.5 A 40 40 0 0 0 290 52.5 L 290 40" stroke="rgba(255,255,255,0.8)" />
+            <path d="M 210 40 L 210 52.5 A 40 40 0 0 0 290 52.5 L 290 40" stroke="#38bdf8" strokeWidth="2" />
 
-            {/* Tablero y Aro Naranja */}
+            {/* Tablero y Aro Naranja Neón */}
             <line x1="220" y1="40" x2="280" y2="40" strokeWidth="4" stroke="#ffffff" />
             <line x1="250" y1="40" x2="250" y2="44" strokeWidth="3" stroke="#f97316" />
             <circle cx="250" cy="52.5" r="9" stroke="#f97316" strokeWidth="3" fill="rgba(249,115,22,0.35)" />
 
             {/* Círculo Central de media cancha */}
-            <path d="M 190 440 A 60 60 0 0 1 310 440" stroke="rgba(255,255,255,0.6)" />
-            <line x1="10" y1="438" x2="490" y2="438" strokeDasharray="8 6" stroke="rgba(255,255,255,0.5)" />
+            <path d="M 190 440 A 60 60 0 0 1 310 440" stroke="#06b6d4" strokeWidth="2.2" />
+            <line x1="10" y1="438" x2="490" y2="438" strokeDasharray="8 6" stroke="#06b6d4" strokeWidth="2" />
           </g>
 
           {/* CAPA 3: TARJETAS DE PORCENTAJE FLOTANTES ORIGINALES (GLASSMORPHISM CON ZERO OVERLAP) */}
