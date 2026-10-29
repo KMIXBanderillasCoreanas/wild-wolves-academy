@@ -1,9 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, Target, Zap, Activity, Info, Flame, Eye } from 'lucide-react';
+import { 
+  Crosshair, 
+  Sparkles, 
+  Activity, 
+  Flame, 
+  Eye, 
+  Target, 
+  Zap, 
+  Compass, 
+  CheckCircle2, 
+  Cpu, 
+  Layers
+} from 'lucide-react';
 
-export interface DuelaHolograficaProps {
+export interface CourtStatsProps {
   freeThrowsMade?: number;
   freeThrowsAttempted?: number;
   midLeftMade?: number;
@@ -20,15 +32,82 @@ export interface DuelaHolograficaProps {
   wingRightAttempted?: number;
   cornerRightMade?: number;
   cornerRightAttempted?: number;
-  dataTiros?: any;
+}
+
+interface ZoneConfig {
+  id: string;
+  name: string;
+  shortLabel: string;
+  made: number;
+  attempted: number;
+  pathD: string;
+  labelX: number;
+  labelY: number;
+  compact?: boolean;
+}
+
+/**
+ * Escala de calor cibernética con colores neón de alta luminiscencia y HUD status
+ */
+function getCyberHeatStyle(pct: number) {
+  if (pct >= 70) {
+    return {
+      tier: 'CALIENTE (≥70%)',
+      code: 'HOT_FIRING',
+      fill: 'rgba(239, 68, 68, 0.40)',
+      hoverFill: 'rgba(249, 115, 22, 0.65)',
+      stroke: '#f97316',
+      neonBorder: '#ff5722',
+      glow: 'shadow-[0_0_25px_rgba(249,115,22,0.6)]',
+      textColor: '#ffedd5',
+      badgeClass: 'bg-gradient-to-r from-red-500 to-orange-500 text-white border-orange-400'
+    };
+  }
+  if (pct >= 50) {
+    return {
+      tier: 'FAVORABLE (50-69%)',
+      code: 'OPTIMAL_ARC',
+      fill: 'rgba(234, 179, 8, 0.35)',
+      hoverFill: 'rgba(245, 158, 11, 0.60)',
+      stroke: '#eab308',
+      neonBorder: '#fbbf24',
+      glow: 'shadow-[0_0_20px_rgba(234,179,8,0.5)]',
+      textColor: '#fef08a',
+      badgeClass: 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white border-yellow-300'
+    };
+  }
+  if (pct >= 35) {
+    return {
+      tier: 'REGULAR (35-49%)',
+      code: 'MID_RANGE_LOCK',
+      fill: 'rgba(6, 182, 212, 0.30)',
+      hoverFill: 'rgba(14, 165, 233, 0.55)',
+      stroke: '#06b6d4',
+      neonBorder: '#38bdf8',
+      glow: 'shadow-[0_0_20px_rgba(6,182,212,0.5)]',
+      textColor: '#cffafe',
+      badgeClass: 'bg-gradient-to-r from-cyan-600 to-sky-700 text-white border-cyan-400'
+    };
+  }
+  return {
+    tier: 'FRÍA (<35%)',
+    code: 'COLD_DRIFT',
+    fill: 'rgba(71, 85, 105, 0.30)',
+    hoverFill: 'rgba(100, 116, 139, 0.55)',
+    stroke: '#64748b',
+    neonBorder: '#94a3b8',
+    glow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]',
+    textColor: '#cbd5e1',
+    badgeClass: 'bg-gradient-to-r from-slate-700 to-zinc-800 text-zinc-300 border-zinc-600'
+  };
 }
 
 export default function DuelaHolografica3D({
-  freeThrowsMade = 7,
+  freeThrowsMade = 10,
   freeThrowsAttempted = 10,
-  midLeftMade = 6,
+  midLeftMade = 10,
   midLeftAttempted = 10,
-  midRightMade = 6,
+  midRightMade = 10,
   midRightAttempted = 10,
   cornerLeftMade = 3,
   cornerLeftAttempted = 5,
@@ -39,291 +118,447 @@ export default function DuelaHolografica3D({
   wingRightMade = 3,
   wingRightAttempted = 5,
   cornerRightMade = 2,
-  cornerRightAttempted = 5,
-  dataTiros
-}: DuelaHolograficaProps) {
-  const [zonaSeleccionada, setZonaSeleccionada] = useState<any | null>(null);
-  const [viewAngle, setViewAngle] = useState<'3d' | 'top'>('3d');
+  cornerRightAttempted = 5
+}: CourtStatsProps) {
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
 
-  // Cálculos de porcentajes reales o simulados
-  const calcPct = (m: number, a: number) => Math.round((m / (a || 1)) * 100);
-
-  const ftPct = dataTiros?.ftPct ?? calcPct(freeThrowsMade, freeThrowsAttempted);
-  const midLeftPct = dataTiros?.midLeftPct ?? calcPct(midLeftMade, midLeftAttempted);
-  const midRightPct = dataTiros?.midRightPct ?? calcPct(midRightMade, midRightAttempted);
-  const cLeftPct = dataTiros?.cLeftPct ?? calcPct(cornerLeftMade, cornerLeftAttempted);
-  const wLeftPct = dataTiros?.wLeftPct ?? calcPct(wingLeftMade, wingLeftAttempted);
-  const topPct = dataTiros?.topPct ?? calcPct(topKeyMade, topKeyAttempted);
-  const wRightPct = dataTiros?.wRightPct ?? calcPct(wingRightMade, wingRightAttempted);
-  const cRightPct = dataTiros?.cRightPct ?? calcPct(cornerRightMade, cornerRightAttempted);
-
-  // Métrica global
-  const totalMade = freeThrowsMade + midLeftMade + midRightMade + cornerLeftMade + wingLeftMade + topKeyMade + wingRightMade + cornerRightMade;
-  const totalAtt = freeThrowsAttempted + midLeftAttempted + midRightAttempted + cornerLeftAttempted + wingLeftAttempted + topKeyAttempted + wingRightAttempted + cornerRightAttempted;
-  const globalEfficiency = Math.round((totalMade / (totalAtt || 1)) * 100);
-
-  // Helper de estilos por rango de efectividad
-  const getZoneStyle = (pct: number) => {
-    if (pct >= 70) {
-      return {
-        status: 'Zona Caliente (Óptima)',
-        gradient: 'from-orange-500 to-amber-600',
-        badge: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
-        shadow: 'shadow-[0_0_25px_rgba(249,115,22,0.6)]',
-        border: 'border-orange-500/60'
-      };
-    }
-    if (pct >= 50) {
-      return {
-        status: 'Favorable (Controlada)',
-        gradient: 'from-amber-500 to-yellow-600',
-        badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-        shadow: 'shadow-[0_0_20px_rgba(245,158,11,0.5)]',
-        border: 'border-amber-500/50'
-      };
-    }
-    if (pct >= 35) {
-      return {
-        status: 'Regular (En Proceso)',
-        gradient: 'from-cyan-500 to-blue-600',
-        badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-        shadow: 'shadow-[0_0_20px_rgba(6,182,212,0.5)]',
-        border: 'border-cyan-500/50'
-      };
-    }
-    return {
-      status: 'Zona Fría (Requiere Ajuste)',
-      gradient: 'from-slate-600 to-zinc-800',
-      badge: 'bg-zinc-800 text-zinc-400 border-zinc-700',
-      shadow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]',
-      border: 'border-zinc-700'
-    };
-  };
-
-  const zonas = [
+  // Exact Trigonometric Coordinates on 500x450 Half-Court (2D Zenital View)
+  // Hoop Center: (250, 52.5), 3PT Radius R = 215
+  // Corner break points: Left (44, 140), Right (456, 140)
+  // Wing-to-TopKey rays on 3PT arc:
+  // Left: (170, 252) -> Outer Court (130, 440)
+  // Right: (330, 252) -> Outer Court (370, 440)
+  const zones: ZoneConfig[] = [
     {
-      id: 'media-izq',
-      nombre: 'Media Izq (45°)',
-      made: midLeftMade,
-      attempted: midLeftAttempted,
-      porcentaje: midLeftPct,
-      pos: 'col-span-1',
-      tactics: 'Parada en 2 tiempos y suspensión. Ataque sobre defensores altos.'
-    },
-    {
-      id: 'pintura',
-      nombre: 'Línea Libre / Pintura',
-      made: freeThrowsMade,
-      attempted: freeThrowsAttempted,
-      porcentaje: ftPct,
-      pos: 'col-span-1',
-      tactics: 'Rutina fija de 3 botes, quiebre de muñeca y follow-through de 1 segundo.'
-    },
-    {
-      id: 'media-der',
-      nombre: 'Media Der (45°)',
-      made: midRightMade,
-      attempted: midRightAttempted,
-      porcentaje: midRightPct,
-      pos: 'col-span-1',
-      tactics: 'Salida rápida de drible hacia el codo derecho con finta de pase.'
-    },
-    {
-      id: 'ala-izq',
-      nombre: '3P Ala Izquierda',
-      made: wingLeftMade,
-      attempted: wingLeftAttempted,
-      porcentaje: wLeftPct,
-      pos: 'col-span-1',
-      tactics: 'Recepción en catch & shoot con pies orientados al aro de Carmen Serdán.'
-    },
-    {
-      id: 'top-key',
-      nombre: '3P Top Key (Cabecera)',
-      made: topKeyMade,
-      attempted: topKeyAttempted,
-      porcentaje: topPct,
-      pos: 'col-span-1',
-      tactics: 'Lanzamiento frontal tras pick & pop. Excelente parábola de tiro.'
-    },
-    {
-      id: 'ala-der',
-      nombre: '3P Ala Derecha',
-      made: wingRightMade,
-      attempted: wingRightAttempted,
-      porcentaje: wRightPct,
-      pos: 'col-span-1',
-      tactics: 'Transición ofensiva rápida aprovechando desbalance defensivo.'
-    },
-    {
-      id: 'esquina-izq',
-      nombre: '3P Córner Izquierdo',
+      id: 'corner_left',
+      name: '3P Esquina Izquierda',
+      shortLabel: '3P Esq Izq',
       made: cornerLeftMade,
       attempted: cornerLeftAttempted,
-      porcentaje: cLeftPct,
-      pos: 'col-span-1 sm:col-span-1.5',
-      tactics: 'Tiro de menor distancia FIBA (6.60m). Cuidado con pisar la línea lateral.'
+      pathD: 'M 10 10 L 44 10 L 44 140 L 10 140 Z',
+      labelX: 27,
+      labelY: 75,
+      compact: true
     },
     {
-      id: 'esquina-der',
-      nombre: '3P Córner Derecho',
+      id: 'corner_right',
+      name: '3P Esquina Derecha',
+      shortLabel: '3P Esq Der',
       made: cornerRightMade,
       attempted: cornerRightAttempted,
-      porcentaje: cRightPct,
-      pos: 'col-span-2 sm:col-span-1.5',
-      tactics: 'Espacio clave para abrir la cancha en situaciones de penetración.'
+      pathD: 'M 456 10 L 490 10 L 490 140 L 456 140 Z',
+      labelX: 473,
+      labelY: 75,
+      compact: true
+    },
+    {
+      id: 'mid_left',
+      name: 'Media Distancia Izquierda',
+      shortLabel: 'Media Izq',
+      made: midLeftMade,
+      attempted: midLeftAttempted,
+      pathD: 'M 44 10 L 170 10 L 170 252 A 215 215 0 0 1 44 140 Z',
+      labelX: 112,
+      labelY: 122
+    },
+    {
+      id: 'mid_right',
+      name: 'Media Distancia Derecha',
+      shortLabel: 'Media Der',
+      made: midRightMade,
+      attempted: midRightAttempted,
+      pathD: 'M 330 10 L 456 10 L 456 140 A 215 215 0 0 1 330 252 Z',
+      labelX: 388,
+      labelY: 122
+    },
+    {
+      id: 'paint_ft',
+      name: 'Línea Libre y Pintura',
+      shortLabel: 'Línea Libre / Pintura',
+      made: freeThrowsMade,
+      attempted: freeThrowsAttempted,
+      pathD: 'M 170 10 L 330 10 L 330 252 A 215 215 0 0 1 170 252 Z',
+      labelX: 250,
+      labelY: 145
+    },
+    {
+      id: 'wing_left',
+      name: 'Triple Ala Izquierda (45°)',
+      shortLabel: '3P Ala Izq',
+      made: wingLeftMade,
+      attempted: wingLeftAttempted,
+      pathD: 'M 10 140 L 44 140 A 215 215 0 0 0 170 252 L 130 440 L 10 440 Z',
+      labelX: 78,
+      labelY: 315
+    },
+    {
+      id: 'top_key',
+      name: 'Triple Centro (Top of Key)',
+      shortLabel: '3P Top Key',
+      made: topKeyMade,
+      attempted: topKeyAttempted,
+      pathD: 'M 170 252 A 215 215 0 0 0 330 252 L 370 440 L 130 440 Z',
+      labelX: 250,
+      labelY: 358
+    },
+    {
+      id: 'wing_right',
+      name: 'Triple Ala Derecha (45°)',
+      shortLabel: '3P Ala Der',
+      made: wingRightMade,
+      attempted: wingRightAttempted,
+      pathD: 'M 330 252 A 215 215 0 0 0 456 140 L 490 140 L 490 440 L 370 440 Z',
+      labelX: 422,
+      labelY: 315
     }
   ];
 
-  return (
-    <div className="relative w-full max-w-5xl mx-auto p-4 sm:p-7 bg-[#07090e] border border-cyan-900/40 rounded-3xl overflow-hidden shadow-2xl font-sans selection:bg-cyan-500/30">
-      
-      {/* Resplandor ambiental holográfico de fondo */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-72 bg-gradient-to-b from-cyan-500/10 via-orange-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-10 right-0 w-80 h-80 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
+  const totalMade = zones.reduce((acc, z) => acc + z.made, 0);
+  const totalAttempted = zones.reduce((acc, z) => acc + z.attempted, 0);
+  const overallPct = totalAttempted > 0 ? Math.round((totalMade / totalAttempted) * 100) : 0;
+  const activeZone = zones.find((z) => z.id === activeZoneId) || null;
 
-      {/* CABECERA DEL HUD CIBERNÉTICO */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 z-10 relative pb-4 border-b border-zinc-800/80">
+  return (
+    <div className="relative w-full max-w-4xl mx-auto p-5 sm:p-7 bg-gradient-to-b from-[#0b0f19] via-[#0d1424] to-[#1e293b] border border-cyan-500/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] font-sans">
+      {/* 1. CAPAS HUD FLOTANTES: Rejilla holográfica y luz ambiental de fondo */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-20"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(6, 182, 212, 0.15) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(6, 182, 212, 0.15) 1px, transparent 1px)
+          `,
+          backgroundSize: '28px 28px'
+        }}
+      />
+      <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 right-1/4 w-80 h-80 bg-orange-500/15 rounded-full blur-3xl pointer-events-none" />
+
+      {/* 2. CABECERA HUD CON TIPOGRAFÍA MONOESPACIADA & NEÓN */}
+      <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between pb-5 border-b border-cyan-500/20 gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono tracking-widest uppercase text-cyan-300 bg-cyan-950/60 px-3 py-1 rounded-full border border-cyan-500/40 flex items-center gap-1.5 shadow-sm shadow-cyan-950">
-              <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
-              Holographic HUD v3.2 // Shot Science
+            <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-400/40 text-[10px] font-mono font-black tracking-widest flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.4)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+              CYBER_HUD // SHOT SCIENCE 2D CENITAL
             </span>
-            <span className="text-[10px] font-mono uppercase text-orange-400 bg-orange-950/50 px-2 py-0.5 rounded border border-orange-500/30">
-              FIBA Precision
-            </span>
+            <span className="text-[10px] font-mono text-zinc-400">FIBA PRO REGLAMENTARIA</span>
           </div>
-          <h2 className="text-lg sm:text-2xl font-black text-white mt-1.5 tracking-tight flex items-center gap-2">
-            <span>MAPA TÁCTICO 3D (DUELA VIVA)</span>
-            <Activity className="w-5 h-5 text-cyan-400 hidden sm:inline" />
-          </h2>
-          <p className="text-[11px] text-zinc-400 font-mono mt-0.5">
-            Sede Deportivo Carmen Serdán • Calibración en tiempo real de 8 sectores de tiro
+
+          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white mt-1.5 flex items-center gap-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">
+            Duela Holográfica 2D
+          </h3>
+          <p className="text-xs font-mono text-cyan-200/70 mt-0.5">
+            // TELEMETRÍA CINEMÁTICA Y EFECTIVIDAD POR SECTOR TÁCTICO
           </p>
         </div>
 
-        {/* Acciones y Métricas Globales */}
-        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
-          <button
-            onClick={() => setViewAngle(viewAngle === '3d' ? 'top' : '3d')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold hover:bg-zinc-800 transition cursor-pointer"
-            title="Alternar ángulo de perspectiva"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>Perspectiva: {viewAngle.toUpperCase()}</span>
-          </button>
-
-          <div className="px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-300 border border-orange-500/40 rounded-xl text-xs font-mono font-black flex items-center gap-1.5">
-            <Flame className="w-3.5 h-3.5 text-orange-400" />
-            <span>Eficiencia: {globalEfficiency}% ({totalMade}/{totalAtt})</span>
-          </div>
-        </div>
-      </div>
-
-      {/* CONTENEDOR DE LA DUELA CON PERSPECTIVA HOLOGRÁFICA 3D */}
-      <div 
-        className={`relative w-full bg-[#0b101d]/90 border-2 border-cyan-500/30 rounded-3xl p-4 sm:p-6 flex flex-col justify-between backdrop-blur-2xl shadow-[inset_0_0_60px_rgba(6,182,212,0.12)] transition-transform duration-700 ease-out ${
-          viewAngle === '3d' ? 'transform perspective-[1100px] rotate-x-6' : ''
-        }`}
-      >
-        {/* Trazado holográfico de líneas de la duela (Neón) */}
-        <div className="absolute inset-3 sm:inset-5 border-2 border-cyan-500/20 rounded-2xl pointer-events-none overflow-hidden">
-          {/* Zona Restringida / Pintura */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 sm:w-56 h-32 sm:h-44 border-b-2 border-x-2 border-orange-500/30 bg-orange-500/[0.02]" />
-          
-          {/* Círculo de Tiro Libre */}
-          <div className="absolute top-24 sm:top-36 left-1/2 -translate-x-1/2 w-28 sm:w-36 h-28 sm:h-36 border-2 border-cyan-400/25 rounded-full" />
-          
-          {/* Arco de 3 Puntos (Neón Naranja FIBA) */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[85%] sm:w-[75%] h-64 sm:h-80 border-b-2 border-x-2 border-orange-500/40 rounded-b-[180px] shadow-[0_4px_25px_rgba(249,115,22,0.15)]" />
-          
-          {/* Canasta / Tablero */}
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-1 bg-white/60 shadow-[0_0_12px_#fff]" />
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-orange-400 bg-orange-500/30" />
-        </div>
-
-        {/* TARJETAS HOLOGRÁFICAS FLOTANTES (GLASSMORPHISM CON NEÓN) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4 z-20 relative my-2">
-          {zonas.map((zona) => {
-            const style = getZoneStyle(zona.porcentaje);
-            const isSelected = zonaSeleccionada?.id === zona.id;
-
-            return (
-              <div
-                key={zona.id}
-                onClick={() => setZonaSeleccionada(zona)}
-                className={`group cursor-pointer p-3 sm:p-4 rounded-2xl bg-[#0d1322]/85 border backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 flex flex-col justify-between ${
-                  isSelected
-                    ? 'border-cyan-300 bg-cyan-950/40 ring-2 ring-cyan-400/50 shadow-[0_0_30px_rgba(6,182,212,0.6)]'
-                    : `${style.border} hover:border-cyan-400/80 ${style.shadow}`
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1 w-full">
-                  <span className="text-[10px] sm:text-[11px] font-mono text-zinc-300 uppercase tracking-tight font-bold truncate">
-                    {zona.nombre}
-                  </span>
-                  <span className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded ${style.badge}`}>
-                    {zona.made}/{zona.attempted}
-                  </span>
-                </div>
-
-                <div className="my-2 flex items-baseline justify-between">
-                  <span className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
-                    {zona.porcentaje}%
-                  </span>
-                  <span className="text-[10px] font-mono text-zinc-400 hidden sm:inline">
-                    Efectividad
-                  </span>
-                </div>
-
-                {/* Barra de progreso holográfica viva */}
-                <div className="w-full h-2 rounded-full bg-zinc-800/80 overflow-hidden p-0.5 border border-white/5">
-                  <div
-                    className={`h-full rounded-full bg-gradient-to-r ${style.gradient} transition-all duration-700 ${
-                      zona.porcentaje >= 70 ? 'animate-pulse' : ''
-                    }`}
-                    style={{ width: `${Math.max(12, zona.porcentaje)}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* PANEL INFERIOR DE ANÁLISIS HOLOGRÁFICO (TACTICAL HUD INSPECTOR) */}
-      {zonaSeleccionada ? (
-        <div className="mt-4 p-4 sm:p-5 bg-gradient-to-r from-cyan-950/60 via-[#0d1527] to-[#07090e] border border-cyan-500/50 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-fade-in shadow-xl shadow-cyan-950/50">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-cyan-400 font-mono uppercase font-black tracking-widest flex items-center gap-1">
-                <Target className="w-3.5 h-3.5 text-cyan-400" /> SECTOR ANALIZADO:
+        {/* MÉTRICA GLOBAL ENCABEZADO */}
+        <div className="flex items-center gap-4 bg-[#0a101d]/80 backdrop-blur-md border border-cyan-500/40 px-4 py-2.5 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+          <div className="text-right">
+            <span className="text-[10px] font-mono text-cyan-400 block tracking-wider uppercase font-bold">
+              EFECTIVIDAD GLOBAL
+            </span>
+            <div className="flex items-baseline justify-end gap-1.5">
+              <span className="text-2xl font-black font-mono text-white drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
+                {overallPct}%
               </span>
-              <span className="text-xs font-mono font-bold text-white bg-cyan-900/50 px-2 py-0.5 rounded border border-cyan-700/50">
-                {zonaSeleccionada.nombre}
+              <span className="text-[11px] font-mono text-zinc-400">
+                ({totalMade}/{totalAttempted})
               </span>
             </div>
-            <p className="text-xs sm:text-sm font-semibold text-zinc-200">
-              {zonaSeleccionada.made} encestes de {zonaSeleccionada.attempted} intentos ({zonaSeleccionada.porcentaje}% de acierto).
-            </p>
-            <p className="text-[11px] text-cyan-300/80 font-mono italic">
-              💡 Recomendación Coach: {zonaSeleccionada.tactics}
-            </p>
           </div>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(249,115,22,0.6)]">
+            <Target className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
 
-          <button
-            onClick={() => setZonaSeleccionada(null)}
-            className="text-xs font-mono font-bold text-zinc-300 hover:text-white px-3.5 py-2 bg-zinc-800/80 hover:bg-zinc-700 rounded-xl border border-zinc-700 transition cursor-pointer self-end sm:self-auto"
+      {/* 3. LEYENDA CYBERPUNK MONOESPACIADA CON GLOW */}
+      <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-5 font-mono text-[11px]">
+        {[
+          { label: 'Caliente (≥70%)', color: 'from-orange-500 to-red-500', glow: 'shadow-[0_0_12px_rgba(249,115,22,0.6)]', border: 'border-orange-400' },
+          { label: 'Favorable (50-69%)', color: 'from-amber-400 to-yellow-500', glow: 'shadow-[0_0_12px_rgba(245,158,11,0.5)]', border: 'border-yellow-300' },
+          { label: 'Regular (35-49%)', color: 'from-cyan-500 to-sky-600', glow: 'shadow-[0_0_12px_rgba(6,182,212,0.5)]', border: 'border-cyan-300' },
+          { label: 'Fría (<35%)', color: 'from-slate-600 to-zinc-700', glow: 'shadow-[0_0_10px_rgba(100,116,139,0.3)]', border: 'border-zinc-500' }
+        ].map((item, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#090d18]/90 backdrop-blur-md border border-zinc-800/80"
           >
-            Cerrar Inspector
-          </button>
+            <span className={`w-3 h-3 rounded-full bg-gradient-to-tr ${item.color} ${item.glow} border ${item.border} shrink-0`} />
+            <span className="text-zinc-300 truncate font-semibold">{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* 4. CANVAS SVG 2D CENITAL CON LÍNEAS DE DUELA DE NEÓN Y VIDRIO ESMERILADO */}
+      <div className="relative z-10 w-full overflow-hidden rounded-2xl bg-[#060a14]/90 border border-cyan-500/30 p-2 sm:p-4 shadow-[inset_0_0_40px_rgba(6,182,212,0.1)]">
+        <svg
+          viewBox="0 0 500 450"
+          className="w-full h-auto select-none"
+          style={{ maxHeight: '580px' }}
+        >
+          <defs>
+            {/* Filtro de resplandor Neón Cian */}
+            <filter id="neonCyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            {/* Filtro de resplandor Neón Naranja para el aro */}
+            <filter id="neonOrangeGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            {/* Patrón de partículas sutil para el fondo de la duela */}
+            <pattern id="hologramGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="0.8" fill="rgba(6,182,212,0.18)" />
+            </pattern>
+          </defs>
+
+          {/* Duela Cenital: Base oscura con textura de partículas */}
+          <rect x="0" y="0" width="500" height="450" rx="16" fill="#070c17" />
+          <rect x="0" y="0" width="500" height="450" rx="16" fill="url(#hologramGrid)" />
+
+          {/* A. POLÍGONOS DE DISPARO CON EFECTO DE CALOR HOLOGRÁFICO */}
+          {zones.map((zone) => {
+            const pct = Math.round((zone.made / Math.max(1, zone.attempted)) * 100);
+            const style = getCyberHeatStyle(pct);
+            const isHovered = activeZoneId === zone.id;
+
+            return (
+              <path
+                key={zone.id}
+                d={zone.pathD}
+                fill={isHovered ? style.hoverFill : style.fill}
+                stroke={isHovered ? '#22d3ee' : style.stroke}
+                strokeWidth={isHovered ? '2.5' : '1'}
+                strokeOpacity={isHovered ? '1' : '0.4'}
+                className="transition-all duration-300 cursor-pointer"
+                onMouseEnter={() => setActiveZoneId(zone.id)}
+                onMouseLeave={() => setActiveZoneId(null)}
+              />
+            );
+          })}
+
+          {/* B. LÍNEAS REGLAMENTARIAS DE DUELA CON GLOW NEÓN CIAN */}
+          <g
+            stroke="#38bdf8"
+            strokeWidth="2"
+            fill="none"
+            filter="url(#neonCyanGlow)"
+            className="pointer-events-none"
+            opacity="0.85"
+          >
+            {/* Perímetro de la media cancha */}
+            <rect x="10" y="10" width="480" height="430" rx="6" />
+
+            {/* Líneas laterales del triple de esquina */}
+            <line x1="44" y1="10" x2="44" y2="140" />
+            <line x1="456" y1="10" x2="456" y2="140" />
+
+            {/* Llave / Pintura Reglamentaria (170 a 330) */}
+            <rect x="170" y="10" width="160" height="190" fill="rgba(6,182,212,0.04)" />
+
+            {/* Marcas de rebote en los postes de la llave */}
+            <line x1="162" y1="80" x2="170" y2="80" />
+            <line x1="162" y1="110" x2="170" y2="110" />
+            <line x1="162" y1="140" x2="170" y2="140" />
+            <line x1="162" y1="170" x2="170" y2="170" />
+            <line x1="330" y1="80" x2="338" y2="80" />
+            <line x1="330" y1="110" x2="338" y2="110" />
+            <line x1="330" y1="140" x2="338" y2="140" />
+            <line x1="330" y1="170" x2="338" y2="170" />
+
+            {/* Círculo de Tiro Libre: Mitad superior segmentada, inferior sólida */}
+            <path d="M 190 200 A 60 60 0 0 1 310 200" strokeDasharray="5 5" />
+            <path d="M 190 200 A 60 60 0 0 0 310 200" />
+
+            {/* Arco de 3 Puntos FIBA (R=215 con vértice en 250, 52.5) */}
+            <path d="M 44 140 A 215 215 0 0 0 456 140" strokeWidth="2.5" />
+
+            {/* Área restringida sin carga debajo del aro */}
+            <path d="M 210 40 L 210 52.5 A 40 40 0 0 0 290 52.5 L 290 40" />
+
+            {/* Círculo Central de media cancha */}
+            <path d="M 190 440 A 60 60 0 0 1 310 440" />
+            <line x1="10" y1="440" x2="490" y2="440" strokeDasharray="6 6" />
+          </g>
+
+          {/* C. TABLERO Y ARO EN NEÓN NARANJA */}
+          <g filter="url(#neonOrangeGlow)" className="pointer-events-none">
+            {/* Tablero */}
+            <line x1="220" y1="40" x2="280" y2="40" stroke="#f8fafc" strokeWidth="4" />
+            {/* Conector al aro */}
+            <line x1="250" y1="40" x2="250" y2="44" stroke="#ff7847" strokeWidth="3" />
+            {/* Aro de baloncesto */}
+            <circle cx="250" cy="52.5" r="9.5" stroke="#ff5722" strokeWidth="3" fill="rgba(255,87,34,0.35)" />
+          </g>
+
+          {/* D. TARJETAS DE ZONA EN GLASSMORPHISM (CRISTAL ESMERILADO TRANSLÚCIDO) */}
+          {zones.map((zone) => {
+            const pct = Math.round((zone.made / Math.max(1, zone.attempted)) * 100);
+            const style = getCyberHeatStyle(pct);
+            const isHovered = activeZoneId === zone.id;
+
+            if (zone.compact) {
+              return (
+                <g
+                  key={`label_${zone.id}`}
+                  transform={`translate(${zone.labelX}, ${zone.labelY})`}
+                  className="transition-transform duration-300 cursor-pointer"
+                  style={{ transformOrigin: `${zone.labelX}px ${zone.labelY}px` }}
+                  onMouseEnter={() => setActiveZoneId(zone.id)}
+                  onMouseLeave={() => setActiveZoneId(null)}
+                >
+                  {/* Tarjeta esmerilada con borde neón */}
+                  <rect
+                    x="-18"
+                    y="-25"
+                    width="36"
+                    height="50"
+                    rx="8"
+                    fill="rgba(10, 16, 28, 0.82)"
+                    stroke={isHovered ? '#22d3ee' : style.neonBorder}
+                    strokeWidth={isHovered ? '2' : '1.2'}
+                    className={isHovered ? 'filter drop-shadow-[0_0_10px_#22d3ee]' : ''}
+                  />
+                  <text
+                    x="0"
+                    y="-4"
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontSize="12"
+                    fontWeight="900"
+                    fontFamily="monospace"
+                  >
+                    {pct}%
+                  </text>
+                  <text
+                    x="0"
+                    y="13"
+                    textAnchor="middle"
+                    fill={style.textColor}
+                    fontSize="9"
+                    fontWeight="700"
+                    fontFamily="monospace"
+                  >
+                    {zone.made}/{zone.attempted}
+                  </text>
+                </g>
+              );
+            }
+
+            return (
+              <g
+                key={`label_${zone.id}`}
+                transform={`translate(${zone.labelX}, ${zone.labelY})`}
+                className="transition-transform duration-300 cursor-pointer"
+                style={{ transformOrigin: `${zone.labelX}px ${zone.labelY}px` }}
+                onMouseEnter={() => setActiveZoneId(zone.id)}
+                onMouseLeave={() => setActiveZoneId(null)}
+              >
+                {/* Tarjeta Glassmorphic con desenfoque simulado y borde neón brillante */}
+                <rect
+                  x="-60"
+                  y="-26"
+                  width="120"
+                  height="52"
+                  rx="12"
+                  fill="rgba(10, 16, 28, 0.85)"
+                  stroke={isHovered ? '#22d3ee' : style.neonBorder}
+                  strokeWidth={isHovered ? '2.2' : '1.3'}
+                  className={isHovered ? 'filter drop-shadow-[0_0_12px_#22d3ee]' : ''}
+                />
+                {/* Indicador de estado neón miniatura en esquina */}
+                <circle
+                  cx="48"
+                  cy="-14"
+                  r="3.5"
+                  fill={isHovered ? '#22d3ee' : style.stroke}
+                  className={isHovered ? 'animate-pulse' : ''}
+                />
+                <text
+                  x="0"
+                  y="-3"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="17"
+                  fontWeight="900"
+                  fontFamily="monospace"
+                  letterSpacing="-0.5"
+                >
+                  {pct}%
+                </text>
+                <text
+                  x="0"
+                  y="15"
+                  textAnchor="middle"
+                  fill={style.textColor}
+                  fontSize="9.5"
+                  fontWeight="800"
+                  fontFamily="monospace"
+                >
+                  {zone.shortLabel} ({zone.made}/{zone.attempted})
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* 5. PANEL INFERIOR DE INSPECCIÓN TÁCTICA HUD CUANDO SE SELECCIONA O PASA EL CURSOR */}
+      <div className="relative z-10 mt-5 p-4 rounded-2xl bg-[#090d18]/90 backdrop-blur-md border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_0_20px_rgba(6,182,212,0.1)] font-mono">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-cyan-950/60 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+            <Crosshair className="w-5 h-5 animate-spin-slow" />
+          </div>
+          <div>
+            <span className="text-[10px] text-cyan-400 uppercase tracking-wider block font-bold">
+              // SECTOR TÁCTICO SELECCIONADO
+            </span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-sm font-black text-white">
+                {activeZone ? activeZone.name : 'Pasa el cursor sobre cualquier zona para auditar'}
+              </span>
+              {activeZone && (
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getCyberHeatStyle(Math.round((activeZone.made / Math.max(1, activeZone.attempted)) * 100)).badgeClass}`}>
+                  {getCyberHeatStyle(Math.round((activeZone.made / Math.max(1, activeZone.attempted)) * 100)).tier}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="mt-3 text-center text-[11px] font-mono text-zinc-500">
-          Toca cualquier tarjeta holográfica para inspeccionar táctica de tiro, aciertos y biomecánica en duela.
-        </div>
-      )}
+
+        {activeZone && (
+          <div className="flex items-center gap-4 bg-[#060a14] px-4 py-2 rounded-xl border border-zinc-800 text-xs">
+            <div>
+              <span className="text-zinc-500 text-[10px] block">ENCStates</span>
+              <strong className="text-emerald-400">{activeZone.made} Encestados</strong>
+            </div>
+            <div className="w-[1px] h-6 bg-zinc-800" />
+            <div>
+              <span className="text-zinc-500 text-[10px] block">Lanzamientos</span>
+              <strong className="text-orange-400">{activeZone.attempted} Intentos</strong>
+            </div>
+            <div className="w-[1px] h-6 bg-zinc-800" />
+            <div>
+              <span className="text-zinc-500 text-[10px] block">Efectividad</span>
+              <strong className="text-white">
+                {Math.round((activeZone.made / Math.max(1, activeZone.attempted)) * 100)}%
+              </strong>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
