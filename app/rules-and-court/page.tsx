@@ -4,11 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, Sparkles } from 'lucide-react';
 import CourtRulesEncyclopedia from '@/components/CourtRulesEncyclopedia';
+import { NbaIntelligenceMasterHub } from '@/components/nba/NbaIntelligenceMasterHub';
 
 export default function RulesAndCourtPage() {
   return (
     <main className="min-h-screen bg-[#080b11] text-white py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* ENLACE DE RETORNO Y MIGAS DE PAN */}
         <div className="flex items-center justify-between">
           <Link
@@ -27,6 +28,9 @@ export default function RulesAndCourtPage() {
 
         {/* COMPONENTE INTERACTIVO DE REGLAMENTO Y DUELA */}
         <CourtRulesEncyclopedia />
+
+        {/* MASTER HUB: ARQUITECTURA NBA PLAYER INTELLIGENCE & DUNKAPI (LAS 4 VISUALIZACIONES) */}
+        <NbaIntelligenceMasterHub />
       </div>
     </main>
   );
