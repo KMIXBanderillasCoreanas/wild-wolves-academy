@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { SmartScaleReading } from "@/lib/types/smart-scale";
 import { extractScaleDataFromImageAction, syncSmartScaleRecordAction } from "@/app/actions/scale-actions";
+import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
+import UpgradeModal from "@/components/UpgradeModal";
 
 interface ScaleImageUploaderProps {
   studentId?: string;
@@ -37,6 +39,9 @@ export default function ScaleImageUploader({
   onUploadSuccess,
   className = ""
 }: ScaleImageUploaderProps) {
+  const { isPro } = useSubscriptionTier();
+  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+
   // Modal y carga
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -175,17 +180,45 @@ export default function ScaleImageUploader({
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
+  const handleOpenModal = () => {
+    if (isPro) {
+      setIsOpen(true);
+    } else {
+      setShowUpgradeModal(true);
+    }
+  };
+
   return (
     <>
       {/* Botón Principal Solicitado: 📸 Subir Captura de Báscula */}
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpenModal}
         className={`px-4 py-2.5 rounded-2xl bg-gradient-to-r from-fuchsia-900/60 via-purple-900/40 to-orange-950/60 border border-fuchsia-500/50 hover:border-fuchsia-400 text-fuchsia-200 hover:text-white font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-950/40 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer ${className}`}
         title="Subir captura de pantalla de báscula OKOK o bioimpedancia"
       >
         <Camera className="w-4 h-4 text-fuchsia-400" />
         <span>📸 Subir Captura de Báscula</span>
+        {!isPro && (
+          <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-black border border-amber-500/30">
+            PRO $99
+          </span>
+        )}
       </button>
+
+      {/* Paywall Ventana de Venta si es Modo Gratuito */}
+      {showUpgradeModal && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          featureTitle="Visión IA de Báscula y Bioimpedancia"
+          featureDescription="La extracción automática de peso, grasa visceral, masa muscular, BMI y edad metabólica mediante visión multimodal requiere una membresía Lobo Pro activa de 30 días ($99 MXN)."
+          studentName={athleteName}
+          onActivated={() => {
+            setShowUpgradeModal(false);
+            setIsOpen(true);
+          }}
+        />
+      )}
 
       {/* Modal Interactivo de Visión Artificial */}
       {isOpen && (

@@ -23,6 +23,9 @@ import LoboTacticalVideoHub from "@/components/LoboTacticalVideoHub";
 import SmartScaleSync from "@/components/SmartScaleSync";
 import ScaleImageUploader from "@/components/ScaleImageUploader";
 import SmartVideoLibrary from "@/components/video-library/SmartVideoLibrary";
+import DemoModeToggle from "@/components/DemoModeToggle";
+import UpgradeModal from "@/components/UpgradeModal";
+import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
 import {
@@ -406,6 +409,8 @@ function formatPushupVariation(variant: string | null | undefined): string {
 
 function StudentDashboardContent() {
   const [profile, setProfile] = useState<any>(null);
+  const isRealPro = profile?.subscription_status === "ACTIVE" || profile?.ai_plan === "pro" || profile?.ai_plan === "elite_familiar";
+  const { isPro: isEffectivePro } = useSubscriptionTier(Boolean(isRealPro));
   const [commitment, setCommitment] = useState<any>(null);
   const [lastPayment, setLastPayment] = useState<any>(null);
   const [profileFinancialData, setProfileFinancialData] = useState<{
@@ -2738,8 +2743,11 @@ function StudentDashboardContent() {
         onClose={() => setShowVisionModal(false)}
         studentId={profile?.id}
         studentName={profile?.full_name}
-        isProSubscriber={profile?.ai_plan === "pro" || profile?.ai_plan === "elite_familiar"}
+        isProSubscriber={isEffectivePro}
       />
+
+      {/* INTERRUPTOR FLOTANTE DE MODO DEMO PARA ATLETAS Y COACH */}
+      <DemoModeToggle variant="floating" />
 
     </div>
   );

@@ -10,9 +10,12 @@ import {
   Clock, 
   ShieldCheck, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  Crown
 } from 'lucide-react';
 import { YouTubeAdapter } from '@/lib/services/youtube-adapter';
+import { useSubscriptionTier } from '@/hooks/useSubscriptionTier';
 
 interface VideoCardProps {
   video: VideoLibraryItem;
@@ -29,14 +32,22 @@ export default function VideoCard({
   onExplainAI,
   onToggleFavorite
 }: VideoCardProps) {
+  const { isPro } = useSubscriptionTier();
+
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-[#0c101c] text-zinc-100 shadow-xl transition-all duration-300 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+    <div className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-[#0c101c] text-zinc-100 shadow-xl transition-all duration-300 ${
+      isPro 
+        ? 'border-zinc-800 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)]' 
+        : 'border-zinc-800/80 hover:border-amber-500/40 hover:shadow-[0_0_20px_rgba(245,158,11,0.12)]'
+    }`}>
       {/* Miniatura y Overlays */}
       <div className="relative aspect-video w-full overflow-hidden bg-zinc-950">
         <img
           src={video.thumbnailUrl}
           alt={video.title}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          className={`h-full w-full object-cover transition duration-500 group-hover:scale-105 ${
+            !isPro ? 'opacity-85 filter contrast-95' : ''
+          }`}
           loading="lazy"
         />
 
@@ -45,17 +56,26 @@ export default function VideoCard({
 
         {/* Badges superiores */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 pointer-events-none">
-          {video.isOfficial ? (
-            <span className="flex items-center gap-1 rounded-md bg-amber-500/90 px-2 py-0.5 text-[10px] font-black uppercase text-zinc-950 shadow-md">
-              <Award className="h-3 w-3" />
-              Curriculum Oficial
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 rounded-md bg-cyan-500/20 px-2 py-0.5 text-[10px] font-mono uppercase text-cyan-300 border border-cyan-500/30 backdrop-blur-md">
-              <Sparkles className="h-3 w-3 text-cyan-400" />
-              Búsqueda IA
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {video.isOfficial ? (
+              <span className="flex items-center gap-1 rounded-md bg-amber-500/90 px-2 py-0.5 text-[10px] font-black uppercase text-zinc-950 shadow-md">
+                <Award className="h-3 w-3" />
+                Oficial
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 rounded-md bg-cyan-500/20 px-2 py-0.5 text-[10px] font-mono uppercase text-cyan-300 border border-cyan-500/30 backdrop-blur-md">
+                <Sparkles className="h-3 w-3 text-cyan-400" />
+                Curriculum
+              </span>
+            )}
+
+            {!isPro && (
+              <span className="flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-mono uppercase text-amber-300 border border-amber-500/40 backdrop-blur-md font-bold">
+                <Lock className="h-3 w-3 text-amber-400" />
+                Pro $99
+              </span>
+            )}
+          </div>
 
           <span className="rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-mono text-zinc-300 backdrop-blur-md flex items-center gap-1">
             <Clock className="h-3 w-3 text-zinc-400" />
@@ -67,10 +87,18 @@ export default function VideoCard({
         <button
           type="button"
           onClick={() => onPlay(video)}
-          className="absolute inset-0 m-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/80 text-zinc-950 shadow-lg shadow-cyan-500/40 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 cursor-pointer"
-          title="Reproducir lección"
+          className={`absolute inset-0 m-auto flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 cursor-pointer ${
+            isPro
+              ? 'bg-cyan-500 text-zinc-950 shadow-cyan-500/40'
+              : 'bg-amber-500 text-zinc-950 shadow-amber-500/40'
+          }`}
+          title={isPro ? 'Reproducir lección' : 'Ver requisitos Lobo Pro ($99)'}
         >
-          <Play className="h-6 w-6 fill-zinc-950 ml-0.5" />
+          {isPro ? (
+            <Play className="h-6 w-6 fill-zinc-950 ml-0.5" />
+          ) : (
+            <Lock className="h-5 w-5" />
+          )}
         </button>
 
         {/* Botón Favorito flotante */}

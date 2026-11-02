@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Activity
 } from 'lucide-react';
+import DemoModeToggle from '@/components/DemoModeToggle';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -382,8 +383,11 @@ export function Navbar() {
           </button>
         </div>
 
-        {/* LADO DERECHO: Chip de Perfil Oficial y Logout */}
+        {/* LADO DERECHO: Chip de Perfil Oficial, Modo Demo y Logout */}
         <div className="flex items-center gap-2.5">
+          {/* Interruptor Modo Demo para Previsualizar Bloqueos y Desbloqueos */}
+          <DemoModeToggle variant="navbar" className="hidden sm:inline-flex" />
+
           {hasActiveSession ? (
             <>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#121620] border border-zinc-800">
