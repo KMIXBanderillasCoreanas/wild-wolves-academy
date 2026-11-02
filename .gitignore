@@ -16,6 +16,8 @@
 # misc
 .DS_Store
 *.pem
+*.traineddata
+app/docs/
 
 # debug
 npm-debug.log*

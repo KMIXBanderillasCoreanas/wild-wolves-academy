@@ -58,7 +58,7 @@ Estructura del Informe:
       taskDescription = `Genera un INFORME DE RENDIMIENTO FÍSICO Y COMBINE para los atletas de Wild Wolves CDMX.
 Datos Reales:
 - Total de atletas registrados: ${athletes?.length || 0}
-- Atletas evaluados en cancha con protocolos de 20 tiros libres, 100m sprint, T-Test y Batería 3x25.
+- Atletas evaluados en cancha con protocolos de 20 tiros libres, 100m sprint, T-Test y Series 3x25 de autocarga.
 Estructura del Informe:
 1. Estado General de la Condición Física del Roster.
 2. Puntos Fuertes Detectados en Tiro y Velocidad.

@@ -11,6 +11,7 @@ import TierProgressionBar from "@/components/TierProgressionBar";
 import { RadarChart360 } from "@/components/RadarChart360";
 import HomeTrainingCalendar from "@/components/HomeTrainingCalendar";
 import LoboProModal from "@/components/LoboProModal";
+import SubscriptionBannerAlert from "@/components/SubscriptionBannerAlert";
 import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import CourtHeatmapPro from "@/components/CourtHeatmapPro";
 import DuelaHolografica3D from "@/components/DuelaHolografica3D";
@@ -18,6 +19,11 @@ import BiomechanicsProBenchmark from "@/components/BiomechanicsProBenchmark";
 import PrehabRecoveryCard from "@/components/PrehabRecoveryCard";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import VisionAssistantModal from "@/components/VisionAssistantModal";
+import LoboTacticalVideoHub from "@/components/LoboTacticalVideoHub";
+import SmartScaleSync from "@/components/SmartScaleSync";
+import ScaleImageUploader from "@/components/ScaleImageUploader";
+import SmartVideoLibrary from "@/components/video-library/SmartVideoLibrary";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
 import {
   Camera,
@@ -105,7 +111,7 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     icon: "explore",
     description: "Capacidad aeróbica en desarrollo. El atleta completa 5 vueltas a la cancha Carmen Serdán y coordina saltos de cuerda continuos.",
     milestone: "5 vueltas • Cuerda 40-50 saltos",
-    nextGoal: "Alcanzar 100 saltos de cuerda y consolidar batería 3x25 para subir a Intermedio.",
+    nextGoal: "Alcanzar 100 saltos de cuerda y consolidar series de entrenamiento 3x25 para subir a Intermedio.",
     joggingTime: "20 Min",
     restTime: "75s entre series",
     gymAccess: false
@@ -114,7 +120,7 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     level: 3,
     tierName: "Intermedio",
     title: "Tier 3: Intermedio",
-    subtitle: "Fuerza Base Calistenia & Batería 3x25",
+    subtitle: "Fuerza Base Calistenia & Bloques de Series 3x25",
     badgeGlow: "shadow-[0_0_20px_rgba(234,179,8,0.3)]",
     badgeBorder: "border-amber-600/60",
     badgeBg: "bg-amber-950/70",
@@ -122,7 +128,7 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     accentColor: "#f59e0b",
     icon: "fitness_center",
     description: "Fuerza calisténica consolidada. Ejecuta sentadillas y abdominales en autocarga con buena profundidad y 100 saltos de cuerda sin tropiezo.",
-    milestone: "Cuerda 100 reps • Batería 3x25 en marcha",
+    milestone: "Cuerda 100 reps • Series de entrenamiento 3x25 en marcha",
     nextGoal: "Sostener trote continuo de 35 minutos en cancha para ascender a Avanzado.",
     joggingTime: "25 Min",
     restTime: "60s entre series",
@@ -141,7 +147,7 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     icon: "security",
     description: "Resistencia de medio fondo y mecánica de tiro estructurada. Mantiene trote continuo durante 35 minutos sin claudicar.",
     milestone: "35 min trote continuo • Tiro Libre 50%",
-    nextGoal: "Completar la batería militar y sostener 45 min de trote para obtener rango Militar.",
+    nextGoal: "Completar las series militares y sostener 45 min de trote para obtener rango Militar.",
     joggingTime: "35 Min",
     restTime: "50s entre series",
     gymAccess: false
@@ -157,7 +163,7 @@ const BIOLOGICAL_RANKS: Record<number, BiologicalRankInfo> = {
     textColor: "text-emerald-300",
     accentColor: "#4ae176",
     icon: "military_tech",
-    description: "Atleta en plenitud física. Trote de 45 minutos, Batería 3x25 estricta y desbloqueo de acceso a la sala de pesas y cargas progresivas.",
+    description: "Atleta en plenitud física. Trote de 45 minutos, Series de entrenamiento 3x25 estrictas y desbloqueo de acceso a la sala de pesas y cargas progresivas.",
     milestone: "45 min trote • Salto +60 cm • Pesas Desbloqueadas",
     nextGoal: "Alcanzar 60 min (1 hora) de trote ininterrumpido y 500 saltos de cuerda para ser Élite.",
     joggingTime: "45 Min",
@@ -398,7 +404,7 @@ function formatPushupVariation(variant: string | null | undefined): string {
   }
 }
 
-export default function StudentDashboardPage() {
+function StudentDashboardContent() {
   const [profile, setProfile] = useState<any>(null);
   const [commitment, setCommitment] = useState<any>(null);
   const [lastPayment, setLastPayment] = useState<any>(null);
@@ -1167,9 +1173,9 @@ export default function StudentDashboardPage() {
       title: "Lobo de Hierro",
       emoji: "🐺",
       isUnlocked: isLoboDeHierroUnlocked,
-      shortReq: "Batería 3x25 completa dominada con descansos reducidos",
-      fullDesc: "Resistencia física espartana. Dominio riguroso de la batería calisténica 3x25 (Lagartijas con variantes, Sentadillas profundas, Abdominales, Pantorrillas) soportando pausas de descanso reducidas (≤ 45s).",
-      currentStat: `Batería 3x25 activa • Descanso asignado: ${currentPerformance.rest_seconds || 45}s`,
+      shortReq: "Series 3x25 completas dominadas con descansos reducidos",
+      fullDesc: "Resistencia física espartana. Dominio riguroso de las series calisténicas 3x25 (Lagartijas con variantes, Sentadillas profundas, Abdominales, Pantorrillas) soportando pausas de descanso reducidas (≤ 45s).",
+      currentStat: `Series 3x25 activas • Descanso asignado: ${currentPerformance.rest_seconds || 45}s`,
       glowClass: "border-fuchsia-500/80 shadow-[0_0_25px_rgba(217,70,239,0.35)] bg-gradient-to-br from-fuchsia-950/40 via-[#131620] to-[#0c0e14]",
       accentColor: "text-fuchsia-400",
       pillBg: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40",
@@ -1179,7 +1185,7 @@ export default function StudentDashboardPage() {
 
   const unlockedBadgesCount = BADGES_LIST.filter(b => b.isUnlocked).length;
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center text-xs text-secondary font-mono">
         <div className="flex flex-col items-center gap-3">
@@ -1242,6 +1248,21 @@ export default function StudentDashboardPage() {
       {/* ========================================================================= */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         
+        {/* ALERTA DE EXPIRACIÓN / RENOVACIÓN (TEMPORIZADOR 30 DÍAS & AVISO <= 5 DÍAS) */}
+        <div className="mb-6">
+          <SubscriptionBannerAlert
+            status={profile?.subscription_status || "FREE"}
+            plan={profile?.subscription_plan || (profile?.ai_plan === "elite_familiar" ? "ELITE_149" : profile?.ai_plan === "pro" ? "PRO_99" : "FREE")}
+            remainingDays={
+              profile?.expires_at || profile?.ai_plan_expires_at
+                ? Math.ceil((new Date(profile?.expires_at || profile?.ai_plan_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null
+            }
+            studentName={profile?.full_name || "Atleta Wild Wolves"}
+            onOpenUpgradeModal={() => setShowLoboProModal(true)}
+          />
+        </div>
+
         {/* AVISO: FOTOGRAFÍA OFICIAL REAL OBLIGATORIA */}
         {!hasRealSelfie && !profile?.isGuest && (
           <div className="mb-6 bg-gradient-to-r from-orange-950/80 via-amber-950/70 to-zinc-900 border-2 border-orange-500/60 p-4 sm:p-5 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
@@ -1516,7 +1537,7 @@ export default function StudentDashboardPage() {
                           ],
                           badHabitsToFix: [
                             "Baja la mano derecha antes de tiempo en triples (rompe el follow-through).",
-                            "En la batería 3x25, apresura sentadillas perdiendo los 90° de profundidad."
+                            "En las series 3x25, apresura sentadillas perdiendo los 90° de profundidad."
                           ],
                           tallDefenderStrategy: "Frente a defensores más altos (+1.85m): Evitar penetración directa al choque. Usar finta con tiro en suspensión a media distancia, flotadora bombeada y salida rápida con paso atrás (step-back).",
                           wristMechanicsNotes: "En lanzamientos veloces: Mantener el quiebre de muñeca (" + '"' + "mano en el tarro de galletas" + '"' + ") durante 1 segundo tras soltar el balón para imprimir rotación óptima.",
@@ -1641,7 +1662,7 @@ export default function StudentDashboardPage() {
               </div>
 
               {/* ================================================================= */}
-              {/* BATERÍA BASE DE CALISTENIA: 6 EJERCICIOS DE AUTOCARGA             */}
+              {/* BLOQUES DE SERIES BASE DE CALISTENIA: 6 EJERCICIOS DE AUTOCARGA    */}
               {/* ================================================================= */}
               <div className="bg-surface-container-low/90 border border-surface-container-high rounded-2xl p-4 mt-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1649,7 +1670,7 @@ export default function StudentDashboardPage() {
                     <Activity className="w-5 h-5 text-orange-400" />
                     <div>
                       <h4 className="text-xs font-black uppercase text-white tracking-wide">
-                        Batería Base de Autocarga
+                        Series Base de Autocarga
                       </h4>
                       <span className="text-[10px] text-zinc-400 font-mono">
                         6 Pilares para Ascenso de Tier
@@ -1881,13 +1902,15 @@ export default function StudentDashboardPage() {
 
               <div className="space-y-2 pt-1">
                 <a
-                  href="https://wa.me/525549128810?text=Hola,%20solicito%20aclaraci%C3%B3n%20sobre%20la%20membres%C3%ADa%20en%20Wild%20Wolves%20CDMX"
+                  href={`https://wa.me/525522427769?text=${encodeURIComponent(
+                    `Hola Coach Ricardo, le saluda el atleta ${profile?.full_name || "Atleta Lobo"} (Edad: ${profile?.age || (profile?.birth_date ? Math.abs(new Date(Date.now() - new Date(profile.birth_date).getTime()).getUTCFullYear() - 1970) : 15)} años, Correo: ${profile?.email || (typeof window !== "undefined" ? localStorage.getItem("ww_user_email") || "registrado en duela" : "registrado en duela")}). Solicito aclaración sobre mi membresía y cuotas en Wild Wolves CDMX (Deportivo Carmen Serdán).`
+                  )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-11 w-full flex items-center justify-center gap-2 bg-tertiary-container hover:bg-tertiary text-on-tertiary text-xs font-bold rounded-xl transition cursor-pointer shadow-md"
+                  className="h-11 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>Aclaraciones de Pago vía WhatsApp</span>
+                  <span>Aclaraciones de Pago vía WhatsApp con Coach Ricardo</span>
                 </a>
                 <button
                   onClick={triggerToast}
@@ -2031,7 +2054,7 @@ export default function StudentDashboardPage() {
                     Tu evaluación técnica aún no se aplica. Preséntate a tu primer entrenamiento en Deportivo Carmen Serdán para que el Head Coach registre tu línea base.
                   </p>
                   <div className="mt-2 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-high border border-surface-container-highest text-[10px] font-mono text-amber-300">
-                    <span>Protocolo Inicial: 2 vueltas de diagnóstico • Saltos de cuerda • Batería 3x25</span>
+                    <span>Protocolo Inicial: 2 vueltas de diagnóstico • Saltos de cuerda • Series 3x25 de Autocarga</span>
                   </div>
                 </div>
               ) : (
@@ -2119,12 +2142,12 @@ export default function StudentDashboardPage() {
                     </div>
                   </div>
 
-                  {/* COMPARATIVA 4: BATERÍA 3X25 */}
+                  {/* COMPARATIVA 4: SERIES 3X25 */}
                   <div className="bg-surface-container p-3.5 rounded-2xl border border-surface-container-high flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-white flex items-center gap-1.5">
                         <Activity className="w-4 h-4 text-emerald-400" />
-                        Batería 3x25
+                        Series 3x25
                       </span>
                       <span className="text-emerald-400 font-mono text-[11px] font-black bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30">
                         {currentPerformance.squats_3x25_done ? "Completada ✓" : "En desarrollo"}
@@ -2301,11 +2324,88 @@ export default function StudentDashboardPage() {
               />
             </section>
 
+            {/* 4.03 BÁSCULA INTELIGENTE BLUETOOTH LE (BIOIMPEDANCIA) Y LECTURA POR IMAGEN */}
+            <section className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-3xl bg-[#0b0e17] border border-fuchsia-500/30 shadow-xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-fuchsia-400 font-bold">
+                      Telemetría y Bioimpedancia
+                    </span>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 uppercase font-black">
+                      Visión AI OKOK
+                    </span>
+                  </div>
+                  <h4 className="text-base sm:text-lg font-black text-white tracking-tight mt-0.5">
+                    Lectura Rápida de Báscula por Captura
+                  </h4>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Sube una foto o screenshot de tu app OKOK para extraer peso, grasa, músculo y agua en segundos.
+                  </p>
+                </div>
+
+                <ScaleImageUploader
+                  studentId={profile?.id || "demo-student"}
+                  athleteName={profile?.full_name || "Bruno Sánchez"}
+                  onUploadSuccess={(newReading) => {
+                    setProfile((prev: any) => ({
+                      ...prev,
+                      weight_kg: newReading.weightKg,
+                      fat_percentage: newReading.fatPercentage,
+                      muscle_mass_kg: newReading.muscleMassKg,
+                      water_percentage: newReading.waterPercentage,
+                      metabolic_age: newReading.metabolicAge,
+                      visceral_fat: newReading.visceralFat,
+                      bmi: newReading.bmi
+                    }));
+                  }}
+                />
+              </div>
+
+              <SmartScaleSync
+                studentId={profile?.id || "demo-student"}
+                athleteName={profile?.full_name || "Bruno Sánchez"}
+                initialData={{
+                  weightKg: profile?.weight_kg ?? 68.4,
+                  fatPercentage: profile?.fat_percentage ?? 18.2,
+                  muscleMassKg: profile?.muscle_mass_kg ?? 42.0,
+                  waterPercentage: profile?.water_percentage ?? 54.5,
+                  metabolicAge: profile?.metabolic_age ?? 15
+                }}
+                onSyncSuccess={(newReading) => {
+                  setProfile((prev: any) => ({
+                    ...prev,
+                    weight_kg: newReading.weightKg,
+                    fat_percentage: newReading.fatPercentage,
+                    muscle_mass_kg: newReading.muscleMassKg,
+                    water_percentage: newReading.waterPercentage,
+                    metabolic_age: newReading.metabolicAge,
+                    visceral_fat: newReading.visceralFat,
+                    bmi: newReading.bmi
+                  }));
+                }}
+              />
+            </section>
+
             {/* 4.1 SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECORT */}
             <section className="space-y-4">
               <ShotScienceDashboard 
                 athleteName={profile?.full_name || "Bruno Díaz"}
                 isCoachView={Boolean(profile?.isCoachOrAdmin)}
+              />
+            </section>
+
+            {/* 4.2 LOBO TÁCTICO & VIDEOTECA IA */}
+            <section className="space-y-4">
+              <LoboTacticalVideoHub />
+            </section>
+
+            {/* 4.3 AI SMART VIDEO LIBRARY (BÚSQUEDA INTELIGENTE & CATÁLOGO EXTENDIDO) */}
+            <section className="space-y-4">
+              <SmartVideoLibrary 
+                userId={profile?.id || "demo-student"}
+                athleteName={profile?.full_name || "Bruno Sánchez"}
+                isCoachOrAdmin={Boolean(profile?.isCoachOrAdmin)}
               />
             </section>
 
@@ -2612,10 +2712,23 @@ export default function StudentDashboardPage() {
       <LoboProModal
         isOpen={showLoboProModal}
         onClose={() => setShowLoboProModal(false)}
+        userId={profile?.id}
         studentName={profile?.full_name || "Atleta Wild Wolves"}
         studentEmail={profile?.email || ""}
+        athleteAge={
+          profile?.birth_date
+            ? Math.abs(new Date(Date.now() - new Date(profile.birth_date).getTime()).getUTCFullYear() - 1970)
+            : profile?.age || 15
+        }
+        hasGuardian={Boolean(profile?.guardian_id || profile?.linked_guardian_email)}
+        initialIndependentMinor={Boolean(profile?.is_independent_minor)}
         onActivated={(plan) => {
-          setProfile((prev: any) => ({ ...prev, ai_plan: plan }));
+          setProfile((prev: any) => ({ 
+            ...prev, 
+            ai_plan: plan,
+            subscription_status: "ACTIVE",
+            subscription_plan: plan === "ELITE_149" || plan === "elite_familiar" ? "ELITE_149" : "PRO_99"
+          }));
         }}
       />
 
@@ -2629,5 +2742,13 @@ export default function StudentDashboardPage() {
       />
 
     </div>
+  );
+}
+
+export default function StudentDashboardPage() {
+  return (
+    <ErrorBoundary fallbackTitle="Portal del Alumno - Modo Seguro">
+      <StudentDashboardContent />
+    </ErrorBoundary>
   );
 }

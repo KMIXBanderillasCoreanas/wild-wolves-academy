@@ -226,7 +226,7 @@ export function generateFullReportHTML(data: StudentReportData): string {
 
     <!-- DESGLOSE DE TIRO (HOMECOURT SHOT SCIENCE) -->
     <div class="card" style="margin-bottom: 20px;">
-      <div class="card-title">Batería de Tiro Oficial (55 Lanzamientos)</div>
+      <div class="card-title">Series de Tiro Oficial (55 Lanzamientos)</div>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; font-family: monospace; font-size: 12px; margin-top: 10px;">
         <div style="background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px;">
           <span style="color: var(--text-muted); font-size: 10px; display: block;">Tiros Libres</span>

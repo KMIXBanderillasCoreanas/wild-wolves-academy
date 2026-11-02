@@ -9,13 +9,16 @@ const supabaseKey =
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export type AIPlanType = 'free' | 'standard_99' | 'family_199' | 'vip_pro';
+export type AIPlanType = 'free' | 'welcome_15' | 'pro' | 'standard_99' | 'elite_familiar' | 'family_199' | 'vip_pro';
 
-export const AI_PLAN_LIMITS: Record<AIPlanType, { max: number; name: string; priceMxn: number }> = {
-  free: { max: 3, name: 'Plan Free / Básico', priceMxn: 0 },
-  standard_99: { max: 50, name: 'Plan Estándar Atleta', priceMxn: 99 },
-  family_199: { max: 100, name: 'Plan Familiar Manada', priceMxn: 199 },
-  vip_pro: { max: 9999, name: 'Plan Elite Coach VIP', priceMxn: 499 }
+export const AI_PLAN_LIMITS: Record<AIPlanType, { max: number; name: string; priceMxn: number; description: string }> = {
+  free: { max: 5, name: 'Plan Free / Invitado', priceMxn: 0, description: '5 consultas mensuales de IA' },
+  welcome_15: { max: 15, name: 'Bono Bienvenida / 15 IA', priceMxn: 0, description: '15 consultas de cortesía con Kimi IA' },
+  pro: { max: 50, name: 'Plan Atleta Lobo Pro', priceMxn: 99, description: '50 consultas mensuales de IA + Biomecánica' },
+  standard_99: { max: 50, name: 'Plan Atleta Lobo Pro', priceMxn: 99, description: '50 consultas mensuales de IA + Biomecánica' },
+  elite_familiar: { max: 100, name: 'Pack Familiar Élite', priceMxn: 149, description: '100 consultas mensuales compartidas + Reportes para tutores' },
+  family_199: { max: 100, name: 'Pack Familiar Élite', priceMxn: 149, description: '100 consultas mensuales compartidas + Reportes para tutores' },
+  vip_pro: { max: 9999, name: 'Plan Elite Coach VIP', priceMxn: 499, description: 'Consultas ilimitadas para cuerpo técnico' }
 };
 
 export interface QuotaCheckResult {
@@ -25,8 +28,13 @@ export interface QuotaCheckResult {
   remaining: number;
   planType: AIPlanType;
   message?: string;
+  whatsappUrl?: string;
   resetDate?: string;
 }
+
+export const COACH_RICARDO_WHATSAPP_URL = "https://wa.me/525522427769?text=" + encodeURIComponent(
+  "Hola Coach Ricardo, alcancé el límite de consultas de IA de mi plan en Wild Wolves CDMX. Quisiera activar o renovar mi Membresía Lobo Pro ($99 MXN) o Pack Familiar Élite ($149 MXN)."
+);
 
 // Respaldo en memoria local para entornos de desarrollo / contingencia offline
 const fallbackLocalQuotas = new Map<string, { used: number; resetDate: string; planType: AIPlanType }>();
@@ -57,7 +65,8 @@ export async function checkAndConsumeAIQuota(
           remaining: 0,
           planType: rpcData.plan_type,
           resetDate: rpcData.reset_date,
-          message: `Has alcanzado el límite mensual de ${rpcData.max} consultas de tu ${planConfig.name}. Actualiza al Plan Estándar ($99 MXN por 50 consultas) o Familiar ($199 MXN por 100 consultas) para continuar usando el Lobo Táctico.`
+          whatsappUrl: COACH_RICARDO_WHATSAPP_URL,
+          message: `Has alcanzado el límite mensual de ${rpcData.max} consultas de tu ${planConfig.name}. Actualiza al Plan Atleta Lobo Pro ($99 MXN por 50 consultas) o Pack Familiar Élite ($149 MXN por 100 consultas) para continuar usando la IA táctica.`
         };
       }
       return {
@@ -93,7 +102,8 @@ export async function checkAndConsumeAIQuota(
           remaining: 0,
           planType: tableData.plan_type,
           resetDate: tableData.reset_date,
-          message: `Límite mensual agotado (${currentUsed}/${tableData.max_consultations}). Pasa al Plan Estándar ($99 MXN) o Familiar ($199 MXN) para desbloquear más análisis con el Lobo Táctico.`
+          whatsappUrl: COACH_RICARDO_WHATSAPP_URL,
+          message: `Límite mensual agotado (${currentUsed}/${tableData.max_consultations} consultas). Pasa al Plan Atleta Lobo Pro ($99 MXN por 50 consultas) o Pack Familiar Élite ($149 MXN por 100 consultas) para desbloquear más análisis con el Lobo Táctico.`
         };
       }
 
@@ -135,7 +145,8 @@ export async function checkAndConsumeAIQuota(
       remaining: 0,
       planType: userRecord.planType,
       resetDate: userRecord.resetDate,
-      message: `Has consumido tus ${planConfig.max} consultas disponibles de tu ${planConfig.name}. Actualiza al Plan Estándar de $99 MXN (50 consultas) o Plan Familiar de $199 MXN (100 consultas) para asistencia ilimitada de tu preparador físico.`
+      whatsappUrl: COACH_RICARDO_WHATSAPP_URL,
+      message: `Has consumido tus ${planConfig.max} consultas disponibles de tu ${planConfig.name}. Actualiza al Plan Atleta Lobo Pro de $99 MXN (50 consultas) o Pack Familiar Élite de $149 MXN (100 consultas) para asistencia biomecánica y táctica continua.`
     };
   }
 

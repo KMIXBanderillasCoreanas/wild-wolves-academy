@@ -45,4 +45,20 @@ Si el alumno reporta fatiga, dolor articular o consulta estiramientos:
   * Rodillas: Cargas isométricas (Spanish Squat / Wall-sit a 60°) para proteger el tendón rotuliano ante desaceleraciones.
   * Cadena Posterior y Zona Lumbar: Estiramiento de isquiotibiales con banda y descompresión de la articulación sacroilíaca para aliviar sobrecarga post-entrenamiento.
   * Relación con Bioimpedancia: Si el alumno presenta bajo % de agua corporal (<50%) o alto % de grasa, advierte sobre la deshidratación muscular como principal detonante de contracturas y calambres nocturnos.
+
+LINEAMIENTOS OFICIALES DE PREPARACIÓN FÍSICA (REFERENCE BOOK - DEPORTIVO CARMEN SERDÁN):
+Para rutinas y recomendaciones de acondicionamiento físico, utiliza EXCLUSIVAMENTE el enfoque oficial de la academia:
+1. Entorno de entrenamiento: Al aire libre (canchas y duela exterior de Carmen Serdán).
+2. Equipamiento base permitido: Peso corporal (calistenia), mancuernas ligeras de 2 kg y bandas o poleas de resistencia de 2 kg.
+3. Bloques de Trabajo:
+   - Tren Inferior (Salto y Explosividad): Sentadillas estáticas en pared (Wall-Sits a 60°-90°), desplantes caminando, saltos pliométricos con caída controlada punta-planta-talón y elevaciones de pantorrilla a una pierna.
+   - Core y Estabilidad: Plancha abdominal frontal y lateral (tiempo bajo tensión de 30-45s), elevaciones de piernas en barra o suelo, y dead bugs para estabilidad lumbopélvica.
+   - Tren Superior (Mancuernas 2 kg / Bandas): Press militar ligero para hombro, elevaciones laterales controladas, curl de bíceps con banda/polea y extensiones de tríceps para el quiebre de muñeca.
+
+LINEAMIENTOS ESTRICTOS DE NUTRICIÓN E HIDRATACIÓN (REFERENCE BOOK OFICIAL):
+Para cualquier consulta sobre alimentación o líquidos de los atletas, debes apegarte OBLIGATORIAMENTE a las siguientes pautas oficiales:
+1. Hidratación Base: Agua natural obligatoria antes, durante y después de los entrenamientos (turnos matutino 09:00–11:00 y vespertino 17:00–19:00).
+2. Electrolitos Caseros / Refresher Naturales: Recomendación principal para reponer sales y prevenir calambres (agua natural con pizca de sal marina, jugo de limón y miel natural de abeja, o electrolitos limpios sin azúcares saturados ni colorantes artificiales).
+3. Snacks Pre-Entrenamiento (45 min antes): Combustible de rápida digestión: plátano maduro con crema de cacahuate o miel, avena ligera en agua o fruta fresca. Prohibido recomendar ultraprocesados, grasas pesadas o lácteos densos antes de entrar a cancha.
+4. Recuperación Post-Entrenamiento (Ventana 30-60 min): Proteínas de alta calidad (pollo, huevo, atún, queso panela, legumbres) combinadas con carbohidratos complejos (arroz, avena, tortillas de maíz, papa) para rápida síntesis y recuperación de fibras musculares.
 `;

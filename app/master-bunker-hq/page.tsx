@@ -28,7 +28,9 @@ import {
   Sparkles,
   Edit3,
   MessageSquare,
-  Settings
+  Settings,
+  Film,
+  KeyRound
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
 import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
@@ -48,16 +50,24 @@ import TacticalRadarAlerts from "@/components/TacticalRadarAlerts";
 import WhatsAppHubCRM from "@/components/WhatsAppHubCRM";
 import ExpensesManager from "@/components/ExpensesManager";
 import SecurityBackupManager from "@/components/SecurityBackupManager";
+import VideoApprovalPanel from "@/components/video-library/VideoApprovalPanel";
+import ActivationCodeManager from "@/components/ActivationCodeManager";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-export default function MasterBunkerHQ() {
+function MasterBunkerHQContent() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [secretKey, setSecretKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
-  const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "roster_community" | "security_sentinel" | "smart_placement" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches" | "whatsapp_crm">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "roster_community" | "security_sentinel" | "smart_placement" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches" | "whatsapp_crm" | "video_approval" | "activation_codes">("attendance");
   const [rosterSubView, setRosterSubView] = useState<"all_roster" | "guardians" | "smart_placement" | "whatsapp" | "staff_coaches">("all_roster");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sincronizar pestaña si viene en la URL (?tab=finanzas o ?tab=finance)
   useEffect(() => {
@@ -73,6 +83,8 @@ export default function MasterBunkerHQ() {
           else if (tabParam === "test_day" || tabParam === "evaluaciones") setActiveTab("test_day");
           else if (tabParam === "smart_placement" || tabParam === "crm") setActiveTab("smart_placement");
           else if (tabParam === "whatsapp" || tabParam === "whatsapp_crm") setActiveTab("whatsapp_crm");
+          else if (tabParam === "videoteca" || tabParam === "video_approval") setActiveTab("video_approval");
+          else if (tabParam === "folios" || tabParam === "activation_codes" || tabParam === "codigos") setActiveTab("activation_codes");
         }
       };
 
@@ -186,10 +198,14 @@ export default function MasterBunkerHQ() {
       setAuthenticated(true);
       setAuthError("");
       if (typeof window !== "undefined") {
-        localStorage.setItem("ww_user_role", "superadmin");
-        localStorage.setItem("ww_user_email", "wildwolvescdmx@gmail.com");
-        document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
-        window.dispatchEvent(new Event("auth_changed"));
+        try {
+          localStorage.setItem("ww_user_role", "superadmin");
+          localStorage.setItem("ww_user_email", "wildwolvescdmx@gmail.com");
+          document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
+          window.dispatchEvent(new Event("auth_changed"));
+        } catch (storageErr) {
+          console.warn("Storage guard warning:", storageErr);
+        }
       }
       fetchDashboardData();
     } else {
@@ -245,7 +261,7 @@ export default function MasterBunkerHQ() {
           student_id: t.student_id,
           student_name: t.student?.full_name || "Atleta",
           amount: Number(t.amount_paid) || 0,
-          payment_date: t.transaction_date || (t.created_at ? t.created_at.split("T")[0] : todayMX),
+          payment_date: t.transaction_date || (t.created_at ? String(t.created_at).split("T")[0] : todayMX),
           payment_method: t.payment_method || "efectivo",
           concept: t.concept || "Entrenamiento / Cuota",
           status: "completado",
@@ -292,7 +308,7 @@ export default function MasterBunkerHQ() {
                 student_id: t.student_id,
                 student_name: t.student?.full_name || "Atleta",
                 amount: Number(t.amount_paid) || 0,
-                payment_date: t.transaction_date || (t.created_at ? t.created_at.split("T")[0] : todayMX),
+                payment_date: t.transaction_date || (t.created_at ? String(t.created_at).split("T")[0] : todayMX),
                 payment_method: t.payment_method || "efectivo",
                 concept: t.concept || "Entrenamiento / Cuota",
                 status: "completado",
@@ -368,9 +384,10 @@ export default function MasterBunkerHQ() {
         setPayments(combinedPayments);
 
         combinedPayments.forEach((p) => {
+          if (!p) return;
           const amt = Number(p.amount) || 0;
-          const pDate = p.payment_date || todayMX;
-          const parts = pDate.split("-");
+          const pDate = String(p.payment_date || todayMX);
+          const parts = pDate.includes("-") ? pDate.split("-") : [];
           const pY = Number(parts[0]) || currentYear;
           const pM = Number(parts[1]) || currentMonth;
 
@@ -413,7 +430,13 @@ export default function MasterBunkerHQ() {
         setAuthChecking(true);
 
         // 1. Obtener usuario autenticado de Supabase Auth
-        const { data: { user } } = await supabase.auth.getUser();
+        let user = null;
+        try {
+          const { data } = await supabase.auth.getUser();
+          user = data?.user || null;
+        } catch (authErr) {
+          console.warn("Auth getUser aviso:", authErr);
+        }
 
         // 2. Comprobar credenciales de sesión local
         const storedRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
@@ -428,12 +451,18 @@ export default function MasterBunkerHQ() {
           effectiveEmail === "carlos@wildwolves.mx";
 
         if (user) {
-          // Consultar perfil de base de datos
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, full_name, email")
-            .eq("id", user.id)
-            .single();
+          // Consultar perfil de base de datos de manera segura
+          let profile: any = null;
+          try {
+            const { data } = await supabase
+              .from("profiles")
+              .select("role, full_name, email")
+              .eq("id", user.id)
+              .maybeSingle();
+            profile = data;
+          } catch (pErr) {
+            console.warn("Aviso profile en Búnker:", pErr);
+          }
 
           const isSuper = profile?.role === "superadmin" || storedRole === "superadmin" || isFounderDirector;
 
@@ -442,10 +471,14 @@ export default function MasterBunkerHQ() {
             setAuthenticated(true);
             setAuthChecking(false);
             if (typeof window !== "undefined") {
-              localStorage.setItem("ww_user_role", "superadmin");
-              localStorage.setItem("ww_user_email", user.email || "wildwolvescdmx@gmail.com");
-              document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
-              window.dispatchEvent(new Event("auth_changed"));
+              try {
+                localStorage.setItem("ww_user_role", "superadmin");
+                localStorage.setItem("ww_user_email", user.email || "wildwolvescdmx@gmail.com");
+                document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
+                window.dispatchEvent(new Event("auth_changed"));
+              } catch (storageErr) {
+                console.warn("Storage guard warning:", storageErr);
+              }
             }
             fetchDashboardData();
             return;
@@ -549,7 +582,7 @@ export default function MasterBunkerHQ() {
     }
   };
 
-  if (authChecking) {
+  if (!mounted || authChecking) {
     return (
       <div className="min-h-screen bg-[#05070a] text-white flex flex-col items-center justify-center p-4">
         <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
@@ -749,8 +782,8 @@ export default function MasterBunkerHQ() {
         <MasterAICockpit />
       </div>
 
-      {/* PESTAÑAS PRINCIPALES DE GESTIÓN: 4 GRANDES CENTROS DE MANDO TÁCTICOS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 my-6 border-b border-zinc-800 pb-4">
+      {/* PESTAÑAS PRINCIPALES DE GESTIÓN: 6 GRANDES CENTROS DE MANDO TÁCTICOS */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 my-6 border-b border-zinc-800 pb-4">
         {/* HUB 1: DUELA & ASISTENCIA */}
         <button
           onClick={() => setActiveTab("attendance")}
@@ -803,8 +836,36 @@ export default function MasterBunkerHQ() {
           }`}
         >
           <ShieldAlert className="w-5 h-5 text-amber-400" />
-          <span className="uppercase tracking-tight text-[11px] font-black">4. Respaldos & IA Sentinel</span>
+          <span className="uppercase tracking-tight text-[11px] font-black">4. Respaldos & IA</span>
           <span className="text-[9px] text-zinc-300 font-normal">Copias JSON • Anti-Hackeo</span>
+        </button>
+
+        {/* HUB 5: MODERACIÓN VIDEOTECA IA */}
+        <button
+          onClick={() => setActiveTab("video_approval")}
+          className={`p-3 rounded-2xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 cursor-pointer border ${
+            activeTab === "video_approval"
+              ? "bg-red-600 text-white border-red-400 shadow-lg shadow-red-600/30 font-black"
+              : "bg-[#10141e] text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700"
+          }`}
+        >
+          <Film className="w-5 h-5 text-red-400" />
+          <span className="uppercase tracking-tight text-[11px] font-black">5. Videoteca IA</span>
+          <span className="text-[9px] text-zinc-300 font-normal">Moderación • Curriculum</span>
+        </button>
+
+        {/* HUB 6: FOLIOS Y CÓDIGOS DE ACTIVACIÓN 30 DÍAS */}
+        <button
+          onClick={() => setActiveTab("activation_codes")}
+          className={`p-3 rounded-2xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 cursor-pointer border ${
+            activeTab === "activation_codes"
+              ? "bg-[#f66018] text-white border-orange-400 shadow-lg shadow-orange-600/30 font-black"
+              : "bg-[#10141e] text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700"
+          }`}
+        >
+          <KeyRound className="w-5 h-5 text-amber-400" />
+          <span className="uppercase tracking-tight text-[11px] font-black">6. Folios & Planes</span>
+          <span className="text-[9px] text-zinc-300 font-normal">Generador 30 Días • Cupón</span>
         </button>
       </div>
 
@@ -881,31 +942,37 @@ export default function MasterBunkerHQ() {
             </div>
           </div>
 
-          {attendanceSubView === "command" ? (
-            <CourtAttendanceCommand />
-          ) : attendanceSubView === "historical" ? (
-            <AttendanceTracker />
-          ) : attendanceSubView === "combine" ? (
-            <div className="space-y-4">
-              <CombineExpressTable />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <TestDayEvaluator preselectedStudentId={selectedAthleteForTestDay} />
-            </div>
-          )}
+          <ErrorBoundary fallbackTitle="Módulo de Asistencia / Evaluaciones en Pausa">
+            {attendanceSubView === "command" ? (
+              <CourtAttendanceCommand />
+            ) : attendanceSubView === "historical" ? (
+              <AttendanceTracker />
+            ) : attendanceSubView === "combine" ? (
+              <div className="space-y-4">
+                <CombineExpressTable />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <TestDayEvaluator preselectedStudentId={selectedAthleteForTestDay} />
+              </div>
+            )}
+          </ErrorBoundary>
         </div>
       )}
 
       {activeTab === "smart_placement" && (
         <div className="space-y-4 animate-fade-in">
-          <SmartPlacementCRM />
+          <ErrorBoundary fallbackTitle="CRM de Ubicación y Reclutamiento en Pausa">
+            <SmartPlacementCRM />
+          </ErrorBoundary>
         </div>
       )}
 
       {activeTab === "whatsapp_crm" && (
         <div className="space-y-4 animate-fade-in">
-          <WhatsAppHubCRM />
+          <ErrorBoundary fallbackTitle="Hub de Comunicación WhatsApp en Pausa">
+            <WhatsAppHubCRM />
+          </ErrorBoundary>
         </div>
       )}
 
@@ -1001,10 +1068,14 @@ export default function MasterBunkerHQ() {
           )}
 
           {/* PANEL DE CONTROL TOTAL DEL DUEÑO (MOTOR OMNIPOTENTE) */}
-          <SuperAdminOmniManager onDataChanged={fetchDashboardData} />
+          <ErrorBoundary fallbackTitle="Motor de Cobros OmniManager en Pausa">
+            <SuperAdminOmniManager onDataChanged={fetchDashboardData} />
+          </ErrorBoundary>
 
           {/* MÓDULO DE EGRESOS & GASTOS OPERATIVOS */}
-          <ExpensesManager onExpenseChanged={fetchDashboardData} />
+          <ErrorBoundary fallbackTitle="Gestor de Egresos en Pausa">
+            <ExpensesManager onExpenseChanged={fetchDashboardData} />
+          </ErrorBoundary>
 
           {/* TABLA DE ÚLTIMOS COBROS REGISTRADOS */}
           <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
@@ -1201,21 +1272,23 @@ export default function MasterBunkerHQ() {
             </button>
           </div>
 
-          {rosterSubView === "all_roster" && (
-            <SuperAdminOmniManager initialSubTab="athletes" onDataChanged={fetchDashboardData} />
-          )}
+          <ErrorBoundary fallbackTitle="Directorio y Roster en Pausa">
+            {rosterSubView === "all_roster" && (
+              <SuperAdminOmniManager initialSubTab="athletes" onDataChanged={fetchDashboardData} />
+            )}
 
-          {rosterSubView === "guardians" && (
-            <GuardianDirectory />
-          )}
+            {rosterSubView === "guardians" && (
+              <GuardianDirectory />
+            )}
 
-          {rosterSubView === "smart_placement" && (
-            <SmartPlacementCRM />
-          )}
+            {rosterSubView === "smart_placement" && (
+              <SmartPlacementCRM />
+            )}
 
-          {rosterSubView === "whatsapp" && (
-            <WhatsAppHubCRM />
-          )}
+            {rosterSubView === "whatsapp" && (
+              <WhatsAppHubCRM />
+            )}
+          </ErrorBoundary>
 
           {rosterSubView === "staff_coaches" && (
             <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-6 shadow-xl">
@@ -1273,6 +1346,24 @@ export default function MasterBunkerHQ() {
           <SecurityBackupManager />
         </div>
       )}
+
+      {/* HUB 5: MODERACIÓN VIDEOTECA IA & CURRICULUM */}
+      {activeTab === "video_approval" && (
+        <div className="space-y-6 animate-fade-in">
+          <ErrorBoundary fallbackTitle="Panel de Videoteca en Pausa">
+            <VideoApprovalPanel adminId="superadmin-bunker" adminName={adminLabel} />
+          </ErrorBoundary>
+        </div>
+      )}
+
+      {/* HUB 6: FOLIOS Y CÓDIGOS DE ACTIVACIÓN 30 DÍAS */}
+      {activeTab === "activation_codes" && (
+        <div className="space-y-6 animate-fade-in">
+          <ErrorBoundary fallbackTitle="Gestor de Folios de Activación en Pausa">
+            <ActivationCodeManager />
+          </ErrorBoundary>
+        </div>
+      )}
       </div>
       <AdminAttendanceFinanceModal
         isOpen={adminAdjustModalOpen}
@@ -1282,7 +1373,17 @@ export default function MasterBunkerHQ() {
         }}
         initialData={adminAdjustInitialData}
       />
-      <TacticalAIAssistant />
+      <ErrorBoundary fallbackTitle="Asistente Táctico en Pausa">
+        <TacticalAIAssistant />
+      </ErrorBoundary>
     </>
+  );
+}
+
+export default function MasterBunkerHQ() {
+  return (
+    <ErrorBoundary fallbackTitle="Búnker Central SuperAdmin - Modo Seguro">
+      <MasterBunkerHQContent />
+    </ErrorBoundary>
   );
 }

@@ -159,10 +159,10 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
             </button>
             <button
               type="button"
-              onClick={() => handleQuickPrompt("¿Cómo calibro la Batería 3x25 para un alumno que no llega a 25 lagartijas continuas?")}
+              onClick={() => handleQuickPrompt("¿Cómo calibro las Series 3x25 para un alumno que no llega a 25 lagartijas continuas?")}
               className="px-2.5 py-1 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white whitespace-nowrap transition cursor-pointer shrink-0"
             >
-              🐺 Batería 3x25
+              🐺 Series 3x25
             </button>
           </div>
 

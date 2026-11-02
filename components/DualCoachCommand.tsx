@@ -53,7 +53,7 @@ export default function DualCoachCommand() {
   const [enablePushups, setEnablePushups] = useState<boolean>(true);
   const [enableIsometrics, setEnableIsometrics] = useState<boolean>(false);
 
-  // Formulario reactivo: Batería 3x25 del documento base
+  // Formulario reactivo: Series 3x25 del documento base
   const [pushupVariation, setPushupVariation] = useState<string>("brazos_cerrados");
   const [pushupReps, setPushupReps] = useState<number>(25);
   const [squats3x25, setSquats3x25] = useState<boolean>(true);
@@ -795,12 +795,12 @@ export default function DualCoachCommand() {
               </div>
             </div>
 
-            {/* BATERÍA 3X25 DEL DOCUMENTO BASE */}
+            {/* SERIES 3X25 DEL DOCUMENTO BASE */}
             <div className="bg-[#191b23] border border-[#272a32] p-5 rounded-2xl space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-[#272a32]">
                 <h4 className="text-xs font-black uppercase text-[#ffb599] flex items-center gap-2">
                   <Flame className="w-4 h-4 text-[#f66018]" />
-                  <span>Batería de Autocarga 3x25 (Documento Base Wild Wolves)</span>
+                  <span>Series de Autocarga 3x25 (Documento Base Wild Wolves)</span>
                 </h4>
                 <span className="text-[10px] font-mono text-zinc-400">3 series de 25 repeticiones</span>
               </div>
@@ -1551,7 +1551,7 @@ export default function DualCoachCommand() {
               </label>
             </div>
 
-            {/* 6. BATERÍA TRADICIONAL COMPLEMENTARIA (TIROS LIBRES & MEDIA DISTANCIA) */}
+            {/* 6. SERIES TRADICIONALES COMPLEMENTARIAS (TIROS LIBRES & MEDIA DISTANCIA) */}
             <div className="bg-[#191b23] border border-[#272a32] rounded-2xl p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#272a32] gap-2">
                 <div>

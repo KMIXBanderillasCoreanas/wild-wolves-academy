@@ -443,7 +443,7 @@ export default function HomeTrainingCalendar({
           </div>
         </div>
 
-        {/* 3. BATERÍA ISOMÉTRICA */}
+        {/* 3. SERIES ISOMÉTRICAS */}
         <div className="bg-[#121622] border border-sky-500/20 p-4 rounded-2xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-mono uppercase font-bold text-sky-400 flex items-center gap-1.5">
@@ -713,7 +713,7 @@ export default function HomeTrainingCalendar({
             </div>
           </div>
 
-          {/* Campo Batería Isométrica & Polainas */}
+          {/* Campo Series Isométricas & Polainas */}
           <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
             <label className="text-[11px] font-bold uppercase text-zinc-400">Nivel de Plancha Isométrica</label>
             <div className="grid grid-cols-3 gap-1">

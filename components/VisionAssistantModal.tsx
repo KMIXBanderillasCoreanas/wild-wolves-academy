@@ -209,7 +209,7 @@ export default function VisionAssistantModal({
             }`}
           >
             <span className="text-[9px] uppercase font-mono block font-bold text-orange-400">Prueba 2</span>
-            <span className="text-xs font-black block">Batería 3x25</span>
+            <span className="text-xs font-black block">Series 3x25</span>
           </button>
 
           <button

@@ -337,6 +337,23 @@ export function Navbar() {
             </Link>
           )}
 
+          {/* Bazar Lobo: Trueque y Compraventa Deportiva Comunitaria */}
+          <Link
+            href="/marketplace"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold font-mono tracking-wider transition border ${
+              pathname === '/marketplace'
+                ? 'bg-orange-500/20 text-orange-400 border-orange-500/40 shadow-sm'
+                : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60 border-transparent hover:border-zinc-700'
+            }`}
+            title="Bazar Lobo - Trueque y Compraventa en Duela"
+          >
+            <span className="text-sm">🏀</span>
+            <span>Bazar Lobo</span>
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Nuevo
+            </span>
+          </Link>
+
           {/* Accesos Directos Oficiales Fase 2: Tienda Wolves & Gira Nacional */}
           <button
             type="button"

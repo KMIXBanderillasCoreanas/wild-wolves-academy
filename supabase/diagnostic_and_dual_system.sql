@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.basketball_skills_logs (
   is_speed_lines_active BOOLEAN DEFAULT TRUE,
   is_flight_active BOOLEAN DEFAULT TRUE,
 
-  -- Batería de Tiro
+  -- Series de Tiro
   shooting_base_attempts INT DEFAULT 5 CHECK (shooting_base_attempts IN (5, 10)),
   free_throws_made INT DEFAULT 0,
   mid_range_made INT DEFAULT 0,

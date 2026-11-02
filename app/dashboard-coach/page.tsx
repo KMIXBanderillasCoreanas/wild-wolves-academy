@@ -23,6 +23,7 @@ import { RopeTracker } from '@/components/RopeTracker';
 import { EnduranceCalendar } from '@/components/EnduranceCalendar';
 import { MedicalModal } from '@/components/MedicalModal';
 import { WhatsAppReportButton } from '@/components/WhatsAppReportButton';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { AttendanceTracker } from '@/components/AttendanceTracker';
 import CourtAttendanceCommand from '@/components/CourtAttendanceCommand';
 import TestDayEvaluator from '@/components/TestDayEvaluator';
@@ -59,7 +60,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-export default function CoachDashboardPage() {
+function CoachDashboardContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('ww_mateo_07');
@@ -1532,5 +1533,13 @@ export default function CoachDashboardPage() {
       )}
       </div>
     </>
+  );
+}
+
+export default function CoachDashboardPage() {
+  return (
+    <ErrorBoundary fallbackTitle="Portal del Coach - Modo Seguro">
+      <CoachDashboardContent />
+    </ErrorBoundary>
   );
 }

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import { RadarChart360 } from "@/components/RadarChart360";
+import DuelaTransformacion from "@/components/DuelaTransformacion";
 
 export default function WildWolvesHome() {
   const router = useRouter();
@@ -496,6 +497,9 @@ export default function WildWolvesHome() {
           ))}
         </div>
       </section>
+
+      {/* SECCIÓN DUELA DE TRANSFORMACIÓN: CASOS DE ÉXITO CON YOUTUBE */}
+      <DuelaTransformacion />
 
       {/* SECCIÓN DE CREDIBILIDAD, RADAR 360° Y CÓDIGO QR CON LOGO EMBEBIDO */}
       <section className="relative z-10 py-12 px-4 max-w-5xl mx-auto w-full">

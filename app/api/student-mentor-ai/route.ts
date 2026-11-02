@@ -34,9 +34,9 @@ export async function POST(req: Request) {
     const userEmail = (user?.email || "").toLowerCase().trim();
     const isMasterCoach = userEmail === "wildwolvescdmx@gmail.com" || userEmail === "ricardo@wildwolves.mx";
 
-    // 2. CONTROL DE CUOTAS (3 CONSULTAS GRATUITAS MENSUALES PARA ALUMNOS Y TUTORES)
+    // 2. CONTROL DE CUOTAS RIGUROSO (5 CONSULTAS MENSUALES FREE, 50 LOBO PRO, 100 FAMILIAR ÉLITE)
     let currentUsage = 1;
-    let maxQueries = 3;
+    let maxQueries = 5;
 
     if (!isMasterCoach) {
       if (user?.id) {
@@ -47,20 +47,31 @@ export async function POST(req: Request) {
           .eq("id", user.id)
           .maybeSingle();
 
-        if (prof?.ai_plan === "pro") maxQueries = 30;
-        else if (prof?.ai_plan === "elite_familiar") maxQueries = 60;
-        else maxQueries = 3;
+        if (prof?.ai_plan === "pro" || prof?.ai_plan === "standard_99") {
+          maxQueries = 50;
+        } else if (prof?.ai_plan === "elite_familiar" || prof?.ai_plan === "family_199") {
+          maxQueries = 100;
+        } else {
+          maxQueries = 5; // Plan Free / Invitado
+        }
 
         currentUsage = (prof?.ai_queries_used || 0) + 1;
 
         if (currentUsage > maxQueries) {
+          const coachWhatsAppUrl = `https://wa.me/525522427769?text=${encodeURIComponent(
+            `Hola Coach Ricardo, alcancé mi límite mensual de ${maxQueries} consultas de IA en Wild Wolves CDMX. Quisiera activar mi suscripción Lobo Pro ($99 MXN) o Pack Familiar Élite ($149 MXN).`
+          )}`;
+
           return NextResponse.json({
-            reply: `🐺 *Límite de Consultas Alcanzado*\n\nHas utilizado tus ${maxQueries} consultas gratuitas de este mes en Wild Wolves CDMX.\n\nPara desbloquear asesoría ilimitada 24/7 de mecánicas de tiro, rutinas de casa y preparación de Combine, consulta con el Head Coach Ricardo sobre la **Membresía Lobo Pro ($99 MXN/mes)** o el **Pack Familiar Élite ($149 MXN/mes)**.`,
+            reply: `🐺 *Límite Mensual de Consultas de IA Alcanzado*\n\nHas consumido tus **${maxQueries} consultas disponibles** de este mes en Wild Wolves CDMX.\n\nPara desbloquear análisis continuo de mecánicas de tiro, corrección biomecánica y preparación táctica, activa tu plan con el Head Coach Ricardo en duela:\n\n• **Atleta Lobo Pro ($99 MXN/mes):** 50 consultas + módulo de biomecánica de tiro.\n• **Pack Familiar Élite ($149 MXN/mes):** 100 consultas compartidas + reportes detallados para tutores.`,
             isExceeded: true,
+            whatsappUrl: coachWhatsAppUrl,
+            used: currentUsage - 1,
+            max: maxQueries
           });
         }
 
-        // Actualizar contador
+        // Actualizar contador en profiles
         await supabase
           .from("profiles")
           .update({ ai_queries_used: currentUsage })
@@ -70,13 +81,27 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GROQ_API_KEY;
 
-    // 3. CANDADO TEMÁTICO DE SEGURIDAD (SOLO BALONCESTO, ENTRENAMIENTO, REGLAS Y NUTRICIÓN DEPORTIVA)
+    // 3. CANDADO TEMÁTICO DE SEGURIDAD Y MANUALES DE REFERENCIA OFICIALES (REFERENCE BOOKS)
     const systemPrompt = `Eres "Lobo Mentor IA", el asesor deportivo oficial de la academia Wild Wolves CDMX (Deportivo Carmen Serdán) para atletas y tutores familiares.
 CANDADO TEMÁTICO ESTRICTO:
-- ÚNICAMENTE respondes sobre: básquetbol formativo, reglas FIBA, técnica de tiro, salto vertical, Batería 3x25, estiramientos, hidratación y prevención de lesiones deportivas.
+- ÚNICAMENTE respondes sobre: básquetbol formativo, reglas FIBA, técnica de tiro, salto vertical, series de entrenamiento 3x25, estiramientos, preparación física oficial, nutrición e hidratación de duela y prevención de lesiones deportivas.
 - Si el usuario pregunta de temas ajenos a la academia o al baloncesto, responde amablemente que solo estás facultado para asesorar sobre el entrenamiento de Wild Wolves CDMX.
 - Nivel de lenguaje: Motivador, claro, estructurado, profesional y pedagógico.
-- Categoría de usuario: ${category === "guardian" ? "Tutor Familiar" : "Atleta Lobo"}.`;
+- Categoría de usuario: ${category === "guardian" ? "Tutor Familiar" : "Atleta Lobo"}.
+
+MANUAL DE PREPARACIÓN FÍSICA OFICIAL (DEPORTIVO CARMEN SERDÁN):
+- Enfoque: Entrenamiento al aire libre en las duelas y canchas del Deportivo Carmen Serdán.
+- Equipamiento base permitido: Peso corporal (calistenia), mancuernas ligeras de 2 kg y bandas o poleas de resistencia de 2 kg.
+- Tren Inferior (Salto y Explosividad): Sentadillas estáticas en pared (Wall-sits a 60°-90°), desplantes caminando, saltos pliométricos con recepción controlada punta-planta-talón y elevaciones de pantorrilla a una pierna.
+- Core y Estabilidad: Plancha abdominal frontal y lateral (tiempo bajo tensión de 30-45s), elevaciones de piernas y dead bugs para estabilidad lumbopélvica.
+- Tren Superior (Mancuernas 2 kg / Bandas): Press militar ligero, elevaciones laterales, curl de bíceps con banda/polea y extensiones de tríceps para el tiro.
+
+GUÍA OFICIAL DE NUTRICIÓN E HIDRATACIÓN (DIRECTRIZ ESTRICTA):
+Para orientar sobre alimentos y líquidos recomendados, utiliza EXCLUSIVAMENTE estos lineamientos oficiales:
+1. Agua Natural: Consumo base y obligatorio antes, durante y después de los entrenamientos (turnos matutino 09:00–11:00 y vespertino 17:00–19:00).
+2. Bebidas Electrolíticas Caseras / Refresher Naturales: Recomienda opciones ricas en minerales naturales (agua con pizca de sal marina, jugo de limón y toque de miel natural, o electrolitos limpios sin exceso de azúcares procesados ni colorantes) para evitar calambres y deshidratación en duela exterior.
+3. Snacks Pre-Entrenamiento (45 min antes): Alimentos de rápida y fácil digestión: plátano maduro con crema de cacahuate o miel, avena ligera cocida en agua o fruta de temporada. Nunca aconsejes frituras, grasas saturadas o lácteos pesados antes del entrenamiento.
+4. Recuperación Post-Entrenamiento (30-60 min): Proteínas de alta calidad (pollo, huevo, atún, queso panela, legumbres) combinadas con carbohidratos complejos (arroz, avena, tortillas de maíz, papa) para reparar fibras musculares.`;
 
     const activeModels = [
       "qwen/qwen3.8-27b",
