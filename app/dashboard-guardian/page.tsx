@@ -9,6 +9,9 @@ import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import LoboProModal from "@/components/LoboProModal";
 import SubscriptionBannerAlert from "@/components/SubscriptionBannerAlert";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import UpgradeModal from "@/components/UpgradeModal";
+import DemoModeToggle from "@/components/DemoModeToggle";
+import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
 import { 
   generarReporteWhatsAppTutor,
@@ -40,7 +43,9 @@ import {
   Heart,
   Smile,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  Lock,
+  KeyRound
 } from "lucide-react";
 
 // Constantes de Seguridad y Respaldo por Omisión (Safety Guards)
@@ -95,7 +100,9 @@ const DEFAULT_UNIFIED_TEST = {
 };
 
 function GuardianDashboardContent() {
+  const { isPro: isProMode, setMode: setDemoMode } = useSubscriptionTier();
   const [mounted, setMounted] = useState<boolean>(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [guardianProfile, setGuardianProfile] = useState<any>({
     full_name: "Tutor Familiar",
     relationship_type: "padre_madre",
@@ -706,51 +713,107 @@ function GuardianDashboardContent() {
             </div>
           </div>
 
-          {/* CUERPO DEL MENSAJE DEL COACH (ESTILO BURBUJA CÁLIDA) */}
-          <div className="bg-black/50 border border-amber-500/30 rounded-2xl p-5 sm:p-6 relative">
-            <div className="text-zinc-100 text-base sm:text-lg leading-relaxed font-normal">
-              {coachReportLoading ? (
-                <div className="flex items-center gap-3 text-amber-300 py-3">
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span className="text-sm font-medium">
-                    El Coach Ricardo está redactando las observaciones de esta semana para tu familia...
-                  </span>
+          {/* CUERPO DEL MENSAJE DEL COACH (ESTILO BURBUJA CÁLIDA O PAYWALL EN MODO GRATUITO) */}
+          <div className="bg-black/50 border border-amber-500/30 rounded-2xl p-5 sm:p-6 relative overflow-hidden">
+            {isProMode ? (
+              <>
+                <div className="text-zinc-100 text-base sm:text-lg leading-relaxed font-normal">
+                  {coachReportLoading ? (
+                    <div className="flex items-center gap-3 text-amber-300 py-3">
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span className="text-sm font-medium">
+                        El Coach Ricardo está redactando las observaciones de esta semana para tu familia...
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">
+                      {coachHumanReport || `¡Hola familia de ${studentName}! Esta semana en la duela del Deportivo Carmen Serdán vimos a ${studentName} con una actitud ejemplar, lleno de energía y enfocado en cada ejercicio. Lleva ${attendanceCount} entrenamientos con nosotros este mes demostrando un compromiso enorme y manteniéndose en un peso muy saludable (${latestTest?.weight_kg || studentProfile?.weight_kg || 68.4} kg) con excelente condición física. Su esfuerzo, respeto y ganas de aprender nos llenan de orgullo a todos en la academia. ¡Muchas gracias por apoyarlo día con día desde casa para que siga creciendo con la manada!`}
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <p className="whitespace-pre-wrap">
-                  {coachHumanReport || `¡Hola familia de ${studentName}! Esta semana en la duela del Deportivo Carmen Serdán vimos a ${studentName} con una actitud ejemplar, lleno de energía y enfocado en cada ejercicio. Lleva ${attendanceCount} entrenamientos con nosotros este mes demostrando un compromiso enorme y manteniéndose en un peso muy saludable (${latestTest?.weight_kg || studentProfile?.weight_kg || 68.4} kg) con excelente condición física. Su esfuerzo, respeto y ganas de aprender nos llenan de orgullo a todos en la academia. ¡Muchas gracias por apoyarlo día con día desde casa para que siga creciendo con la manada!`}
-                </p>
-              )}
-            </div>
 
-            {/* FIRMA Y BOTÓN DE COMPARTIR POR WHATSAPP */}
-            <div className="mt-4 pt-3 border-t border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Validado por: <strong className="text-zinc-200">Head Coach Ricardo</strong> (Wild Wolves Academy CDMX)</span>
+                {/* FIRMA Y BOTÓN DE COMPARTIR POR WHATSAPP */}
+                <div className="mt-4 pt-3 border-t border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Validado por: <strong className="text-zinc-200">Head Coach Ricardo</strong> (Wild Wolves Academy CDMX)</span>
+                  </div>
+
+                  <button
+                    onClick={handleCopyCoachReport}
+                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition cursor-pointer shadow-md ${
+                      copiedCoachReport
+                        ? "bg-emerald-600 text-white shadow-emerald-900/50"
+                        : "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-950/40"
+                    }`}
+                  >
+                    {copiedCoachReport ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>¡Copiado! Listo para WhatsApp Familiar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar Mensaje para WhatsApp Familiar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* MODO GRATUITO: Capa Traslúcida y Tarjeta Persuasiva */
+              <div className="relative py-6 flex flex-col items-center text-center space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
+                  <Lock className="w-6 h-6 animate-pulse" />
+                </div>
+
+                <div className="space-y-1.5 max-w-lg">
+                  <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-widest">
+                    Acceso Exclusivo Atleta Lobo Pro / Pack Familiar Élite
+                  </span>
+                  <h3 className="text-base sm:text-lg font-black uppercase text-white tracking-wide">
+                    El Reporte del Coach Requiere Folio Activo
+                  </h3>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Las observaciones semanales en lenguaje natural redactadas por el Head Coach Ricardo para la familia de <strong className="text-white">{studentName}</strong> forman parte del beneficio Lobo Pro / Familiar de 30 días ($99 MXN).
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                  <a
+                    href={`https://wa.me/525522427769?text=${encodeURIComponent(
+                      `¡Hola Coach Ricardo! 🐺🏀 Quiero activar el Folio Lobo Pro de 30 días para acceder al Reporte Semanal de mi atleta: ${studentName}. ¿Me comparte los datos de pago por favor?`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-950/60 transition active:scale-95"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Pedir Folio por WhatsApp ($99)</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 border border-zinc-700 hover:border-amber-500/50 text-xs font-bold transition flex items-center gap-2"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Canjear Folio</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDemoMode("pro")}
+                    className="px-3 py-2 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/40 text-cyan-300 text-[10px] font-mono font-bold transition flex items-center gap-1.5"
+                    title="Alternar a Pro en modo demo"
+                  >
+                    <Sparkles className="w-3 h-3 text-cyan-400" />
+                    <span>Probar Desbloqueo en Demo</span>
+                  </button>
+                </div>
               </div>
-
-              <button
-                onClick={handleCopyCoachReport}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition cursor-pointer shadow-md ${
-                  copiedCoachReport
-                    ? "bg-emerald-600 text-white shadow-emerald-900/50"
-                    : "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-950/40"
-                }`}
-              >
-                {copiedCoachReport ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span>¡Copiado! Listo para WhatsApp Familiar</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copiar Mensaje para WhatsApp Familiar</span>
-                  </>
-                )}
-              </button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -1376,6 +1439,21 @@ function GuardianDashboardContent() {
       <footer className="border-t border-zinc-800/80 py-4 px-4 text-center text-[10px] font-mono text-zinc-500">
         Wild Wolves Basketball Academy CDMX • Deportivo Carmen Serdán • Sistema Oficial de Acompañamiento Familiar
       </footer>
+
+      {/* INTERRUPTOR MODO DEMO FLOTANTE PARA TUTORES */}
+      <DemoModeToggle variant="floating" />
+
+      {/* MODAL DE SUSCRIPCIÓN Y PAYWALL */}
+      {showUpgradeModal && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          featureTitle="El Reporte Semanal Humano del Coach Ricardo"
+          featureDescription="Desbloquea las observaciones semanales en lenguaje natural, telemetría de tiro y seguimiento biométrico con tu Folio Lobo Pro de 30 días ($99 MXN o Plan Familiar $149)."
+          studentName={studentName}
+          onActivated={() => setShowUpgradeModal(false)}
+        />
+      )}
 
     </div>
   );

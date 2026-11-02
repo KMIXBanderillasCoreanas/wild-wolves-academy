@@ -1,12 +1,17 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Bot, Send, X, Sparkles, MessageSquare, Dumbbell, ShieldCheck, Flame, RefreshCw } from "lucide-react";
+import { Bot, Send, X, Sparkles, MessageSquare, Dumbbell, ShieldCheck, Flame, RefreshCw, Lock, Crown } from "lucide-react";
 import FenrirAvatar, { FenrirMood } from "@/components/FenrirAvatar";
+import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
+import UpgradeModal from "@/components/UpgradeModal";
 
 export default function TacticalAIAssistant({ athleteContext }: { athleteContext?: any }) {
+  const { isPro } = useSubscriptionTier();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [queryCount, setQueryCount] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [mood, setMood] = useState<FenrirMood>("neutral");
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([
     {
@@ -31,6 +36,21 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
     if (e) e.preventDefault();
     const textToSend = customPrompt || input;
     if (!textToSend.trim() || loading) return;
+
+    // Validación de límite en Modo Gratuito
+    if (!isPro && queryCount >= 1) {
+      setShowUpgradeModal(true);
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: textToSend },
+        {
+          role: "assistant",
+          content: "🐺 **Límite Gratuito Alcanzado**: Has completado tu consulta de cortesía con Lobo Táctico IA. Para desbloquear consultas tácticas ilimitadas, análisis biomecánico de tiro y dosificación de saltos, adquiere tu **Folio Lobo Pro de 30 días ($99 MXN)** con el Coach Ricardo.",
+        },
+      ]);
+      if (!customPrompt) setInput("");
+      return;
+    }
 
     const userMsg = { role: "user", content: textToSend };
     const updatedMessages = [...messages, userMsg];
@@ -64,6 +84,7 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
 
       const data = await res.json();
       setMessages([...updatedMessages, { role: "assistant", content: data.reply }]);
+      setQueryCount((prev) => prev + 1);
 
       // Refinar emoción según respuesta recibida si es relevante
       const lowerReply = (data.reply || "").toLowerCase();
@@ -218,6 +239,17 @@ export default function TacticalAIAssistant({ athleteContext }: { athleteContext
             </button>
           </form>
         </div>
+      )}
+
+      {/* Paywall Ventana de Venta para Lobo Táctico IA */}
+      {showUpgradeModal && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          featureTitle="Consultas Ilimitadas con Lobo Táctico IA"
+          featureDescription="Desbloquea recomendaciones biomecánicas, dosificación de entrenamientos en duela y resolución de dudas tácticas sin límites con tu membresía de 30 días ($99 MXN)."
+          onActivated={() => setShowUpgradeModal(false)}
+        />
       )}
     </>
   );

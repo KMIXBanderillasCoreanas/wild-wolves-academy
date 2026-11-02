@@ -49,16 +49,16 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
 
           <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-widest mb-2">
-            Módulo Protegido • Wild Wolves CDMX
+            Sesión y Duela Protegida • Wild Wolves CDMX
           </span>
 
           <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-wide">
-            {this.props.fallbackTitle || 'Aviso de Sincronización Temporal'}
+            {this.props.fallbackTitle || 'Sesión no detectada / Reintentar conexión'}
           </h3>
 
           <p className="text-xs text-zinc-400 max-w-md mt-1.5 leading-relaxed">
             {this.props.fallbackMessage ||
-              'La información de duela se está actualizando desde los servidores. Puedes reintentar la conexión segura o recargar el panel de control.'}
+              'No se pudieron recuperar los registros en tiempo real o la sesión expiró. Puedes reintentar la conexión segura o recargar el panel de control.'}
           </p>
 
           {process.env.NODE_ENV === 'development' && this.state.error && (

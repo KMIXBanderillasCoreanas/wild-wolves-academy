@@ -6,6 +6,7 @@ export type SubscriptionTierMode = 'free' | 'pro' | 'auto';
 
 export interface SubscriptionTierState {
   isPro: boolean;
+  isProMode: boolean; // Alias explícito solicitado para alternancia Freemium vs De Paga
   tier: 'free' | 'pro';
   mode: SubscriptionTierMode;
   isDemoActive: boolean;
@@ -101,6 +102,7 @@ export function useSubscriptionTier(initialIsPro: boolean = false): Subscription
 
   return {
     isPro,
+    isProMode: isPro,
     tier,
     mode: demoMode,
     isDemoActive,

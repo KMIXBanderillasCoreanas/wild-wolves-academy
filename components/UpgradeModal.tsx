@@ -110,7 +110,7 @@ export default function UpgradeModal({
                 <Sparkles className="h-3 w-3" /> Membresía Oficial de Duela
               </div>
               <h3 className="mt-1 text-lg font-black uppercase tracking-wide text-white sm:text-xl">
-                Desbloquea el Acceso Lobo Pro
+                Acceso Exclusivo Atleta Lobo Pro / Pack Familiar Élite
               </h3>
             </div>
           </div>

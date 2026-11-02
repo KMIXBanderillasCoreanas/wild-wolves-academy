@@ -172,7 +172,7 @@ export default function VideoPlayer({
                       Contenido Exclusivo • Videoteca Carmen Serdán
                     </span>
                     <h4 className="text-base sm:text-lg font-black text-white uppercase tracking-wide">
-                      Lección Reservada para Atletas Lobo Pro
+                      Acceso Exclusivo Atleta Lobo Pro / Pack Familiar Élite
                     </h4>
                     <p className="text-xs text-zinc-300 max-w-md leading-relaxed">
                       Esta lección técnica y su desglose biomecánico están disponibles con tu <strong>Folio de Activación Lobo Pro de 30 días ($99 MXN)</strong>.

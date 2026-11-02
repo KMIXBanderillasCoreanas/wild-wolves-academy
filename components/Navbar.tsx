@@ -384,9 +384,9 @@ export function Navbar() {
         </div>
 
         {/* LADO DERECHO: Chip de Perfil Oficial, Modo Demo y Logout */}
-        <div className="flex items-center gap-2.5">
-          {/* Interruptor Modo Demo para Previsualizar Bloqueos y Desbloqueos */}
-          <DemoModeToggle variant="navbar" className="hidden sm:inline-flex" />
+        <div className="flex items-center gap-2">
+          {/* Interruptor Modo Demo (FREE vs PRO) en Header Principal */}
+          <DemoModeToggle variant="navbar" className="inline-flex" />
 
           {hasActiveSession ? (
             <>
