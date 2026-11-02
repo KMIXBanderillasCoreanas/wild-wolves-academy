@@ -12,7 +12,9 @@ import {
   Menu, 
   X,
   HeartHandshake,
-  BookOpen
+  BookOpen,
+  Target,
+  Flame
 } from 'lucide-react';
 import DemoModeToggle from '@/components/DemoModeToggle';
 
@@ -56,6 +58,13 @@ export function Navbar() {
       label: 'Duela (Coach)',
       icon: Users,
       isActive: pathname?.startsWith('/dashboard-coach'),
+      isAccent: false
+    },
+    {
+      href: '/nba-intelligence',
+      label: 'Player DNA (NBA)',
+      icon: Target,
+      isActive: pathname?.startsWith('/nba-intelligence') || pathname?.startsWith('/player-dna'),
       isAccent: false
     },
     {

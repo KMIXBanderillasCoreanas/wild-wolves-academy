@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import DuelaHolografica3D from "@/components/DuelaHolografica3D";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import BiomechanicsProBenchmark from "@/components/BiomechanicsProBenchmark";
+import { StudentVsNbaComparison } from "@/components/nba/StudentVsNbaComparison";
 import CourtRulesEncyclopedia from "@/components/CourtRulesEncyclopedia";
 import LoboProModal from "@/components/LoboProModal";
 import SubscriptionBannerAlert from "@/components/SubscriptionBannerAlert";
@@ -1238,6 +1239,7 @@ function GuardianDashboardContent() {
             isGuardianView={true}
             isPro={isProMode}
           />
+          <StudentVsNbaComparison />
         </ErrorBoundary>
 
         {/* SECCIÓN DE MEDALLAS DESBLOQUEADAS */}

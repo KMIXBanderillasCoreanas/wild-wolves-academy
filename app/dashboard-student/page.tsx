@@ -16,6 +16,9 @@ import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import CourtHeatmapPro from "@/components/CourtHeatmapPro";
 import DuelaHolografica3D from "@/components/DuelaHolografica3D";
 import BiomechanicsProBenchmark from "@/components/BiomechanicsProBenchmark";
+import { StudentVsNbaComparison } from "@/components/nba/StudentVsNbaComparison";
+import { InteractiveShotChartKinexon } from "@/components/nba/InteractiveShotChartKinexon";
+import { NbaIntelligenceMasterHub } from "@/components/nba/NbaIntelligenceMasterHub";
 import CourtRulesEncyclopedia from "@/components/CourtRulesEncyclopedia";
 import PrehabRecoveryCard from "@/components/PrehabRecoveryCard";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
@@ -2340,6 +2343,11 @@ function StudentDashboardContent() {
                   hipTrackingAwareness: 84
                 }}
               />
+
+              {/* SUITE COMPLETA: WILD WOLVES PLAYER DNA & LAS 4 GRÁFICAS NBA */}
+              <div className="pt-4">
+                <NbaIntelligenceMasterHub />
+              </div>
             </section>
 
             {/* 4.02 SALUD PREVENTIVA Y ESTIRAMIENTOS (PRE-HAB & COOL-DOWN) (REQUIERE LOBO PRO) */}
