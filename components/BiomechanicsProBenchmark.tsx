@@ -13,9 +13,12 @@ import {
   Crosshair, 
   CheckCircle2, 
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
 import { requestBiomechanicsAuditAction } from '@/app/actions/biomechanics-actions';
+import PaywallLockCard from '@/components/PaywallLockCard';
 
 interface ProBenchMetrics {
   reactionTimeMs: number;
@@ -26,16 +29,20 @@ interface ProBenchMetrics {
   hipTrackingAwareness: number;
 }
 
-interface BiomechanicsProBenchmarkProps {
-  athleteName: string;
+export interface BiomechanicsProBenchmarkProps {
+  athleteName?: string;
   studentId?: string;
   studentMetrics?: Partial<ProBenchMetrics>;
+  isGuardianView?: boolean;
+  isPro?: boolean;
 }
 
 export default function BiomechanicsProBenchmark({
   athleteName = 'Bruno Sánchez',
   studentId = 'demo-student',
-  studentMetrics
+  studentMetrics,
+  isGuardianView = false,
+  isPro = false
 }: BiomechanicsProBenchmarkProps) {
   const [analyzing, setAnalyzing] = useState(false);
   const [aiReport, setAiReport] = useState<string | null>(null);
@@ -64,7 +71,6 @@ export default function BiomechanicsProBenchmark({
   // Cálculo de Porcentajes de Brecha (Normalizados a 100% de escala visual)
   const calcEfficiency = (student: number, pro: number, lowerIsBetter: boolean) => {
     if (lowerIsBetter) {
-      // Si menor es mejor, la eficiencia sube mientras más cerca esté del benchmark inferior
       const ratio = pro / Math.max(student, 1);
       return Math.min(Math.round(ratio * 100), 100);
     }
@@ -111,6 +117,10 @@ export default function BiomechanicsProBenchmark({
     }
   ];
 
+  const avgEfficiency = Math.round(
+    benchmarks.reduce((acc, curr) => acc + curr.pct, 0) / benchmarks.length
+  );
+
   const handleRunAiAudit = async () => {
     setAnalyzing(true);
     setErrorMessage(null);
@@ -125,7 +135,7 @@ export default function BiomechanicsProBenchmark({
         jumpApexHeightCm: metrics.jumpApexHeightCm,
         defensiveStanceScore: metrics.defensiveStanceScore,
         hipTrackingAwareness: metrics.hipTrackingAwareness,
-        planType: 'free'
+        planType: isPro ? 'pro' : 'free'
       });
 
       if (res.success && res.data) {
@@ -140,26 +150,17 @@ export default function BiomechanicsProBenchmark({
     }
   };
 
-  return (
-    <div className="bg-[#0b0e14] border border-[#1e293b] rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
-      {/* Luz de acento HUD */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* ENCABEZADO DE TELEMETRÍA */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800/80 gap-4">
+  const cinematicContent = (
+    <div className="space-y-6">
+      {/* Botón de auditoría y encabezado interno */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-zinc-800/80 gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-black uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-orange-400 animate-pulse" /> TELEMETRÍA CINEMÁTICA V3.2
-            </span>
-            <span className="text-[11px] font-mono text-zinc-400">FIBA / NBA BENCHMARK</span>
-          </div>
-          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white mt-1.5 flex items-center gap-2">
-            Reporte de Brecha: Atleta vs. Estándar Pro NBA
-          </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Comparativa en milisegundos y grados cinemáticos de <span className="text-orange-400 font-bold">{athleteName}</span> contra el benchmark élite.
-          </p>
+          <span className="text-[10px] font-mono text-zinc-400 uppercase">
+            Desglose de Milisegundos y Ángulos
+          </span>
+          <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
+            Cinemática Detallada en Duela
+          </h4>
         </div>
 
         <button
@@ -174,7 +175,7 @@ export default function BiomechanicsProBenchmark({
 
       {/* ERROR / CUOTA ALERT */}
       {errorMessage && (
-        <div className="mt-4 p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3">
+        <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div>
             <p className="font-bold">Aviso del Sistema de Consultas:</p>
@@ -184,7 +185,7 @@ export default function BiomechanicsProBenchmark({
       )}
 
       {/* BARRAS DE PROGRESO DE BRECHA */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {benchmarks.map((item) => (
           <div
             key={item.id}
@@ -231,7 +232,7 @@ export default function BiomechanicsProBenchmark({
 
       {/* INFORME DESPLEGADO DE LA IA (LOBO TÁCTICO) */}
       {aiReport && (
-        <div className="mt-6 p-5 rounded-2xl bg-gradient-to-br from-[#121824] to-[#0c1017] border border-orange-500/30 shadow-xl animate-fade-in">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-[#121824] to-[#0c1017] border border-orange-500/30 shadow-xl animate-fade-in">
           <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
@@ -246,6 +247,103 @@ export default function BiomechanicsProBenchmark({
             {aiReport}
           </div>
         </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="bg-[#0b0e14] border border-[#1e293b] rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+      {/* Luz de acento HUD */}
+      <div className="absolute top-0 right-0 w-80 h-80 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* ENCABEZADO DE TELEMETRÍA */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800/80 gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-black uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-orange-400 animate-pulse" /> TELEMETRÍA CINEMÁTICA V3.2
+            </span>
+            <span className="text-[11px] font-mono text-zinc-400">FIBA / NBA BENCHMARK</span>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white mt-1.5 flex items-center gap-2">
+            Reporte de Brecha: Atleta vs. Estándar Pro NBA / FIBA
+          </h3>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Comparativa en milisegundos y grados cinemáticos de <span className="text-orange-400 font-bold">{athleteName}</span> contra el benchmark élite.
+          </p>
+        </div>
+      </div>
+
+      {/* ESQUEMA HÍBRIDO PARA TUTORES: 1. RESUMEN EJECUTIVO EN LENGUAJE HUMANO (GRATIS) */}
+      {isGuardianView && (
+        <div className="bg-gradient-to-r from-[#121927] to-[#0f1422] border-2 border-emerald-500/40 rounded-2xl p-5 mb-6 space-y-3 shadow-lg">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-black block">
+                  Resumen Ejecutivo para Familias (Acceso Libre)
+                </span>
+                <h4 className="text-sm sm:text-base font-black text-white">
+                  Diagnóstico Formativo de {athleteName}
+                </h4>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-black px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              🟢 {avgEfficiency}% Acoplamiento Pro
+            </span>
+          </div>
+
+          <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed font-normal">
+            Tu atleta se encuentra a un <strong className="text-emerald-300">{avgEfficiency}% de madurez neuromuscular</strong> respecto al estándar formativo internacional. Muestra gran disciplina física, velocidad lateral y postura defensiva en el Deportivo Carmen Serdán.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div className="p-3 bg-black/40 rounded-xl border border-zinc-800">
+              <span className="text-[10px] font-black uppercase text-emerald-400 block mb-1">
+                🟢 Fortaleza Clave
+              </span>
+              <p className="text-xs text-zinc-300">
+                Postura defensiva baja y tiempo de reacción rápido ante el pase rival.
+              </p>
+            </div>
+            <div className="p-3 bg-black/40 rounded-xl border border-zinc-800">
+              <span className="text-[10px] font-black uppercase text-amber-400 block mb-1">
+                🟡 Enfoque en Duela
+              </span>
+              <p className="text-xs text-zinc-300">
+                Optimizar el Paso Cero (Gather Step) para soltar el balón sin perder altura.
+              </p>
+            </div>
+            <div className="p-3 bg-black/40 rounded-xl border border-zinc-800">
+              <span className="text-[10px] font-black uppercase text-sky-400 block mb-1">
+                💡 Tarea en el Hogar
+              </span>
+              <p className="text-xs text-zinc-300">
+                Completar 300 saltos de cuerda diarios para potenciar la reactividad de tobillos.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. COMPARATIVA CINEMÁTICA AVANZADA EN MILISEGUNDOS */}
+      {isGuardianView ? (
+        <PaywallLockCard
+          isLocked={!isPro}
+          title="Comparativa Cinemática Avanzada en Milisegundos"
+          badgeText="Pack Familiar Élite $149"
+          planName="Pack Familiar Élite"
+          planPrice="$149 MXN"
+          description="El desglose segundo a segundo de tiempo de liberación (release), gathering y cinemática de cadera está reservado para el Pack Familiar Élite ($149 MXN)."
+          studentName={athleteName}
+        >
+          {cinematicContent}
+        </PaywallLockCard>
+      ) : (
+        cinematicContent
       )}
     </div>
   );
