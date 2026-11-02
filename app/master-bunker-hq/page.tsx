@@ -64,6 +64,33 @@ function MasterBunkerHQContent() {
   const [adminLabel, setAdminLabel] = useState("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
   const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "roster_community" | "security_sentinel" | "smart_placement" | "roster_becas" | "retroactivo" | "test_day" | "home_training" | "guardians" | "coaches" | "whatsapp_crm" | "video_approval" | "activation_codes">("attendance");
   const [rosterSubView, setRosterSubView] = useState<"all_roster" | "guardians" | "smart_placement" | "whatsapp" | "staff_coaches">("all_roster");
+  const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical" | "combine" | "test_day_ovr">("command");
+  const [selectedAthleteForTestDay, setSelectedAthleteForTestDay] = useState<string>("");
+  const [testDaySubView, setTestDaySubView] = useState<"express" | "dual" | "ovr">("express");
+  const [coaches, setCoaches] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+
+  // Estado del Modal de Ajuste Retroactivo SuperAdmin
+  const [adminAdjustModalOpen, setAdminAdjustModalOpen] = useState(false);
+  const [adminAdjustInitialData, setAdminAdjustInitialData] = useState<AdminModalInitialData | null>(null);
+  
+  // Estado Offline-First (inicializado siempre como true para SSR/hydration consistency)
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  // Métricas financieras calculadas
+  const [metrics, setMetrics] = useState({
+    day: 0,
+    week: 0,
+    month: 0,
+    year: 0,
+    totalDebt: 0,
+    debtCount: 0
+  });
+  const [debtorsList, setDebtorsList] = useState<any[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -135,33 +162,6 @@ function MasterBunkerHQContent() {
       };
     }
   }, []);
-  const [attendanceSubView, setAttendanceSubView] = useState<"command" | "historical" | "combine" | "test_day_ovr">("command");
-  const [selectedAthleteForTestDay, setSelectedAthleteForTestDay] = useState<string>("");
-  const [testDaySubView, setTestDaySubView] = useState<"express" | "dual" | "ovr">("express");
-  const [coaches, setCoaches] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
-
-  // Estado del Modal de Ajuste Retroactivo SuperAdmin
-  const [adminAdjustModalOpen, setAdminAdjustModalOpen] = useState(false);
-  const [adminAdjustInitialData, setAdminAdjustInitialData] = useState<AdminModalInitialData | null>(null);
-  
-  // Estado Offline-First (inicializado siempre como true para SSR/hydration consistency)
-  const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [syncToast, setSyncToast] = useState<string | null>(null);
-
-  // Métricas financieras calculadas
-  const [metrics, setMetrics] = useState({
-    day: 0,
-    week: 0,
-    month: 0,
-    year: 0,
-    totalDebt: 0,
-    debtCount: 0
-  });
-  const [debtorsList, setDebtorsList] = useState<any[]>([]);
 
   const handleGoogleLogin = async () => {
     try {

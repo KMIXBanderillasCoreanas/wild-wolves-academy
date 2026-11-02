@@ -1157,134 +1157,154 @@ function GuardianDashboardContent() {
 
         </div>
 
-        {/* RESUMEN BIOMÉTRICO Y COMPOSICIÓN CORPORAL (TELEMETRÍA DE BÁSCULA OKOK) */}
-        <div className="bg-[#0b0e17] border border-fuchsia-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 shrink-0">
-                <Scale className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm sm:text-base font-black uppercase text-white tracking-wide">
-                    Composición Corporal &amp; Bioimpedancia de {studentName}
-                  </h3>
-                  <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 uppercase font-black">
-                    Visión AI &amp; Báscula OKOK
-                  </span>
+        {/* RESUMEN BIOMÉTRICO Y COMPOSICIÓN CORPORAL (PACK FAMILIAR ÉLITE $149) */}
+        <PaywallLockCard
+          isLocked={!isProMode}
+          title="Telemetría Completa de Bioimpedancia & Composición Corporal"
+          badgeText="Pack Familiar Élite $149"
+          planName="Pack Familiar Élite"
+          planPrice="$149 MXN"
+          description="Las métricas avanzadas de grasa visceral, masa muscular, porcentaje de agua y edad metabólica por visión IA de báscula requieren el Pack Familiar Élite ($149 MXN)."
+          studentName={studentName}
+        >
+          <div className="bg-[#0b0e17] border border-fuchsia-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 shrink-0">
+                  <Scale className="w-5 h-5" />
                 </div>
-                <p className="text-[11px] text-zinc-400">
-                  Valores actualizados en duela del Deportivo Carmen Serdán y capturas de báscula inteligente.
-                </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-black uppercase text-white tracking-wide">
+                      Composición Corporal &amp; Bioimpedancia de {studentName}
+                    </h3>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 uppercase font-black">
+                      Visión AI &amp; Báscula OKOK
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Valores actualizados en duela del Deportivo Carmen Serdán y capturas de báscula inteligente.
+                  </p>
+                </div>
               </div>
+
+              <span className="text-[10px] font-mono text-zinc-400">
+                Evaluación: <b className="text-zinc-200">{latestTest?.evaluation_date || "Reciente"}</b>
+              </span>
             </div>
 
-            <span className="text-[10px] font-mono text-zinc-400">
-              Evaluación: <b className="text-zinc-200">{latestTest?.evaluation_date || "Reciente"}</b>
-            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              {/* 1. Peso */}
+              <div className="p-3 rounded-2xl bg-[#0f1422] border border-orange-500/30 space-y-1">
+                <span className="text-[10px] font-mono text-orange-400 uppercase font-bold flex items-center gap-1">
+                  <Scale className="w-3.5 h-3.5" /> Peso
+                </span>
+                <div className="text-xl font-black font-mono text-white">
+                  {latestTest?.weight_kg || studentProfile?.weight_kg || 68.4} <span className="text-xs font-normal text-zinc-400">kg</span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 block">Normopeso juvenil</span>
+              </div>
+
+              {/* 2. % Grasa */}
+              <div className="p-3 rounded-2xl bg-[#0f1422] border border-amber-500/30 space-y-1">
+                <span className="text-[10px] font-mono text-amber-400 uppercase font-bold flex items-center gap-1">
+                  <Flame className="w-3.5 h-3.5" /> % Grasa
+                </span>
+                <div className="text-xl font-black font-mono text-amber-300">
+                  {latestTest?.fat_percentage || studentProfile?.fat_percentage || 15.2} <span className="text-xs font-normal text-zinc-400">%</span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 block">Rango atlético</span>
+              </div>
+
+              {/* 3. Músculo */}
+              <div className="p-3 rounded-2xl bg-[#0f1422] border border-emerald-500/30 space-y-1">
+                <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold flex items-center gap-1">
+                  <Dumbbell className="w-3.5 h-3.5" /> Músculo
+                </span>
+                <div className="text-xl font-black font-mono text-emerald-300">
+                  {latestTest?.muscle_mass_kg || studentProfile?.muscle_mass_kg || 42.0} <span className="text-xs font-normal text-zinc-400">kg</span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 block">Potencia y tren inf.</span>
+              </div>
+
+              {/* 4. Agua */}
+              <div className="p-3 rounded-2xl bg-[#0f1422] border border-cyan-500/30 space-y-1">
+                <span className="text-[10px] font-mono text-cyan-400 uppercase font-bold flex items-center gap-1">
+                  <Droplets className="w-3.5 h-3.5" /> Agua
+                </span>
+                <div className="text-xl font-black font-mono text-cyan-300">
+                  {latestTest?.water_percentage || studentProfile?.water_percentage || 58.5} <span className="text-xs font-normal text-zinc-400">%</span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 block">Hidratación celular</span>
+              </div>
+
+              {/* 5. Grasa Visceral */}
+              <div className="p-3 rounded-2xl bg-[#0f1422] border border-purple-500/30 space-y-1">
+                <span className="text-[10px] font-mono text-purple-400 uppercase font-bold flex items-center gap-1">
+                  <ShieldAlert className="w-3.5 h-3.5" /> Visceral
+                </span>
+                <div className="text-xl font-black font-mono text-purple-300">
+                  {latestTest?.visceral_fat || studentProfile?.visceral_fat || 4} <span className="text-xs font-normal text-zinc-400">nivel</span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 block">Riesgo muy bajo</span>
+              </div>
+
+              {/* 6. BMI / IMC */}
+              <div className="p-3 rounded-2xl bg-[#0f1422] border border-indigo-500/30 space-y-1">
+                <span className="text-[10px] font-mono text-indigo-400 uppercase font-bold flex items-center gap-1">
+                  <Activity className="w-3.5 h-3.5" /> BMI / IMC
+                </span>
+                <div className="text-xl font-black font-mono text-indigo-300">
+                  {latestTest?.bmi || studentProfile?.bmi || 21.3}
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 block">Salud deportiva</span>
+              </div>
+
+              {/* 7. Edad Metabólica */}
+              <div className="p-3 rounded-2xl bg-[#0f1422] border border-fuchsia-500/30 space-y-1 col-span-2 sm:col-span-1">
+                <span className="text-[10px] font-mono text-fuchsia-400 uppercase font-bold flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> Edad Met.
+                </span>
+                <div className="text-xl font-black font-mono text-fuchsia-300">
+                  {latestTest?.metabolic_age || studentProfile?.metabolic_age || 15} <span className="text-xs font-normal text-zinc-400">años</span>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 block">Metabolismo activo</span>
+              </div>
+            </div>
           </div>
+        </PaywallLockCard>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            {/* 1. Peso */}
-            <div className="p-3 rounded-2xl bg-[#0f1422] border border-orange-500/30 space-y-1">
-              <span className="text-[10px] font-mono text-orange-400 uppercase font-bold flex items-center gap-1">
-                <Scale className="w-3.5 h-3.5" /> Peso
-              </span>
-              <div className="text-xl font-black font-mono text-white">
-                {latestTest?.weight_kg || studentProfile?.weight_kg || 68.4} <span className="text-xs font-normal text-zinc-400">kg</span>
-              </div>
-              <span className="text-[9px] font-mono text-zinc-400 block">Normopeso juvenil</span>
-            </div>
-
-            {/* 2. % Grasa */}
-            <div className="p-3 rounded-2xl bg-[#0f1422] border border-amber-500/30 space-y-1">
-              <span className="text-[10px] font-mono text-amber-400 uppercase font-bold flex items-center gap-1">
-                <Flame className="w-3.5 h-3.5" /> % Grasa
-              </span>
-              <div className="text-xl font-black font-mono text-amber-300">
-                {latestTest?.fat_percentage || studentProfile?.fat_percentage || 15.2} <span className="text-xs font-normal text-zinc-400">%</span>
-              </div>
-              <span className="text-[9px] font-mono text-zinc-400 block">Rango atlético</span>
-            </div>
-
-            {/* 3. Músculo */}
-            <div className="p-3 rounded-2xl bg-[#0f1422] border border-emerald-500/30 space-y-1">
-              <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold flex items-center gap-1">
-                <Dumbbell className="w-3.5 h-3.5" /> Músculo
-              </span>
-              <div className="text-xl font-black font-mono text-emerald-300">
-                {latestTest?.muscle_mass_kg || studentProfile?.muscle_mass_kg || 42.0} <span className="text-xs font-normal text-zinc-400">kg</span>
-              </div>
-              <span className="text-[9px] font-mono text-zinc-400 block">Potencia y tren inf.</span>
-            </div>
-
-            {/* 4. Agua */}
-            <div className="p-3 rounded-2xl bg-[#0f1422] border border-cyan-500/30 space-y-1">
-              <span className="text-[10px] font-mono text-cyan-400 uppercase font-bold flex items-center gap-1">
-                <Droplets className="w-3.5 h-3.5" /> Agua
-              </span>
-              <div className="text-xl font-black font-mono text-cyan-300">
-                {latestTest?.water_percentage || studentProfile?.water_percentage || 58.5} <span className="text-xs font-normal text-zinc-400">%</span>
-              </div>
-              <span className="text-[9px] font-mono text-zinc-400 block">Hidratación celular</span>
-            </div>
-
-            {/* 5. Grasa Visceral */}
-            <div className="p-3 rounded-2xl bg-[#0f1422] border border-purple-500/30 space-y-1">
-              <span className="text-[10px] font-mono text-purple-400 uppercase font-bold flex items-center gap-1">
-                <ShieldAlert className="w-3.5 h-3.5" /> Visceral
-              </span>
-              <div className="text-xl font-black font-mono text-purple-300">
-                {latestTest?.visceral_fat || studentProfile?.visceral_fat || 4} <span className="text-xs font-normal text-zinc-400">nivel</span>
-              </div>
-              <span className="text-[9px] font-mono text-zinc-400 block">Riesgo muy bajo</span>
-            </div>
-
-            {/* 6. BMI / IMC */}
-            <div className="p-3 rounded-2xl bg-[#0f1422] border border-indigo-500/30 space-y-1">
-              <span className="text-[10px] font-mono text-indigo-400 uppercase font-bold flex items-center gap-1">
-                <Activity className="w-3.5 h-3.5" /> BMI / IMC
-              </span>
-              <div className="text-xl font-black font-mono text-indigo-300">
-                {latestTest?.bmi || studentProfile?.bmi || 21.3}
-              </div>
-              <span className="text-[9px] font-mono text-zinc-400 block">Salud deportiva</span>
-            </div>
-
-            {/* 7. Edad Metabólica */}
-            <div className="p-3 rounded-2xl bg-[#0f1422] border border-fuchsia-500/30 space-y-1 col-span-2 sm:col-span-1">
-              <span className="text-[10px] font-mono text-fuchsia-400 uppercase font-bold flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> Edad Met.
-              </span>
-              <div className="text-xl font-black font-mono text-fuchsia-300">
-                {latestTest?.metabolic_age || studentProfile?.metabolic_age || 15} <span className="text-xs font-normal text-zinc-400">años</span>
-              </div>
-              <span className="text-[9px] font-mono text-zinc-400 block">Metabolismo activo</span>
-            </div>
-          </div>
-        </div>
-
-        {/* DUELA HOLOGRÁFICA 3D (HUD CIBERNÉTICO V3.2) */}
-        <ErrorBoundary fallbackTitle="Visualizador 3D de Duela en Pausa">
-          <DuelaHolografica3D
-            freeThrowsMade={latestTest?.free_throws_made ?? 7}
-            freeThrowsAttempted={10}
-            midLeftMade={latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 6}
-            midLeftAttempted={10}
-            midRightMade={latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 6}
-            midRightAttempted={10}
-            cornerLeftMade={latestTest?.spot_corner_left ?? 3}
-            cornerLeftAttempted={5}
-            wingLeftMade={latestTest?.spot_wing_left ?? 3}
-            wingLeftAttempted={5}
-            topKeyMade={latestTest?.spot_top_key ?? 4}
-            topKeyAttempted={5}
-            wingRightMade={latestTest?.spot_wing_right ?? 3}
-            wingRightAttempted={5}
-            cornerRightMade={latestTest?.spot_corner_right ?? 2}
-            cornerRightAttempted={5}
-          />
-        </ErrorBoundary>
+        {/* DUELA HOLOGRÁFICA 3D (HUD CIBERNÉTICO V3.2 - PACK FAMILIAR ÉLITE) */}
+        <PaywallLockCard
+          isLocked={!isProMode}
+          title="Telemetría de Duela 3D y Cobertura Térmica de Tiros"
+          badgeText="Pack Familiar Élite $149"
+          planName="Pack Familiar Élite"
+          planPrice="$149 MXN"
+          description="El mapa holográfico 3D de tiros por spot, parábola y cobertura en cancha está reservado para el Pack Familiar Élite ($149 MXN)."
+          studentName={studentName}
+        >
+          <ErrorBoundary fallbackTitle="Visualizador 3D de Duela en Pausa">
+            <DuelaHolografica3D
+              freeThrowsMade={latestTest?.free_throws_made ?? 7}
+              freeThrowsAttempted={10}
+              midLeftMade={latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 6}
+              midLeftAttempted={10}
+              midRightMade={latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 6}
+              midRightAttempted={10}
+              cornerLeftMade={latestTest?.spot_corner_left ?? 3}
+              cornerLeftAttempted={5}
+              wingLeftMade={latestTest?.spot_wing_left ?? 3}
+              wingLeftAttempted={5}
+              topKeyMade={latestTest?.spot_top_key ?? 4}
+              topKeyAttempted={5}
+              wingRightMade={latestTest?.spot_wing_right ?? 3}
+              wingRightAttempted={5}
+              cornerRightMade={latestTest?.spot_corner_right ?? 2}
+              cornerRightAttempted={5}
+            />
+          </ErrorBoundary>
+        </PaywallLockCard>
 
         {/* SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECOURT PARA PADRES */}
         <ErrorBoundary fallbackTitle="Módulo Shot Science en Calibración">

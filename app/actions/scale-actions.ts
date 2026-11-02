@@ -6,7 +6,7 @@ import { SmartScaleReading, ScaleSyncResponse } from '@/lib/types/smart-scale';
 import { revalidatePath } from 'next/cache';
 import { createWorker } from 'tesseract.js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dgzuttxfmrfcgsceczql.supabase.co';
 const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
