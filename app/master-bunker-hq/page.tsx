@@ -67,6 +67,10 @@ function MasterBunkerHQContent() {
 
   useEffect(() => {
     setMounted(true);
+    // Sincronizar estado online real después de hidratación
+    if (typeof navigator !== "undefined") {
+      setIsOnline(navigator.onLine);
+    }
   }, []);
 
   // Sincronizar pestaña si viene en la URL (?tab=finanzas o ?tab=finance)
@@ -143,11 +147,8 @@ function MasterBunkerHQContent() {
   const [adminAdjustModalOpen, setAdminAdjustModalOpen] = useState(false);
   const [adminAdjustInitialData, setAdminAdjustInitialData] = useState<AdminModalInitialData | null>(null);
   
-  // Estado Offline-First
-  const [isOnline, setIsOnline] = useState<boolean>(() => {
-    if (typeof window !== "undefined") return navigator.onLine;
-    return true;
-  });
+  // Estado Offline-First (inicializado siempre como true para SSR/hydration consistency)
+  const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
@@ -217,35 +218,54 @@ function MasterBunkerHQContent() {
     setLoading(true);
     try {
       // 1. Cargar coaches desde Supabase
-      const { data: coachesData } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("role", ["coach_pending", "coach"]);
+      let coachesData: any[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("role", ["coach_pending", "coach"]);
+        if (error) console.warn("Aviso coaches query:", error.message);
+        coachesData = data ?? [];
+      } catch (cErr) {
+        console.warn("Error al cargar coaches:", cErr);
+      }
+      setCoaches(coachesData);
 
-      if (coachesData && coachesData.length > 0) {
-        setCoaches(coachesData);
-      } else {
-        setCoaches([]);
+      // Normalización de Fecha Local (CDMX) con fallback seguro
+      let todayMX: string;
+      let currentYear: number;
+      let currentMonth: number;
+      let currentDay: number;
+      try {
+        todayMX = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Mexico_City",
+        }).format(new Date());
+        const parts = todayMX.split("-");
+        currentYear = Number(parts[0]) || new Date().getFullYear();
+        currentMonth = Number(parts[1]) || (new Date().getMonth() + 1);
+        currentDay = Number(parts[2]) || new Date().getDate();
+      } catch (dateErr) {
+        console.warn("Intl.DateTimeFormat fallback:", dateErr);
+        const now = new Date();
+        currentYear = now.getFullYear();
+        currentMonth = now.getMonth() + 1;
+        currentDay = now.getDate();
+        todayMX = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(currentDay).padStart(2, "0")}`;
       }
 
-      // Normalización de Fecha Local (CDMX)
-      const todayMX = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Mexico_City",
-      }).format(new Date());
-
       // Calcular inicio de semana (Lunes) y mes en curso según hora local CDMX
-      const [yearStr, monthStr, dayStr] = todayMX.split("-");
-      const currentYear = Number(yearStr);
-      const currentMonth = Number(monthStr);
-      const currentDay = Number(dayStr);
-
       const nowLocal = new Date(currentYear, currentMonth - 1, currentDay);
       const dayOfWeek = nowLocal.getDay() || 7; // 1 = Lunes, 7 = Domingo
       const startOfWeek = new Date(nowLocal);
       startOfWeek.setDate(nowLocal.getDate() - dayOfWeek + 1);
-      const startOfWeekStr = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Mexico_City",
-      }).format(startOfWeek);
+      let startOfWeekStr: string;
+      try {
+        startOfWeekStr = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Mexico_City",
+        }).format(startOfWeek);
+      } catch {
+        startOfWeekStr = todayMX;
+      }
 
       // 2. Cargar pagos desde payment_transactions_history con fallback a membership_payments
       const { data: txHistory, error: txErr } = await supabase
@@ -425,22 +445,46 @@ function MasterBunkerHQContent() {
 
   // Verificación reactiva automática de sesión de SuperAdmin / Fundador
   useEffect(() => {
+    let isCancelled = false;
+    let safetyTimeout: ReturnType<typeof setTimeout> | null = null;
+
     async function verifySuperAdminSession() {
       try {
         setAuthChecking(true);
 
+        // Timeout de seguridad: si la verificación tarda más de 12s, liberar la pantalla de carga
+        safetyTimeout = setTimeout(() => {
+          if (!isCancelled) {
+            console.warn("Búnker: timeout de verificación de sesión (12s). Mostrando login de emergencia.");
+            setAuthChecking(false);
+          }
+        }, 12000);
+
         // 1. Obtener usuario autenticado de Supabase Auth
         let user = null;
         try {
-          const { data } = await supabase.auth.getUser();
-          user = data?.user || null;
+          const { data, error: authError } = await supabase.auth.getUser();
+          if (authError) {
+            console.warn("Auth getUser error controlado:", authError.message);
+          }
+          user = data?.user ?? null;
         } catch (authErr) {
           console.warn("Auth getUser aviso:", authErr);
         }
 
+        if (isCancelled) return;
+
         // 2. Comprobar credenciales de sesión local
-        const storedRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
-        const storedEmail = typeof window !== "undefined" ? localStorage.getItem("ww_user_email") : null;
+        let storedRole: string | null = null;
+        let storedEmail: string | null = null;
+        try {
+          if (typeof window !== "undefined") {
+            storedRole = localStorage.getItem("ww_user_role");
+            storedEmail = localStorage.getItem("ww_user_email");
+          }
+        } catch (storageReadErr) {
+          console.warn("localStorage lectura aviso:", storageReadErr);
+        }
 
         const effectiveEmail = (user?.email || storedEmail || "").toLowerCase().trim();
 
@@ -454,20 +498,29 @@ function MasterBunkerHQContent() {
           // Consultar perfil de base de datos de manera segura
           let profile: any = null;
           try {
-            const { data } = await supabase
+            const { data, error: profileError } = await supabase
               .from("profiles")
               .select("role, full_name, email")
               .eq("id", user.id)
               .maybeSingle();
-            profile = data;
+            if (profileError) {
+              console.warn("Perfil Supabase aviso:", profileError.message);
+            }
+            profile = data ?? null;
           } catch (pErr) {
             console.warn("Aviso profile en Búnker:", pErr);
           }
 
-          const isSuper = profile?.role === "superadmin" || storedRole === "superadmin" || isFounderDirector;
+          if (isCancelled) return;
+
+          const dbRole = typeof profile?.role === "string" ? profile.role : "";
+          const isSuper = dbRole === "superadmin" || storedRole === "superadmin" || isFounderDirector;
 
           if (isSuper) {
-            setAdminLabel("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
+            const label = effectiveEmail === "carlos@wildwolves.mx"
+              ? "COACH CARLOS (ADMIN)"
+              : "COACH RICARDO • FUNDADOR & DIRECTOR GENERAL";
+            setAdminLabel(label);
             setAuthenticated(true);
             setAuthChecking(false);
             if (typeof window !== "undefined") {
@@ -484,16 +537,27 @@ function MasterBunkerHQContent() {
             return;
           }
 
-          if (profile?.role === "student") {
+          if (dbRole === "student") {
             router.replace("/dashboard-student");
             return;
           }
 
-          if (profile?.role === "coach") {
+          if (dbRole === "coach") {
             setAuthError("Acceso Restringido: Tu cuenta tiene asignado el rol de Coach. El Búnker Central es exclusivo de Dirección General.");
             setAuthChecking(false);
             return;
           }
+
+          if (dbRole === "guardian") {
+            router.replace("/dashboard-guardian");
+            return;
+          }
+
+          // Usuario autenticado pero rol no reconocido o sin perfil
+          if (!profile) {
+            setAuthError("Tu cuenta no tiene un perfil registrado en Wild Wolves. Contacta a Dirección General.");
+          }
+          setAuthChecking(false);
         } else if (isFounderDirector || storedRole === "superadmin") {
           // Bypass directo autorizado por sesión local de Dirección
           setAdminLabel("COACH RICARDO • FUNDADOR & DIRECTOR GENERAL");
@@ -501,17 +565,26 @@ function MasterBunkerHQContent() {
           setAuthChecking(false);
           fetchDashboardData();
           return;
+        } else {
+          // Sin sesión activa → mostrar login
+          setAuthChecking(false);
         }
-
-        // Si no hay sesión iniciada, mostrar vista de emergencia
-        setAuthChecking(false);
       } catch (err) {
         console.error("Error al verificar sesión en Búnker:", err);
-        setAuthChecking(false);
+        if (!isCancelled) {
+          setAuthChecking(false);
+        }
+      } finally {
+        if (safetyTimeout) clearTimeout(safetyTimeout);
       }
     }
 
     verifySuperAdminSession();
+
+    return () => {
+      isCancelled = true;
+      if (safetyTimeout) clearTimeout(safetyTimeout);
+    };
   }, [fetchDashboardData, router]);
 
   // Escuchar eventos de cobros y sincronización offline en tiempo real
