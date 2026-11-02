@@ -11,6 +11,7 @@ import SubscriptionBannerAlert from "@/components/SubscriptionBannerAlert";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import UpgradeModal from "@/components/UpgradeModal";
 import DemoModeToggle from "@/components/DemoModeToggle";
+import PaywallLockCard from "@/components/PaywallLockCard";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
 import { 
@@ -844,76 +845,96 @@ function GuardianDashboardContent() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            {/* 1. PESO SALUDABLE */}
-            <div className="bg-[#121624] border-2 border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-emerald-400 flex items-center gap-1.5">
-                    <Scale className="w-4 h-4" /> 1. Peso Saludable
-                  </span>
-                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    🟢 Óptimo
-                  </span>
-                </div>
-
-                <div className="mt-2.5">
-                  <div className="text-2xl sm:text-3xl font-black font-mono text-white">
-                    {latestTest?.weight_kg || studentProfile?.weight_kg || 68.4} <span className="text-sm font-normal text-zinc-400">kg</span>
+            {/* 1. PESO SALUDABLE (PACK FAMILIAR ÉLITE) */}
+            <PaywallLockCard
+              isLocked={!isProMode}
+              title="Telemetría de Peso y Masa Corporal"
+              badgeText="Pack Familiar Élite $149"
+              planName="Pack Familiar Élite"
+              planPrice="$149 MXN"
+              description="La telemetría detallada de composición corporal, evolución de peso y masa magra requiere el Pack Familiar Élite ($149 MXN)."
+              studentName={studentName}
+            >
+              <div className="bg-[#121624] border-2 border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3 h-full">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-emerald-400 flex items-center gap-1.5">
+                      <Scale className="w-4 h-4" /> 1. Peso Saludable
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      🟢 Óptimo
+                    </span>
                   </div>
-                  <p className="text-xs text-zinc-300 mt-1 leading-snug">
-                    Peso adecuado para su estatura y edad en básquetbol formativo.
-                  </p>
-                </div>
-              </div>
 
-              <div className="space-y-1.5 pt-2 border-t border-zinc-800">
-                <div className="flex justify-between text-[10px] font-mono text-zinc-400">
-                  <span>Rango Saludable</span>
-                  <span className="text-emerald-400 font-bold">100% En Rango</span>
-                </div>
-                <div className="w-full bg-zinc-800 h-3 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-[85%] rounded-full shadow-sm shadow-emerald-500/50" />
-                </div>
-              </div>
-            </div>
-
-            {/* 2. NIVEL DE HIDRATACIÓN */}
-            <div className="bg-[#121624] border-2 border-cyan-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-cyan-400 flex items-center gap-1.5">
-                    <Droplets className="w-4 h-4" /> 2. Hidratación
-                  </span>
-                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                    🟢 Hidratado
-                  </span>
-                </div>
-
-                <div className="mt-2.5">
-                  <div className="text-2xl sm:text-3xl font-black font-mono text-cyan-300">
-                    {latestTest?.water_percentage || studentProfile?.water_percentage || 58.5} <span className="text-sm font-normal text-zinc-400">% de agua</span>
+                  <div className="mt-2.5">
+                    <div className="text-2xl sm:text-3xl font-black font-mono text-white">
+                      {latestTest?.weight_kg || studentProfile?.weight_kg || 68.4} <span className="text-sm font-normal text-zinc-400">kg</span>
+                    </div>
+                    <p className="text-xs text-zinc-300 mt-1 leading-snug">
+                      Peso adecuado para su estatura y edad en básquetbol formativo.
+                    </p>
                   </div>
-                  <p className="text-xs text-zinc-300 mt-1 leading-snug">
-                    Excelente hidratación celular; bebe suficiente agua antes y después de entrenar.
-                  </p>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-zinc-800">
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
+                    <span>Rango Saludable</span>
+                    <span className="text-emerald-400 font-bold">100% En Rango</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-3 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-[85%] rounded-full shadow-sm shadow-emerald-500/50" />
+                  </div>
                 </div>
               </div>
+            </PaywallLockCard>
 
-              <div className="space-y-1.5 pt-2 border-t border-zinc-800">
-                <div className="flex justify-between text-[10px] font-mono text-zinc-400">
-                  <span>Mínimo: 50%</span>
-                  <span className="text-cyan-400 font-bold">{latestTest?.water_percentage || 58.5}% alcanzado</span>
+            {/* 2. NIVEL DE HIDRATACIÓN (PACK FAMILIAR ÉLITE) */}
+            <PaywallLockCard
+              isLocked={!isProMode}
+              title="Monitoreo de Hidratación Celular"
+              badgeText="Pack Familiar Élite $149"
+              planName="Pack Familiar Élite"
+              planPrice="$149 MXN"
+              description="El índice de hidratación celular y balance hídrico pre/post entrenamiento requiere el Pack Familiar Élite ($149 MXN)."
+              studentName={studentName}
+            >
+              <div className="bg-[#121624] border-2 border-cyan-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3 h-full">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-cyan-400 flex items-center gap-1.5">
+                      <Droplets className="w-4 h-4" /> 2. Hidratación
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                      🟢 Hidratado
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5">
+                    <div className="text-2xl sm:text-3xl font-black font-mono text-cyan-300">
+                      {latestTest?.water_percentage || studentProfile?.water_percentage || 58.5} <span className="text-sm font-normal text-zinc-400">% de agua</span>
+                    </div>
+                    <p className="text-xs text-zinc-300 mt-1 leading-snug">
+                      Excelente hidratación celular; bebe suficiente agua antes y después de entrenar.
+                    </p>
+                  </div>
                 </div>
-                <div className="w-full bg-zinc-800 h-3 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-cyan-500 to-blue-400 h-full rounded-full shadow-sm shadow-cyan-500/50"
-                    style={{ width: `${Math.min(100, ((latestTest?.water_percentage || 58.5) / 70) * 100)}%` }}
-                  />
+
+                <div className="space-y-1.5 pt-2 border-t border-zinc-800">
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
+                    <span>Mínimo: 50%</span>
+                    <span className="text-cyan-400 font-bold">{latestTest?.water_percentage || 58.5}% alcanzado</span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-3 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-cyan-500 to-blue-400 h-full rounded-full shadow-sm shadow-cyan-500/50"
+                      style={{ width: `${Math.min(100, ((latestTest?.water_percentage || 58.5) / 70) * 100)}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </PaywallLockCard>
 
-            {/* 3. CONSTANCIA EN ENTRENAMIENTOS */}
+            {/* 3. CONSTANCIA EN ENTRENAMIENTOS (TOTALMENTE GRATUITO / VISIBLE) */}
             <div className="bg-[#121624] border-2 border-orange-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
               <div>
                 <div className="flex items-center justify-between">
@@ -953,44 +974,54 @@ function GuardianDashboardContent() {
               </div>
             </div>
 
-            {/* 4. SEMÁFORO DE ESFUERZO Y ACTITUD */}
-            <div className="bg-[#121624] border-2 border-purple-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase text-purple-400 flex items-center gap-1.5">
-                    <Activity className="w-4 h-4" /> 4. Esfuerzo &amp; Actitud
-                  </span>
-                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                    🟢 Destacado
-                  </span>
+            {/* 4. SEMÁFORO DE ESFUERZO Y ACTITUD (PACK FAMILIAR ÉLITE) */}
+            <PaywallLockCard
+              isLocked={!isProMode}
+              title="Semáforo de Esfuerzo & Actitud en Duela"
+              badgeText="Pack Familiar Élite $149"
+              planName="Pack Familiar Élite"
+              planPrice="$149 MXN"
+              description="La calificación de esfuerzo actitudinal, disciplina y respeto en duela evaluada por el Coach requiere el Pack Familiar Élite ($149 MXN)."
+              studentName={studentName}
+            >
+              <div className="bg-[#121624] border-2 border-purple-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-3 h-full">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-purple-400 flex items-center gap-1.5">
+                      <Activity className="w-4 h-4" /> 4. Esfuerzo &amp; Actitud
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                      🟢 Destacado
+                    </span>
+                  </div>
+
+                  {/* SEMÁFORO DE 3 LUCES */}
+                  <div className="mt-3 flex items-center justify-center gap-3 bg-black/60 p-2.5 rounded-xl border border-zinc-800">
+                    <div className="flex flex-col items-center">
+                      <span className="w-4 h-4 rounded-full bg-zinc-800 border border-zinc-700 block" title="Rojo: Necesita apoyo" />
+                      <span className="text-[8px] font-mono text-zinc-500 mt-0.5">Atención</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="w-4 h-4 rounded-full bg-zinc-800 border border-zinc-700 block" title="Amarillo: Constante" />
+                      <span className="text-[8px] font-mono text-zinc-500 mt-0.5">Constante</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="w-5 h-5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/80 border-2 border-emerald-200 block animate-pulse" title="Verde: Sobresaliente" />
+                      <span className="text-[8px] font-mono font-bold text-emerald-400 mt-0.5">¡Excelente!</span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-zinc-200 mt-2 font-medium leading-snug">
+                    Muestra respeto a compañeros, atención a las órdenes del coach y disciplina total.
+                  </p>
                 </div>
 
-                {/* SEMÁFORO DE 3 LUCES */}
-                <div className="mt-3 flex items-center justify-center gap-3 bg-black/60 p-2.5 rounded-xl border border-zinc-800">
-                  <div className="flex flex-col items-center">
-                    <span className="w-4 h-4 rounded-full bg-zinc-800 border border-zinc-700 block" title="Rojo: Necesita apoyo" />
-                    <span className="text-[8px] font-mono text-zinc-500 mt-0.5">Atención</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="w-4 h-4 rounded-full bg-zinc-800 border border-zinc-700 block" title="Amarillo: Constante" />
-                    <span className="text-[8px] font-mono text-zinc-500 mt-0.5">Constante</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="w-5 h-5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/80 border-2 border-emerald-200 block animate-pulse" title="Verde: Sobresaliente" />
-                    <span className="text-[8px] font-mono font-bold text-emerald-400 mt-0.5">¡Excelente!</span>
-                  </div>
+                <div className="pt-2 border-t border-zinc-800 text-[10px] font-mono text-emerald-400 font-black flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Nivel de Esfuerzo: SOBRESALIENTE 🐺</span>
                 </div>
-
-                <p className="text-xs text-zinc-200 mt-2 font-medium leading-snug">
-                  Muestra respeto a compañeros, atención a las órdenes del coach y disciplina total.
-                </p>
               </div>
-
-              <div className="pt-2 border-t border-zinc-800 text-[10px] font-mono text-emerald-400 font-black flex items-center gap-1">
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Nivel de Esfuerzo: SOBRESALIENTE 🐺</span>
-              </div>
-            </div>
+            </PaywallLockCard>
 
           </div>
         </div>

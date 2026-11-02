@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   Camera, 
   Upload, 
@@ -19,7 +19,8 @@ import {
   Clock,
   RotateCcw,
   Check,
-  Eye
+  Eye,
+  Lock
 } from "lucide-react";
 import { SmartScaleReading } from "@/lib/types/smart-scale";
 import { extractScaleDataFromImageAction, syncSmartScaleRecordAction } from "@/app/actions/scale-actions";
@@ -41,6 +42,13 @@ export default function ScaleImageUploader({
 }: ScaleImageUploaderProps) {
   const { isPro } = useSubscriptionTier();
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const [demoUsed, setDemoUsed] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setDemoUsed(localStorage.getItem("ww_scale_demo_used") === "true");
+    }
+  }, []);
 
   // Modal y carga
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -148,6 +156,14 @@ export default function ScaleImageUploader({
       if (syncRes.success) {
         setSuccessMsg("¡Composición corporal guardada con éxito en tu perfil y ficha de duela!");
         
+        // Registrar uso del único demo gratuito si está en modo free
+        if (!isPro && typeof window !== "undefined") {
+          try {
+            localStorage.setItem("ww_scale_demo_used", "true");
+            setDemoUsed(true);
+          } catch {}
+        }
+
         // Notificar al componente padre para actualizar inmediatamente las tarjetas
         if (onUploadSuccess) {
           onUploadSuccess(readingPayload);
@@ -180,8 +196,10 @@ export default function ScaleImageUploader({
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
+  const canUseScale = isPro || !demoUsed;
+
   const handleOpenModal = () => {
-    if (isPro) {
+    if (canUseScale) {
       setIsOpen(true);
     } else {
       setShowUpgradeModal(true);
@@ -199,19 +217,25 @@ export default function ScaleImageUploader({
         <Camera className="w-4 h-4 text-fuchsia-400" />
         <span>📸 Subir Captura de Báscula</span>
         {!isPro && (
-          <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-black border border-amber-500/30">
-            PRO $99
-          </span>
+          !demoUsed ? (
+            <span className="ml-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-black border border-emerald-500/40">
+              1 DEMO GRATIS
+            </span>
+          ) : (
+            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-black border border-amber-500/30 flex items-center gap-0.5">
+              <Lock className="w-2.5 h-2.5" /> PRO $99
+            </span>
+          )
         )}
       </button>
 
-      {/* Paywall Ventana de Venta si es Modo Gratuito */}
+      {/* Paywall Ventana de Venta si es Modo Gratuito y agotó su demo */}
       {showUpgradeModal && (
         <UpgradeModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
           featureTitle="Visión IA de Báscula y Bioimpedancia"
-          featureDescription="La extracción automática de peso, grasa visceral, masa muscular, BMI y edad metabólica mediante visión multimodal requiere una membresía Lobo Pro activa de 30 días ($99 MXN)."
+          featureDescription="Has utilizado tu escaneo demo gratuito. Para continuar extrayendo porcentaje de grasa, masa muscular, BMI y edad metabólica sin límite, activa tu Folio Lobo Pro de 30 días ($99 MXN)."
           studentName={athleteName}
           onActivated={() => {
             setShowUpgradeModal(false);

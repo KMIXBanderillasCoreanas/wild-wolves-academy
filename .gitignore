@@ -18,6 +18,10 @@
 *.pem
 *.traineddata
 app/docs/
+.agents/
+concepts_brief.md
+design_draft.md
+review_report.md
 
 # debug
 npm-debug.log*

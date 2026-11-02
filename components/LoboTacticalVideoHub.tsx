@@ -20,8 +20,13 @@ import {
   Award,
   Layers,
   HeartPulse,
-  Eye
+  Eye,
+  Lock,
+  Crown
 } from 'lucide-react';
+import { useSubscriptionTier } from '@/hooks/useSubscriptionTier';
+import PaywallLockCard from '@/components/PaywallLockCard';
+import UpgradeModal from '@/components/UpgradeModal';
 
 interface TacticalConcept {
   id: string;
@@ -184,6 +189,8 @@ const CURATED_VIDEOS: VideoLesson[] = [
 ];
 
 export default function LoboTacticalVideoHub() {
+  const { isPro } = useSubscriptionTier();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [expandedConceptId, setExpandedConceptId] = useState<string>('dribling_explosivo');
   const [selectedVideoCategory, setSelectedVideoCategory] = useState<'todos' | 'tiro' | 'drible' | 'defensa' | 'tactica'>('todos');
   const [activeVideoModal, setActiveVideoModal] = useState<VideoLesson | null>(null);
@@ -317,41 +324,51 @@ export default function LoboTacticalVideoHub() {
                       </div>
                     </div>
 
-                    {/* Tarjeta Variante Pro de Alta Competición */}
-                    <div className="rounded-xl border border-orange-500/40 bg-gradient-to-br from-[#12182b] to-[#1c1109] p-4 space-y-3 shadow-lg">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-orange-500/20 px-2 py-0.5 text-[10px] font-black uppercase text-orange-300 border border-orange-500/40">
-                          Variante Pro Élite
-                        </span>
-                        <span className="text-xs font-black text-[#d1fe17]">Nivel Competitivo</span>
-                      </div>
-
-                      <h5 className="text-xs font-black text-white">
-                        {concept.variantePro.title}
-                      </h5>
-
-                      <div className="text-xs text-zinc-300 space-y-2">
-                        <p>
-                          <strong className="text-orange-400">Contexto Táctico:</strong>{' '}
-                          {concept.variantePro.contextoCompeticion}
-                        </p>
-                        <p>
-                          <strong className="text-cyan-400">Mecanismo Biomecánico:</strong>{' '}
-                          {concept.variantePro.mecanismoBiomecanico}
-                        </p>
-                        <p>
-                          <strong className="text-amber-300">Lectura de Juego:</strong>{' '}
-                          {concept.variantePro.lecturaTactica}
-                        </p>
-                      </div>
-
-                      {concept.variantePro.reglaFibaNba && (
-                        <div className="rounded-lg bg-zinc-950/70 border border-zinc-800 p-2.5 text-[10px] font-mono text-zinc-400">
-                          <strong className="text-white block mb-0.5">⚖️ Regla Oficial:</strong>
-                          {concept.variantePro.reglaFibaNba}
+                    {/* Tarjeta Variante Pro de Alta Competición (Gated for Free Mode) */}
+                    <PaywallLockCard
+                      isLocked={!isPro}
+                      title="Variante Pro Élite (FIBA/NBA)"
+                      description="Lecturas tácticas avanzadas, desaceleración abrupta y biomecánica competitiva reservadas para Atleta Lobo Pro."
+                      badgeText="Lobo Pro $99"
+                      planName="Atleta Lobo Pro"
+                      planPrice="$99 MXN"
+                      className="h-full"
+                    >
+                      <div className="rounded-xl border border-orange-500/40 bg-gradient-to-br from-[#12182b] to-[#1c1109] p-4 space-y-3 shadow-lg h-full">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-md bg-orange-500/20 px-2 py-0.5 text-[10px] font-black uppercase text-orange-300 border border-orange-500/40">
+                            Variante Pro Élite
+                          </span>
+                          <span className="text-xs font-black text-[#d1fe17]">Nivel Competitivo</span>
                         </div>
-                      )}
-                    </div>
+
+                        <h5 className="text-xs font-black text-white">
+                          {concept.variantePro.title}
+                        </h5>
+
+                        <div className="text-xs text-zinc-300 space-y-2">
+                          <p>
+                            <strong className="text-orange-400">Contexto Táctico:</strong>{' '}
+                            {concept.variantePro.contextoCompeticion}
+                          </p>
+                          <p>
+                            <strong className="text-cyan-400">Mecanismo Biomecánico:</strong>{' '}
+                            {concept.variantePro.mecanismoBiomecanico}
+                          </p>
+                          <p>
+                            <strong className="text-amber-300">Lectura de Juego:</strong>{' '}
+                            {concept.variantePro.lecturaTactica}
+                          </p>
+                        </div>
+
+                        {concept.variantePro.reglaFibaNba && (
+                          <div className="rounded-lg bg-zinc-950/70 border border-zinc-800 p-2.5 text-[10px] font-mono text-zinc-400">
+                            <strong className="text-white block mb-0.5">⚖️ Regla Oficial:</strong>
+                            {concept.variantePro.reglaFibaNba}
+                          </div>
+                        )}
+                      </div>
+                    </PaywallLockCard>
                   </div>
                 )}
               </div>
@@ -393,140 +410,188 @@ export default function LoboTacticalVideoHub() {
 
         {/* Grid de Videos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredVideos.map((video) => (
-            <div
-              key={video.id}
-              className="group rounded-2xl border border-zinc-800 bg-[#0c101a] hover:border-cyan-500/50 transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-lg"
-            >
-              {/* Thumbnail / Contenedor Video */}
-              <div className="relative aspect-video w-full bg-zinc-950 overflow-hidden">
-                <img
-                  src={`https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`}
-                  alt={video.title}
-                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-80 group-hover:opacity-100"
-                />
-                
-                {/* Botón flotante Play */}
-                <button
-                  type="button"
-                  onClick={() => setActiveVideoModal(video)}
-                  className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition cursor-pointer"
-                  title="Reproducir Análisis Táctico"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500 text-black shadow-lg shadow-cyan-500/40 group-hover:scale-110 transition">
-                    <Play className="h-5 w-5 fill-black ml-0.5" />
-                  </div>
-                </button>
+          {filteredVideos.map((video) => {
+            const isVideoFree = video.id === 'vid_mecanica_nba';
+            const isVideoLocked = !isPro && !isVideoFree;
 
-                {/* Badge Duración */}
-                <div className="absolute bottom-2 right-2 rounded-md bg-black/85 px-1.5 py-0.5 text-[10px] font-mono text-white">
-                  {video.duration}
-                </div>
-              </div>
+            return (
+              <div
+                key={video.id}
+                className="group rounded-2xl border border-zinc-800 bg-[#0c101a] hover:border-cyan-500/50 transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-lg"
+              >
+                {/* Thumbnail / Contenedor Video */}
+                <div className="relative aspect-video w-full bg-zinc-950 overflow-hidden">
+                  <img
+                    src={`https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`}
+                    alt={video.title}
+                    className={`h-full w-full object-cover transition-transform duration-300 ${
+                      isVideoLocked ? 'opacity-70 filter blur-[1px]' : 'group-hover:scale-105 opacity-80 group-hover:opacity-100'
+                    }`}
+                  />
+                  
+                  {/* Candado / Badge Lobo Pro */}
+                  {isVideoLocked && (
+                    <div className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-mono font-black uppercase text-black shadow-lg">
+                      <Lock className="w-3 h-3" />
+                      Lobo Pro
+                    </div>
+                  )}
 
-              {/* Información del Video */}
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase text-cyan-300 border border-cyan-500/20 font-mono">
-                      {video.category}
-                    </span>
-                    <span className="text-[10px] font-bold text-zinc-400">
-                      {video.levelBadge}
-                    </span>
-                  </div>
-
-                  <h4 className="mt-1 text-xs font-black text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
-                    {video.title}
-                  </h4>
-                </div>
-
-                <div className="pt-2 border-t border-zinc-800/80">
-                  <p className="text-[11px] text-zinc-400 italic line-clamp-2">
-                    "{video.coachNotes}"
-                  </p>
+                  {/* Botón flotante Play */}
                   <button
                     type="button"
-                    onClick={() => setActiveVideoModal(video)}
-                    className="mt-2 text-[10px] font-black uppercase text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                    onClick={() => {
+                      if (isVideoLocked) {
+                        setShowUpgradeModal(true);
+                      } else {
+                        setActiveVideoModal(video);
+                      }
+                    }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition cursor-pointer"
+                    title={isVideoLocked ? "Desbloquear con Lobo Pro" : "Reproducir Análisis Táctico"}
                   >
-                    Estudiar Ejecución →
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition ${
+                      isVideoLocked 
+                        ? 'bg-amber-500 text-black shadow-amber-500/40' 
+                        : 'bg-cyan-500 text-black shadow-cyan-500/40 group-hover:scale-110'
+                    }`}>
+                      {isVideoLocked ? (
+                        <Lock className="h-5 w-5" />
+                      ) : (
+                        <Play className="h-5 w-5 fill-black ml-0.5" />
+                      )}
+                    </div>
                   </button>
+
+                  {/* Badge Duración */}
+                  <div className="absolute bottom-2 right-2 rounded-md bg-black/85 px-1.5 py-0.5 text-[10px] font-mono text-white">
+                    {video.duration}
+                  </div>
+                </div>
+
+                {/* Información del Video */}
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase text-cyan-300 border border-cyan-500/20 font-mono">
+                        {video.category}
+                      </span>
+                      <span className="text-[10px] font-bold text-zinc-400">
+                        {video.levelBadge}
+                      </span>
+                    </div>
+
+                    <h4 className="mt-1 text-xs font-black text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
+                      {video.title}
+                    </h4>
+                  </div>
+
+                  <div className="pt-2 border-t border-zinc-800/80">
+                    <p className="text-[11px] text-zinc-400 italic line-clamp-2">
+                      "{video.coachNotes}"
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isVideoLocked) {
+                          setShowUpgradeModal(true);
+                        } else {
+                          setActiveVideoModal(video);
+                        }
+                      }}
+                      className={`mt-2 text-[10px] font-black uppercase flex items-center gap-1 transition cursor-pointer ${
+                        isVideoLocked
+                          ? 'text-amber-400 hover:text-amber-300'
+                          : 'text-cyan-400 hover:text-cyan-300'
+                      }`}
+                    >
+                      {isVideoLocked ? "Desbloquear Video (Lobo Pro) 🔒" : "Estudiar Ejecución →"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
       {/* ========================================================================= */}
       {/* SECCIÓN 3: ENFOQUE PSICOLÓGICO Y DE LECTURA DE JUEGO (ULTRA INSTINTO)     */}
       {/* ========================================================================= */}
-      <section className="rounded-3xl border border-fuchsia-500/40 bg-gradient-to-r from-[#170a24] via-[#100d1e] to-[#0a1220] p-6 text-zinc-100 shadow-2xl relative overflow-hidden">
-        {/* Glow de fondo */}
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl pointer-events-none" />
+      <PaywallLockCard
+        isLocked={!isPro}
+        title="Enfoque Psicológico & Toma de Decisiones Bajo Fatiga Extrema"
+        description="Protocolos de resiliencia mental, respiración 4-4-4 en línea de tiro libre y fluidez en momentos críticos bajo fatiga extrema en duela reservados para Atleta Lobo Pro."
+        badgeText="Lobo Pro $99"
+        planName="Atleta Lobo Pro"
+        planPrice="$99 MXN"
+      >
+        <section className="rounded-3xl border border-fuchsia-500/40 bg-gradient-to-r from-[#170a24] via-[#100d1e] to-[#0a1220] p-6 text-zinc-100 shadow-2xl relative overflow-hidden">
+          {/* Glow de fondo */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 shadow-[0_0_15px_rgba(217,70,239,0.3)]">
-                <HeartPulse className="h-5 w-5" />
-              </span>
-              <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-fuchsia-400 font-bold block">
-                  Mentalidad Wild Wolves • Resiliencia de Acero
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 shadow-[0_0_15px_rgba(217,70,239,0.3)]">
+                  <HeartPulse className="h-5 w-5" />
                 </span>
-                <h3 className="text-lg font-black text-white">
-                  3. Enfoque Psicológico & Toma de Decisiones Bajo Fatiga Extrema
-                </h3>
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-fuchsia-400 font-bold block">
+                    Mentalidad Wild Wolves • Resiliencia de Acero
+                  </span>
+                  <h3 className="text-lg font-black text-white">
+                    3. Enfoque Psicológico & Toma de Decisiones Bajo Fatiga Extrema
+                  </h3>
+                </div>
               </div>
+
+              <span className="rounded-full bg-gradient-to-r from-fuchsia-500/20 to-purple-500/20 px-3 py-1 text-xs font-black uppercase tracking-wider text-fuchsia-200 border border-fuchsia-400/40 shadow">
+                Cúspide: Modo Ultra Instinto
+              </span>
             </div>
 
-            <span className="rounded-full bg-gradient-to-r from-fuchsia-500/20 to-purple-500/20 px-3 py-1 text-xs font-black uppercase tracking-wider text-fuchsia-200 border border-fuchsia-400/40 shadow">
-              Cúspide: Modo Ultra Instinto
-            </span>
+            <p className="text-xs text-zinc-300 leading-relaxed max-w-4xl">
+              Cuando el ácido láctico quema las piernas y el pulso cardíaco supera los <strong>175 BPM</strong> en el último cuarto, el atleta promedio pierde la visión periférica y comete pérdidas de balón. El atleta de Wild Wolves entrena la calma mental para tomar la decisión correcta sin pensar:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              {/* Tarjeta 1: Respiración de Línea */}
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
+                <div className="flex items-center gap-2 text-fuchsia-400 text-xs font-black uppercase tracking-wider">
+                  <Clock className="h-4 w-4" />
+                  Respiración Táctica 4-4-4
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  En la línea de tiro libre o tiempo muerto: inhalar 4 segundos por la nariz, retener 4 segundos en diafragma y exhalar en 4 segundos para descender de golpe 15 pulsaciones por minuto antes de lanzar.
+                </p>
+              </div>
+
+              {/* Tarjeta 2: Regla de los 3 Segundos Mentales */}
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
+                <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-wider">
+                  <ShieldCheck className="h-4 w-4" />
+                  Regla de los 3 Segundos
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  Cero frustración ante tiros errados o decisiones arbitrales. El cerebro tiene estrictamente 3 segundos para digerir la jugada; de inmediato se adopta la postura defensiva con ojos en la cadera del rival.
+                </p>
+              </div>
+
+              {/* Tarjeta 3: Estado de Flujo / Ultra Instinto */}
+              <div className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-950/20 p-4 space-y-2 shadow-inner">
+                <div className="flex items-center gap-2 text-[#d1fe17] text-xs font-black uppercase tracking-wider">
+                  <Sparkles className="h-4 w-4" />
+                  Ultra Instinto (Flow State)
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  En los niveles avanzados (Tier 8 y 9), el atleta no "calcula" la finta: la memoria neuromuscular de miles de repeticiones en Carmen Serdán ejecuta el pase o tiro de manera subconsciente.
+                </p>
+              </div>
+            </div>
           </div>
-
-          <p className="text-xs text-zinc-300 leading-relaxed max-w-4xl">
-            Cuando el ácido láctico quema las piernas y el pulso cardíaco supera los <strong>175 BPM</strong> en el último cuarto, el atleta promedio pierde la visión periférica y comete pérdidas de balón. El atleta de Wild Wolves entrena la calma mental para tomar la decisión correcta sin pensar:
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            {/* Tarjeta 1: Respiración de Línea */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-fuchsia-400 text-xs font-black uppercase tracking-wider">
-                <Clock className="h-4 w-4" />
-                Respiración Táctica 4-4-4
-              </div>
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                En la línea de tiro libre o tiempo muerto: inhalar 4 segundos por la nariz, retener 4 segundos en diafragma y exhalar en 4 segundos para descender de golpe 15 pulsaciones por minuto antes de lanzar.
-              </p>
-            </div>
-
-            {/* Tarjeta 2: Regla de los 3 Segundos Mentales */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-wider">
-                <ShieldCheck className="h-4 w-4" />
-                Regla de los 3 Segundos
-              </div>
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                Cero frustración ante tiros errados o decisiones arbitrales. El cerebro tiene estrictamente 3 segundos para digerir la jugada; de inmediato se adopta la postura defensiva con ojos en la cadera del rival.
-              </p>
-            </div>
-
-            {/* Tarjeta 3: Estado de Flujo / Ultra Instinto */}
-            <div className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-950/20 p-4 space-y-2 shadow-inner">
-              <div className="flex items-center gap-2 text-[#d1fe17] text-xs font-black uppercase tracking-wider">
-                <Sparkles className="h-4 w-4" />
-                Ultra Instinto (Flow State)
-              </div>
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                En los niveles avanzados (Tier 8 y 9), el atleta no "calcula" la finta: la memoria neuromuscular de miles de repeticiones en Carmen Serdán ejecuta el pase o tiro de manera subconsciente.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </PaywallLockCard>
 
       {/* ========================================================================= */}
       {/* MODAL CINEMÁTICO: REPRODUCTOR DE VIDEO EDUCATIVO                          */}
@@ -601,6 +666,13 @@ export default function LoboTacticalVideoHub() {
           </div>
         </div>
       )}
+      {/* Modal de Venta / Paywall para Contenido Pro */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        featureTitle="Videoteca Táctica Avanzada & Variante Pro"
+        featureDescription="Acceso a biomecánica de competición, desaceleración, y enfoque psicológico bajo fatiga en duela."
+      />
     </div>
   );
 }
