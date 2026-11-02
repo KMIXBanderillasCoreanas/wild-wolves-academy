@@ -3,10 +3,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Target, Sliders, Shield, Award, CheckCircle2, AlertCircle, BarChart2 } from 'lucide-react';
+import { Target, Sliders, Shield, Award, CheckCircle2, AlertCircle, BarChart2, Lock, MessageSquare } from 'lucide-react';
 import { generateStudentVsNbaBenchmark, AgeCategory, PlayerPositionRole, CompetitionLevel } from '@/lib/nba-intelligence/normalizerEngine';
 
-export function StudentVsNbaComparison() {
+export interface StudentVsNbaComparisonProps {
+  athleteName?: string;
+  isPro?: boolean;
+  isGuardianView?: boolean;
+}
+
+export function StudentVsNbaComparison({
+  athleteName = 'Mateo R. (Cantera Wild Wolves)',
+  isPro = false,
+  isGuardianView = false
+}: StudentVsNbaComparisonProps) {
   // Estado de los filtros de normalización científica
   const [ageCategory, setAgeCategory] = useState<AgeCategory>('U16');
   const [position, setPosition] = useState<PlayerPositionRole>('Shooting Guard');
@@ -20,7 +30,7 @@ export function StudentVsNbaComparison() {
 
   // Datos del alumno formativo (Wild Wolves Academy)
   const studentSample = {
-    name: 'Mateo R. (Cantera Wild Wolves)',
+    name: athleteName,
     minutesPerGame: 22,
     pts: 14.5,
     fgPct: 48.0,
@@ -73,8 +83,15 @@ export function StudentVsNbaComparison() {
     return `${x},${y}`;
   }).join(' ');
 
+  const whatsappMessage = encodeURIComponent(
+    isGuardianView
+      ? `Hola Coach Ricardo, soy tutor de ${athleteName} en Wild Wolves. Me interesa activar el Pack Familiar Élite ($149 MXN) para acceder a la comparativa cinemática avanzada y metas de entrenamiento frente a la NBA.`
+      : `Hola Coach Ricardo, soy ${athleteName}. Quiero desbloquear mi Folio Pro ($99 MXN) en Wild Wolves OS para ver mi reporte de brecha milimétrico y drills contra leyendas NBA.`
+  );
+  const whatsappUrl = `https://wa.me/525547672288?text=${whatsappMessage}`;
+
   return (
-    <div className="bg-slate-950 text-white rounded-3xl border border-slate-800 p-6 md:p-8 shadow-2xl my-8">
+    <div className="bg-slate-950 text-white rounded-3xl border border-slate-800 p-6 md:p-8 shadow-2xl my-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
         <div>
@@ -85,6 +102,9 @@ export function StudentVsNbaComparison() {
           <h2 className="text-2xl md:text-3xl font-black text-white">
             Comparativa de Brecha: Alumno vs. Élite NBA
           </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Métricas normalizadas por 36 minutos, 100 posesiones y categoría biológica de edad.
+          </p>
         </div>
 
         {/* Dynamic Compatibility Score */}
@@ -288,7 +308,7 @@ export function StudentVsNbaComparison() {
               }`}
             >
               <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-              <span>{studentSample.name.split('(')[0]} (Wild Wolves)</span>
+              <span>{athleteName.split('(')[0]} (Wild Wolves)</span>
             </button>
 
             <button
@@ -348,8 +368,8 @@ export function StudentVsNbaComparison() {
             </div>
           </div>
 
-          {/* AI Gap Insights */}
-          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 space-y-3">
+          {/* AI Gap Insights & Freemium Protection */}
+          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 space-y-3 relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
               Fortalezas Destacadas
@@ -364,11 +384,37 @@ export function StudentVsNbaComparison() {
               <AlertCircle className="w-4 h-4" />
               Plan de Perfeccionamiento en Duela
             </div>
-            <ul className="text-xs text-slate-300 space-y-1 pl-4 list-disc">
-              {benchmark.technicalGapReport.priorityImprovements.map((imp, i) => (
-                <li key={i}>{imp}</li>
-              ))}
-            </ul>
+            
+            {/* Si está en modo Pro o paga, muestra los drills completos. Si es Free, muestra llamada a la acción */}
+            {isPro ? (
+              <ul className="text-xs text-slate-300 space-y-1 pl-4 list-disc">
+                {benchmark.technicalGapReport.priorityImprovements.map((imp, i) => (
+                  <li key={i}>{imp}</li>
+                ))}
+                {benchmark.technicalGapReport.drillsRecommendation.map((drill, i) => (
+                  <li key={`drill-${i}`} className="text-orange-400 font-semibold">{drill}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-2 p-3.5 rounded-xl bg-orange-950/40 border border-orange-500/40 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-orange-400 mb-1">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>{isGuardianView ? 'Pack Familiar Élite ($149 MXN)' : 'Folio Lobo Pro ($99 MXN)'}</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 mb-2.5">
+                  Desbloquea los ejercicios de corrección biomecánica y el plan paso a paso diseñado contra estándares NBA.
+                </p>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow-md transition"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Activar con Coach Ricardo
+                </a>
+              </div>
+            )}
           </div>
         </div>
 

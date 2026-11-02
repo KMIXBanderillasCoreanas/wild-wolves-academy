@@ -1239,7 +1239,11 @@ function GuardianDashboardContent() {
             isGuardianView={true}
             isPro={isProMode}
           />
-          <StudentVsNbaComparison />
+          <StudentVsNbaComparison
+            athleteName={studentName}
+            isPro={isProMode}
+            isGuardianView={true}
+          />
         </ErrorBoundary>
 
         {/* SECCIÓN DE MEDALLAS DESBLOQUEADAS */}
