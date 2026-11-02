@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import DuelaHolografica3D from "@/components/DuelaHolografica3D";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import BiomechanicsProBenchmark from "@/components/BiomechanicsProBenchmark";
+import CourtRulesEncyclopedia from "@/components/CourtRulesEncyclopedia";
 import LoboProModal from "@/components/LoboProModal";
 import SubscriptionBannerAlert from "@/components/SubscriptionBannerAlert";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -1382,6 +1383,11 @@ function GuardianDashboardContent() {
             </div>
           )}
         </div>
+
+        {/* ANATOMÍA DE LA DUELA & REGLAMENTO OFICIAL FIBA/NBA (ACCESO LIBRE TUTOR) */}
+        <ErrorBoundary fallbackTitle="Enciclopedia de Duela en Pausa">
+          <CourtRulesEncyclopedia />
+        </ErrorBoundary>
 
         {/* BANNER PROMOCIONAL FREEMIUM DE ENTRENADOR IA PARA PADRES */}
         <div className="bg-gradient-to-r from-orange-950/40 via-[#16121e] to-[#0d1017] border border-orange-500/40 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">

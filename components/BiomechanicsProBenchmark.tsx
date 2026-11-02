@@ -15,10 +15,15 @@ import {
   AlertTriangle,
   RotateCcw,
   ShieldCheck,
-  FileText
+  FileText,
+  Lock,
+  Flame,
+  Dumbbell,
+  Users
 } from 'lucide-react';
 import { requestBiomechanicsAuditAction } from '@/app/actions/biomechanics-actions';
 import PaywallLockCard from '@/components/PaywallLockCard';
+import { NBA_LEGENDS_BENCHMARKS, LegendBenchmark } from '@/lib/legendsBenchmark';
 
 interface ProBenchMetrics {
   reactionTimeMs: number;
@@ -47,6 +52,7 @@ export default function BiomechanicsProBenchmark({
   const [analyzing, setAnalyzing] = useState(false);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedLegendId, setSelectedLegendId] = useState<string>('nba_base');
 
   // Métricas del Atleta (Valores reales o estimaciones del último test)
   const metrics: ProBenchMetrics = {
@@ -58,15 +64,9 @@ export default function BiomechanicsProBenchmark({
     hipTrackingAwareness: studentMetrics?.hipTrackingAwareness ?? 82.0
   };
 
-  // Parámetros de referencia Élite Pro NBA
-  const nbaBenchmark = {
-    reactionTimeMs: 215, // Más rápido es mejor
-    gatheringTimeMs: 320, // Más rápido es mejor
-    releaseTimeMs: 310, // Estándar Curry/Lillard: ~300-330ms
-    jumpApexHeightCm: 72.0, // Más alto es mejor
-    defensiveStanceScore: 92.0, // Mayor es mejor
-    hipTrackingAwareness: 94.0 // Mayor es mejor
-  };
+  // Leyenda actualmente seleccionada
+  const activeLegend: LegendBenchmark = 
+    NBA_LEGENDS_BENCHMARKS.find((l) => l.id === selectedLegendId) || NBA_LEGENDS_BENCHMARKS[0];
 
   // Cálculo de Porcentajes de Brecha (Normalizados a 100% de escala visual)
   const calcEfficiency = (student: number, pro: number, lowerIsBetter: boolean) => {
@@ -83,37 +83,55 @@ export default function BiomechanicsProBenchmark({
       id: 'reaction',
       title: 'Velocidad de Reacción (Corte & Pase)',
       studentVal: `${metrics.reactionTimeMs} ms`,
-      nbaVal: `${nbaBenchmark.reactionTimeMs} ms`,
-      pct: calcEfficiency(metrics.reactionTimeMs, nbaBenchmark.reactionTimeMs, true),
+      targetVal: `${activeLegend.reactionTimeMs} ms`,
+      pct: calcEfficiency(metrics.reactionTimeMs, activeLegend.reactionTimeMs, true),
       desc: 'Tiempo desde el estímulo visual defensivo hasta el primer paso de propulsión.',
-      delta: `+${metrics.reactionTimeMs - nbaBenchmark.reactionTimeMs} ms vs NBA`
+      delta: `+${metrics.reactionTimeMs - activeLegend.reactionTimeMs} ms vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'release',
       title: 'Tiempo de Liberación de Tiro (Release Speed)',
       studentVal: `${metrics.releaseTimeMs} ms`,
-      nbaVal: `${nbaBenchmark.releaseTimeMs} ms`,
-      pct: calcEfficiency(metrics.releaseTimeMs, nbaBenchmark.releaseTimeMs, true),
+      targetVal: `${activeLegend.releaseTimeMs} ms`,
+      pct: calcEfficiency(metrics.releaseTimeMs, activeLegend.releaseTimeMs, true),
       desc: 'Mecánica de disparo en el punto de apex con muñeca activa y quiebre de 90°.',
-      delta: `+${metrics.releaseTimeMs - nbaBenchmark.releaseTimeMs} ms vs NBA`
+      delta: `+${metrics.releaseTimeMs - activeLegend.releaseTimeMs} ms vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'stance',
       title: 'Postura Defensiva (Stance & Cadera)',
       studentVal: `${metrics.defensiveStanceScore} pts`,
-      nbaVal: `${nbaBenchmark.defensiveStanceScore} pts`,
-      pct: calcEfficiency(metrics.defensiveStanceScore, nbaBenchmark.defensiveStanceScore, false),
+      targetVal: `${activeLegend.defensiveStanceScore} pts`,
+      pct: calcEfficiency(metrics.defensiveStanceScore, activeLegend.defensiveStanceScore, false),
       desc: 'Mano adelantada al ombligo atacante, centro de gravedad bajo y ojos a la cadera.',
-      delta: `${metrics.defensiveStanceScore - nbaBenchmark.defensiveStanceScore} pts vs NBA`
+      delta: `${metrics.defensiveStanceScore - activeLegend.defensiveStanceScore} pts vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'gathering',
       title: 'Gathering & Paso Cero (Subida del Balón)',
       studentVal: `${metrics.gatheringTimeMs} ms`,
-      nbaVal: `${nbaBenchmark.gatheringTimeMs} ms`,
-      pct: calcEfficiency(metrics.gatheringTimeMs, nbaBenchmark.gatheringTimeMs, true),
+      targetVal: `${activeLegend.gatheringTimeMs} ms`,
+      pct: calcEfficiency(metrics.gatheringTimeMs, activeLegend.gatheringTimeMs, true),
       desc: 'Tiempo de transición desde el bote de ataque hasta el set de tiro.',
-      delta: `+${metrics.gatheringTimeMs - nbaBenchmark.gatheringTimeMs} ms vs NBA`
+      delta: `+${metrics.gatheringTimeMs - activeLegend.gatheringTimeMs} ms vs ${activeLegend.legend_name.split(' ')[0]}`
+    },
+    {
+      id: 'jumpApex',
+      title: 'Elevación Vertical en Apex',
+      studentVal: `${metrics.jumpApexHeightCm} cm`,
+      targetVal: `${activeLegend.jumpApexHeightCm} cm`,
+      pct: calcEfficiency(metrics.jumpApexHeightCm, activeLegend.jumpApexHeightCm, false),
+      desc: 'Capacidad de salto vertical para suspensión de tiro y disputa aérea.',
+      delta: `${metrics.jumpApexHeightCm - activeLegend.jumpApexHeightCm} cm vs ${activeLegend.legend_name.split(' ')[0]}`
+    },
+    {
+      id: 'hipTracking',
+      title: 'Conciencia Espacial & Lectura de Cadera',
+      studentVal: `${metrics.hipTrackingAwareness} pts`,
+      targetVal: `${activeLegend.hipTrackingAwareness} pts`,
+      pct: calcEfficiency(metrics.hipTrackingAwareness, activeLegend.hipTrackingAwareness, false),
+      desc: 'Anticipación cinemática al atacante con rotación pélvica de 45°.',
+      delta: `${metrics.hipTrackingAwareness - activeLegend.hipTrackingAwareness} pts vs ${activeLegend.legend_name.split(' ')[0]}`
     }
   ];
 
@@ -150,16 +168,51 @@ export default function BiomechanicsProBenchmark({
     }
   };
 
+  // Contenido de telemetría cinemática
   const cinematicContent = (
     <div className="space-y-6">
-      {/* Botón de auditoría y encabezado interno */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-zinc-800/80 gap-3">
+      {/* TARJETA RESUMEN DE LA LEYENDA ACTIVA */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#121722] via-[#0d121c] to-[#141b2a] border border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-600 to-amber-600 flex items-center justify-center text-2xl shadow-lg shrink-0">
+            {activeLegend.iconTag}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
+                {activeLegend.legend_name}
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-orange-400 font-bold border border-zinc-700">
+                {activeLegend.jerseyNumber} • {activeLegend.team}
+              </span>
+              <span className="text-[10px] font-mono text-zinc-400">
+                {activeLegend.era}
+              </span>
+            </div>
+            <p className="text-xs text-zinc-300 mt-1 leading-snug">
+              {activeLegend.description}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-2.5 px-3.5 rounded-xl bg-black/50 border border-zinc-800 shrink-0 text-right md:text-left">
+          <span className="text-[10px] font-mono uppercase text-zinc-400 block font-bold">
+            {activeLegend.specialtyMetricName}
+          </span>
+          <span className="text-xs sm:text-sm font-black font-mono text-emerald-400">
+            {activeLegend.specialtyMetricValue}
+          </span>
+        </div>
+      </div>
+
+      {/* BOTÓN DE AUDITORÍA Y ENCABEZADO */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-zinc-800/80 gap-3">
         <div>
           <span className="text-[10px] font-mono text-zinc-400 uppercase">
-            Desglose de Milisegundos y Ángulos
+            Desglose de Milisegundos y Ángulos vs {activeLegend.legend_name}
           </span>
           <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
-            Cinemática Detallada en Duela
+            Cinemática y Brecha en Duela
           </h4>
         </div>
 
@@ -185,26 +238,26 @@ export default function BiomechanicsProBenchmark({
       )}
 
       {/* BARRAS DE PROGRESO DE BRECHA */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {benchmarks.map((item) => (
           <div
             key={item.id}
-            className="p-4 rounded-2xl bg-[#10141d] border border-zinc-800/80 hover:border-zinc-700 transition"
+            className="p-4 rounded-2xl bg-[#10141d] border border-zinc-800/80 hover:border-zinc-700 transition space-y-2.5"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-zinc-200">{item.title}</span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-orange-400 border border-zinc-700">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-bold text-zinc-200 truncate">{item.title}</span>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-orange-400 border border-zinc-700 shrink-0">
                 {item.delta}
               </span>
             </div>
 
-            <p className="text-[11px] text-zinc-500 mt-1 line-clamp-1">{item.desc}</p>
+            <p className="text-[11px] text-zinc-400 line-clamp-2">{item.desc}</p>
 
             {/* Medidores comparativos */}
-            <div className="mt-3 space-y-1.5">
+            <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-[11px] font-mono">
                 <span className="text-zinc-400">Atleta: <strong className="text-white">{item.studentVal}</strong></span>
-                <span className="text-zinc-400">Pro NBA: <strong className="text-emerald-400">{item.nbaVal}</strong></span>
+                <span className="text-zinc-400">{activeLegend.legend_name.split(' ')[0]}: <strong className="text-emerald-400">{item.targetVal}</strong></span>
               </div>
 
               {/* Barra de progreso */}
@@ -222,7 +275,7 @@ export default function BiomechanicsProBenchmark({
               </div>
 
               <div className="flex justify-between items-center text-[10px] text-zinc-500 pt-0.5">
-                <span>Índice de Acoplamiento Pro</span>
+                <span>Acoplamiento al Perfil</span>
                 <span className="font-mono font-bold text-zinc-300">{item.pct}%</span>
               </div>
             </div>
@@ -237,7 +290,7 @@ export default function BiomechanicsProBenchmark({
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
               <h4 className="text-sm font-black uppercase text-orange-400 tracking-wide">
-                Diagnóstico del Lobo Táctico (FIBA / NBA Analysis)
+                Diagnóstico del Lobo Táctico (FIBA / NBA vs {activeLegend.legend_name})
               </h4>
             </div>
             <span className="text-[10px] font-mono text-zinc-400">DeepSeek-v4.1 Biomechanics</span>
@@ -251,30 +304,117 @@ export default function BiomechanicsProBenchmark({
     </div>
   );
 
+  // Determinar si el contenido actual requiere Paywall
+  // 1. Si es vista de tutor y no es pro: se protege con Pack Familiar Élite $149
+  // 2. Si es vista de alumno y seleccionó una leyenda premium (Curry, Jordan, LeBron, Bird) y no es pro: se protege con Lobo Pro $99
+  const isTargetLocked = isGuardianView 
+    ? (!isPro)
+    : (activeLegend.isPremium && !isPro);
+
+  const lockTitle = isGuardianView
+    ? "Comparativa Cinemática Avanzada en Milisegundos"
+    : `Comparativa Exclusiva contra ${activeLegend.legend_name}`;
+
+  const lockBadge = isGuardianView ? "Pack Familiar Élite $149" : "Lobo Pro $99";
+  const lockPlan = isGuardianView ? "Pack Familiar Élite" : "Atleta Lobo Pro";
+  const lockPrice = isGuardianView ? "$149 MXN" : "$99 MXN";
+
+  const lockDescription = isGuardianView
+    ? `El desglose segundo a segundo de tiempo de liberación (release), gathering y cinemática de cadera contra ${activeLegend.legend_name} está reservado para el Pack Familiar Élite ($149 MXN).`
+    : `La comparativa cinemática especializada contra leyendas históricas de la NBA (${activeLegend.legend_name} - ${activeLegend.archetype}) es una herramienta exclusiva para miembros Lobo Pro ($99 MXN).`;
+
   return (
-    <div className="bg-[#0b0e14] border border-[#1e293b] rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+    <div className="bg-[#0b0e14] border border-[#1e293b] rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden">
       {/* Luz de acento HUD */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* ENCABEZADO DE TELEMETRÍA */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-zinc-800/80 gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-5 border-b border-zinc-800/80 gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-black uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5 text-orange-400 animate-pulse" /> TELEMETRÍA CINEMÁTICA V3.2
             </span>
-            <span className="text-[11px] font-mono text-zinc-400">FIBA / NBA BENCHMARK</span>
+            <span className="text-[11px] font-mono text-zinc-400">FIBA / NBA LEGENDS BENCHMARK</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white mt-1.5 flex items-center gap-2">
-            Reporte de Brecha: Atleta vs. Estándar Pro NBA / FIBA
+            Reporte de Brecha: Atleta vs. Leyendas de la NBA
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Comparativa en milisegundos y grados cinemáticos de <span className="text-orange-400 font-bold">{athleteName}</span> contra el benchmark élite.
+            Compara la cinemática, velocidad de tiro y reacción de <span className="text-orange-400 font-bold">{athleteName}</span> contra los más grandes de la historia.
           </p>
+        </div>
+
+        {/* Indicador de estado de suscripción */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-[10px] font-mono font-black uppercase px-3 py-1 rounded-full border ${
+            isPro 
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+              : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+          }`}>
+            {isPro ? '⭐ MODO PRO ACTIVO' : 'FREE MODE (ESTÁNDAR BASE)'}
+          </span>
         </div>
       </div>
 
-      {/* ESQUEMA HÍBRIDO PARA TUTORES: 1. RESUMEN EJECUTIVO EN LENGUAJE HUMANO (GRATIS) */}
+      {/* SELECTOR INTERACTIVO DE LEYENDAS */}
+      <div className="mb-6 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-mono uppercase text-zinc-400 font-bold flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-orange-400" /> Selecciona la Leyenda de Referencia:
+          </span>
+          <span className="text-[10px] font-mono text-zinc-500">
+            {NBA_LEGENDS_BENCHMARKS.length} perfiles disponibles
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {NBA_LEGENDS_BENCHMARKS.map((legend) => {
+            const isSelected = legend.id === selectedLegendId;
+            const isLockedForUser = legend.isPremium && !isPro;
+
+            return (
+              <button
+                key={legend.id}
+                onClick={() => setSelectedLegendId(legend.id)}
+                className={`p-3 rounded-2xl border text-left transition relative cursor-pointer group flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-gradient-to-b from-[#1b2333] to-[#101624] border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10'
+                    : 'bg-[#0f1422] border-zinc-800/90 hover:border-zinc-700 hover:bg-[#141b2a]'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-base">{legend.iconTag}</span>
+                    {isLockedForUser ? (
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> PRO
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        LIBRE
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-xs font-black text-white truncate group-hover:text-orange-400 transition">
+                    {legend.legend_name.split(' ')[0]} {legend.legend_name.split(' ')[1] || ''}
+                  </h4>
+                  <p className="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">
+                    {legend.archetype.split('/')[0]}
+                  </p>
+                </div>
+
+                <div className="pt-2 mt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-zinc-500">Release:</span>
+                  <span className="font-bold text-zinc-300">{legend.releaseTimeMs}ms</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ESQUEMA HÍBRIDO PARA TUTORES: RESUMEN EJECUTIVO EN LENGUAJE HUMANO (GRATIS) */}
       {isGuardianView && (
         <div className="bg-gradient-to-r from-[#121927] to-[#0f1422] border-2 border-emerald-500/40 rounded-2xl p-5 mb-6 space-y-3 shadow-lg">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -287,17 +427,17 @@ export default function BiomechanicsProBenchmark({
                   Resumen Ejecutivo para Familias (Acceso Libre)
                 </span>
                 <h4 className="text-sm sm:text-base font-black text-white">
-                  Diagnóstico Formativo de {athleteName}
+                  Diagnóstico Formativo de {athleteName} vs {activeLegend.legend_name}
                 </h4>
               </div>
             </div>
             <span className="text-xs font-mono font-black px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              🟢 {avgEfficiency}% Acoplamiento Pro
+              🟢 {avgEfficiency}% Acoplamiento al Perfil
             </span>
           </div>
 
           <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed font-normal">
-            Tu atleta se encuentra a un <strong className="text-emerald-300">{avgEfficiency}% de madurez neuromuscular</strong> respecto al estándar formativo internacional. Muestra gran disciplina física, velocidad lateral y postura defensiva en el Deportivo Carmen Serdán.
+            Tu atleta se encuentra a un <strong className="text-emerald-300">{avgEfficiency}% de acoplamiento neuromuscular</strong> comparado con los patrones de {activeLegend.legend_name}. Muestra gran disciplina física, velocidad lateral y postura en el Deportivo Carmen Serdán.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
@@ -306,7 +446,7 @@ export default function BiomechanicsProBenchmark({
                 🟢 Fortaleza Clave
               </span>
               <p className="text-xs text-zinc-300">
-                Postura defensiva baja y tiempo de reacción rápido ante el pase rival.
+                Postura defensiva activa y lectura en transición defensiva.
               </p>
             </div>
             <div className="p-3 bg-black/40 rounded-xl border border-zinc-800">
@@ -314,7 +454,7 @@ export default function BiomechanicsProBenchmark({
                 🟡 Enfoque en Duela
               </span>
               <p className="text-xs text-zinc-300">
-                Optimizar el Paso Cero (Gather Step) para soltar el balón sin perder altura.
+                Acelerar el Gathering y Paso Cero para elevar el balón sin frenar el impulso.
               </p>
             </div>
             <div className="p-3 bg-black/40 rounded-xl border border-zinc-800">
@@ -322,22 +462,22 @@ export default function BiomechanicsProBenchmark({
                 💡 Tarea en el Hogar
               </span>
               <p className="text-xs text-zinc-300">
-                Completar 300 saltos de cuerda diarios para potenciar la reactividad de tobillos.
+                300 saltos de cuerda diarios y 15 min de bote bajo alternado para reactividad.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* 2. COMPARATIVA CINEMÁTICA AVANZADA EN MILISEGUNDOS */}
-      {isGuardianView ? (
+      {/* COMPARATIVA CINEMÁTICA EN MILISEGUNDOS (BLOQUEO CONDICIONAL POR LEYENDA O PACK TUTOR) */}
+      {isTargetLocked ? (
         <PaywallLockCard
-          isLocked={!isPro}
-          title="Comparativa Cinemática Avanzada en Milisegundos"
-          badgeText="Pack Familiar Élite $149"
-          planName="Pack Familiar Élite"
-          planPrice="$149 MXN"
-          description="El desglose segundo a segundo de tiempo de liberación (release), gathering y cinemática de cadera está reservado para el Pack Familiar Élite ($149 MXN)."
+          isLocked={true}
+          title={lockTitle}
+          badgeText={lockBadge}
+          planName={lockPlan}
+          planPrice={lockPrice}
+          description={lockDescription}
           studentName={athleteName}
         >
           {cinematicContent}

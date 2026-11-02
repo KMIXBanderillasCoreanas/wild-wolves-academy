@@ -11,7 +11,8 @@ import {
   Home, 
   Menu, 
   X,
-  HeartHandshake
+  HeartHandshake,
+  BookOpen
 } from 'lucide-react';
 import DemoModeToggle from '@/components/DemoModeToggle';
 
@@ -62,6 +63,13 @@ export function Navbar() {
       label: 'Bazar Lobo',
       icon: ShoppingBag,
       isActive: pathname?.startsWith('/marketplace'),
+      isAccent: false
+    },
+    {
+      href: '/rules-and-court',
+      label: 'Reglas & Duela',
+      icon: BookOpen,
+      isActive: pathname === '/rules-and-court',
       isAccent: false
     },
     {

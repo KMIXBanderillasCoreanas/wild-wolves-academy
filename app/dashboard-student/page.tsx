@@ -16,6 +16,7 @@ import BasketballCourtHeatmap from "@/components/BasketballCourtHeatmap";
 import CourtHeatmapPro from "@/components/CourtHeatmapPro";
 import DuelaHolografica3D from "@/components/DuelaHolografica3D";
 import BiomechanicsProBenchmark from "@/components/BiomechanicsProBenchmark";
+import CourtRulesEncyclopedia from "@/components/CourtRulesEncyclopedia";
 import PrehabRecoveryCard from "@/components/PrehabRecoveryCard";
 import ShotScienceDashboard from "@/components/ShotScienceDashboard";
 import VisionAssistantModal from "@/components/VisionAssistantModal";
@@ -2323,32 +2324,23 @@ function StudentDashboardContent() {
               />
             </section>
 
-            {/* 4.01 COMPARATIVA BIOMECÁNICA ALUMNO VS ESTÁNDAR PRO NBA (REQUIERE LOBO PRO) */}
-            <PaywallLockCard
-              isLocked={!isEffectivePro}
-              title="Test Biomecánico & Brecha Pro NBA"
-              description="Comparativa de release time, ángulo de tiro y salto vertical frente a métricas oficiales NBA reservado para Lobo Pro ($99 MXN)."
-              badgeText="Lobo Pro $99"
-              planName="Atleta Lobo Pro"
-              planPrice="$99 MXN"
-              studentName={profile?.full_name}
-              studentEmail={profile?.email}
-            >
-              <section className="space-y-4">
-                <BiomechanicsProBenchmark
-                  athleteName={profile?.full_name || "Bruno Sánchez"}
-                  studentId={profile?.id || "demo-student"}
-                  studentMetrics={{
-                    reactionTimeMs: 285,
-                    gatheringTimeMs: 410,
-                    releaseTimeMs: 360,
-                    jumpApexHeightCm: evaluation.vertical_jump ?? 52,
-                    defensiveStanceScore: 80,
-                    hipTrackingAwareness: 84
-                  }}
-                />
-              </section>
-            </PaywallLockCard>
+            {/* 4.01 COMPARATIVA BIOMECÁNICA ALUMNO VS LEYENDAS NBA & ESTÁNDAR PRO */}
+            <section className="space-y-4">
+              <BiomechanicsProBenchmark
+                athleteName={profile?.full_name || "Bruno Sánchez"}
+                studentId={profile?.id || "demo-student"}
+                isPro={isEffectivePro}
+                isGuardianView={false}
+                studentMetrics={{
+                  reactionTimeMs: 285,
+                  gatheringTimeMs: 410,
+                  releaseTimeMs: 360,
+                  jumpApexHeightCm: evaluation.vertical_jump ?? 52,
+                  defensiveStanceScore: 80,
+                  hipTrackingAwareness: 84
+                }}
+              />
+            </section>
 
             {/* 4.02 SALUD PREVENTIVA Y ESTIRAMIENTOS (PRE-HAB & COOL-DOWN) (REQUIERE LOBO PRO) */}
             <PaywallLockCard
@@ -2494,6 +2486,11 @@ function StudentDashboardContent() {
                 studentName={profile?.full_name}
                 dayNumber={Math.max(1, Math.min(10, attendanceStats.total + 1))}
               />
+            </section>
+
+            {/* 6. ANATOMÍA DE LA DUELA & REGLAMENTO OFICIAL (GRATIS) */}
+            <section className="space-y-4">
+              <CourtRulesEncyclopedia />
             </section>
 
           </div>
