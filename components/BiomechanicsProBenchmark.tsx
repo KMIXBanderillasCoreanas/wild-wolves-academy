@@ -19,7 +19,8 @@ import {
   Lock,
   Flame,
   Dumbbell,
-  Users
+  Users,
+  Target
 } from 'lucide-react';
 import { requestBiomechanicsAuditAction } from '@/app/actions/biomechanics-actions';
 import PaywallLockCard from '@/components/PaywallLockCard';
@@ -85,52 +86,52 @@ export default function BiomechanicsProBenchmark({
       studentVal: `${metrics.reactionTimeMs} ms`,
       targetVal: `${activeLegend.reactionTimeMs} ms`,
       pct: calcEfficiency(metrics.reactionTimeMs, activeLegend.reactionTimeMs, true),
-      desc: 'Tiempo desde el estímulo visual defensivo hasta el primer paso de propulsión.',
+      desc: 'Tiempo desde el estímulo visual de duela hasta el primer paso de propulsión.',
       delta: `+${metrics.reactionTimeMs - activeLegend.reactionTimeMs} ms vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'release',
-      title: 'Tiempo de Liberación de Tiro (Release Speed)',
+      title: 'Velocidad de Liberación de Tiro',
       studentVal: `${metrics.releaseTimeMs} ms`,
       targetVal: `${activeLegend.releaseTimeMs} ms`,
       pct: calcEfficiency(metrics.releaseTimeMs, activeLegend.releaseTimeMs, true),
-      desc: 'Mecánica de disparo en el punto de apex con muñeca activa y quiebre de 90°.',
+      desc: 'Mecánica de disparo en el punto máximo de elevación con muñeca activa y quiebre de 90°.',
       delta: `+${metrics.releaseTimeMs - activeLegend.releaseTimeMs} ms vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'stance',
-      title: 'Postura Defensiva (Stance & Cadera)',
+      title: 'Postura Defensiva & Centro de Gravedad',
       studentVal: `${metrics.defensiveStanceScore} pts`,
       targetVal: `${activeLegend.defensiveStanceScore} pts`,
       pct: calcEfficiency(metrics.defensiveStanceScore, activeLegend.defensiveStanceScore, false),
-      desc: 'Mano adelantada al ombligo atacante, centro de gravedad bajo y ojos a la cadera.',
+      desc: 'Mano adelantada al ombligo atacante, flexión de rodillas a 90° y ojos a la cintura.',
       delta: `${metrics.defensiveStanceScore - activeLegend.defensiveStanceScore} pts vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'gathering',
-      title: 'Gathering & Paso Cero (Subida del Balón)',
+      title: 'Paso Cero & Recogida del Balón',
       studentVal: `${metrics.gatheringTimeMs} ms`,
       targetVal: `${activeLegend.gatheringTimeMs} ms`,
       pct: calcEfficiency(metrics.gatheringTimeMs, activeLegend.gatheringTimeMs, true),
-      desc: 'Tiempo de transición desde el bote de ataque hasta el set de tiro.',
+      desc: 'Tiempo de transición desde el bote de desmarque hasta el set de tiro en suspensión.',
       delta: `+${metrics.gatheringTimeMs - activeLegend.gatheringTimeMs} ms vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'jumpApex',
-      title: 'Elevación Vertical en Apex',
+      title: 'Punto Máximo de Elevación en Salto (Apex)',
       studentVal: `${metrics.jumpApexHeightCm} cm`,
       targetVal: `${activeLegend.jumpApexHeightCm} cm`,
       pct: calcEfficiency(metrics.jumpApexHeightCm, activeLegend.jumpApexHeightCm, false),
-      desc: 'Capacidad de salto vertical para suspensión de tiro y disputa aérea.',
+      desc: 'Elevación vertical para suspensión de tiro y disputa de rebote en duela.',
       delta: `${metrics.jumpApexHeightCm - activeLegend.jumpApexHeightCm} cm vs ${activeLegend.legend_name.split(' ')[0]}`
     },
     {
       id: 'hipTracking',
-      title: 'Conciencia Espacial & Lectura de Cadera',
+      title: 'Estabilidad Pélvica & Lectura de Cadera',
       studentVal: `${metrics.hipTrackingAwareness} pts`,
       targetVal: `${activeLegend.hipTrackingAwareness} pts`,
       pct: calcEfficiency(metrics.hipTrackingAwareness, activeLegend.hipTrackingAwareness, false),
-      desc: 'Anticipación cinemática al atacante con rotación pélvica de 45°.',
+      desc: 'Anticipación cinemática con rotación de cadera para bloquear penetraciones.',
       delta: `${metrics.hipTrackingAwareness - activeLegend.hipTrackingAwareness} pts vs ${activeLegend.legend_name.split(' ')[0]}`
     }
   ];
@@ -171,37 +172,59 @@ export default function BiomechanicsProBenchmark({
   // Contenido de telemetría cinemática
   const cinematicContent = (
     <div className="space-y-6">
-      {/* TARJETA RESUMEN DE LA LEYENDA ACTIVA */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#121722] via-[#0d121c] to-[#141b2a] border border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-600 to-amber-600 flex items-center justify-center text-2xl shadow-lg shrink-0">
-            {activeLegend.iconTag}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
-                {activeLegend.legend_name}
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-orange-400 font-bold border border-zinc-700">
-                {activeLegend.jerseyNumber} • {activeLegend.team}
-              </span>
-              <span className="text-[10px] font-mono text-zinc-400">
-                {activeLegend.era}
-              </span>
+      {/* TARJETA RESUMEN DE LA LEYENDA ACTIVA (PPP, ZONA & FALTAS) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#121722] via-[#0d121c] to-[#141b2a] border border-zinc-800 space-y-3.5">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-600 to-amber-600 flex items-center justify-center text-2xl shadow-lg shrink-0">
+              {activeLegend.iconTag}
             </div>
-            <p className="text-xs text-zinc-300 mt-1 leading-snug">
-              {activeLegend.description}
-            </p>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
+                  {activeLegend.legend_name}
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-orange-400 font-bold border border-zinc-700">
+                  {activeLegend.jerseyNumber} • {activeLegend.team}
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400">
+                  {activeLegend.era}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-300 mt-1 leading-snug">
+                {activeLegend.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-2.5 px-3.5 rounded-xl bg-black/50 border border-zinc-800 shrink-0 text-right md:text-left">
+            <span className="text-[10px] font-mono uppercase text-zinc-400 block font-bold">
+              {activeLegend.specialtyMetricName}
+            </span>
+            <span className="text-xs sm:text-sm font-black font-mono text-emerald-400">
+              {activeLegend.specialtyMetricValue}
+            </span>
           </div>
         </div>
 
-        <div className="p-2.5 px-3.5 rounded-xl bg-black/50 border border-zinc-800 shrink-0 text-right md:text-left">
-          <span className="text-[10px] font-mono uppercase text-zinc-400 block font-bold">
-            {activeLegend.specialtyMetricName}
-          </span>
-          <span className="text-xs sm:text-sm font-black font-mono text-emerald-400">
-            {activeLegend.specialtyMetricValue}
-          </span>
+        {/* METRICAS DE PARTIDO DE LA LEYENDA (PPP, FALTAS & ZONA EN DUELA) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-zinc-800/80">
+          <div className="p-2.5 rounded-xl bg-black/40 border border-zinc-800 flex items-center justify-between">
+            <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold">Puntos Por Partido (PPP):</span>
+            <span className="text-xs font-mono font-black text-amber-400">{activeLegend.pointsPerGame} PPP</span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-black/40 border border-zinc-800 flex items-center justify-between">
+            <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold">Faltas Por Juego:</span>
+            <span className="text-xs font-mono font-black text-rose-400">{activeLegend.foulsPerGame} Faltas</span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-black/40 border border-zinc-800 flex items-center justify-between">
+            <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold truncate">Zona Clave:</span>
+            <span className="text-xs font-mono font-black text-cyan-400 truncate ml-2">
+              {activeLegend.primaryZoneEfficiencyPct}% ({activeLegend.primaryZoneName.split(' ')[0]})
+            </span>
+          </div>
         </div>
       </div>
 
@@ -320,7 +343,7 @@ export default function BiomechanicsProBenchmark({
   const lockPrice = isGuardianView ? "$149 MXN" : "$99 MXN";
 
   const lockDescription = isGuardianView
-    ? `El desglose segundo a segundo de tiempo de liberación (release), gathering y cinemática de cadera contra ${activeLegend.legend_name} está reservado para el Pack Familiar Élite ($149 MXN).`
+    ? `El desglose segundo a segundo de velocidad de liberación de tiro, paso cero y estabilidad de cadera contra ${activeLegend.legend_name} está reservado para el Pack Familiar Élite ($149 MXN).`
     : `La comparativa cinemática especializada contra leyendas históricas de la NBA (${activeLegend.legend_name} - ${activeLegend.archetype}) es una herramienta exclusiva para miembros Lobo Pro ($99 MXN).`;
 
   return (
@@ -335,13 +358,13 @@ export default function BiomechanicsProBenchmark({
             <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-black uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1.5">
               <Cpu className="w-3.5 h-3.5 text-orange-400 animate-pulse" /> TELEMETRÍA CINEMÁTICA V3.2
             </span>
-            <span className="text-[11px] font-mono text-zinc-400">FIBA / NBA LEGENDS BENCHMARK</span>
+            <span className="text-[11px] font-mono text-zinc-400">FIBA / NBA BENCHMARK OFICIAL</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white mt-1.5 flex items-center gap-2">
             Reporte de Brecha: Atleta vs. Leyendas de la NBA
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Compara la cinemática, velocidad de tiro y reacción de <span className="text-orange-400 font-bold">{athleteName}</span> contra los más grandes de la historia.
+            Compara la cinemática, velocidad de liberación de tiro y reacción de <span className="text-orange-400 font-bold">{athleteName}</span> contra los más grandes de la historia.
           </p>
         </div>
 
@@ -352,7 +375,7 @@ export default function BiomechanicsProBenchmark({
               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
           }`}>
-            {isPro ? '⭐ MODO PRO ACTIVO' : 'FREE MODE (ESTÁNDAR BASE)'}
+            {isPro ? '⭐ MODO PRO ACTIVO' : 'MODO GRATUITO (ESTÁNDAR BASE)'}
           </span>
         </div>
       </div>
@@ -364,14 +387,14 @@ export default function BiomechanicsProBenchmark({
             <Users className="w-3.5 h-3.5 text-orange-400" /> Selecciona la Leyenda de Referencia:
           </span>
           <span className="text-[10px] font-mono text-zinc-500">
-            {NBA_LEGENDS_BENCHMARKS.length} perfiles disponibles
+            {NBA_LEGENDS_BENCHMARKS.length} perfiles oficiales disponibles
           </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
           {NBA_LEGENDS_BENCHMARKS.map((legend) => {
             const isSelected = legend.id === selectedLegendId;
-            const isLockedForUser = legend.isPremium && !isPro;
+            const isLockedForUser = isGuardianView ? (!isPro) : (legend.isPremium && !isPro);
 
             return (
               <button
@@ -405,7 +428,7 @@ export default function BiomechanicsProBenchmark({
                 </div>
 
                 <div className="pt-2 mt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-zinc-500">Release:</span>
+                  <span className="text-zinc-500">Liberación:</span>
                   <span className="font-bold text-zinc-300">{legend.releaseTimeMs}ms</span>
                 </div>
               </button>
@@ -454,7 +477,7 @@ export default function BiomechanicsProBenchmark({
                 🟡 Enfoque en Duela
               </span>
               <p className="text-xs text-zinc-300">
-                Acelerar el Gathering y Paso Cero para elevar el balón sin frenar el impulso.
+                Acelerar el Paso Cero para elevar el balón sin frenar el impulso del drible.
               </p>
             </div>
             <div className="p-3 bg-black/40 rounded-xl border border-zinc-800">
