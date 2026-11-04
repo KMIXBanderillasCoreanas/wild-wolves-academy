@@ -106,6 +106,7 @@ const DEFAULT_UNIFIED_TEST = {
 function GuardianDashboardContent() {
   const { isPro: isProMode, setMode: setDemoMode } = useSubscriptionTier();
   const [mounted, setMounted] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'profile_physical' | 'court_thermal' | 'nba_comparison'>('profile_physical');
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [guardianProfile, setGuardianProfile] = useState<any>({
     full_name: "Tutor Familiar",
@@ -131,6 +132,15 @@ function GuardianDashboardContent() {
   useEffect(() => {
     setMounted(true);
     loadGuardianData();
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get("tab");
+      if (tabParam === "court" || tabParam === "duela" || tabParam === "cobertura" || tabParam === "tiro") {
+        setActiveTab("court_thermal");
+      } else if (tabParam === "nba" || tabParam === "comparativa" || tabParam === "brecha" || tabParam === "leyendas") {
+        setActiveTab("nba_comparison");
+      }
+    }
   }, []);
 
   async function loadGuardianData() {
@@ -672,7 +682,64 @@ function GuardianDashboardContent() {
         </div>
 
         {/* ================================================================= */}
-        {/* REQUISITO 1: TARJETA DE RESUMEN HUMANO ("EL REPORTE DEL COACH")   */}
+        {/* NAVEGACIÓN PRINCIPAL DE 3 PESTAÑAS (PORTAL TUTOR FAMILIAR)        */}
+        {/* ================================================================= */}
+        <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl sticky top-[69px] z-30 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setActiveTab('profile_physical')}
+            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              activeTab === 'profile_physical'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+            }`}
+          >
+            <Activity className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tab 1: Perfil y Estado Físico</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold hidden md:inline shrink-0">
+              100% Gratis
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('court_thermal')}
+            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              activeTab === 'court_thermal'
+                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-600/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+            }`}
+          >
+            <Target className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tab 2: Duela y Cobertura</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold hidden md:inline shrink-0">
+              Abierto
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('nba_comparison')}
+            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              activeTab === 'nba_comparison'
+                ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-600/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+            }`}
+          >
+            <Award className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tab 3: Comparativa NBA</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold hidden md:inline shrink-0">
+              Pack $149
+            </span>
+          </button>
+        </div>
+
+        {/* ================================================================= */}
+        {/* PESTAÑA 1: PERFIL DEL ATLETA Y ESTADO FÍSICO (100% GRATIS)         */}
+        {/* ================================================================= */}
+        {activeTab === 'profile_physical' && (
+          <div className="space-y-6">
+            {/* REQUISITO 1: TARJETA DE RESUMEN HUMANO ("EL REPORTE DEL COACH")   */}
         {/* Lenguaje 100% natural, cero tecnicismos, ideal para padres/abuelos */}
         {/* ================================================================= */}
         <div className="bg-gradient-to-br from-[#1c140a] via-[#141219] to-[#0d1017] border-2 border-amber-500/40 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4">
@@ -1201,51 +1268,6 @@ function GuardianDashboardContent() {
           </div>
         </div>
 
-        {/* DUELA HOLOGRÁFICA 3D (HUD CIBERNÉTICO V3.2 - ACCESO LIBRE TUTOR) */}
-        <ErrorBoundary fallbackTitle="Visualizador 3D de Duela en Pausa">
-          <DuelaHolografica3D
-            freeThrowsMade={latestTest?.free_throws_made ?? 7}
-            freeThrowsAttempted={10}
-            midLeftMade={latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 6}
-            midLeftAttempted={10}
-            midRightMade={latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 6}
-            midRightAttempted={10}
-            cornerLeftMade={latestTest?.spot_corner_left ?? 3}
-            cornerLeftAttempted={5}
-            wingLeftMade={latestTest?.spot_wing_left ?? 3}
-            wingLeftAttempted={5}
-            topKeyMade={latestTest?.spot_top_key ?? 4}
-            topKeyAttempted={5}
-            wingRightMade={latestTest?.spot_wing_right ?? 3}
-            wingRightAttempted={5}
-            cornerRightMade={latestTest?.spot_corner_right ?? 2}
-            cornerRightAttempted={5}
-          />
-        </ErrorBoundary>
-
-        {/* SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECOURT PARA PADRES (ACCESO LIBRE) */}
-        <ErrorBoundary fallbackTitle="Módulo Shot Science en Calibración">
-          <ShotScienceDashboard 
-            athleteName={studentName}
-            isCoachView={false}
-          />
-        </ErrorBoundary>
-
-        {/* REPORTE DE BRECHA PRO NBA / FIBA (ESQUEMA HÍBRIDO TUTOR: RESUMEN LIBRE + CINEMÁTICA EN MILISEGUNDOS PACK ÉLITE $149) */}
-        <ErrorBoundary fallbackTitle="Reporte de Brecha Pro NBA en Calibración">
-          <BiomechanicsProBenchmark
-            athleteName={studentName}
-            studentId={studentProfile?.id}
-            isGuardianView={true}
-            isPro={isProMode}
-          />
-          <StudentVsNbaComparison
-            athleteName={studentName}
-            isPro={isProMode}
-            isGuardianView={true}
-          />
-        </ErrorBoundary>
-
         {/* SECCIÓN DE MEDALLAS DESBLOQUEADAS */}
         <div className="bg-[#0d1017] border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
@@ -1323,11 +1345,125 @@ function GuardianDashboardContent() {
             </div>
           )}
         </div>
+      </div>
+    )}
+
+    {/* ================================================================= */}
+    {/* PESTAÑA 2: DUELA DE TIRO Y COBERTURA TÉRMICA (100% ABIERTO)        */}
+    {/* ================================================================= */}
+    {activeTab === 'court_thermal' && (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-orange-950/40 via-[#18121f] to-[#0d1017] border border-orange-500/30 rounded-3xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                Cancha Oficial FIBA
+              </span>
+              <span className="text-[10px] font-mono text-zinc-400">Deportivo Carmen Serdán</span>
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight mt-1">
+              Mapa Visual de Cancha y Cobertura Térmica de {studentName}
+            </h3>
+            <p className="text-xs text-zinc-300 mt-0.5">
+              Visualiza los aciertos y volumen de tiro en El Callejón / La Pintura, media distancia y triples.
+            </p>
+          </div>
+        </div>
+
+        {/* DUELA HOLOGRÁFICA 3D (HUD CIBERNÉTICO V3.2 - ACCESO LIBRE TUTOR) */}
+        <ErrorBoundary fallbackTitle="Visualizador 3D de Duela en Pausa">
+          <DuelaHolografica3D
+            freeThrowsMade={latestTest?.free_throws_made ?? 7}
+            freeThrowsAttempted={10}
+            midLeftMade={latestTest?.mid_range_made ? Math.round(latestTest.mid_range_made / 2) : 6}
+            midLeftAttempted={10}
+            midRightMade={latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 6}
+            midRightAttempted={10}
+            cornerLeftMade={latestTest?.spot_corner_left ?? 3}
+            cornerLeftAttempted={5}
+            wingLeftMade={latestTest?.spot_wing_left ?? 3}
+            wingLeftAttempted={5}
+            topKeyMade={latestTest?.spot_top_key ?? 4}
+            topKeyAttempted={5}
+            wingRightMade={latestTest?.spot_wing_right ?? 3}
+            wingRightAttempted={5}
+            cornerRightMade={latestTest?.spot_corner_right ?? 2}
+            cornerRightAttempted={5}
+          />
+        </ErrorBoundary>
+
+        {/* SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECOURT PARA PADRES (ACCESO LIBRE) */}
+        <ErrorBoundary fallbackTitle="Módulo Shot Science en Calibración">
+          <ShotScienceDashboard 
+            athleteName={studentName}
+            isCoachView={false}
+          />
+        </ErrorBoundary>
 
         {/* ANATOMÍA DE LA DUELA & REGLAMENTO OFICIAL FIBA/NBA (ACCESO LIBRE TUTOR) */}
         <ErrorBoundary fallbackTitle="Enciclopedia de Duela en Pausa">
           <CourtRulesEncyclopedia />
         </ErrorBoundary>
+      </div>
+    )}
+
+    {/* ================================================================= */}
+    {/* PESTAÑA 3: COMPARATIVA Y BRECHA PROFESIONAL (PACK ÉLITE $149)      */}
+    {/* ================================================================= */}
+    {activeTab === 'nba_comparison' && (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-purple-950/40 via-[#181224] to-[#0d1017] border border-purple-500/40 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                Telemetría Cinemática Avanzada
+              </span>
+              <span className="text-[10px] font-mono text-amber-400 font-bold">
+                Pack Familiar Élite ($149 MXN)
+              </span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">
+              Comparativa de Brecha: {studentName} vs. Leyendas de la NBA
+            </h3>
+            <p className="text-xs text-zinc-300 mt-1 max-w-2xl">
+              Evaluación milimétrica frente a <b>Stephen Curry</b> (velocidad de tiro 290ms), <b>Michael Jordan</b> (suspensión y tiro tras drible) y <b>LeBron James</b> (Puntos Por Posesión y potencia en el callejón).
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <DemoModeToggle />
+          </div>
+        </div>
+
+        {/* REPORTE DE BRECHA PRO NBA / FIBA PROTEGIDO POR PAYWALL PACK FAMILIAR */}
+        <ErrorBoundary fallbackTitle="Reporte de Brecha Pro NBA en Calibración">
+          <PaywallLockCard
+            isLocked={!isProMode}
+            title="Desglose Cinemático Avanzado & Comparativa NBA"
+            description="Accede a la telemetría en milisegundos de liberación de tiro, tiempos de reacción neuromuscular y radar multivariable frente a Stephen Curry, Michael Jordan y LeBron James. Incluido en el Pack Familiar Élite ($149 MXN)."
+            badgeText="Pack Familiar $149"
+            planName="Pack Familiar Élite"
+            planPrice="$149 MXN / mes"
+            studentName={studentName}
+            studentEmail={effectiveEmail}
+          >
+            <div className="space-y-6">
+              <BiomechanicsProBenchmark
+                athleteName={studentName}
+                studentId={studentProfile?.id}
+                isGuardianView={true}
+                isPro={isProMode}
+              />
+              <StudentVsNbaComparison
+                athleteName={studentName}
+                isPro={isProMode}
+                isGuardianView={true}
+              />
+            </div>
+          </PaywallLockCard>
+        </ErrorBoundary>
+      </div>
+    )}
 
         {/* BANNER PROMOCIONAL FREEMIUM DE ENTRENADOR IA PARA PADRES */}
         <div className="bg-gradient-to-r from-orange-950/40 via-[#16121e] to-[#0d1017] border border-orange-500/40 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">

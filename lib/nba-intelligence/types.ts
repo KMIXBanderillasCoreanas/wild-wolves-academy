@@ -173,3 +173,84 @@ export interface ComprehensivePlayerIntelProfile {
   provider: 'DunkAPI' | 'NBA Stats' | 'Sportradar' | 'WildWolvesCache';
   creditsRemainingEstimate?: number;
 }
+
+// ==============================================================================
+// ENTIDADES DESACOPLADAS DE INTELIGENCIA PROFESIONAL NBA (FASE 3 - ARQUITECTURA RECTORA)
+// ==============================================================================
+
+export interface ProfessionalPlayers {
+  id: string; // Universal Player Identifier (e.g. 'nba_201939')
+  nbaOfficialId: number;
+  fullName: string;
+  birthDate?: string;
+  country: string;
+  heightCm?: number;
+  weightKg?: number;
+  draftYear?: number;
+  draftRound?: number;
+  draftPick?: number;
+  primaryPosition: 'Guard' | 'Forward' | 'Center' | string;
+  jerseyNumber: string;
+  careerSpan: string; // e.g. "1984 - 2003"
+  isHistoricalLegend: boolean;
+  hasOpticalTracking: boolean; // SportVU / Second Spectrum tracking disponible
+  hasSpatialCoordinates: boolean; // Coordenadas DunkAPI X, Y disponibles (post 2003-04)
+}
+
+export interface ProfessionalSeasons {
+  id: string; // e.g. 'nba_201939_2015_16'
+  playerId: string;
+  seasonYear: string; // e.g. '2015-16'
+  teamAbbreviation: string;
+  gamesPlayed: number;
+  minutesPerGame: number;
+  pointsPerGame: number;
+  fieldGoalPct: number;
+  threePointPct?: number | null; // Nullable para eras previas o tiros inexistentes
+  freeThrowPct: number;
+  effectiveFgPct?: number | null;
+  trueShootingPct?: number | null;
+  pointsPerPossession?: number | null;
+  usageRatePct?: number | null;
+  offensiveRating?: number | null;
+  defensiveRating?: number | null;
+  isPlayoffs: boolean;
+  dataSource: 'NBA Stats' | 'DunkAPI' | 'Sportradar' | 'Official Archive';
+}
+
+export interface ProfessionalShotEvents {
+  id: string; // Event UUID
+  playerId: string;
+  gameId?: string;
+  seasonYear: string;
+  shotX?: number | null; // Coordenada X en pies o null si es era previa a 2003
+  shotY?: number | null; // Coordenada Y en pies o null
+  shotDistanceFeet?: number | null;
+  shotType: 'catch_and_shoot' | 'pull_up' | 'floater' | 'dunk' | 'layup' | 'step_back' | string;
+  isMade: boolean;
+  pointsValue: 2 | 3;
+  zoneArea: 'restricted_area' | 'paint' | 'midrange' | 'corner_3' | 'above_break_3';
+  zoneAreaEs: string; // "El Callejón / La Pintura", "Carril central", etc.
+  shotClockSecondsRemaining?: number | null;
+  isTrackingVerified: boolean;
+}
+
+export const DATO_NO_DISPONIBLE = 'Dato no disponible';
+
+/**
+ * Formateador desacoplado con regla estricta de no invención:
+ * Si el dato no existe para la era histórica, retorna explícitamente "Dato no disponible".
+ */
+export function formatOrUnavailable(
+  val: number | string | null | undefined,
+  suffix: string = '',
+  decimals: number = 1
+): string {
+  if (val === null || val === undefined || val === '' || (typeof val === 'number' && Number.isNaN(val))) {
+    return DATO_NO_DISPONIBLE;
+  }
+  if (typeof val === 'number') {
+    return `${val.toFixed(decimals)}${suffix}`;
+  }
+  return `${val}${suffix}`;
+}

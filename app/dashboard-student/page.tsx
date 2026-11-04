@@ -416,6 +416,7 @@ function StudentDashboardContent() {
   const [profile, setProfile] = useState<any>(null);
   const isRealPro = profile?.subscription_status === "ACTIVE" || profile?.ai_plan === "pro" || profile?.ai_plan === "elite_familiar";
   const { isPro: isEffectivePro } = useSubscriptionTier(Boolean(isRealPro));
+  const [activeTab, setActiveTab] = useState<'profile_tests' | 'exercises_video' | 'nba_comparison'>('profile_tests');
   const [commitment, setCommitment] = useState<any>(null);
   const [lastPayment, setLastPayment] = useState<any>(null);
   const [profileFinancialData, setProfileFinancialData] = useState<{
@@ -933,6 +934,15 @@ function StudentDashboardContent() {
       } catch (e) {
         console.error("Error al cargar dashboard de atleta:", e);
       } finally {
+        if (typeof window !== "undefined") {
+          const urlParams = new URLSearchParams(window.location.search);
+          const tabParam = urlParams.get("tab");
+          if (tabParam === "exercises" || tabParam === "video" || tabParam === "videoteca" || tabParam === "ejercicios") {
+            setActiveTab("exercises_video");
+          } else if (tabParam === "nba" || tabParam === "comparativa" || tabParam === "leyendas" || tabParam === "brecha") {
+            setActiveTab("nba_comparison");
+          }
+        }
         setLoading(false);
       }
     }
@@ -1305,131 +1315,187 @@ function StudentDashboardContent() {
           </div>
         )}
 
-        {/* BARRA VISUAL DE PROGRESIÓN OFICIAL & MEDALLERO OFICIAL (REQUIERE LOBO PRO) */}
-        <PaywallLockCard
-          isLocked={!isEffectivePro}
-          title="Escalón Biológico Oficial y Medallas de Duela"
-          description="La certificación oficial de niveles biomecánicos (Tiers 1 al 9), sala de pesas y el medallero validado en cancha requieren la Membresía Lobo Pro ($99 MXN)."
-          badgeText="Lobo Pro $99"
-          planName="Atleta Lobo Pro"
-          planPrice="$99 MXN"
-          studentName={profile?.full_name}
-          studentEmail={profile?.email}
-        >
-          <div className="mb-6">
-            <TierProgressionBar currentLevel={activeRank.level} />
-          </div>
+        {/* ========================================================================= */}
+        {/* NAVEGACIÓN PRINCIPAL DE 3 PESTAÑAS (PORTAL ATLETA WILD WOLVES)            */}
+        {/* ========================================================================= */}
+        <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl mb-6 sticky top-[69px] z-30 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setActiveTab('profile_tests')}
+            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              activeTab === 'profile_tests'
+                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-600/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+            }`}
+          >
+            <User className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tab 1: Perfil y Pruebas</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold hidden md:inline shrink-0">
+              Básico Libre
+            </span>
+          </button>
 
-          {/* ========================================================================= */}
-          {/* SECCIÓN INTERACTIVA: MEDALLERO OFICIAL WILD WOLVES (CYBER WOLF BADGES)   */}
-          {/* ========================================================================= */}
-          <section className="mb-8 bg-[#10131a] border border-[#272a32] rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/5 rounded-full blur-3xl pointer-events-none"></div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('exercises_video')}
+            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              activeTab === 'exercises_video'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+            }`}
+          >
+            <Dumbbell className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tab 2: Ejercicios y Videoteca</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold hidden md:inline shrink-0">
+              FIBA / NBA
+            </span>
+          </button>
 
-            {/* Header del Medallero */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b border-[#272a32] gap-3 relative z-10">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400">
-                    <Award className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={() => setActiveTab('nba_comparison')}
+            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              activeTab === 'nba_comparison'
+                ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-600/30'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+            }`}
+          >
+            <Crown className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tab 3: Alumno vs. Leyendas NBA</span>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 font-bold hidden md:inline shrink-0">
+              Lobo Pro
+            </span>
+          </button>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 1: PERFIL Y PRUEBAS DEPORTIVAS (MÉTRICAS BÁSICAS LIBRES / PRO)     */}
+        {/* ========================================================================= */}
+        {activeTab === 'profile_tests' && (
+          <div className="space-y-6">
+            {/* ESCALAFÓN BIOLÓGICO OFICIAL (REQUIERE LOBO PRO) */}
+            <PaywallLockCard
+              isLocked={!isEffectivePro}
+              title="Escalón Biológico Oficial y Certificación de Tiers"
+              description="La certificación oficial de niveles biomecánicos (Tiers 1 al 9: Principiante a Ultra Instinto), exigencias de trote, tiempos de recuperación y acceso a sala de pesas requieren la Membresía Lobo Pro ($99 MXN)."
+              badgeText="Lobo Pro $99"
+              planName="Atleta Lobo Pro"
+              planPrice="$99 MXN"
+              studentName={profile?.full_name}
+              studentEmail={profile?.email}
+            >
+              <div className="mb-2">
+                <TierProgressionBar currentLevel={activeRank.level} />
+              </div>
+            </PaywallLockCard>
+
+            {/* SECCIÓN INTERACTIVA: MEDALLERO OFICIAL WILD WOLVES (ACCESO LIBRE ALUMNO) */}
+            <section className="bg-[#10131a] border border-[#272a32] rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/5 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Header del Medallero */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b border-[#272a32] gap-3 relative z-10">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400">
+                      <Award className="w-4 h-4" />
+                    </div>
+                    <h2 className="text-base sm:text-lg font-black uppercase text-white tracking-tight flex items-center gap-2">
+                      Medallero Oficial Wild Wolves
+                    </h2>
                   </div>
-                  <h2 className="text-base sm:text-lg font-black uppercase text-white tracking-tight flex items-center gap-2">
-                    Medallero Oficial Wild Wolves
-                  </h2>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Conquistas atléticas, perimetrales y biomecánicas validadas en cancha por el cuerpo técnico en Deportivo Carmen Serdán.
+                  </p>
                 </div>
-                <p className="text-xs text-zinc-400 mt-1">
-                  Conquistas atléticas, perimetrales y biomecánicas validadas en cancha por el cuerpo técnico en Deportivo Carmen Serdán.
-                </p>
-              </div>
 
-              <div className="flex items-center gap-2 self-start sm:self-auto bg-[#0b0e15] px-3.5 py-1.5 rounded-xl border border-[#32353d]">
-                <span className="text-[10px] text-zinc-400 font-mono">Insignias Obtenidas:</span>
-                <span className="text-xs font-mono font-black text-orange-400">
-                  {unlockedBadgesCount} / {BADGES_LIST.length}
-                </span>
-                <div className="w-16 h-2 bg-zinc-800 rounded-full overflow-hidden ml-1">
-                  <div 
-                    className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.round((unlockedBadgesCount / BADGES_LIST.length) * 100)}%` }}
-                  />
+                <div className="flex items-center gap-2 self-start sm:self-auto bg-[#0b0e15] px-3.5 py-1.5 rounded-xl border border-[#32353d]">
+                  <span className="text-[10px] text-zinc-400 font-mono">Insignias Obtenidas:</span>
+                  <span className="text-xs font-mono font-black text-orange-400">
+                    {unlockedBadgesCount} / {BADGES_LIST.length}
+                  </span>
+                  <div className="w-16 h-2 bg-zinc-800 rounded-full overflow-hidden ml-1">
+                    <div 
+                      className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.round((unlockedBadgesCount / BADGES_LIST.length) * 100)}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Grid de 5 Tarjetas Hexagonales / Neón */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 relative z-10">
-              {BADGES_LIST.map((badge) => {
-                const BadgeIcon = badge.icon;
-                return (
-                  <div
-                    key={badge.id}
-                    onClick={() => setSelectedBadgeModal(badge)}
-                    className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between cursor-pointer group ${
-                      badge.isUnlocked
-                        ? `${badge.glowClass} hover:scale-[1.02]`
-                        : "border-[#272a32] bg-[#0c0e14]/90 opacity-70 hover:opacity-100 hover:border-zinc-700"
-                    }`}
-                  >
-                    <div>
-                      {/* Top row: Icon token + Status Pill */}
-                      <div className="flex items-center justify-between">
-                        <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 ${
-                          badge.isUnlocked 
-                            ? "bg-black/60 border-white/20 shadow-lg" 
-                            : "bg-zinc-900/90 border-zinc-800 text-zinc-600"
-                        }`}>
-                          <BadgeIcon className={`w-6 h-6 ${badge.isUnlocked ? badge.accentColor : "text-zinc-600"}`} />
-                          {!badge.isUnlocked && (
-                            <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center backdrop-blur-[1px]">
-                              <Lock className="w-4 h-4 text-zinc-400" />
-                            </div>
+              {/* Grid de 5 Tarjetas Hexagonales / Neón */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 relative z-10">
+                {BADGES_LIST.map((badge) => {
+                  const BadgeIcon = badge.icon;
+                  return (
+                    <div
+                      key={badge.id}
+                      onClick={() => setSelectedBadgeModal(badge)}
+                      className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between cursor-pointer group ${
+                        badge.isUnlocked
+                          ? `${badge.glowClass} hover:scale-[1.02]`
+                          : "border-[#272a32] bg-[#0c0e14]/90 opacity-70 hover:opacity-100 hover:border-zinc-700"
+                      }`}
+                    >
+                      <div>
+                        {/* Top row: Icon token + Status Pill */}
+                        <div className="flex items-center justify-between">
+                          <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105 ${
+                            badge.isUnlocked 
+                              ? "bg-black/60 border-white/20 shadow-lg" 
+                              : "bg-zinc-900/90 border-zinc-800 text-zinc-600"
+                          }`}>
+                            <BadgeIcon className={`w-6 h-6 ${badge.isUnlocked ? badge.accentColor : "text-zinc-600"}`} />
+                            {!badge.isUnlocked && (
+                              <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center backdrop-blur-[1px]">
+                                <Lock className="w-4 h-4 text-zinc-400" />
+                              </div>
+                            )}
+                          </div>
+
+                          {badge.isUnlocked ? (
+                            <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${badge.pillBg}`}>
+                              <CheckCircle2 className="w-3 h-3" />
+                              DESBLOQUEADA
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 border border-zinc-700 flex items-center gap-1">
+                              <Lock className="w-3 h-3 text-zinc-500" />
+                              BLOQUEADA
+                            </span>
                           )}
                         </div>
 
+                        {/* Título */}
+                        <h3 className="text-sm font-black text-white tracking-tight mt-3 flex items-center gap-1.5">
+                          <span>{badge.emoji}</span>
+                          <span className="truncate">{badge.title}</span>
+                        </h3>
+
+                        {/* Descripción o Criterio */}
                         {badge.isUnlocked ? (
-                          <span className={`text-[9px] font-mono font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${badge.pillBg}`}>
-                            <CheckCircle2 className="w-3 h-3" />
-                            DESBLOQUEADA
-                          </span>
+                          <p className="text-[11px] text-zinc-300 mt-1 line-clamp-2 leading-relaxed">
+                            {badge.fullDesc}
+                          </p>
                         ) : (
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 border border-zinc-700 flex items-center gap-1">
-                            <Lock className="w-3 h-3 text-zinc-500" />
-                            BLOQUEADA
-                          </span>
+                          <p className="text-[11px] text-amber-300/80 mt-1 leading-relaxed font-mono">
+                            🔒 Requiere: {badge.shortReq}
+                          </p>
                         )}
                       </div>
 
-                      {/* Título */}
-                      <h3 className="text-sm font-black text-white tracking-tight mt-3 flex items-center gap-1.5">
-                        <span>{badge.emoji}</span>
-                        <span className="truncate">{badge.title}</span>
-                      </h3>
-
-                      {/* Descripción o Criterio */}
-                      {badge.isUnlocked ? (
-                        <p className="text-[11px] text-zinc-300 mt-1 line-clamp-2 leading-relaxed">
-                          {badge.fullDesc}
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-amber-300/80 mt-1 leading-relaxed font-mono">
-                          🔒 Requiere: {badge.shortReq}
-                        </p>
-                      )}
+                      {/* Footer de Tarjeta con métrica */}
+                      <div className={`mt-3 pt-2.5 border-t text-[10px] font-mono flex items-center justify-between ${
+                        badge.isUnlocked ? "border-white/10 text-emerald-300" : "border-white/5 text-zinc-400"
+                      }`}>
+                        <span className="truncate">{badge.isUnlocked ? `⚡ ${badge.currentStat}` : `Progreso: ${badge.currentStat}`}</span>
+                        <span className="text-[9px] text-zinc-400 group-hover:text-white transition">Ver +</span>
+                      </div>
                     </div>
-
-                    {/* Footer de Tarjeta con métrica */}
-                    <div className={`mt-3 pt-2.5 border-t text-[10px] font-mono flex items-center justify-between ${
-                      badge.isUnlocked ? "border-white/10 text-emerald-300" : "border-white/5 text-zinc-400"
-                    }`}>
-                      <span className="truncate">{badge.isUnlocked ? `⚡ ${badge.currentStat}` : `Progreso: ${badge.currentStat}`}</span>
-                      <span className="text-[9px] text-zinc-400 group-hover:text-white transition">Ver +</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </PaywallLockCard>
+                  );
+                })}
+              </div>
+            </section>
 
         {/* GRID PRINCIPAL: 1 COL EN MÓVIL, 12 COLUMNAS EN DESKTOP/TABLET */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -2305,76 +2371,24 @@ function StudentDashboardContent() {
               </div>
             </section>
 
-            {/* 4. DUELA HOLOGRÁFICA 3D // SHOT SCIENCE CIBERNÉTICO V3.2 */}
+            {/* 4. RADAR COMBINE BIOMECÁNICO OFICIAL 360 (MÉTRICAS LIBRES BÁSICAS) */}
             <section className="space-y-4">
-              <DuelaHolografica3D
-                freeThrowsMade={currentPerformance.free_throws_made ?? evaluation.free_throws_made ?? 7}
-                freeThrowsAttempted={10}
-                midLeftMade={currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 6}
-                midLeftAttempted={10}
-                midRightMade={currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 6}
-                midRightAttempted={10}
-                cornerLeftMade={currentPerformance.spot_corner_left ?? 3}
-                cornerLeftAttempted={5}
-                wingLeftMade={currentPerformance.spot_wing_left ?? 3}
-                wingLeftAttempted={5}
-                topKeyMade={currentPerformance.spot_top_key ?? 4}
-                topKeyAttempted={5}
-                wingRightMade={currentPerformance.spot_wing_right ?? 3}
-                wingRightAttempted={5}
-                cornerRightMade={currentPerformance.spot_corner_right ?? 2}
-                cornerRightAttempted={5}
+              <RadarChart360
+                hasOfficialTest={Boolean(officialTestsCount > 0 && currentPerformance?.isReal)}
+                athleteName={profile?.full_name || "Atleta Wild Wolves"}
+                metricsCurrent={officialTestsCount > 0 && currentPerformance?.isReal ? {
+                  freeThrow: currentShootingPct || 0,
+                  midRange: currentPerformance.mid_range_made ? Math.round((currentPerformance.mid_range_made / 10) * 100) : 0,
+                  threePoint: currentPerformance.three_point_made ? Math.round((currentPerformance.three_point_made / 10) * 100) : 0,
+                  verticalJump: currentPerformance.vertical_jump_cm || 0,
+                  sprint100m: currentPerformance.sprint_100m_seconds ? Math.max(0, Math.min(100, Math.round((16 - currentPerformance.sprint_100m_seconds) * 15))) : 0,
+                  agilityTTest: currentPerformance.lines_round_trip_seconds ? Math.max(0, Math.min(100, Math.round((30 - currentPerformance.lines_round_trip_seconds) * 10))) : 0,
+                } : undefined}
+                metricsPrevious={previousMetrics || undefined}
               />
             </section>
 
-            {/* 4.01 COMPARATIVA BIOMECÁNICA ALUMNO VS LEYENDAS NBA & ESTÁNDAR PRO */}
-            <section className="space-y-4">
-              <BiomechanicsProBenchmark
-                athleteName={profile?.full_name || "Bruno Sánchez"}
-                studentId={profile?.id || "demo-student"}
-                isPro={isEffectivePro}
-                isGuardianView={false}
-                studentMetrics={{
-                  reactionTimeMs: 285,
-                  gatheringTimeMs: 410,
-                  releaseTimeMs: 360,
-                  jumpApexHeightCm: evaluation.vertical_jump ?? 52,
-                  defensiveStanceScore: 80,
-                  hipTrackingAwareness: 84
-                }}
-              />
-
-              {/* SUITE COMPLETA: WILD WOLVES PLAYER DNA & LAS 4 GRÁFICAS NBA */}
-              <div className="pt-4">
-                <NbaIntelligenceMasterHub />
-              </div>
-            </section>
-
-            {/* 4.02 SALUD PREVENTIVA Y ESTIRAMIENTOS (PRE-HAB & COOL-DOWN) (REQUIERE LOBO PRO) */}
-            <PaywallLockCard
-              isLocked={!isEffectivePro}
-              title="Salud Preventiva & Estiramientos (Pre-Hab)"
-              description="Protocolos de prevención de lesiones en rodillas, tobillos y columna lumbar personalizados para tu biotipo reservado para Lobo Pro ($99 MXN)."
-              badgeText="Lobo Pro $99"
-              planName="Atleta Lobo Pro"
-              planPrice="$99 MXN"
-              studentName={profile?.full_name}
-              studentEmail={profile?.email}
-            >
-              <section className="space-y-4">
-                <PrehabRecoveryCard
-                  athleteName={profile?.full_name || "Bruno Sánchez"}
-                  studentId={profile?.id || "demo-student"}
-                  bioimpedance={{
-                    fatPercent: profile?.fat_percentage ?? 18.2,
-                    waterPercent: profile?.water_percentage ?? 54.5,
-                    muscleMassKg: profile?.muscle_mass_kg ?? 42.0
-                  }}
-                />
-              </section>
-            </PaywallLockCard>
-
-            {/* 4.03 BÁSCULA INTELIGENTE BLUETOOTH LE (BIOIMPEDANCIA) Y LECTURA POR IMAGEN */}
+            {/* 5. BÁSCULA INTELIGENTE (BIOIMPEDANCIA OKOK) Y LECTURA POR IMAGEN */}
             <section className="space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-3xl bg-[#0b0e17] border border-fuchsia-500/30 shadow-xl">
                 <div>
@@ -2412,6 +2426,7 @@ function StudentDashboardContent() {
                 />
               </div>
 
+              {/* HISTORIAL COMPLETO DE BÁSCULA (BLOQUEADO BAJO LOBO PRO) */}
               <PaywallLockCard
                 isLocked={!isEffectivePro}
                 title="Historial Completo de Báscula Bioimpedancia"
@@ -2448,62 +2463,200 @@ function StudentDashboardContent() {
               </PaywallLockCard>
             </section>
 
-            {/* 4.1 SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECORT */}
-            <section className="space-y-4">
-              <ShotScienceDashboard 
-                athleteName={profile?.full_name || "Bruno Díaz"}
-                isCoachView={Boolean(profile?.isCoachOrAdmin)}
-              />
-            </section>
-
-            {/* 4.2 LOBO TÁCTICO & VIDEOTECA IA */}
-            <section className="space-y-4">
-              <LoboTacticalVideoHub />
-            </section>
-
-            {/* 4.3 AI SMART VIDEO LIBRARY (BÚSQUEDA INTELIGENTE & CATÁLOGO EXTENDIDO) */}
-            <section className="space-y-4">
-              <SmartVideoLibrary 
-                userId={profile?.id || "demo-student"}
-                athleteName={profile?.full_name || "Bruno Sánchez"}
-                isCoachOrAdmin={Boolean(profile?.isCoachOrAdmin)}
-              />
-            </section>
-
-            {/* 5. RADAR COMBINE BIOMECÁNICO OFICIAL (6 EJES SIN MOCKS) */}
-            <section className="space-y-4">
-              <RadarChart360
-                hasOfficialTest={Boolean(officialTestsCount > 0 && currentPerformance?.isReal)}
-                athleteName={profile?.full_name || "Atleta Wild Wolves"}
-                metricsCurrent={officialTestsCount > 0 && currentPerformance?.isReal ? {
-                  freeThrow: currentShootingPct || 0,
-                  midRange: currentPerformance.mid_range_made ? Math.round((currentPerformance.mid_range_made / 10) * 100) : 0,
-                  threePoint: currentPerformance.three_point_made ? Math.round((currentPerformance.three_point_made / 10) * 100) : 0,
-                  verticalJump: currentPerformance.vertical_jump_cm || 0,
-                  sprint100m: currentPerformance.sprint_100m_seconds ? Math.max(0, Math.min(100, Math.round((16 - currentPerformance.sprint_100m_seconds) * 15))) : 0,
-                  agilityTTest: currentPerformance.lines_round_trip_seconds ? Math.max(0, Math.min(100, Math.round((30 - currentPerformance.lines_round_trip_seconds) * 10))) : 0,
-                } : undefined}
-                metricsPrevious={previousMetrics || undefined}
-              />
-            </section>
-
-            {/* 5. CALENDARIO AUTÓNOMO DE ENTRENAMIENTO EN CASA */}
-            <section className="space-y-4">
-              <HomeTrainingCalendar
-                studentId={profile?.id}
-                studentName={profile?.full_name}
-                dayNumber={Math.max(1, Math.min(10, attendanceStats.total + 1))}
-              />
-            </section>
-
-            {/* 6. ANATOMÍA DE LA DUELA & REGLAMENTO OFICIAL (GRATIS) */}
-            <section className="space-y-4">
-              <CourtRulesEncyclopedia />
-            </section>
-
           </div>
 
         </div>
+      </div>
+    )}
+
+    {/* ========================================================================= */}
+    {/* PESTAÑA 2: NIVEL DE EJERCICIOS Y VIDEOTECA (FUNDAMENTOS / PRO)            */}
+    {/* ========================================================================= */}
+    {activeTab === 'exercises_video' && (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-blue-950/50 via-[#0d1627] to-[#0a0f1d] border border-blue-500/30 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                Formación Técnica FIBA &amp; NBA
+              </span>
+              <span className="text-[10px] font-mono text-zinc-400">Deportivo Carmen Serdán</span>
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight mt-1">
+              Nivel de Ejercicios, Enciclopedia y Videoteca Táctica
+            </h3>
+            <p className="text-xs text-zinc-300 mt-0.5">
+              Acceso a fundamentos de drible, pase, tiro y reglamento oficial 100% libre. Módulos tácticos avanzados bajo Membresía Lobo Pro.
+            </p>
+          </div>
+        </div>
+
+        {/* VIDEOTECA BÁSICA FORMATIVA: FUNDAMENTOS LIBRES (GRATIS) */}
+        <section className="space-y-4">
+          <LoboTacticalVideoHub />
+        </section>
+
+        {/* CALENDARIO AUTÓNOMO DE ENTRENAMIENTO EN CASA (GRATIS) */}
+        <section className="space-y-4">
+          <HomeTrainingCalendar
+            studentId={profile?.id}
+            studentName={profile?.full_name}
+            dayNumber={Math.max(1, Math.min(10, attendanceStats.total + 1))}
+          />
+        </section>
+
+        {/* ANATOMÍA DE LA DUELA & REGLAMENTO OFICIAL FIBA/NBA (GRATIS) */}
+        <section className="space-y-4">
+          <CourtRulesEncyclopedia />
+        </section>
+
+        {/* VIDEOTECA AVANZADA DE ALTA EXIGENCIA TÁCTICA (BLOQUEADA CON PAYWALL PRO) */}
+        <PaywallLockCard
+          isLocked={!isEffectivePro}
+          title="Videoteca Avanzada de Alta Exigencia Táctica"
+          description="Sistemas Pick & Roll de élite, lecturas avanzadas de defensas zonales y análisis cuadro por cuadro reservados para la Membresía Lobo Pro ($99 MXN)."
+          badgeText="Lobo Pro $99"
+          planName="Atleta Lobo Pro"
+          planPrice="$99 MXN"
+          studentName={profile?.full_name}
+          studentEmail={profile?.email}
+        >
+          <section className="space-y-4">
+            <SmartVideoLibrary 
+              userId={profile?.id || "demo-student"}
+              athleteName={profile?.full_name || "Bruno Sánchez"}
+              isCoachOrAdmin={Boolean(profile?.isCoachOrAdmin)}
+            />
+          </section>
+        </PaywallLockCard>
+
+        {/* SALUD PREVENTIVA, ESTIRAMIENTOS Y FATIGA EXTREMA (BLOQUEADO CON PAYWALL PRO) */}
+        <PaywallLockCard
+          isLocked={!isEffectivePro}
+          title="Salud Preventiva, Estiramientos & Fatiga Extrema (Pre-Hab)"
+          description="Protocolos de prevención de lesiones en rodillas, tobillos y columna lumbar personalizados para tu biotipo y recuperación de fatiga extrema reservados para Lobo Pro ($99 MXN)."
+          badgeText="Lobo Pro $99"
+          planName="Atleta Lobo Pro"
+          planPrice="$99 MXN"
+          studentName={profile?.full_name}
+          studentEmail={profile?.email}
+        >
+          <section className="space-y-4">
+            <PrehabRecoveryCard
+              athleteName={profile?.full_name || "Bruno Sánchez"}
+              studentId={profile?.id || "demo-student"}
+              bioimpedance={{
+                fatPercent: profile?.fat_percentage ?? 18.2,
+                waterPercent: profile?.water_percentage ?? 54.5,
+                muscleMassKg: profile?.muscle_mass_kg ?? 42.0
+              }}
+            />
+          </section>
+        </PaywallLockCard>
+      </div>
+    )}
+
+    {/* ========================================================================= */}
+    {/* PESTAÑA 3: COMPARATIVA ESTUDIANTE VS. LEYENDAS NBA (LOBO PRO $99)         */}
+    {/* ========================================================================= */}
+    {activeTab === 'nba_comparison' && (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-rose-950/50 via-[#1c0f18] to-[#0d0912] border border-rose-500/40 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-black uppercase px-2.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                Motor de Brecha Dinámico NBA
+              </span>
+              <span className="text-[10px] font-mono text-orange-400 font-bold">
+                Membresía Atleta Lobo Pro ($99 MXN)
+              </span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">
+              Comparativa de Rendimiento: Estudiante vs. Leyendas de la NBA
+            </h3>
+            <p className="text-xs text-zinc-300 mt-1 max-w-2xl">
+              Selecciona a <b>Stephen Curry</b>, <b>Michael Jordan</b> o <b>LeBron James</b> para comparar métricas cinemáticas en milisegundos (velocidad de liberación de tiro, paso cero y tiempo de reacción), Puntos Por Posesión (PPP) y zonas en duela (El Callejón / La Pintura, media distancia y triples).
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <DemoModeToggle />
+          </div>
+        </div>
+
+        {/* DUELA HOLOGRÁFICA 3D // SHOT SCIENCE CIBERNÉTICO V3.2 */}
+        <section className="space-y-4">
+          <DuelaHolografica3D
+            freeThrowsMade={currentPerformance.free_throws_made ?? evaluation.free_throws_made ?? 7}
+            freeThrowsAttempted={10}
+            midLeftMade={currentPerformance.mid_range_made ? Math.round(currentPerformance.mid_range_made / 2) : 6}
+            midLeftAttempted={10}
+            midRightMade={currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 6}
+            midRightAttempted={10}
+            cornerLeftMade={currentPerformance.spot_corner_left ?? 3}
+            cornerLeftAttempted={5}
+            wingLeftMade={currentPerformance.spot_wing_left ?? 3}
+            wingLeftAttempted={5}
+            topKeyMade={currentPerformance.spot_top_key ?? 4}
+            topKeyAttempted={5}
+            wingRightMade={currentPerformance.spot_wing_right ?? 3}
+            wingRightAttempted={5}
+            cornerRightMade={currentPerformance.spot_corner_right ?? 2}
+            cornerRightAttempted={5}
+          />
+        </section>
+
+        {/* SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECORT */}
+        <section className="space-y-4">
+          <ShotScienceDashboard 
+            athleteName={profile?.full_name || "Bruno Díaz"}
+            isCoachView={Boolean(profile?.isCoachOrAdmin)}
+          />
+        </section>
+
+        {/* COMPARADOR CINEMÁTICO Y RADAR MULTIVARIABLE (BAJO PAYWALL LOBO PRO) */}
+        <PaywallLockCard
+          isLocked={!isEffectivePro}
+          title="Comparativa Cinemática y Brecha NBA Completa"
+          description="Desbloquea el análisis milimétrico de velocidad de liberación de tiro en milisegundos, PPP por posesión y comparativa polar frente a Stephen Curry, Michael Jordan y LeBron James con la membresía Atleta Lobo Pro ($99 MXN)."
+          badgeText="Lobo Pro $99"
+          planName="Atleta Lobo Pro"
+          planPrice="$99 MXN / mes"
+          studentName={profile?.full_name}
+          studentEmail={profile?.email}
+        >
+          <div className="space-y-6">
+            {/* SELECTOR DE LEYENDAS Y TELEMETRÍA CINEMÁTICA */}
+            <BiomechanicsProBenchmark
+              athleteName={profile?.full_name || "Bruno Sánchez"}
+              studentId={profile?.id || "demo-student"}
+              isPro={isEffectivePro}
+              isGuardianView={false}
+              studentMetrics={{
+                reactionTimeMs: 285,
+                gatheringTimeMs: 410,
+                releaseTimeMs: 360,
+                jumpApexHeightCm: evaluation.vertical_jump ?? 52,
+                defensiveStanceScore: 80,
+                hipTrackingAwareness: 84
+              }}
+            />
+
+            {/* RADAR MULTIVARIABLE STUDENT VS NBA (TAIPY 8 PILARES) */}
+            <StudentVsNbaComparison
+              athleteName={profile?.full_name || "Bruno Sánchez"}
+              isPro={isEffectivePro}
+              isGuardianView={false}
+            />
+
+            {/* SUITE COMPLETA: WILD WOLVES PLAYER DNA & LAS 4 GRÁFICAS NBA */}
+            <div className="pt-2">
+              <NbaIntelligenceMasterHub />
+            </div>
+          </div>
+        </PaywallLockCard>
+      </div>
+    )}
       </main>
 
       {/* ========================================================================= */}

@@ -171,8 +171,8 @@ function LoginContent() {
           localStorage.setItem("ww_user_role", assignedRole);
           localStorage.setItem("ww_user_email", email);
           if (name) localStorage.setItem("ww_student_name", officialName);
-          document.cookie = `user_role=${assignedRole}; path=/; max-age=86400; SameSite=Lax`;
-          document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `user_role=${assignedRole}; path=/; max-age=31536000; SameSite=Lax`;
+          document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
         }
 
@@ -249,12 +249,12 @@ function LoginContent() {
           console.warn("Aviso perfil:", profileErr);
         }
 
-        // Blindar sincronización en cookies y localStorage
+        // Blindar sincronización en cookies y localStorage con vigencia de larga duración (1 año)
         if (typeof window !== "undefined") {
           localStorage.setItem("ww_user_role", userRole);
           localStorage.setItem("ww_user_email", userEmail);
-          document.cookie = `user_role=${userRole}; path=/; max-age=86400; SameSite=Lax`;
-          document.cookie = `user_email=${encodeURIComponent(userEmail)}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `user_role=${userRole}; path=/; max-age=31536000; SameSite=Lax`;
+          document.cookie = `user_email=${encodeURIComponent(userEmail)}; path=/; max-age=31536000; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
         }
 

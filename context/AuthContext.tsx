@@ -67,16 +67,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         window.dispatchEvent(new Event("auth_changed"));
       }
 
-      // Redirección inteligente solo si está en la raíz "/" o login para evitar parpadeos
+      // Redirección inteligente solo si está en la raíz "/" o login para evitar parpadeos y bucles
       if (typeof window !== "undefined" && (window.location.pathname === "/" || window.location.pathname === "/login")) {
-        if (effectiveRole === "superadmin") {
-          window.location.href = "/master-bunker-hq";
-        } else if (effectiveRole === "coach") {
-          window.location.href = "/dashboard-coach";
-        } else if (data?.account_category === "guardian_family" || data?.role === "parent" || data?.role === "guardian") {
-          window.location.href = "/dashboard-guardian";
-        } else if (effectiveRole === "student") {
-          window.location.href = "/dashboard-student";
+        const searchParams = new URLSearchParams(window.location.search);
+        const hasDenied = searchParams.get("denied");
+        const redirectParam = searchParams.get("redirect");
+
+        if (!hasDenied) {
+          if (redirectParam && (effectiveRole === "superadmin" || effectiveRole === "coach")) {
+            window.location.href = redirectParam;
+          } else if (effectiveRole === "superadmin") {
+            window.location.href = "/master-bunker-hq";
+          } else if (effectiveRole === "coach") {
+            window.location.href = "/dashboard-coach";
+          } else if (data?.account_category === "guardian_family" || data?.role === "parent" || data?.role === "guardian") {
+            window.location.href = "/dashboard-guardian";
+          } else if (effectiveRole === "student") {
+            window.location.href = "/dashboard-student";
+          }
         }
       }
     } catch (err) {
