@@ -1,7 +1,7 @@
 // lib/ai-gateway.ts
 
 export const APINEX_BASE_URL = process.env.APINEX_BASE_URL || 'https://apinex.bond/v1';
-export const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-apxb1ecfd912c6eb91fc2e9808e75ae8d4110e56df12b0ba15';
+export const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-623d95255f395c93-lqyvin-ab9beeb6';
 
 // Diccionario de Modelos según sus fortalezas en Wild Wolves OS
 export const AI_MODELS = {

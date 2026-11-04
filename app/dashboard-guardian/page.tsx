@@ -695,9 +695,9 @@ function GuardianDashboardContent() {
             }`}
           >
             <Activity className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tab 1: Perfil y Estado Físico</span>
+            <span className="truncate">Tab 1: Perfil y Pruebas</span>
             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold hidden md:inline shrink-0">
-              100% Gratis
+              Físico
             </span>
           </button>
 
@@ -711,9 +711,9 @@ function GuardianDashboardContent() {
             }`}
           >
             <Target className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tab 2: Duela y Cobertura</span>
+            <span className="truncate">Tab 2: Ejercicios y Videoteca</span>
             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold hidden md:inline shrink-0">
-              Abierto
+              Duela 3D
             </span>
           </button>
 
@@ -727,12 +727,13 @@ function GuardianDashboardContent() {
             }`}
           >
             <Award className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tab 3: Comparativa NBA</span>
+            <span className="truncate">Tab 3: Comparativa y Finanzas</span>
             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold hidden md:inline shrink-0">
-              Pack $149
+              NBA & Pagos
             </span>
           </button>
         </div>
+
 
         {/* ================================================================= */}
         {/* PESTAÑA 1: PERFIL DEL ATLETA Y ESTADO FÍSICO (100% GRATIS)         */}

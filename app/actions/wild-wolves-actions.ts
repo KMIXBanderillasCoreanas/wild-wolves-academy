@@ -12,9 +12,11 @@ const supabaseKey =
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Configuración del AI Gateway con Apinex Bond
+// Configuración del AI Gateway con Apinex Bond (Pasarela / Túnel de Respaldo)
 const APINEX_BASE_URL = process.env.APINEX_BASE_URL || 'https://apinex.bond/v1';
-const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-apxb1ecfd912c6eb91fc2e9808e75ae8d4110e56df12b0ba15';
+const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-623d95255f395c93-lqyvin-ab9beeb6';
+const PRIMARY_AI_URL = process.env.ANTIGRAVITY_API_URL || 'https://api.antigravity.ai/v1';
+const PRIMARY_AI_KEY = process.env.ANTIGRAVITY_PRIMARY_KEY || '';
 
 export const AI_MODELS = {
   TACTICAL_DEEPSEEK: 'free/deepseek-v4.1-flash', // Biomecánica y números
@@ -23,6 +25,7 @@ export const AI_MODELS = {
   CRM_KIMI: 'free/kimi-k3',                      // Redacción WhatsApp tutores
   GENERAL_GPT: 'free/gpt-6-luna'
 };
+
 
 /**
  * 1. AI GATEWAY CENTRALIZADO (SERVER ACTION)
@@ -43,31 +46,66 @@ export async function callAIModel({
     if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
     messages.push({ role: 'user', content: userPrompt });
 
-    const response = await fetch(`${APINEX_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${APINEX_API_KEY}`
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature
-      })
-    });
+    let rawContent: string | null = null;
 
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      throw new Error(`Error en Apinex API (${response.status}): ${errText || response.statusText}`);
+    // 1. Intento con proveedor principal si está provisto
+    if (PRIMARY_AI_KEY) {
+      try {
+        const primaryRes = await fetch(`${PRIMARY_AI_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${PRIMARY_AI_KEY}`
+          },
+          body: JSON.stringify({
+            model: model.replace(/^(free|gratis)\//, ''),
+            messages,
+            temperature
+          })
+        });
+
+        if (primaryRes.ok) {
+          const primaryData = await primaryRes.json();
+          rawContent = primaryData.choices?.[0]?.message?.content || null;
+        } else if (primaryRes.status === 402 || primaryRes.status === 429) {
+          console.warn(`[AI Failover Action] Proveedor primario sin saldo (${primaryRes.status}). Redirigiendo al túnel Apinex...`);
+        }
+      } catch (pErr) {
+        console.warn('⚠️ [AI Failover Action] Error de conexión primario, redirigiendo al túnel:', pErr);
+      }
     }
 
-    const data = await response.json();
-    return { success: true, data: data.choices?.[0]?.message?.content || '' };
+    // 2. Túnel de Respaldo Automático (Apinex / 9Router Gateway)
+    if (!rawContent) {
+      const response = await fetch(`${APINEX_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${APINEX_API_KEY}`
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`Error en Apinex API (${response.status}): ${errText || response.statusText}`);
+      }
+
+      const data = await response.json();
+      rawContent = data.choices?.[0]?.message?.content || '';
+    }
+
+    return { success: true, data: rawContent || '' };
   } catch (error: any) {
     console.error('Falla en callAIModel:', error);
     return { success: false, error: error?.message || 'Error desconocido al invocar modelo IA' };
   }
 }
+
 
 /**
  * Helper de normalización para athletic_level_assessed en detailed_test_records

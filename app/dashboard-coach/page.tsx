@@ -67,8 +67,9 @@ function CoachDashboardContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | 'superadmin'>('coach');
 
-  // Pestañas Principales en Modo Cancha vs Evaluaciones vs Cuerda vs Finanzas
-  const [coachActiveTab, setCoachActiveTab] = useState<'cancha' | 'evaluaciones' | 'cuerda' | 'finanzas'>('cancha');
+  // Pestañas Principales en Estructura de 3 Vistas: 1. Cancha & Evaluaciones | 2. Físico & Cuerda | 3. Finanzas & Caja
+  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'fisico_tactico' | 'finanzas_gestion'>('cancha_eval');
+
 
   // Filtros del Roster
   const [filterGender, setFilterGender] = useState<'ALL' | 'M' | 'F'>('ALL');
@@ -176,8 +177,8 @@ function CoachDashboardContent() {
           if (typeof window !== 'undefined') {
             localStorage.setItem('ww_user_role', role);
             localStorage.setItem('ww_user_email', authUser.email || '');
-            document.cookie = `user_role=${role}; path=/; max-age=86400; SameSite=Lax`;
-            document.cookie = `user_email=${encodeURIComponent(authUser.email || '')}; path=/; max-age=86400; SameSite=Lax`;
+            document.cookie = `user_role=${role}; path=/; max-age=31536000; SameSite=Lax`;
+            document.cookie = `user_email=${encodeURIComponent(authUser.email || '')}; path=/; max-age=31536000; SameSite=Lax`;
           }
         } catch (e) {
           console.warn('Profile sync in dashboard-coach:', e);
@@ -722,69 +723,56 @@ function CoachDashboardContent() {
         </div>
       ) : (
         <>
-          {/* SELECTOR SUPERIOR: MODO CANCHA (DEFAULT) VS EVALUACIONES VS CUERDA & FÍSICO */}
+          {/* SELECTOR SUPERIOR: ESTRUCTURA DE 3 PESTAÑAS DEL COACH */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#121724] border border-zinc-800 rounded-2xl shadow-xl">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
               <button
                 type="button"
-                onClick={() => setCoachActiveTab('cancha')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                  coachActiveTab === 'cancha'
+                onClick={() => setCoachActiveTab('cancha_eval')}
+                className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'cancha_eval'
                     ? 'bg-[#ea580c] text-white shadow-lg shadow-orange-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <Zap className="w-4 h-4 text-amber-400" />
-                <span>⚡ Modo Cancha (Live Grid)</span>
+                <span>Tab 1: Cancha, Lista & Evaluaciones</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setCoachActiveTab('evaluaciones')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                  coachActiveTab === 'evaluaciones'
+                onClick={() => setCoachActiveTab('fisico_tactico')}
+                className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'fisico_tactico'
                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
-                <Activity className="w-4 h-4 text-purple-300" />
-                <span>📊 Evaluaciones &amp; Combine</span>
+                <Target className="w-4 h-4 text-purple-300" />
+                <span>Tab 2: Cuerda, Físico & Resistencia</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setCoachActiveTab('cuerda')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                  coachActiveTab === 'cuerda'
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-                }`}
-              >
-                <Target className="w-4 h-4 text-emerald-300" />
-                <span>🏃 Cuerda &amp; Físico</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setCoachActiveTab('finanzas')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                  coachActiveTab === 'finanzas'
+                onClick={() => setCoachActiveTab('finanzas_gestion')}
+                className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'finanzas_gestion'
                     ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <span className="text-amber-400 font-bold">$</span>
-                <span>💰 Finanzas &amp; Caja</span>
+                <span>Tab 3: Finanzas, Caja & Cobranza</span>
               </button>
             </div>
 
-            <div className="text-[11px] font-mono text-zinc-400 px-3 py-1">
-              {coachActiveTab === 'cancha' ? '🔥 Vista Operativa Prioritaria en Duela' : '📋 Registros Técnicos de Academia'}
+            <div className="text-[11px] font-mono text-zinc-400 px-3 py-1 hidden lg:block">
+              {coachActiveTab === 'cancha_eval' ? '⚡ Cancha y Evaluaciones Combine' : coachActiveTab === 'fisico_tactico' ? '🏃 Cuerda y Resistencia' : '💰 Finanzas y Control de Pagos'}
             </div>
           </div>
 
-          {/* VISTA 1: MODO CANCHA (DEFAULT & HIPER-SIMPLIFICADA) */}
-          {coachActiveTab === 'cancha' && (
+          {/* VISTA 1: MODO CANCHA, LISTA & EVALUACIONES */}
+          {coachActiveTab === 'cancha_eval' && (
             <div className="space-y-6 animate-fadeIn">
               {/* Comando Táctico Stitch en Cancha */}
               <CourtAttendanceCommand />
@@ -799,12 +787,7 @@ function CoachDashboardContent() {
                   setStudents(HoopStore.getStudents());
                 }}
               />
-            </div>
-          )}
 
-          {/* VISTA 2: EVALUACIONES & COMBINE */}
-          {coachActiveTab === 'evaluaciones' && (
-            <div className="space-y-6 animate-fadeIn">
               {/* Diagnóstico Exprés de Colocación & Pipeline CRM */}
               <SmartPlacementCRM />
 
@@ -820,8 +803,8 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 3: CUERDA & FÍSICO */}
-          {coachActiveTab === 'cuerda' && (
+          {/* VISTA 2: CUERDA, FÍSICO & RESISTENCIA */}
+          {coachActiveTab === 'fisico_tactico' && (
             <div className="space-y-6 animate-fadeIn">
               {/* Módulo Táctico Dual */}
               <DualCoachCommand />
@@ -845,8 +828,8 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 4: FINANZAS & CONTROL DE PAGOS */}
-          {coachActiveTab === 'finanzas' && (
+          {/* VISTA 3: FINANZAS & CONTROL DE PAGOS */}
+          {coachActiveTab === 'finanzas_gestion' && (
             <div className="space-y-6 animate-fadeIn">
               <FinanceManager
                 students={students}
@@ -855,6 +838,7 @@ function CoachDashboardContent() {
               />
             </div>
           )}
+
 
           {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
           <div className="pt-2 space-y-4">

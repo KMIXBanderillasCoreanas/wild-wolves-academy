@@ -11,8 +11,10 @@ const supabaseKey =
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const APINEX_BASE_URL = process.env.APINEX_BASE_URL || 'https://api.apinex.bond/v1';
-const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-apxb1ecfd912c6eb91fc2e9808e75ae8d4110e56df12b0ba15';
+const APINEX_BASE_URL = process.env.APINEX_BASE_URL || 'https://apinex.bond/v1';
+const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-623d95255f395c93-lqyvin-ab9beeb6';
+const PRIMARY_AI_ENDPOINT = process.env.ANTIGRAVITY_API_URL || 'https://api.antigravity.ai/v1';
+const PRIMARY_AI_KEY = process.env.ANTIGRAVITY_PRIMARY_KEY || '';
 
 export const NEURAL_MODELS = {
   BIOMECHANICS: 'gratis/deepseek-v4.1',     // Análisis físico y numérico
@@ -72,28 +74,129 @@ export async function sendNeuralSignal({
           temperature
         };
 
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${APINEX_API_KEY}`
-      },
-      body: JSON.stringify(body)
-    });
+    let responseText: string | null = null;
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.warn(`Respuesta no-200 en Neural Signal (${res.status}):`, errText);
-      return null;
+    // 1. INTENTO CON PROVEEDOR PRINCIPAL (si está configurada la llave o endpoint primario)
+    if (PRIMARY_AI_KEY) {
+      try {
+        const primaryRes = await fetch(`${PRIMARY_AI_ENDPOINT}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${PRIMARY_AI_KEY}`
+          },
+          body: JSON.stringify({
+            model: model.replace(/^(gratis|libre|free)\//, ''),
+            messages: [
+              { role: 'system', content: effectiveSystemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature
+          })
+        });
+
+        if (primaryRes.ok) {
+          const primaryData = await primaryRes.json();
+          responseText = primaryData.choices?.[0]?.message?.content || null;
+        } else if (primaryRes.status === 402 || primaryRes.status === 429) {
+          console.warn(`[AI Failover] Proveedor principal sin créditos o rate-limit (${primaryRes.status}). Activando túnel de respaldo Apinex...`);
+        } else {
+          console.warn(`[AI Failover] Proveedor principal respondió con estado ${primaryRes.status}. Desviando a túnel de respaldo...`);
+        }
+      } catch (primaryErr) {
+        console.warn('⚠️ [AI Failover] Error de conexión con proveedor principal, activando túnel de respaldo:', primaryErr);
+      }
     }
 
-    const data = await res.json();
-    return isClaude ? data.content?.[0]?.text : data.choices?.[0]?.message?.content;
+    // 2. RESPALDO AUTOMÁTICO: Túnel externo de Apinex (https://apinex.bond/v1)
+    if (!responseText) {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${APINEX_API_KEY}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.warn(`Respuesta no-200 en Neural Signal Apinex (${res.status}):`, errText);
+        return null;
+      }
+
+      const data = await res.json();
+      responseText = isClaude ? data.content?.[0]?.text : data.choices?.[0]?.message?.content;
+    }
+
+    return responseText;
   } catch (err) {
     console.error('Error en el Sistema Nervioso (Neural Bus):', err);
     return null;
   }
 }
+
+/**
+ * Función genérica de AI Failover reutilizable para llamadas directas
+ */
+export async function callAIFallback({
+  model = 'free/deepseek-v4.1-flash',
+  messages,
+  temperature = 0.7
+}: {
+  model?: string;
+  messages: Array<{ role: string; content: string }>;
+  temperature?: number;
+}) {
+  try {
+    // 1. Intentar proveedor principal si está disponible
+    if (PRIMARY_AI_KEY) {
+      try {
+        const primaryRes = await fetch(`${PRIMARY_AI_ENDPOINT}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${PRIMARY_AI_KEY}`
+          },
+          body: JSON.stringify({ model, messages, temperature })
+        });
+
+        if (primaryRes.ok) {
+          const data = await primaryRes.json();
+          return data.choices?.[0]?.message?.content;
+        }
+
+        if (primaryRes.status === 402 || primaryRes.status === 429) {
+          console.warn('[AI Failover] Créditos agotados o rate limit en proveedor principal. Conectando a túnel de respaldo...');
+        }
+      } catch (primErr) {
+        console.warn('⚠️ Fallo en proveedor principal, derivando a túnel de respaldo:', primErr);
+      }
+    }
+
+    // 2. RESPALDO AUTOMÁTICO: Pasarela y Túnel de Respaldo (Apinex)
+    const tunnelRes = await fetch(`${APINEX_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${APINEX_API_KEY}`
+      },
+      body: JSON.stringify({ model, messages, temperature })
+    });
+
+    if (!tunnelRes.ok) {
+      const errDetail = await tunnelRes.text().catch(() => '');
+      throw new Error(`Error en túnel de respaldo (${tunnelRes.status}): ${errDetail || tunnelRes.statusText}`);
+    }
+
+    const tunnelData = await tunnelRes.json();
+    return tunnelData.choices?.[0]?.message?.content || null;
+  } catch (err: any) {
+    console.error('Error crítico en AI Failover Gateway:', err);
+    throw err;
+  }
+}
+
 
 /**
  * ANÁLISIS BIOMECÁNICO Y CINEMÁTICO AVANZADO DEL "LOBO TÁCTICO"

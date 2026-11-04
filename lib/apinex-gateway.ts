@@ -2,8 +2,8 @@
 import { checkAndConsumeAIQuota, AIPlanType, QuotaCheckResult } from './ai-quota-manager';
 import { MASTER_TACTICAL_WOLF_SYSTEM_PROMPT } from './prompts/master-tactical-wolf';
 
-export const APINEX_BASE_URL = process.env.APINEX_BASE_URL || 'https://api.apinex.bond/v1';
-export const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-apxb1ecfd912c6eb91fc2e9808e75ae8d4110e56df12b0ba15';
+export const APINEX_BASE_URL = process.env.APINEX_BASE_URL || 'https://apinex.bond/v1';
+export const APINEX_API_KEY = process.env.APINEX_API_KEY || 'sk-623d95255f395c93-lqyvin-ab9beeb6';
 
 // Catálogo exacto extraído de la plataforma Apinex
 export const APINEX_MODELS = {
