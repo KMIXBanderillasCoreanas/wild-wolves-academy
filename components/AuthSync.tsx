@@ -13,10 +13,10 @@ export default function AuthSync() {
       const storedEmail = localStorage.getItem("ww_user_email");
 
       if (storedRole) {
-        document.cookie = `user_role=${storedRole}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `user_role=${storedRole}; path=/; max-age=31536000; SameSite=Lax`;
       }
       if (storedEmail) {
-        document.cookie = `user_email=${encodeURIComponent(storedEmail)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `user_email=${encodeURIComponent(storedEmail)}; path=/; max-age=31536000; SameSite=Lax`;
       }
     };
 
@@ -65,8 +65,8 @@ export default function AuthSync() {
         if (typeof window !== "undefined") {
           localStorage.setItem("ww_user_role", detectedRole);
           localStorage.setItem("ww_user_email", email);
-          document.cookie = `user_role=${detectedRole}; path=/; max-age=86400; SameSite=Lax`;
-          document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `user_role=${detectedRole}; path=/; max-age=31536000; SameSite=Lax`;
+          document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
         }
 

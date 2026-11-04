@@ -33,8 +33,8 @@ export default function HeadCoachMasterHQ() {
     if (typeof window !== "undefined") {
       localStorage.setItem("ww_user_role", "superadmin");
       localStorage.setItem("ww_user_email", adminEmail);
-      document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
-      document.cookie = `user_email=${encodeURIComponent(adminEmail)}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = "user_role=superadmin; path=/; max-age=31536000; SameSite=Lax";
+      document.cookie = `user_email=${encodeURIComponent(adminEmail)}; path=/; max-age=31536000; SameSite=Lax`;
       window.dispatchEvent(new Event("auth_changed"));
     }
 

@@ -202,7 +202,7 @@ function MasterBunkerHQContent() {
         try {
           localStorage.setItem("ww_user_role", "superadmin");
           localStorage.setItem("ww_user_email", "wildwolvescdmx@gmail.com");
-          document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
+          document.cookie = "user_role=superadmin; path=/; max-age=31536000; SameSite=Lax";
           window.dispatchEvent(new Event("auth_changed"));
         } catch (storageErr) {
           console.warn("Storage guard warning:", storageErr);
@@ -527,7 +527,7 @@ function MasterBunkerHQContent() {
               try {
                 localStorage.setItem("ww_user_role", "superadmin");
                 localStorage.setItem("ww_user_email", user.email || "wildwolvescdmx@gmail.com");
-                document.cookie = "user_role=superadmin; path=/; max-age=86400; SameSite=Lax";
+                document.cookie = "user_role=superadmin; path=/; max-age=31536000; SameSite=Lax";
                 window.dispatchEvent(new Event("auth_changed"));
               } catch (storageErr) {
                 console.warn("Storage guard warning:", storageErr);

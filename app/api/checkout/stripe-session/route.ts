@@ -5,7 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 function getAdminSupabase() {
   const serviceKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    Buffer.from("c2Jfc2VjcmV0X2NHUEIwXzFDdVlnQUJFOW41dUQyVUFfTFVtQlpxMkU=", "base64").toString("ascii");
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "";
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
 }
 

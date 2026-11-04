@@ -96,8 +96,8 @@ export default function DemoRoleSwitcher({
         localStorage.setItem("ww_user_email", roleConfig.email);
         localStorage.setItem("ww_student_name", roleConfig.name);
 
-        document.cookie = `user_role=${roleConfig.id}; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `user_email=${encodeURIComponent(roleConfig.email)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `user_role=${roleConfig.id}; path=/; max-age=31536000; SameSite=Lax`;
+        document.cookie = `user_email=${encodeURIComponent(roleConfig.email)}; path=/; max-age=31536000; SameSite=Lax`;
 
         // Configurar HoopStore local
         if (roleConfig.id === "coach" || roleConfig.id === "superadmin") {
