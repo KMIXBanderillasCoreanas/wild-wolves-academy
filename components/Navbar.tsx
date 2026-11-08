@@ -21,6 +21,24 @@ import DemoModeToggle from '@/components/DemoModeToggle';
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('ww_user_role') || '';
+      const email = localStorage.getItem('ww_user_email') || '';
+      setCurrentUserRole(role.toLowerCase().trim());
+      setCurrentUserEmail(email.toLowerCase().trim());
+
+      const handleAuthChange = () => {
+        setCurrentUserRole((localStorage.getItem('ww_user_role') || '').toLowerCase().trim());
+        setCurrentUserEmail((localStorage.getItem('ww_user_email') || '').toLowerCase().trim());
+      };
+      window.addEventListener('auth_changed', handleAuthChange);
+      return () => window.removeEventListener('auth_changed', handleAuthChange);
+    }
+  }, []);
 
   // No mostrar Navbar en páginas de acceso aisladas
   if (
@@ -31,64 +49,76 @@ export function Navbar() {
     return null;
   }
 
-  const navLinks = [
+  const isOwner = currentUserEmail === 'wildwolvescdmx@gmail.com';
+
+  const allNavLinks = [
     {
       href: '/',
       label: 'Inicio',
       icon: Home,
       isActive: pathname === '/',
-      isAccent: false
+      isAccent: false,
+      visible: true
     },
     {
       href: '/dashboard-student',
       label: 'Mi Zona (Alumno)',
       icon: Dumbbell,
       isActive: pathname?.startsWith('/dashboard-student'),
-      isAccent: false
+      isAccent: false,
+      visible: isOwner || currentUserRole === 'student' || (!currentUserRole && !currentUserEmail)
     },
     {
       href: '/dashboard-guardian',
       label: 'Tutor (Familia)',
       icon: HeartHandshake,
       isActive: pathname?.startsWith('/dashboard-guardian'),
-      isAccent: false
+      isAccent: false,
+      visible: isOwner || currentUserRole === 'guardian' || currentUserRole === 'parent'
     },
     {
       href: '/dashboard-coach',
       label: 'Duela (Coach)',
       icon: Users,
       isActive: pathname?.startsWith('/dashboard-coach'),
-      isAccent: false
+      isAccent: false,
+      visible: isOwner || currentUserRole === 'coach' || currentUserRole === 'superadmin'
     },
     {
       href: '/nba-intelligence',
       label: 'Player DNA (NBA)',
       icon: Target,
       isActive: pathname?.startsWith('/nba-intelligence') || pathname?.startsWith('/player-dna'),
-      isAccent: false
+      isAccent: false,
+      visible: true
     },
     {
       href: '/marketplace',
       label: 'Bazar Lobo',
       icon: ShoppingBag,
       isActive: pathname?.startsWith('/marketplace'),
-      isAccent: false
+      isAccent: false,
+      visible: true
     },
     {
       href: '/rules-and-court',
       label: 'Reglas & Duela',
       icon: BookOpen,
       isActive: pathname === '/rules-and-court',
-      isAccent: false
+      isAccent: false,
+      visible: true
     },
     {
       href: '/master-bunker-hq',
       label: 'Búnker SuperAdmin',
       icon: Shield,
       isActive: pathname?.startsWith('/master-bunker-hq'),
-      isAccent: true
+      isAccent: true,
+      visible: isOwner
     }
   ];
+
+  const navLinks = allNavLinks.filter(item => item.visible);
 
   return (
     <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white shadow-lg font-sans">

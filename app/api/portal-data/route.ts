@@ -15,7 +15,8 @@ export async function GET(req: Request) {
     const role = searchParams.get("role") || "guardian";
     const email = searchParams.get("email")?.toLowerCase().trim() || "";
     const studentQuery = searchParams.get("student")?.trim() || "";
-    const isDemo = searchParams.get("demo") === "true";
+
+    const isOwner = email === "wildwolvescdmx@gmail.com";
 
     const supabase = getAdminSupabase();
 
@@ -32,24 +33,26 @@ export async function GET(req: Request) {
     // 2. Portal de Tutor (Guardian)
     if (role === "guardian") {
       let guardianProfile = allProfiles?.find(
-        (p) => p.email?.toLowerCase().trim() === email || (p.role === "guardian" && !isDemo)
+        (p) => p.email?.toLowerCase().trim() === email
       );
 
-      if (!guardianProfile) {
-        guardianProfile = allProfiles?.find((p) => p.role === "guardian") || {
-          id: "aa47cff6-71a1-4359-b25a-54e4f44d4ebe",
-          full_name: "Catalina Lopez",
-          email: "catalinalopez2450@gmail.com",
-          role: "guardian",
-          relationship_type: "abuelo_abuela",
-          linked_student_name: "Toya Fushiguro",
-          linked_student_id: "f2df3d4d-7b32-494c-9d24-b0fc27df1fac"
-        };
+      // Si es el dueño wildwolvescdmx@gmail.com puede consultar a cualquier tutor o por defecto a Catalina
+      if (!guardianProfile && isOwner) {
+        guardianProfile = allProfiles?.find((p) => p.role === "guardian");
       }
 
-      // Si el tutor eligió ver a un alumno específico por parámetro
+      // Si no existe perfil de tutor para este correo y no es el dueño, denegar datos ajenos
+      if (!guardianProfile) {
+        return NextResponse.json({
+          error: "Acceso no autorizado. No eres un tutor registrado.",
+          unauthorized: true
+        }, { status: 403 });
+      }
+
+      // Estudiante vinculado:
+      // Si es el dueño, se le permite filtrar con el selector; si es un tutor regular, SOLO puede ver a su representado
       let studentProfile = null;
-      if (studentQuery) {
+      if (isOwner && studentQuery) {
         studentProfile = allProfiles?.find(p => p.full_name?.toLowerCase().includes(studentQuery.toLowerCase()) || p.id === studentQuery);
       }
       if (!studentProfile && guardianProfile.linked_student_id) {
@@ -59,9 +62,6 @@ export async function GET(req: Request) {
         studentProfile = allProfiles?.find((p) =>
           p.full_name?.toLowerCase().includes(guardianProfile.linked_student_name.toLowerCase())
         );
-      }
-      if (!studentProfile) {
-        studentProfile = allProfiles?.find((p) => p.full_name?.includes("Toya")) || allProfiles?.find((p) => p.role === "student");
       }
 
       let attendanceCount = 0;
@@ -97,26 +97,37 @@ export async function GET(req: Request) {
 
       return NextResponse.json({
         success: true,
+        isOwner,
         guardianProfile,
         studentProfile,
         attendanceCount,
-        latestTest, // Si no tiene pruebas, vendrá null (se verá en blanco de forma limpia)
+        latestTest,
         skillsLog,
-        availableStudents: allProfiles?.filter((p) => p.role === "student")
+        // Solo el dueño recibe la lista de otros alumnos para inspección; un tutor común no ve alumnos ajenos
+        availableStudents: isOwner ? allProfiles?.filter((p) => p.role === "student") : []
       });
     }
 
     // 3. Portal de Alumno (Student)
     if (role === "student") {
-      let student = null;
-      if (studentQuery) {
-        student = allProfiles?.find((p) => p.full_name?.toLowerCase().includes(studentQuery.toLowerCase()) || p.id === studentQuery);
+      let student = allProfiles?.find((p) => p.email?.toLowerCase().trim() === email);
+
+      // Si es el dueño wildwolvescdmx@gmail.com, se le permite ver al alumno que elija por query o por defecto Toya
+      if (isOwner) {
+        if (studentQuery) {
+          student = allProfiles?.find((p) => p.full_name?.toLowerCase().includes(studentQuery.toLowerCase()) || p.id === studentQuery);
+        }
+        if (!student) {
+          student = allProfiles?.find((p) => p.full_name?.includes("Toya")) || allProfiles?.find((p) => p.role === "student");
+        }
       }
-      if (!student && email) {
-        student = allProfiles?.find((p) => p.email?.toLowerCase().trim() === email);
-      }
+
+      // Si no es el dueño y no se encuentra perfil con su correo
       if (!student) {
-        student = allProfiles?.find((p) => p.full_name?.includes("Toya")) || allProfiles?.find((p) => p.role === "student");
+        return NextResponse.json({
+          error: "Acceso no autorizado. No eres un alumno registrado.",
+          unauthorized: true
+        }, { status: 403 });
       }
 
       let attendanceCount = 0;
@@ -152,17 +163,18 @@ export async function GET(req: Request) {
 
       return NextResponse.json({
         success: true,
+        isOwner,
         studentProfile: student,
         attendanceCount,
-        latestTest, // Si no tiene pruebas, vendrá null para mostrar en blanco
+        latestTest,
         skillsLog,
-        availableStudents: allProfiles?.filter((p) => p.role === "student")
+        availableStudents: isOwner ? allProfiles?.filter((p) => p.role === "student") : []
       });
     }
 
     return NextResponse.json({
       success: true,
-      profiles: allProfiles
+      profiles: isOwner ? allProfiles : []
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Error interno del servidor" }, { status: 500 });
