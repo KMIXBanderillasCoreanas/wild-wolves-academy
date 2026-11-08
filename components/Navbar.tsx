@@ -173,10 +173,12 @@ export function Navbar() {
             <DemoModeToggle variant="navbar" className="inline-flex" />
           )}
 
-          {/* Badge de Sincronización */}
-          <span className="hidden xl:inline-block text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-medium">
-            🟢 Sistema Sincronizado
-          </span>
+          {/* Badge de Sincronización (Solo Dueño/Admin) */}
+          {isOwner && (
+            <span className="hidden xl:inline-block text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-medium">
+              🟢 Sistema Sincronizado
+            </span>
+          )}
 
           {/* Botón de Menú Hamburguesa para Móvil */}
           <button
