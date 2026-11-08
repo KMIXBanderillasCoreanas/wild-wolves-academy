@@ -832,29 +832,7 @@ export default function WildWolvesHome() {
             </div>
           </div>
 
-          {/* Accesos Directos a las 3 Puertas */}
-          <div className="flex flex-wrap items-center gap-4 text-[11px]">
-            <button
-              onClick={openRegisterModal}
-              className="text-zinc-400 hover:text-white transition flex items-center gap-1 cursor-pointer"
-            >
-              <Users className="w-3.5 h-3.5 text-[#38bdf8]" /> Alumnos & Padres
-            </button>
-            <span className="text-zinc-700">•</span>
-            <Link
-              href="/apply-coach-ww"
-              className="text-zinc-400 hover:text-[#ea580c] transition flex items-center gap-1"
-            >
-              <Shield className="w-3.5 h-3.5 text-[#ea580c]" /> Postulación Coach
-            </Link>
-            <span className="text-zinc-700">•</span>
-            <Link
-              href="/master-bunker-hq"
-              className="text-zinc-500 hover:text-amber-400 transition flex items-center gap-1"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Búnker Master
-            </Link>
-          </div>
+          {/* Footer limpio para el landing page oficial */}
         </div>
       </footer>
 

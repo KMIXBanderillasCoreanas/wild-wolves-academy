@@ -1,9 +1,28 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAIModelRouter } from '@/hooks/useAIModelRouter';
 
 export default function AIModelAdvisorBanner() {
   const rec = useAIModelRouter();
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const email = (localStorage.getItem('ww_user_email') || '').toLowerCase().trim();
+      setIsOwner(email === 'wildwolvescdmx@gmail.com');
+      const handleAuthChange = () => {
+        const updatedEmail = (localStorage.getItem('ww_user_email') || '').toLowerCase().trim();
+        setIsOwner(updatedEmail === 'wildwolvescdmx@gmail.com');
+      };
+      window.addEventListener('auth_changed', handleAuthChange);
+      return () => window.removeEventListener('auth_changed', handleAuthChange);
+    }
+  }, []);
+
+  // Ocultar completamente a visitantes y usuarios generales. Solo visible para el desarrollador/dueño.
+  if (!isOwner) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-500/30 bg-[#0f131d] px-4 py-3 text-zinc-100 shadow-lg">
