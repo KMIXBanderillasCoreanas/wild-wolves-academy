@@ -28,13 +28,25 @@ export async function GET(req: Request) {
       query = query.eq("email", email);
     }
 
-    const { data, error } = await query.maybeSingle();
+    const { data: profile, error } = await query.maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, profile: data });
+    // Consultar también su compromiso de asistencia si existe
+    let commitment = null;
+    const targetUserId = profile?.id || userId;
+    if (targetUserId) {
+      const { data: commData } = await supabase
+        .from("attendance_commitments")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .maybeSingle();
+      commitment = commData || null;
+    }
+
+    return NextResponse.json({ success: true, profile, commitment });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Error interno" }, { status: 500 });
   }

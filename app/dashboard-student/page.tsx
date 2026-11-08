@@ -547,20 +547,30 @@ function StudentDashboardContent() {
         const isSuperAdminEmail = effectiveEmail.toLowerCase().trim() === "wildwolvescdmx@gmail.com";
 
         if (effectiveId) {
-          // Consultar perfil de forma segura vía API para evitar recursión de políticas RLS
+          // Consultar perfil y compromiso de asistencia de forma segura vía API para evitar recursión de políticas RLS
           let p: any = null;
+          let c: any = null;
           try {
             const profRes = await fetch(`/api/get-user-profile?id=${effectiveId}`);
             if (profRes.ok) {
               const profData = await profRes.json();
               p = profData.profile;
+              c = profData.commitment;
             }
           } catch {
             const { data: dbP } = await supabase.from("profiles").select("*").eq("id", effectiveId).maybeSingle();
             p = dbP;
           }
 
-          const { data: c } = await supabase.from("attendance_commitments").select("*").eq("user_id", effectiveId).maybeSingle();
+          if (!c) {
+            try {
+              const { data: dbC } = await supabase.from("attendance_commitments").select("*").eq("user_id", effectiveId).maybeSingle();
+              c = dbC;
+            } catch {
+              // Ignorar fallo de RLS
+            }
+          }
+
           const { data: py } = await supabase.from("membership_payments").select("*").eq("student_id", effectiveId).order("payment_date", { ascending: false }).limit(1).maybeSingle();
           prof = p;
           comm = c;
@@ -875,14 +885,20 @@ function StudentDashboardContent() {
         });
 
         // Chequeo de Cuestionario Obligatorio de Parentesco y Familia
-        const needsFamilyOnboarding = !isCoachOrAdmin && effectiveId && (!prof?.phone_number || !prof?.account_category);
+        const hasCompletedOnboardingLocally = typeof window !== "undefined" && localStorage.getItem("ww_onboarding_completed") === "true";
+        const hasScheduleConfigured = Boolean(
+          comm || 
+          prof?.selected_days?.length || 
+          prof?.training_days || 
+          (typeof window !== "undefined" && localStorage.getItem("ww_selected_days"))
+        );
+
+        const needsFamilyOnboarding = !isCoachOrAdmin && !hasCompletedOnboardingLocally && effectiveId && (!prof?.phone_number || !prof?.account_category);
+        
         if (needsFamilyOnboarding) {
           setShowFamilyModal(true);
-        } else if (!comm && !isCoachOrAdmin) {
-          const localDays = typeof window !== "undefined" ? localStorage.getItem("ww_selected_days") : null;
-          if (!localDays) {
-            setShowCommitmentModal(true);
-          }
+        } else if (!hasScheduleConfigured && !isCoachOrAdmin) {
+          setShowCommitmentModal(true);
         }
 
         if (comm) {

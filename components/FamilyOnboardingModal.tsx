@@ -70,11 +70,14 @@ export default function FamilyOnboardingModal({ userId, userEmail, onComplete }:
       }
 
       if (typeof window !== "undefined") {
+        localStorage.setItem("ww_onboarding_completed", "true");
         localStorage.setItem("ww_account_category", isGuardian ? "guardian_family" : "student");
         if (cleanPhone) localStorage.setItem("ww_user_phone", cleanPhone);
         localStorage.setItem("ww_student_name", fullName.trim() || userEmail.split("@")[0]);
         localStorage.setItem("ww_origin_channel", originChannel);
         localStorage.setItem("ww_referred_by", referredBy);
+        localStorage.setItem("ww_selected_days", JSON.stringify(selectedDays));
+        localStorage.setItem("ww_schedules_by_day", JSON.stringify(schedules));
         window.dispatchEvent(new Event("profile_updated"));
       }
 
