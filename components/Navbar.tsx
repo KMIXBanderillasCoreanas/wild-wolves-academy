@@ -90,7 +90,7 @@ export function Navbar() {
       icon: Target,
       isActive: pathname?.startsWith('/nba-intelligence') || pathname?.startsWith('/player-dna'),
       isAccent: false,
-      visible: true
+      visible: isOwner
     },
     {
       href: '/marketplace',
@@ -98,7 +98,7 @@ export function Navbar() {
       icon: ShoppingBag,
       isActive: pathname?.startsWith('/marketplace'),
       isAccent: false,
-      visible: true
+      visible: isOwner
     },
     {
       href: '/rules-and-court',
@@ -106,7 +106,7 @@ export function Navbar() {
       icon: BookOpen,
       isActive: pathname === '/rules-and-court',
       isAccent: false,
-      visible: true
+      visible: isOwner
     },
     {
       href: '/master-bunker-hq',
