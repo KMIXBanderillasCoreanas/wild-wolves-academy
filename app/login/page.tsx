@@ -231,11 +231,23 @@ function LoginContent() {
         let userRole = isMasterDirector ? "superadmin" : (activePortal === "coach" ? "coach" : (activePortal === "guardian" ? "guardian" : "student"));
 
         try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, status, full_name")
-            .eq("id", user.id)
-            .single();
+          // Consultar perfil de forma segura vía API para evitar recursión RLS
+          let profile: any = null;
+          try {
+            const profRes = await fetch(`/api/get-user-profile?id=${user.id}`);
+            if (profRes.ok) {
+              const profData = await profRes.json();
+              profile = profData.profile;
+            }
+          } catch {
+            // Fallback a cliente supabase
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("role, status, full_name")
+              .eq("id", user.id)
+              .maybeSingle();
+            profile = p;
+          }
 
           if (profile?.role === "coach_pending" || profile?.status === "pending") {
             setErrorMsg("Tu postulación de Coach sigue en revisión por la Dirección Técnica en el Búnker Central.");

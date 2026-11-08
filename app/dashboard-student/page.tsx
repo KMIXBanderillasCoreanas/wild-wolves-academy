@@ -547,7 +547,19 @@ function StudentDashboardContent() {
         const isSuperAdminEmail = effectiveEmail.toLowerCase().trim() === "wildwolvescdmx@gmail.com";
 
         if (effectiveId) {
-          const { data: p } = await supabase.from("profiles").select("*").eq("id", effectiveId).maybeSingle();
+          // Consultar perfil de forma segura vía API para evitar recursión de políticas RLS
+          let p: any = null;
+          try {
+            const profRes = await fetch(`/api/get-user-profile?id=${effectiveId}`);
+            if (profRes.ok) {
+              const profData = await profRes.json();
+              p = profData.profile;
+            }
+          } catch {
+            const { data: dbP } = await supabase.from("profiles").select("*").eq("id", effectiveId).maybeSingle();
+            p = dbP;
+          }
+
           const { data: c } = await supabase.from("attendance_commitments").select("*").eq("user_id", effectiveId).maybeSingle();
           const { data: py } = await supabase.from("membership_payments").select("*").eq("student_id", effectiveId).order("payment_date", { ascending: false }).limit(1).maybeSingle();
           prof = p;
