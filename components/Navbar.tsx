@@ -66,7 +66,7 @@ export function Navbar() {
       icon: Dumbbell,
       isActive: pathname?.startsWith('/dashboard-student'),
       isAccent: false,
-      visible: isOwner || currentUserRole === 'student' || (!currentUserRole && !currentUserEmail)
+      visible: isOwner || currentUserRole === 'student'
     },
     {
       href: '/dashboard-guardian',
@@ -162,8 +162,16 @@ export function Navbar() {
 
         {/* Acceso Móvil / Estado Rápido y Switch Demo */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          {/* Interruptor Demo (Free vs Pro) en Navbar */}
-          <DemoModeToggle variant="navbar" className="inline-flex" />
+          {!currentUserEmail ? (
+            <Link
+              href="/login"
+              className="text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white px-3 py-1.5 rounded-xl transition shadow-md shadow-orange-950/40"
+            >
+              Iniciar Sesión
+            </Link>
+          ) : (
+            <DemoModeToggle variant="navbar" className="inline-flex" />
+          )}
 
           {/* Badge de Sincronización */}
           <span className="hidden xl:inline-block text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20 font-medium">

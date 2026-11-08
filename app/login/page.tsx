@@ -21,16 +21,17 @@ import {
   ArrowLeft,
   Users,
   Eye,
-  EyeOff
+  EyeOff,
+  HeartHandshake
 } from "lucide-react";
 
-type RolePortal = "student" | "coach";
+type RolePortal = "student" | "guardian" | "coach";
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Rol activo seleccionado en pestañas (Solo Atletas o Coaches)
+  // Rol activo seleccionado en pestañas: Atletas, Tutores o Coaches
   const [activePortal, setActivePortal] = useState<RolePortal>("student");
   const [isRegister, setIsRegister] = useState(false);
 
@@ -56,6 +57,8 @@ function LoginContent() {
     }
     if (roleParam === "coach") {
       setActivePortal("coach");
+    } else if (roleParam === "guardian" || roleParam === "parent" || roleParam === "tutor") {
+      setActivePortal("guardian");
     }
   }, [searchParams]);
 
@@ -64,22 +67,23 @@ function LoginContent() {
     setActivePortal(portal);
     setErrorMsg("");
     setSuccessMsg("");
-    if (portal !== "student") {
+    if (portal === "coach") {
       setIsRegister(false);
     }
   };
 
-  // Autenticación con Google blindada para alumnos
+  // Autenticación con Google blindada según portal activo
   const handleGoogleAuth = async () => {
     setErrorMsg("");
     setLoading(true);
     try {
+      const assignedRole = activePortal === "guardian" ? "guardian" : "student";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
-            assigned_role: "student",
+            assigned_role: assignedRole,
           },
         },
       });
@@ -118,16 +122,17 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      if (isRegister && activePortal === "student") {
-        // 1. Registro de Nuevo Atleta / Familia
+      if (isRegister && (activePortal === "student" || activePortal === "guardian")) {
+        // 1. Registro de Nuevo Atleta o Tutor
+        const assignedRole = activePortal === "guardian" ? "guardian" : "student";
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              full_name: name || "Atleta Wild Wolves",
+              full_name: name || (assignedRole === "guardian" ? "Tutor Familiar" : "Atleta Wild Wolves"),
               phone: phone ? phone.replace(/\D/g, "") : "",
-              assigned_role: "student",
+              assigned_role: assignedRole,
             },
           },
         });
@@ -145,10 +150,10 @@ function LoginContent() {
           email.toLowerCase().includes("wildwolvescdmx") || 
           email.toLowerCase() === "ricardo@wildwolves.mx";
 
-        const assignedRole = isFounderAccount ? "superadmin" : "student";
+        const finalRole = isFounderAccount ? "superadmin" : assignedRole;
         const officialName = isFounderAccount 
           ? "Coach Ricardo (Fundador y Director General)" 
-          : (name || "Atleta Wild Wolves");
+          : (name || (assignedRole === "guardian" ? "Tutor Familiar" : "Atleta Wild Wolves"));
 
         if (data.user) {
           try {
@@ -157,7 +162,7 @@ function LoginContent() {
               id: data.user.id,
               email: email,
               full_name: officialName,
-              role: assignedRole,
+              role: finalRole,
               status: "active",
               phone_number: cleanUserPhone,
               emergency_phone: cleanUserPhone,
@@ -168,10 +173,10 @@ function LoginContent() {
         }
 
         if (typeof window !== "undefined") {
-          localStorage.setItem("ww_user_role", assignedRole);
+          localStorage.setItem("ww_user_role", finalRole);
           localStorage.setItem("ww_user_email", email);
           if (name) localStorage.setItem("ww_student_name", officialName);
-          document.cookie = `user_role=${assignedRole}; path=/; max-age=31536000; SameSite=Lax`;
+          document.cookie = `user_role=${finalRole}; path=/; max-age=31536000; SameSite=Lax`;
           document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
         }
@@ -181,6 +186,14 @@ function LoginContent() {
           setSuccessMsg("¡Cuenta de Fundador / Director General confirmada! Ingresando al Búnker...");
           setTimeout(() => {
             router.push("/master-bunker-hq");
+          }, 800);
+          return;
+        }
+
+        if (finalRole === "guardian") {
+          setSuccessMsg("¡Cuenta de Tutor creada exitosamente! Ingresando al Portal Familiar...");
+          setTimeout(() => {
+            router.push("/dashboard-guardian");
           }, 800);
           return;
         }
@@ -216,7 +229,7 @@ function LoginContent() {
           userEmail === "director@wildwolves.mx" ||
           userEmail.toLowerCase().includes("wildwolvescdmx");
 
-        let userRole = isMasterDirector ? "superadmin" : (activePortal === "coach" ? "coach" : "student");
+        let userRole = isMasterDirector ? "superadmin" : (activePortal === "coach" ? "coach" : (activePortal === "guardian" ? "guardian" : "student"));
 
         try {
           const { data: profile } = await supabase
@@ -336,7 +349,7 @@ function LoginContent() {
           <p className="text-zinc-400 text-xs mt-0.5">Plataforma Oficial &amp; Control de Alto Rendimiento</p>
         </div>
 
-        {/* SELECTOR DE ROL (2 PESTAÑAS: ATLETAS Y COACHES) */}
+        {/* SELECTOR DE ROL (3 PESTAÑAS: ATLETAS, TUTORES Y COACHES) */}
         <div className="bg-[#10141f] border border-zinc-800 p-1.5 rounded-2xl mb-4 flex items-center gap-1 shadow-lg">
           <button
             type="button"
@@ -349,6 +362,19 @@ function LoginContent() {
           >
             <Users className="w-3.5 h-3.5" />
             <span>Atletas</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchPortal("guardian")}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              activePortal === "guardian"
+                ? "bg-purple-500/25 text-purple-400 border border-purple-500/40 shadow-sm"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <HeartHandshake className="w-3.5 h-3.5" />
+            <span>Tutores</span>
           </button>
 
           <button
@@ -368,8 +394,8 @@ function LoginContent() {
         {/* Tarjeta del Formulario */}
         <div className="bg-[#0d1017] border border-zinc-800 p-6 sm:p-7 rounded-3xl shadow-2xl backdrop-blur-xl">
           
-          {/* VISTA 1: ATLETAS Y FAMILIAS */}
-          {activePortal === "student" && (
+          {/* VISTA 1 & 2: ATLETAS Y TUTORES */}
+          {(activePortal === "student" || activePortal === "guardian") && (
             <>
               {/* Pestañas Iniciar Sesión / Registrarse */}
               <div className="flex border-b border-zinc-800 pb-3 mb-5 gap-2">
@@ -382,7 +408,9 @@ function LoginContent() {
                   }}
                   className={`flex-1 text-center font-bold text-xs pb-2 transition cursor-pointer ${
                     !isRegister
-                      ? "text-[#ea580c] border-b-2 border-[#ea580c]"
+                      ? activePortal === "guardian"
+                        ? "text-purple-400 border-b-2 border-purple-500"
+                        : "text-[#ea580c] border-b-2 border-[#ea580c]"
                       : "text-zinc-500 hover:text-white"
                   }`}
                 >
@@ -397,11 +425,13 @@ function LoginContent() {
                   }}
                   className={`flex-1 text-center font-bold text-xs pb-2 transition cursor-pointer ${
                     isRegister
-                      ? "text-[#ea580c] border-b-2 border-[#ea580c]"
+                      ? activePortal === "guardian"
+                        ? "text-purple-400 border-b-2 border-purple-500"
+                        : "text-[#ea580c] border-b-2 border-[#ea580c]"
                       : "text-zinc-500 hover:text-white"
                   }`}
                 >
-                  Crear Cuenta de Atleta
+                  {activePortal === "guardian" ? "Crear Cuenta de Tutor" : "Crear Cuenta de Atleta"}
                 </button>
               </div>
 
@@ -418,7 +448,7 @@ function LoginContent() {
                   <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.2c0 2.8.7 5.4 1.9 7.8l3.7-2.9z" />
                   <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z" />
                 </svg>
-                <span>{isRegister ? "Registrarme con Google" : "Continuar con Google"}</span>
+                <span>{isRegister ? `Registrarme con Google (${activePortal === "guardian" ? "Tutor" : "Atleta"})` : "Continuar con Google"}</span>
               </button>
 
               <div className="relative flex py-2 items-center mb-4">
@@ -466,18 +496,18 @@ function LoginContent() {
 
           {/* Formulario Principal de Correo y Contraseña */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
-            {isRegister && activePortal === "student" && (
+            {isRegister && (activePortal === "student" || activePortal === "guardian") && (
               <>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase text-zinc-400 mb-1 font-mono">
-                    Nombre Completo del Atleta o Tutor
+                    {activePortal === "guardian" ? "Nombre Completo del Tutor (Familiar)" : "Nombre Completo del Atleta"}
                   </label>
                   <div className="relative">
                     <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <input
                       type="text"
                       required
-                      placeholder="Ej. Rodrigo Mendoza"
+                      placeholder={activePortal === "guardian" ? "Ej. Catalina López" : "Ej. Rodrigo Mendoza"}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-xs text-white transition placeholder-zinc-600 font-sans"
@@ -490,7 +520,7 @@ function LoginContent() {
                     <label className="block text-[11px] font-semibold uppercase text-zinc-400 font-mono">
                       Número Celular / WhatsApp
                     </label>
-                    <span className="text-[10px] text-zinc-500 font-mono">(Opcional para menores o tutores)</span>
+                    <span className="text-[10px] text-zinc-500 font-mono">({activePortal === "guardian" ? "Para reportes semanales" : "Opcional para menores"})</span>
                   </div>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-mono">📱</span>
@@ -508,14 +538,14 @@ function LoginContent() {
 
             <div>
               <label className="block text-[11px] font-semibold uppercase text-zinc-400 mb-1 font-mono">
-                {activePortal === "coach" ? "Correo de Entrenador" : "Correo Electrónico"}
+                {activePortal === "coach" ? "Correo de Entrenador" : (activePortal === "guardian" ? "Correo de Tutor" : "Correo Electrónico")}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input
                   type="email"
                   required
-                  placeholder={activePortal === "coach" ? "coach@wildwolves.mx" : "alumno@ejemplo.com"}
+                  placeholder={activePortal === "coach" ? "coach@wildwolves.mx" : (activePortal === "guardian" ? "tutor@familia.com" : "alumno@ejemplo.com")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#07090e] border border-zinc-700 focus:border-[#ea580c] focus:outline-none rounded-xl py-2.5 pl-10 pr-4 text-xs text-white transition placeholder-zinc-600 font-sans"

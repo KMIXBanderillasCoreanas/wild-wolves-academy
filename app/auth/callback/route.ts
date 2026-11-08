@@ -207,6 +207,15 @@ export async function GET(request: Request) {
         return res;
       }
 
+      if (role === "guardian" || role === "parent") {
+        const res = NextResponse.redirect(new URL("/dashboard-guardian", requestUrl.origin));
+        res.cookies.set("user_role", "guardian", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+        if (data.user.email) {
+          res.cookies.set("user_email", data.user.email, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+        }
+        return res;
+      }
+
       if (role === "coach_pending") {
         const res = NextResponse.redirect(new URL("/apply-coach-ww?status=pending", requestUrl.origin));
         res.cookies.set("user_role", "coach_pending", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });

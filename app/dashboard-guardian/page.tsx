@@ -162,6 +162,14 @@ function GuardianDashboardContent() {
       const storedEmail = typeof window !== "undefined" ? localStorage.getItem("ww_user_email") : null;
       const effectiveEmail = user?.email || storedEmail || "";
 
+      // Si no hay correo ni sesión iniciada, enviar de inmediato al portal de login
+      if (!effectiveEmail && !user) {
+        if (typeof window !== "undefined") {
+          window.location.href = "/login?redirect=/dashboard-guardian";
+        }
+        return;
+      }
+
       const queryTarget = overrideStudentQuery || selectedStudentId;
 
       // 2. Cargar datos garantizados desde el endpoint administrativo /api/portal-data

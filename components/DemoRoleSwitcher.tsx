@@ -126,7 +126,7 @@ export default function DemoRoleSwitcher({
     setTimeout(() => {
       setSwitching(false);
       setIsOpen(false);
-      router.push(roleConfig.path);
+      window.location.href = roleConfig.path;
     }, 400);
   };
 

@@ -527,50 +527,11 @@ function StudentDashboardContent() {
         const storedName = typeof window !== "undefined" ? (localStorage.getItem("ww_student_name") || localStorage.getItem("ww_target_name")) : null;
         const storedRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
 
-        // Si no hay usuario ni credenciales guardadas, cargar modo invitado seguro sin expulsar
+        // Si no hay usuario ni credenciales guardadas, redirigir a login para proteger la privacidad del atleta
         if (!user && !storedEmail) {
-          // Revisar si hay pruebas deportivas guardadas localmente offline
-          let localEval: any = null;
           if (typeof window !== "undefined") {
-            const localTests = JSON.parse(localStorage.getItem("ww_offline_sports_tests") || "[]");
-            if (localTests.length > 0) {
-              localEval = localTests[0];
-            }
+            window.location.href = "/login?redirect=/dashboard-student";
           }
-
-          setProfile({
-            full_name: localEval?.athlete_name || "Atleta invitado",
-            email: "",
-            role: "student",
-            isGuest: true,
-            isCoachOrAdmin: false
-          });
-
-          if (localEval) {
-            setEvaluation((prev: any) => ({
-              ...prev,
-              ...localEval,
-              isReal: true
-            }));
-            setCurrentPerformance((prev: any) => ({
-              ...prev,
-              free_throws_made: localEval.free_throws_made ?? 0,
-              mid_range_made: localEval.mid_range_made ?? 0,
-              three_point_made: localEval.three_point_made ?? 0,
-              spot_corner_left: localEval.spot_corner_left ?? 0,
-              spot_wing_left: localEval.spot_wing_left ?? 0,
-              spot_top_key: localEval.spot_top_key ?? 0,
-              spot_wing_right: localEval.spot_wing_right ?? 0,
-              spot_corner_right: localEval.spot_corner_right ?? 0,
-              jump_rope_count: localEval.jump_rope_count ?? 0,
-              sprint_100m_seconds: localEval.sprint_100m_seconds ?? 0,
-              lines_round_trip_seconds: localEval.lines_round_trip_seconds ?? 0,
-              vertical_jump_cm: localEval.vertical_jump_cm ?? 0,
-              coach_notes: localEval.coach_feedback,
-              isReal: true
-            }));
-          }
-
           setLoading(false);
           return;
         }
