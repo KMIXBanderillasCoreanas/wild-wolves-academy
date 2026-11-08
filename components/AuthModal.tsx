@@ -117,16 +117,23 @@ export default function AuthModal({
           console.warn("Aviso al guardar compromiso:", commErr.message);
         }
 
-        // 2. Guardar en profiles
-        const { error: profErr } = await supabase.from("profiles").update({
+        // 2. Guardar en profiles de forma segura
+        const schedulePayload = {
           training_days: formattedTrainingDays,
           training_schedule: scheduleSummary,
           selected_days: selectedDays,
           schedules_by_day: daySchedules
-        }).eq("id", effectiveUserId);
+        };
 
-        if (profErr) {
-          console.warn("Aviso al actualizar perfil con horario:", profErr.message);
+        try {
+          await fetch("/api/update-onboarding-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: effectiveUserId, payload: schedulePayload }),
+          });
+        } catch (apiErr) {
+          console.warn("Aviso fetch actualización horario perfil:", apiErr);
+          await supabase.from("profiles").update(schedulePayload).eq("id", effectiveUserId);
         }
       }
 

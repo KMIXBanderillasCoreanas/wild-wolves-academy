@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { HoopStore } from "@/lib/store";
-import DemoRoleSwitcher from "@/components/DemoRoleSwitcher";
 import { 
   Lock, 
   Mail, 
@@ -349,7 +348,7 @@ function LoginContent() {
           <p className="text-zinc-400 text-xs mt-0.5">Plataforma Oficial &amp; Control de Alto Rendimiento</p>
         </div>
 
-        {/* SELECTOR DE ROL (3 PESTAÑAS: ATLETAS, TUTORES Y COACHES) */}
+        {/* SELECTOR DE ROL (2 PESTAÑAS: ATLETAS Y TUTORES - COACHES INGRESAN POR ENLACE PRIVADO) */}
         <div className="bg-[#10141f] border border-zinc-800 p-1.5 rounded-2xl mb-4 flex items-center gap-1 shadow-lg">
           <button
             type="button"
@@ -375,19 +374,6 @@ function LoginContent() {
           >
             <HeartHandshake className="w-3.5 h-3.5" />
             <span>Tutores</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => switchPortal("coach")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              activePortal === "coach"
-                ? "bg-[#ea580c]/25 text-[#ea580c] border border-[#ea580c]/40 shadow-sm"
-                : "text-zinc-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>Coaches</span>
           </button>
         </div>
 
@@ -598,15 +584,6 @@ function LoginContent() {
 
           {/* Accesos de Respaldo */}
           <div className="mt-5 pt-4 border-t border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-400">
-            {activePortal !== "coach" && (
-              <button
-                type="button"
-                onClick={() => switchPortal("coach")}
-                className="hover:text-[#ea580c] transition flex items-center gap-1 cursor-pointer"
-              >
-                <Shield className="w-3 h-3 text-[#ea580c]" /> Acceso Coaches
-              </button>
-            )}
             <Link
               href="/"
               className="text-zinc-500 hover:text-zinc-300 transition"
@@ -625,8 +602,6 @@ function LoginContent() {
           </div>
         </div>
       </div>
-      {/* Simulador de Modo Demo flotante para auditoría y evaluación visual */}
-      <DemoRoleSwitcher currentRole={activePortal} variant="floating" />
     </div>
   );
 }

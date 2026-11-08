@@ -51,9 +51,22 @@ export default function FamilyOnboardingModal({ userId, userEmail, onComplete }:
         notes: `Origen: ${originChannel}. Recomendado por: ${referredBy || "Coach Ricardo"}.`,
       };
 
-      const { error } = await supabase.from("profiles").update(payload).eq("id", userId);
-      if (error) {
-        console.warn("Supabase update profile error:", error);
+      // Actualización a través de la API segura del servidor (evita bloqueos de recursión RLS)
+      try {
+        const res = await fetch("/api/update-onboarding-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, payload }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn("API update profile aviso:", errData);
+          // Fallback directo a supabase cliente
+          await supabase.from("profiles").update(payload).eq("id", userId);
+        }
+      } catch (apiErr) {
+        console.warn("Fallo fetch a API, reintentando con cliente:", apiErr);
+        await supabase.from("profiles").update(payload).eq("id", userId);
       }
 
       if (typeof window !== "undefined") {
