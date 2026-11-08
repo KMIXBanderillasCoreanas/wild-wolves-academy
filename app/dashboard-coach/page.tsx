@@ -75,6 +75,7 @@ function CoachDashboardContent() {
   const [filterGender, setFilterGender] = useState<'ALL' | 'M' | 'F'>('ALL');
   const [filterAge, setFilterAge] = useState<'ALL' | 'SUB15' | 'SUB18' | 'SENIOR'>('ALL');
   const [filterPosition, setFilterPosition] = useState<string>('ALL');
+  const [athleteSearchQuery, setAthleteSearchQuery] = useState<string>('');
 
   // Modales
   const [isMedicalModalOpen, setIsMedicalModalOpen] = useState(false);
@@ -226,11 +227,18 @@ function CoachDashboardContent() {
     };
   }, []);
 
-  // Filtrado de atletas en el roster (Excluyendo al Fundador/Director)
+  // Filtrado de atletas en el roster con barra de búsqueda rápida
   const filteredStudents = students.filter((s) => {
     const email = (s.email || "").toLowerCase().trim();
     if (email === "wildwolvescdmx@gmail.com" || email === "ricardo@wildwolves.mx" || s.role === "superadmin" || s.role === "coach") {
       return false;
+    }
+    if (athleteSearchQuery.trim()) {
+      const q = athleteSearchQuery.toLowerCase().trim();
+      const matchName = s.fullName.toLowerCase().includes(q);
+      const matchJersey = s.jerseyNumber ? String(s.jerseyNumber).includes(q) : false;
+      const matchPos = s.position ? s.position.toLowerCase().includes(q) : false;
+      if (!matchName && !matchJersey && !matchPos) return false;
     }
     if (filterGender !== 'ALL' && s.gender !== filterGender) return false;
     if (filterPosition !== 'ALL' && s.position !== filterPosition) return false;
@@ -584,6 +592,31 @@ function CoachDashboardContent() {
 
         {/* Filtros Rápidos del Roster */}
         <div className="pt-4 space-y-3">
+          {/* BARRA DE BÚSQUEDA RÁPIDA DE ATLETAS */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={athleteSearchQuery}
+                onChange={(e) => setAthleteSearchQuery(e.target.value)}
+                placeholder="🔍 Buscar atleta por nombre, # de jersey o posición (ej. Mateo, #11, Base)..."
+                className="w-full pl-3.5 pr-9 py-2 bg-[#0a0e17] border border-[#27272a] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 font-sans"
+              />
+              {athleteSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setAthleteSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <span className="text-[10px] font-mono text-zinc-500 self-center sm:self-auto shrink-0">
+              {filteredStudents.length} de {students.length} atletas
+            </span>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2 text-zinc-400">
               <Filter className="w-3.5 h-3.5 text-orange-400" />
@@ -806,8 +839,8 @@ function CoachDashboardContent() {
           {/* VISTA 2: CUERDA, FÍSICO & RESISTENCIA */}
           {coachActiveTab === 'fisico_tactico' && (
             <div className="space-y-6 animate-fadeIn">
-              {/* Módulo Táctico Dual */}
-              <DualCoachCommand />
+              {/* Módulo Táctico Dual sincronizado con el atleta seleccionado */}
+              <DualCoachCommand externalSelectedStudentId={selectedStudent?.id} />
 
               {/* Cuerda & Resistencia */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -27,10 +27,22 @@ import {
 import { enqueueOfflineAction } from "@/lib/offlineSync";
 import TierProgressionBar, { getTierForMetrics } from "@/components/TierProgressionBar";
 
-export default function DualCoachCommand() {
+interface DualCoachCommandProps {
+  externalSelectedStudentId?: string;
+}
+
+export default function DualCoachCommand({ externalSelectedStudentId }: DualCoachCommandProps = {}) {
   const [students, setStudents] = useState<any[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(externalSelectedStudentId || "");
   const [activeTab, setActiveTab] = useState<"dia1" | "fisico" | "baloncesto">("dia1");
+
+  // Sincronizar automáticamente si el coach selecciona a un alumno desde la barra superior maestra
+  useEffect(() => {
+    if (externalSelectedStudentId && externalSelectedStudentId !== selectedStudentId) {
+      setSelectedStudentId(externalSelectedStudentId);
+      loadBaselineForStudent(externalSelectedStudentId);
+    }
+  }, [externalSelectedStudentId]);
 
   // ==========================================
   // 1. PESTAÑA 1: DIAGNÓSTICO DÍA 1 (LÍNEA BASE INICIAL)
