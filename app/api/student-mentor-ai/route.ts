@@ -119,6 +119,8 @@ Para orientar sobre alimentos y líquidos recomendados, utiliza EXCLUSIVAMENTE e
       })),
     ];
 
+    const nvidiaKey = process.env.NVIDIA_API_KEY;
+
     if (apiKey) {
       for (const model of activeModels) {
         try {
@@ -146,6 +148,42 @@ Para orientar sobre alimentos y líquidos recomendados, utiliza EXCLUSIVAMENTE e
           }
         } catch (e) {
           console.warn(`Fallback modelo ${model}:`, e);
+        }
+      }
+    }
+
+    // 4. RESPALDO CON NVIDIA NIM GRATUITO (DeepSeek v4.1 Flash o Llama 3.2 90B)
+    if (!reply && nvidiaKey) {
+      const nvidiaModels = [
+        "deepseek-ai/deepseek-v4.1-flash",
+        "meta/llama-3.2-90b-vision-instruct"
+      ];
+      for (const nvModel of nvidiaModels) {
+        try {
+          const nvRes = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${nvidiaKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: nvModel,
+              messages: formattedMessages,
+              temperature: 0.4,
+              max_tokens: 700,
+            }),
+          });
+
+          if (nvRes.ok) {
+            const nvData = await nvRes.json();
+            const nvText = nvData.choices?.[0]?.message?.content;
+            if (nvText && nvText.trim()) {
+              reply = nvText.trim();
+              break;
+            }
+          }
+        } catch (nvErr) {
+          console.warn(`Fallback NVIDIA modelo ${nvModel}:`, nvErr);
         }
       }
     }

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import { 
   Shield, 
   Users, 
@@ -14,7 +15,8 @@ import {
   HeartHandshake,
   BookOpen,
   Target,
-  Flame
+  Flame,
+  LogOut
 } from 'lucide-react';
 import DemoModeToggle from '@/components/DemoModeToggle';
 
@@ -23,6 +25,24 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
+
+  const handleGlobalSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('SignOut error:', e);
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ww_user_role');
+      localStorage.removeItem('ww_user_email');
+      localStorage.removeItem('ww_student_name');
+      localStorage.removeItem('ww_target_name');
+      document.cookie = "user_role=; path=/; max-age=0";
+      document.cookie = "user_email=; path=/; max-age=0";
+      window.dispatchEvent(new Event('auth_changed'));
+      window.location.href = '/login';
+    }
+  };
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -170,7 +190,18 @@ export function Navbar() {
               Iniciar Sesión
             </Link>
           ) : (
-            <DemoModeToggle variant="navbar" className="inline-flex" />
+            <div className="flex items-center gap-2">
+              <DemoModeToggle variant="navbar" className="inline-flex" />
+              <button
+                type="button"
+                onClick={handleGlobalSignOut}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-rose-950/60 border border-zinc-700/80 hover:border-rose-500/50 text-zinc-300 hover:text-rose-300 text-xs font-bold transition shadow-sm cursor-pointer"
+                title="Cerrar sesión de forma segura"
+              >
+                <LogOut className="w-3.5 h-3.5 text-zinc-400 group-hover:text-rose-400" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
           )}
 
           {/* Badge de Sincronización (Solo Dueño/Admin) */}
@@ -234,6 +265,22 @@ export function Navbar() {
               </Link>
             );
           })}
+
+          {currentUserEmail && (
+            <div className="pt-2 mt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleGlobalSignOut();
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-300 flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-rose-400" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>

@@ -55,7 +55,8 @@ import {
   AlertTriangle,
   History,
   KeyRound,
-  CheckCircle2
+  CheckCircle2,
+  LogOut
 } from 'lucide-react';
 
 function CoachDashboardContent() {
@@ -248,6 +249,24 @@ function CoachDashboardContent() {
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || (students.length > 0 ? students[0] : null);
   const isSuperAdmin = currentRole === 'superadmin';
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('SignOut error:', e);
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ww_user_role');
+      localStorage.removeItem('ww_user_email');
+      localStorage.removeItem('ww_student_name');
+      localStorage.removeItem('ww_target_name');
+      document.cookie = 'user_role=; path=/; max-age=0';
+      document.cookie = 'user_email=; path=/; max-age=0';
+      window.dispatchEvent(new Event('auth_changed'));
+      window.location.href = '/login';
+    }
+  };
 
   // Alta de Atleta en Cancha por el Coach
   const handleCreateNewStudent = (e: React.FormEvent) => {
@@ -583,6 +602,15 @@ function CoachDashboardContent() {
                 <span>+ Nueva Evaluación</span>
               </button>
             )}
+
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-rose-950/60 border border-zinc-700 hover:border-rose-500/50 text-zinc-300 hover:text-rose-300 text-xs font-mono font-bold transition-all cursor-pointer shadow-md"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-3.5 h-3.5 text-zinc-400 group-hover:text-rose-400" />
+              <span>Cerrar Sesión</span>
+            </button>
 
             {selectedStudent && <WhatsAppReportButton student={selectedStudent} label="WhatsApp" />}
           </div>

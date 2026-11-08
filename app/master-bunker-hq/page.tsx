@@ -30,7 +30,8 @@ import {
   MessageSquare,
   Settings,
   Film,
-  KeyRound
+  KeyRound,
+  LogOut
 } from "lucide-react";
 import AttendanceTracker from "@/components/AttendanceTracker";
 import CourtAttendanceCommand from "@/components/CourtAttendanceCommand";
@@ -826,6 +827,27 @@ function MasterBunkerHQContent() {
           >
             Salir al Sitio
           </a>
+          <button
+            onClick={async () => {
+              try {
+                await supabase.auth.signOut();
+              } catch (e) {
+                console.warn("SignOut err:", e);
+              }
+              if (typeof window !== "undefined") {
+                localStorage.removeItem("ww_master_bunker_auth");
+                localStorage.removeItem("ww_user_role");
+                localStorage.removeItem("ww_user_email");
+                document.cookie = "user_role=; path=/; max-age=0";
+                document.cookie = "user_email=; path=/; max-age=0";
+                window.location.href = "/login";
+              }
+            }}
+            className="flex items-center gap-2 text-xs bg-rose-950/40 border border-rose-500/40 px-4 py-2.5 rounded-xl text-rose-300 hover:bg-rose-900/60 transition font-bold cursor-pointer"
+            title="Cerrar sesión de Dirección General"
+          >
+            <LogOut className="w-3.5 h-3.5 text-rose-400" /> Cerrar Sesión
+          </button>
         </div>
       </div>
 

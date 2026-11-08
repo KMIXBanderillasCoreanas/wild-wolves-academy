@@ -61,7 +61,8 @@ import {
   Eye,
   Crosshair,
   Shield,
-  Crown
+  Crown,
+  LogOut
 } from "lucide-react";
 
 // ==============================================================================
@@ -1306,13 +1307,22 @@ function StudentDashboardContent() {
         {/* NAVEGACIÓN AMIGABLE DE 3 PESTAÑAS (FIJA / STICKY EN DUELA)                */}
         {/* ========================================================================= */}
         <div className="sticky top-16 z-40 bg-[#090d16]/95 backdrop-blur-md pb-3 pt-1 space-y-2 mb-4 border-b border-zinc-800/80">
-          <div className="bg-orange-950/40 border border-orange-500/40 rounded-2xl px-4 py-1.5 flex items-center justify-between gap-3 text-xs text-orange-200">
+          <div className="bg-orange-950/40 border border-orange-500/40 rounded-2xl px-4 py-2 flex items-center justify-between gap-3 text-xs text-orange-200">
             <div className="flex items-center gap-2">
               <span className="text-base">👆</span>
               <span className="font-semibold text-[11px] sm:text-xs">
                 <strong>Explora tus 3 zonas:</strong> Toca cualquiera de las pestañas abajo para ver tus pruebas, tus entrenamientos en video o tu comparativa NBA.
               </span>
             </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-800/90 hover:bg-rose-950/60 border border-zinc-700 hover:border-rose-500/50 text-zinc-300 hover:text-rose-300 text-xs font-bold transition shadow cursor-pointer shrink-0"
+              title="Cerrar sesión de alumno"
+            >
+              <LogOut className="w-3.5 h-3.5 text-zinc-400 group-hover:text-rose-400" />
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
 
           <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-2xl">
