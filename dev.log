@@ -1,0 +1,22 @@
+  ▲ Next.js 14.2.14
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.6s
+ ○ Compiling / ...
+ ✓ Compiled / in 5.5s (1818 modules)
+ GET / 200 in 6500ms
+ GET / 200 in 161ms
+ GET / 200 in 392ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.4s (1893 modules)
+ GET /_next/static/chunks/app/dashboard-guardian/page.js 404 in 3731ms
+ GET /_next/static/chunks/app/dashboard-guardian/error.js 404 in 3726ms
+ ○ Compiling /dashboard-guardian ...
+ ✓ Compiled /dashboard-guardian in 4s (2036 modules)
+ GET /dashboard-guardian 200 in 499ms
+ ○ Compiling /dashboard-student ...
+ ✓ Compiled /dashboard-student in 3.7s (2239 modules)
+ GET /_next/static/chunks/app/dashboard-student/page.js 404 in 5634ms
+ GET /_next/static/chunks/app/dashboard-student/error.js 404 in 5620ms

@@ -6,8 +6,17 @@ import { useRouter, usePathname } from "next/navigation";
 import FenrirAvatar, { FenrirMood } from "./FenrirAvatar";
 
 export default function FenrirVoiceAssistant() {
-  const router = useRouter();
   const pathname = usePathname();
+
+  if (pathname === "/dashboard-guardian" || pathname?.startsWith("/dashboard-guardian")) {
+    return null;
+  }
+
+  return <FenrirVoiceAssistantContent />;
+}
+
+function FenrirVoiceAssistantContent() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -16,11 +25,6 @@ export default function FenrirVoiceAssistant() {
   const [aiReply, setAiReply] = useState("Sistemas listos, Coach Ricardo.");
   const [mood, setMood] = useState<FenrirMood>("neutral");
   const [isOnline, setIsOnline] = useState<boolean>(true);
-
-  // Ocultar Fenrir del portal exclusivo de Padres o Tutores para no obstaculizar su lectura ni deformar la vista
-  if (pathname === "/dashboard-guardian" || pathname?.startsWith("/dashboard-guardian")) {
-    return null;
-  }
 
   const recognitionRef = useRef<any>(null);
   const isSpeakingRef = useRef(false);

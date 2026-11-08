@@ -539,13 +539,11 @@ function StudentDashboardContent() {
           }
 
           setProfile({
-            full_name: localEval?.athlete_name || "Bruno Díaz (Atleta)",
-            email: "atleta@wildwolves.mx",
+            full_name: localEval?.athlete_name || "Atleta invitado",
+            email: "",
             role: "student",
             isGuest: true,
-            isCoachOrAdmin: false,
-            jersey_number: 11,
-            position: "GUARD (SG)"
+            isCoachOrAdmin: false
           });
 
           if (localEval) {
@@ -556,18 +554,18 @@ function StudentDashboardContent() {
             }));
             setCurrentPerformance((prev: any) => ({
               ...prev,
-              free_throws_made: localEval.free_throws_made ?? 8,
-              mid_range_made: localEval.mid_range_made ?? 7,
-              three_point_made: localEval.three_point_made ?? 5,
-              spot_corner_left: localEval.spot_corner_left ?? 1,
-              spot_wing_left: localEval.spot_wing_left ?? 1,
-              spot_top_key: localEval.spot_top_key ?? 1,
-              spot_wing_right: localEval.spot_wing_right ?? 1,
-              spot_corner_right: localEval.spot_corner_right ?? 1,
-              jump_rope_count: localEval.jump_rope_count ?? 1000,
-              sprint_100m_seconds: localEval.sprint_100m_seconds ?? 10,
-              lines_round_trip_seconds: localEval.lines_round_trip_seconds ?? 15,
-              vertical_jump_cm: localEval.vertical_jump_cm ?? 110,
+              free_throws_made: localEval.free_throws_made ?? 0,
+              mid_range_made: localEval.mid_range_made ?? 0,
+              three_point_made: localEval.three_point_made ?? 0,
+              spot_corner_left: localEval.spot_corner_left ?? 0,
+              spot_wing_left: localEval.spot_wing_left ?? 0,
+              spot_top_key: localEval.spot_top_key ?? 0,
+              spot_wing_right: localEval.spot_wing_right ?? 0,
+              spot_corner_right: localEval.spot_corner_right ?? 0,
+              jump_rope_count: localEval.jump_rope_count ?? 0,
+              sprint_100m_seconds: localEval.sprint_100m_seconds ?? 0,
+              lines_round_trip_seconds: localEval.lines_round_trip_seconds ?? 0,
+              vertical_jump_cm: localEval.vertical_jump_cm ?? 0,
               coach_notes: localEval.coach_feedback,
               isReal: true
             }));
@@ -578,7 +576,7 @@ function StudentDashboardContent() {
         }
 
         const effectiveId = user?.id;
-        const effectiveEmail = user?.email || storedEmail || "atleta@wildwolves.mx";
+        const effectiveEmail = user?.email || storedEmail || "";
         const effectiveName = user?.user_metadata?.full_name || storedName || "Atleta Wild Wolves";
 
         let prof: any = null;
@@ -1316,56 +1314,76 @@ function StudentDashboardContent() {
         )}
 
         {/* ========================================================================= */}
-        {/* NAVEGACIÓN PRINCIPAL DE 3 PESTAÑAS (PORTAL ATLETA WILD WOLVES)            */}
+        {/* NAVEGACIÓN AMIGABLE DE 3 PESTAÑAS (ZONA DEL ATLETA)                       */}
         {/* ========================================================================= */}
-        <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl mb-6 sticky top-[69px] z-30 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={() => setActiveTab('profile_tests')}
-            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
-              activeTab === 'profile_tests'
-                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-600/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-            }`}
-          >
-            <User className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tab 1: Perfil y Pruebas</span>
-            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold hidden md:inline shrink-0">
-              Básico Libre
-            </span>
-          </button>
+        <div className="space-y-2 mb-6">
+          <div className="bg-orange-950/40 border border-orange-500/40 rounded-2xl px-4 py-2 flex items-center justify-between gap-3 text-xs text-orange-200">
+            <div className="flex items-center gap-2">
+              <span className="text-base">👆</span>
+              <span className="font-semibold">
+                <strong>Explora tus 3 zonas:</strong> Toca cualquiera de las pestañas abajo para ver tus pruebas, tus entrenamientos en video o tu comparativa NBA.
+              </span>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('exercises_video')}
-            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
-              activeTab === 'exercises_video'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-            }`}
-          >
-            <Dumbbell className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tab 2: Ejercicios y Videoteca</span>
-            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold hidden md:inline shrink-0">
-              FIBA / NBA
-            </span>
-          </button>
+          <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl sticky top-[69px] z-30 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setActiveTab('profile_tests')}
+              className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+                activeTab === 'profile_tests'
+                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-600/40 ring-2 ring-orange-400/50'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+              }`}
+            >
+              <User className="w-5 h-5 shrink-0" />
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-mono opacity-80 uppercase">Paso 1</span>
+                <span className="truncate font-bold">1. Perfil y Pruebas</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold hidden md:inline shrink-0">
+                Básico Libre
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('nba_comparison')}
-            className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
-              activeTab === 'nba_comparison'
-                ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-600/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-            }`}
-          >
-            <Crown className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tab 3: Alumno vs. Leyendas NBA</span>
-            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 font-bold hidden md:inline shrink-0">
-              Lobo Pro
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('exercises_video')}
+              className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+                activeTab === 'exercises_video'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/40 ring-2 ring-blue-400/50'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+              }`}
+            >
+              <Dumbbell className="w-5 h-5 shrink-0" />
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-mono opacity-80 uppercase">Paso 2</span>
+                <span className="truncate font-bold">2. Videos de Práctica</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold hidden md:inline shrink-0">
+                FIBA / NBA
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('nba_comparison')}
+              className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+                activeTab === 'nba_comparison'
+                  ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-600/40 ring-2 ring-pink-400/50'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+              }`}
+            >
+              <Crown className="w-5 h-5 shrink-0" />
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-mono opacity-80 uppercase">Paso 3</span>
+                <span className="truncate font-bold">3. Comparativa NBA</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 font-bold hidden md:inline shrink-0">
+                Lobo Pro
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* ========================================================================= */}
