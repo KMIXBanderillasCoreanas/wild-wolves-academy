@@ -1275,23 +1275,23 @@ function StudentDashboardContent() {
         )}
 
         {/* ========================================================================= */}
-        {/* NAVEGACIÓN AMIGABLE DE 3 PESTAÑAS (ZONA DEL ATLETA)                       */}
+        {/* NAVEGACIÓN AMIGABLE DE 3 PESTAÑAS (FIJA / STICKY EN DUELA)                */}
         {/* ========================================================================= */}
-        <div className="space-y-2 mb-6">
-          <div className="bg-orange-950/40 border border-orange-500/40 rounded-2xl px-4 py-2 flex items-center justify-between gap-3 text-xs text-orange-200">
+        <div className="sticky top-16 z-40 bg-[#090d16]/95 backdrop-blur-md pb-3 pt-1 space-y-2 mb-4 border-b border-zinc-800/80">
+          <div className="bg-orange-950/40 border border-orange-500/40 rounded-2xl px-4 py-1.5 flex items-center justify-between gap-3 text-xs text-orange-200">
             <div className="flex items-center gap-2">
               <span className="text-base">👆</span>
-              <span className="font-semibold">
+              <span className="font-semibold text-[11px] sm:text-xs">
                 <strong>Explora tus 3 zonas:</strong> Toca cualquiera de las pestañas abajo para ver tus pruebas, tus entrenamientos en video o tu comparativa NBA.
               </span>
             </div>
           </div>
 
-          <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl sticky top-[69px] z-30 backdrop-blur-md">
+          <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-2xl">
             <button
               type="button"
               onClick={() => setActiveTab('profile_tests')}
-              className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
                 activeTab === 'profile_tests'
                   ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-600/40 ring-2 ring-orange-400/50'
                   : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
@@ -1310,7 +1310,7 @@ function StudentDashboardContent() {
             <button
               type="button"
               onClick={() => setActiveTab('exercises_video')}
-              className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
                 activeTab === 'exercises_video'
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/40 ring-2 ring-blue-400/50'
                   : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
@@ -1329,7 +1329,7 @@ function StudentDashboardContent() {
             <button
               type="button"
               onClick={() => setActiveTab('nba_comparison')}
-              className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
                 activeTab === 'nba_comparison'
                   ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-600/40 ring-2 ring-pink-400/50'
                   : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'

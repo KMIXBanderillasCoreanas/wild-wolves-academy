@@ -29,9 +29,7 @@ export default function VideoFilters({
 }: VideoFiltersProps) {
   const themeTabs = [
     { id: 'todos' as const, label: 'Todo el Catálogo', icon: Layers },
-    { id: 'baloncesto' as const, label: 'Básquetbol', icon: Flame },
-    { id: 'preparacion_fisica' as const, label: 'Preparación Física', icon: Dumbbell },
-    { id: 'educacion_deportiva' as const, label: 'Educación & Nutrición', icon: HeartPulse }
+    { id: 'baloncesto' as const, label: 'Básquetbol', icon: Flame }
   ];
 
   const categoriesByTheme: Record<string, { id: 'todas' | VideoCategory; label: string }[]> = {

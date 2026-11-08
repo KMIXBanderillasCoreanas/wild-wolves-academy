@@ -516,82 +516,73 @@ export default function LoboTacticalVideoHub() {
       </section>
 
       {/* ========================================================================= */}
-      {/* SECCIÓN 3: ENFOQUE PSICOLÓGICO Y DE LECTURA DE JUEGO (ULTRA INSTINTO)     */}
+      {/* SECCIÓN 3: ENFOQUE PSICOLÓGICO Y DE LECTURA DE JUEGO (100% LIBRE PARA TODOS) */}
       {/* ========================================================================= */}
-      <PaywallLockCard
-        isLocked={!isPro}
-        title="Enfoque Psicológico & Toma de Decisiones Bajo Fatiga Extrema"
-        description="Protocolos de resiliencia mental, respiración 4-4-4 en línea de tiro libre y fluidez en momentos críticos bajo fatiga extrema en duela reservados para Atleta Lobo Pro."
-        badgeText="Lobo Pro $99"
-        planName="Atleta Lobo Pro"
-        planPrice="$99 MXN"
-      >
-        <section className="rounded-3xl border border-fuchsia-500/40 bg-gradient-to-r from-[#170a24] via-[#100d1e] to-[#0a1220] p-6 text-zinc-100 shadow-2xl relative overflow-hidden">
-          {/* Glow de fondo */}
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl pointer-events-none" />
+      <section className="rounded-3xl border border-fuchsia-500/40 bg-gradient-to-r from-[#170a24] via-[#100d1e] to-[#0a1220] p-6 text-zinc-100 shadow-2xl relative overflow-hidden">
+        {/* Glow de fondo */}
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 shadow-[0_0_15px_rgba(217,70,239,0.3)]">
-                  <HeartPulse className="h-5 w-5" />
-                </span>
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-fuchsia-400 font-bold block">
-                    Mentalidad Wild Wolves • Resiliencia de Acero
-                  </span>
-                  <h3 className="text-lg font-black text-white">
-                    3. Enfoque Psicológico & Toma de Decisiones Bajo Fatiga Extrema
-                  </h3>
-                </div>
-              </div>
-
-              <span className="rounded-full bg-gradient-to-r from-fuchsia-500/20 to-purple-500/20 px-3 py-1 text-xs font-black uppercase tracking-wider text-fuchsia-200 border border-fuchsia-400/40 shadow">
-                Cúspide: Modo Ultra Instinto
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 shadow-[0_0_15px_rgba(217,70,239,0.3)]">
+                <HeartPulse className="h-5 w-5" />
               </span>
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-fuchsia-400 font-bold block">
+                  Mentalidad Wild Wolves • Resiliencia de Acero
+                </span>
+                <h3 className="text-lg font-black text-white">
+                  3. Enfoque Psicológico &amp; Toma de Decisiones Bajo Fatiga Extrema
+                </h3>
+              </div>
             </div>
 
-            <p className="text-xs text-zinc-300 leading-relaxed max-w-4xl">
-              Cuando el ácido láctico quema las piernas y el pulso cardíaco supera los <strong>175 BPM</strong> en el último cuarto, el atleta promedio pierde la visión periférica y comete pérdidas de balón. El atleta de Wild Wolves entrena la calma mental para tomar la decisión correcta sin pensar:
-            </p>
+            <span className="rounded-full bg-gradient-to-r from-fuchsia-500/20 to-purple-500/20 px-3 py-1 text-xs font-black uppercase tracking-wider text-fuchsia-200 border border-fuchsia-400/40 shadow">
+              Cúspide: Modo Ultra Instinto
+            </span>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              {/* Tarjeta 1: Respiración de Línea */}
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-fuchsia-400 text-xs font-black uppercase tracking-wider">
-                  <Clock className="h-4 w-4" />
-                  Respiración Táctica 4-4-4
-                </div>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  En la línea de tiro libre o tiempo muerto: inhalar 4 segundos por la nariz, retener 4 segundos en diafragma y exhalar en 4 segundos para descender de golpe 15 pulsaciones por minuto antes de lanzar.
-                </p>
-              </div>
+          <p className="text-xs text-zinc-300 leading-relaxed max-w-4xl">
+            Cuando el ácido láctico quema las piernas y el pulso cardíaco supera los <strong>175 BPM</strong> en el último cuarto, el atleta promedio pierde la visión periférica y comete pérdidas de balón. El atleta de Wild Wolves entrena la calma mental para tomar la decisión correcta sin pensar:
+          </p>
 
-              {/* Tarjeta 2: Regla de los 3 Segundos Mentales */}
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-wider">
-                  <ShieldCheck className="h-4 w-4" />
-                  Regla de los 3 Segundos
-                </div>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  Cero frustración ante tiros errados o decisiones arbitrales. El cerebro tiene estrictamente 3 segundos para digerir la jugada; de inmediato se adopta la postura defensiva con ojos en la cadera del rival.
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            {/* Tarjeta 1: Respiración de Línea */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-fuchsia-400 text-xs font-black uppercase tracking-wider">
+                <Clock className="h-4 w-4" />
+                Respiración Táctica 4-4-4
               </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                En la línea de tiro libre o tiempo muerto: inhalar 4 segundos por la nariz, retener 4 segundos en diafragma y exhalar en 4 segundos para descender de golpe 15 pulsaciones por minuto antes de lanzar.
+              </p>
+            </div>
 
-              {/* Tarjeta 3: Estado de Flujo / Ultra Instinto */}
-              <div className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-950/20 p-4 space-y-2 shadow-inner">
-                <div className="flex items-center gap-2 text-[#d1fe17] text-xs font-black uppercase tracking-wider">
-                  <Sparkles className="h-4 w-4" />
-                  Ultra Instinto (Flow State)
-                </div>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  En los niveles avanzados (Tier 8 y 9), el atleta no "calcula" la finta: la memoria neuromuscular de miles de repeticiones en Carmen Serdán ejecuta el pase o tiro de manera subconsciente.
-                </p>
+            {/* Tarjeta 2: Regla de los 3 Segundos Mentales */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-wider">
+                <ShieldCheck className="h-4 w-4" />
+                Regla de los 3 Segundos
               </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Cero frustración ante tiros errados o decisiones arbitrales. El cerebro tiene estrictamente 3 segundos para digerir la jugada; de inmediato se adopta la postura defensiva con ojos en la cadera del rival.
+              </p>
+            </div>
+
+            {/* Tarjeta 3: Estado de Flujo / Ultra Instinto */}
+            <div className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-950/20 p-4 space-y-2 shadow-inner">
+              <div className="flex items-center gap-2 text-[#d1fe17] text-xs font-black uppercase tracking-wider">
+                <Sparkles className="h-4 w-4" />
+                Ultra Instinto (Flow State)
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                En los niveles avanzados (Tier 8 y 9), el atleta no "calcula" la finta: la memoria neuromuscular de miles de repeticiones en Carmen Serdán ejecuta el pase o tiro de manera subconsciente.
+              </p>
             </div>
           </div>
-        </section>
-      </PaywallLockCard>
+        </div>
+      </section>
 
       {/* ========================================================================= */}
       {/* MODAL CINEMÁTICO: REPRODUCTOR DE VIDEO EDUCATIVO                          */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Zap, 
   Activity, 
@@ -20,7 +20,9 @@ import {
   Flame,
   Dumbbell,
   Users,
-  Target
+  Target,
+  Search,
+  Check
 } from 'lucide-react';
 import { requestBiomechanicsAuditAction } from '@/app/actions/biomechanics-actions';
 import PaywallLockCard from '@/components/PaywallLockCard';
@@ -54,6 +56,20 @@ export default function BiomechanicsProBenchmark({
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedLegendId, setSelectedLegendId] = useState<string>('nba_base');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Filtrado reactivo de leyendas por nombre, equipo, arquetipo o especialidad
+  const filteredLegends = useMemo(() => {
+    if (!searchQuery.trim()) return NBA_LEGENDS_BENCHMARKS;
+    const query = searchQuery.toLowerCase().trim();
+    return NBA_LEGENDS_BENCHMARKS.filter(
+      (l) =>
+        l.legend_name.toLowerCase().includes(query) ||
+        l.team.toLowerCase().includes(query) ||
+        l.archetype.toLowerCase().includes(query) ||
+        l.specialtyMetricName.toLowerCase().includes(query)
+    );
+  }, [searchQuery]);
 
   // Métricas del Atleta (Valores reales o estimaciones del último test)
   const metrics: ProBenchMetrics = {
@@ -380,61 +396,89 @@ export default function BiomechanicsProBenchmark({
         </div>
       </div>
 
-      {/* SELECTOR INTERACTIVO DE LEYENDAS */}
-      <div className="mb-6 space-y-2">
-        <div className="flex items-center justify-between">
+      {/* SELECTOR INTERACTIVO Y BARRA DE BÚSQUEDA DE CUALQUIER JUGADOR / ÍDOLO NBA */}
+      <div className="mb-6 space-y-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <span className="text-[11px] font-mono uppercase text-zinc-400 font-bold flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-orange-400" /> Selecciona la Leyenda de Referencia:
+            <Users className="w-3.5 h-3.5 text-orange-400" /> Selecciona o Busca a tu Ídolo NBA de Referencia:
           </span>
           <span className="text-[10px] font-mono text-zinc-500">
-            {NBA_LEGENDS_BENCHMARKS.length} perfiles oficiales disponibles
+            {filteredLegends.length} de {NBA_LEGENDS_BENCHMARKS.length} leyendas mostradas
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-          {NBA_LEGENDS_BENCHMARKS.map((legend) => {
-            const isSelected = legend.id === selectedLegendId;
-            const isLockedForUser = isGuardianView ? (!isPro) : (legend.isPremium && !isPro);
-
-            return (
-              <button
-                key={legend.id}
-                onClick={() => setSelectedLegendId(legend.id)}
-                className={`p-3 rounded-2xl border text-left transition relative cursor-pointer group flex flex-col justify-between ${
-                  isSelected
-                    ? 'bg-gradient-to-b from-[#1b2333] to-[#101624] border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10'
-                    : 'bg-[#0f1422] border-zinc-800/90 hover:border-zinc-700 hover:bg-[#141b2a]'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-base">{legend.iconTag}</span>
-                    {isLockedForUser ? (
-                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                        <Lock className="w-2.5 h-2.5" /> PRO
-                      </span>
-                    ) : (
-                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                        LIBRE
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-xs font-black text-white truncate group-hover:text-orange-400 transition">
-                    {legend.legend_name.split(' ')[0]} {legend.legend_name.split(' ')[1] || ''}
-                  </h4>
-                  <p className="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">
-                    {legend.archetype.split('/')[0]}
-                  </p>
-                </div>
-
-                <div className="pt-2 mt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-zinc-500">Liberación:</span>
-                  <span className="font-bold text-zinc-300">{legend.releaseTimeMs}ms</span>
-                </div>
-              </button>
-            );
-          })}
+        {/* BARRA DE BÚSQUEDA INTERACTIVA CON AUTOCOMPLETADO */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+            <Search className="w-4 h-4 text-orange-400" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar a cualquier jugador o ídolo NBA (ej. Kobe, Kyrie, Curry, LeBron, Durant, Dončić, Giannis...)"
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#121722] border border-zinc-700/80 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition shadow-inner font-sans"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-zinc-400 hover:text-white"
+            >
+              ✕
+            </button>
+          )}
         </div>
+
+        {filteredLegends.length === 0 ? (
+          <div className="p-4 rounded-xl bg-[#121722] border border-zinc-800 text-center text-xs text-zinc-400">
+            No encontramos a &quot;{searchQuery}&quot; en la base de datos preconfigurada. Puedes comparar contra el <b>Estándar Pro NBA</b> o limpiar la búsqueda para ver todas las leyendas.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 max-h-72 overflow-y-auto pr-1">
+            {filteredLegends.map((legend) => {
+              const isSelected = legend.id === selectedLegendId;
+              const isLockedForUser = isGuardianView ? (!isPro) : (legend.isPremium && !isPro);
+
+              return (
+                <button
+                  key={legend.id}
+                  onClick={() => setSelectedLegendId(legend.id)}
+                  className={`p-3 rounded-2xl border text-left transition relative cursor-pointer group flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-gradient-to-b from-[#1b2333] to-[#101624] border-orange-500 ring-2 ring-orange-500/30 shadow-lg shadow-orange-500/10'
+                      : 'bg-[#0f1422] border-zinc-800/90 hover:border-zinc-700 hover:bg-[#141b2a]'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-base">{legend.iconTag}</span>
+                      {isLockedForUser ? (
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" /> PRO
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          LIBRE
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-xs font-black text-white truncate group-hover:text-orange-400 transition">
+                      {legend.legend_name.split(' ')[0]} {legend.legend_name.split(' ')[1] || ''}
+                    </h4>
+                    <p className="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">
+                      {legend.archetype.split('/')[0]}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 mt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px] font-mono">
+                    <span className="text-zinc-500">Liberación:</span>
+                    <span className="font-bold text-zinc-300">{legend.releaseTimeMs}ms</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ESQUEMA HÍBRIDO PARA TUTORES: RESUMEN EJECUTIVO EN LENGUAJE HUMANO (GRATIS) */}
