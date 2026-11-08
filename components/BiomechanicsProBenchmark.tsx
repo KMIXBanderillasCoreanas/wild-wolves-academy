@@ -46,7 +46,7 @@ export interface BiomechanicsProBenchmarkProps {
 }
 
 export default function BiomechanicsProBenchmark({
-  athleteName = 'Bruno Sánchez',
+  athleteName = 'Alumno Demo',
   studentId = 'demo-student',
   studentMetrics,
   isGuardianView = false,

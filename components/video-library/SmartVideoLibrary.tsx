@@ -39,7 +39,7 @@ interface SmartVideoLibraryProps {
 
 export default function SmartVideoLibrary({
   userId = 'demo-student',
-  athleteName = 'Bruno Sánchez',
+  athleteName = 'Alumno Demo',
   isCoachOrAdmin = false
 }: SmartVideoLibraryProps) {
   // Estado de videos y carga

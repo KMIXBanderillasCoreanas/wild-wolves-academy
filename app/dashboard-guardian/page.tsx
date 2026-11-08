@@ -55,7 +55,7 @@ import {
 // Constantes de Seguridad y Respaldo por Omisión (Safety Guards)
 const DEFAULT_STUDENT_DATA = {
   id: "student-bruno-diaz",
-  full_name: "Bruno Díaz (Atleta)",
+  full_name: "Alumno Demo (Atleta)",
   email: "bruno@wildwolves.mx",
   jersey_number: 11,
   category: "U-17 Competitivo",
@@ -1485,18 +1485,18 @@ function GuardianDashboardContent() {
             badgeText="Pack Familiar $149"
             planName="Pack Familiar Élite"
             planPrice="$149 MXN / mes"
-            studentName={studentName || "Bruno Díaz"}
+            studentName={studentName || "Alumno Demo"}
             studentEmail={effectiveEmail || "contacto@wildwolves.mx"}
           >
             <div className="space-y-6">
               <BiomechanicsProBenchmark
-                athleteName={studentName || "Bruno Díaz"}
+                athleteName={studentName || "Alumno Demo"}
                 studentId={studentProfile?.id || "demo-student"}
                 isGuardianView={true}
                 isPro={isProMode}
               />
               <StudentVsNbaComparison
-                athleteName={studentName || "Bruno Díaz"}
+                athleteName={studentName || "Alumno Demo"}
                 isPro={isProMode}
                 isGuardianView={true}
               />

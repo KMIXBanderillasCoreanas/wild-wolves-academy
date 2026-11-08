@@ -58,9 +58,9 @@ export default function DemoRoleSwitcher({
       description: "Shot Science 3D, Mapa de Calor, Radar 360° e Insignias",
       icon: "🎯",
       badgeColor: "bg-sky-500/20 text-sky-400 border-sky-500/40",
-      path: "/dashboard-student?student=Bruno",
-      email: "bruno.sanchez@wildwolves.mx",
-      name: "Bruno Sánchez (#11 Demo)"
+      path: "/dashboard-student",
+      email: "alumno.demo@wildwolves.mx",
+      name: "Alumno Demo (#11)"
     },
     {
       id: "guardian",
@@ -69,8 +69,8 @@ export default function DemoRoleSwitcher({
       icon: "🛡️",
       badgeColor: "bg-purple-500/20 text-purple-400 border-purple-500/40",
       path: "/dashboard-guardian",
-      email: "catalinalopez2450@gmail.com",
-      name: "Familia Sánchez (Tutor Demo)"
+      email: "tutor.demo@wildwolves.mx",
+      name: "Tutor Demo (Familia)"
     },
     {
       id: "superadmin",

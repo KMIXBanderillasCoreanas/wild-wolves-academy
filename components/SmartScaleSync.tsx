@@ -38,7 +38,7 @@ interface SmartScaleSyncProps {
 
 export default function SmartScaleSync({
   studentId = 'demo-student',
-  athleteName = 'Bruno Sánchez',
+  athleteName = 'Alumno Demo',
   initialData,
   onSyncSuccess
 }: SmartScaleSyncProps) {

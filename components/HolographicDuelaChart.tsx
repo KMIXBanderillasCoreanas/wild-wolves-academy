@@ -44,7 +44,7 @@ const DEFAULT_ZONAS: HolographicZoneData[] = [
 
 export default function HolographicDuelaChart({
   data = DEFAULT_ZONAS,
-  athleteName = 'Bruno Sánchez #37',
+  athleteName = 'Alumno Demo #11',
   courtLocation = 'Cancha Deportivo Carmen Serdán'
 }: HolographicDuelaChartProps) {
   const [selectedZone, setSelectedZone] = useState<HolographicZoneData | null>(null);

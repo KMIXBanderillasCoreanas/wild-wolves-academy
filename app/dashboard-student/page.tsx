@@ -866,13 +866,13 @@ function StudentDashboardContent() {
         const isSuperAdmin = prof?.role === "superadmin" || isSuperAdminEmail || storedRole === "superadmin";
         const isCoachOrAdmin = isSuperAdmin || prof?.role === "coach" || storedRole === "coach";
 
-        // Si el SuperAdmin o Coach entra a este dashboard para supervisar o como alumno demo (Bruno Díaz),
+        // Si el SuperAdmin o Coach entra a este dashboard para supervisar o como alumno demo,
         // permitirle navegar y ver sus métricas de prueba sin forzar redirección al búnker.
         const isDemoStudentMode = isSuperAdminEmail || prof?.role === "superadmin";
 
         setProfile({
           id: effectiveId,
-          full_name: isDemoStudentMode ? "Bruno Díaz (Alumno Demo • Wolves CDMX)" : (prof?.full_name || effectiveName),
+          full_name: isDemoStudentMode ? "Alumno Demo (Wolves CDMX)" : (prof?.full_name || effectiveName),
           email: effectiveEmail,
           role: isSuperAdmin ? "superadmin" : (prof?.role || storedRole || "student"),
           avatar_url: prof?.avatar_url || null,
@@ -2417,7 +2417,7 @@ function StudentDashboardContent() {
 
                 <ScaleImageUploader
                   studentId={profile?.id || "demo-student"}
-                  athleteName={profile?.full_name || "Bruno Sánchez"}
+                  athleteName={profile?.full_name || "Alumno Demo"}
                   onUploadSuccess={(newReading) => {
                     setProfile((prev: any) => ({
                       ...prev,
@@ -2446,7 +2446,7 @@ function StudentDashboardContent() {
               >
                 <SmartScaleSync
                   studentId={profile?.id || "demo-student"}
-                  athleteName={profile?.full_name || "Bruno Sánchez"}
+                  athleteName={profile?.full_name || "Alumno Demo"}
                   initialData={{
                     weightKg: profile?.weight_kg ?? 68.4,
                     fatPercentage: profile?.fat_percentage ?? 18.2,
@@ -2531,7 +2531,7 @@ function StudentDashboardContent() {
           <section className="space-y-4">
             <SmartVideoLibrary 
               userId={profile?.id || "demo-student"}
-              athleteName={profile?.full_name || "Bruno Sánchez"}
+              athleteName={profile?.full_name || "Alumno Demo"}
               isCoachOrAdmin={Boolean(profile?.isCoachOrAdmin)}
             />
           </section>
@@ -2550,7 +2550,7 @@ function StudentDashboardContent() {
         >
           <section className="space-y-4">
             <PrehabRecoveryCard
-              athleteName={profile?.full_name || "Bruno Sánchez"}
+              athleteName={profile?.full_name || "Alumno Demo"}
               studentId={profile?.id || "demo-student"}
               bioimpedance={{
                 fatPercent: profile?.fat_percentage ?? 18.2,
@@ -2616,7 +2616,7 @@ function StudentDashboardContent() {
         {/* SHOT SCIENCE Y VOLUMEN HISTÓRICO HOMECORT */}
         <section className="space-y-4">
           <ShotScienceDashboard 
-            athleteName={profile?.full_name || "Bruno Díaz"}
+            athleteName={profile?.full_name || "Alumno Demo"}
             isCoachView={Boolean(profile?.isCoachOrAdmin)}
           />
         </section>
@@ -2635,7 +2635,7 @@ function StudentDashboardContent() {
           <div className="space-y-6">
             {/* SELECTOR DE LEYENDAS Y TELEMETRÍA CINEMÁTICA */}
             <BiomechanicsProBenchmark
-              athleteName={profile?.full_name || "Bruno Sánchez"}
+              athleteName={profile?.full_name || "Alumno Demo"}
               studentId={profile?.id || "demo-student"}
               isPro={isEffectivePro}
               isGuardianView={false}
@@ -2651,7 +2651,7 @@ function StudentDashboardContent() {
 
             {/* RADAR MULTIVARIABLE STUDENT VS NBA (TAIPY 8 PILARES) */}
             <StudentVsNbaComparison
-              athleteName={profile?.full_name || "Bruno Sánchez"}
+              athleteName={profile?.full_name || "Alumno Demo"}
               isPro={isEffectivePro}
               isGuardianView={false}
             />

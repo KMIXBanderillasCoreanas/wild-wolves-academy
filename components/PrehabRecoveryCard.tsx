@@ -28,7 +28,7 @@ interface PrehabSectionProps {
 }
 
 export default function PrehabRecoveryCard({
-  athleteName = 'Bruno Sánchez',
+  athleteName = 'Alumno Demo',
   studentId = 'demo-student',
   bioimpedance
 }: PrehabSectionProps) {

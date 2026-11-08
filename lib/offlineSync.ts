@@ -66,7 +66,13 @@ export const getCachedRoster = (): any[] => {
     const raw = localStorage.getItem(CACHED_STUDENTS_KEY) || localStorage.getItem(LEGACY_CACHE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Filtrar y remover cualquier registro residual de Bruno
+        return parsed.filter((item: any) => {
+          const name = (item.full_name || item.name || item.athlete_name || "").toLowerCase();
+          return !name.includes("bruno");
+        });
+      }
     }
   } catch {
     // Continuar a fallback

@@ -82,13 +82,13 @@ export default function WhatsAppHubCRM() {
         lastTime: "09:30",
       });
 
-      // Contacto de Bruno Sánchez
-      contactMap.set("525522427768", {
-        phone: "525522427768",
-        name: "Tutor de Bruno Sánchez",
-        athleteName: "Bruno Sánchez",
+      // Contacto de Alumno Demo
+      contactMap.set("525512345678", {
+        phone: "525512345678",
+        name: "Tutor Demo",
+        athleteName: "Alumno Demo",
         role: "student",
-        lastMessage: "Adeudo de clase de $50 MXN registrado.",
+        lastMessage: "Sesión completada y métricas sincronizadas.",
         lastTime: "20:30",
       });
 

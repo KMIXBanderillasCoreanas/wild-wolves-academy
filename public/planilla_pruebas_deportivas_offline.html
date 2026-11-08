@@ -204,10 +204,22 @@
     <!-- DATOS DEL ATLETA -->
     <div class="section-title">1. Datos del Alumno / Atleta</div>
     
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label>Seleccionar Atleta Registrado (o escribir abajo)</label>
+      <select id="athleteSelector" onchange="onSelectAthlete(this.value)">
+        <option value="">-- Seleccionar de la Lista Oficial --</option>
+        <option value="Alumno Demo" data-jersey="11" data-age="15" data-cat="U-17 COMPETITIVO (15-16 AÑOS)">🏀 Alumno Demo (Dorsal #11 • Cuenta Oficial)</option>
+        <option value="Isaac" data-jersey="10" data-age="14" data-cat="U-15 FORMATIVO (12-14 AÑOS)">Isaac (Dorsal #10)</option>
+        <option value="Toya Fushiguro" data-jersey="36" data-age="16" data-cat="U-17 COMPETITIVO (15-16 AÑOS)">Toya Fushiguro (Dorsal #36)</option>
+        <option value="Allan" data-jersey="15" data-age="15" data-cat="U-17 COMPETITIVO (15-16 AÑOS)">Allan (Dorsal #15)</option>
+        <option value="Jesús" data-jersey="7" data-age="13" data-cat="U-15 FORMATIVO (12-14 AÑOS)">Jesús (Dorsal #7)</option>
+      </select>
+    </div>
+
     <div class="grid-2">
       <div class="form-group">
         <label>Nombre Completo del Atleta</label>
-        <input type="text" id="athleteName" placeholder="Ej. Bruno Díaz" value="Bruno Díaz" required>
+        <input type="text" id="athleteName" placeholder="Ej. Alumno Demo" value="Alumno Demo" required>
       </div>
       <div class="form-group">
         <label>Dorsal / Jersey #</label>
@@ -337,6 +349,22 @@
   <script>
     // Fecha de hoy por defecto
     document.getElementById("testDate").value = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
+
+    function onSelectAthlete(name) {
+      if (!name) return;
+      const select = document.getElementById("athleteSelector");
+      const opt = select.options[select.selectedIndex];
+      document.getElementById("athleteName").value = name;
+      if (opt.dataset.jersey) {
+        document.getElementById("jerseyNumber").value = opt.dataset.jersey;
+      }
+      if (opt.dataset.age) {
+        document.getElementById("athleteAge").value = opt.dataset.age;
+      }
+      if (opt.dataset.cat) {
+        document.getElementById("athleteCategory").value = opt.dataset.cat;
+      }
+    }
 
     const STORAGE_KEY = "ww_offline_sports_tests";
 
