@@ -4,7 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import { NbaIntelligenceMasterHub } from '@/components/nba/NbaIntelligenceMasterHub';
+import { PlayerDnaMasterView } from '@/components/nba/PlayerDnaMasterView';
 
 export default function PlayerDnaPage() {
   return (
@@ -20,12 +20,13 @@ export default function PlayerDnaPage() {
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-              WILD WOLVES — PLAYER DNA
+              WILD WOLVES — PLAYER DNA (COMPARATIVA NBA & LIGA REAL)
             </span>
           </div>
         </div>
 
-        <NbaIntelligenceMasterHub />
+        {/* Módulo Master Quirúrgico de Motivación y Comparativa Real */}
+        <PlayerDnaMasterView />
       </div>
     </main>
   );

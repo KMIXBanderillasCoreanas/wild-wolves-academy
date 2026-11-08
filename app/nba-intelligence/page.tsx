@@ -3,8 +3,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, Trophy, Crosshair, BarChart3, Target } from 'lucide-react';
-import { NbaIntelligenceMasterHub } from '@/components/nba/NbaIntelligenceMasterHub';
+import { ArrowLeft, Sparkles } from 'lucide-react';
+import { PlayerDnaMasterView } from '@/components/nba/PlayerDnaMasterView';
 
 export default function NbaIntelligencePage() {
   return (
@@ -23,13 +23,13 @@ export default function NbaIntelligencePage() {
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-              MÓDULO DE INTELIGENCIA DEPORTIVA & TELEMETRÍA NBA
+              PLAYER DNA (COMPARATIVA NBA & LIGA REAL)
             </span>
           </div>
         </div>
 
-        {/* Master Hub with the 4 Flagship Visualizations */}
-        <NbaIntelligenceMasterHub />
+        {/* Master Hub con comparativa Alumno vs NBA & Contexto de Liga */}
+        <PlayerDnaMasterView />
 
       </div>
     </main>

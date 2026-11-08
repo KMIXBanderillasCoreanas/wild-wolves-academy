@@ -98,7 +98,7 @@ export function Navbar() {
       icon: ShoppingBag,
       isActive: pathname?.startsWith('/marketplace'),
       isAccent: false,
-      visible: isOwner
+      visible: false // Oculto hasta tener stock físico en el Deportivo Carmen Serdán
     },
     {
       href: '/rules-and-court',

@@ -33,8 +33,6 @@ import { FinanceManager } from '@/components/FinanceManager';
 import BioimpedanceWizard from '@/components/BioimpedanceWizard';
 import WhatsAppAIEngine from '@/components/WhatsAppAIEngine';
 import CourtVisionHUD from '@/components/CourtVisionHUD';
-import CourtHeatmapPro from '@/components/CourtHeatmapPro';
-import DuelaHolografica3D from '@/components/DuelaHolografica3D';
 import confetti from 'canvas-confetti';
 import { 
   PlusCircle, 
@@ -875,26 +873,6 @@ function CoachDashboardContent() {
 
           {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
           <div className="pt-2 space-y-4">
-            {/* CANCHA HOLOGRÁFICA 3D (HUD CIBERNÉTICO // SHOT SCIENCE V3.2) */}
-            <DuelaHolografica3D
-              freeThrowsMade={selectedStudent?.metricsCurrent?.freeThrow ? Math.round(selectedStudent.metricsCurrent.freeThrow / 10) : 7}
-              freeThrowsAttempted={10}
-              midLeftMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 6}
-              midLeftAttempted={10}
-              midRightMade={selectedStudent?.metricsCurrent?.midRange ? Math.round(selectedStudent.metricsCurrent.midRange / 10) : 6}
-              midRightAttempted={10}
-              cornerLeftMade={3}
-              cornerLeftAttempted={5}
-              wingLeftMade={3}
-              wingLeftAttempted={5}
-              topKeyMade={selectedStudent?.metricsCurrent?.threePoint ? Math.round(selectedStudent.metricsCurrent.threePoint / 25) : 4}
-              topKeyAttempted={5}
-              wingRightMade={3}
-              wingRightAttempted={5}
-              cornerRightMade={2}
-              cornerRightAttempted={5}
-            />
-
             <BioimpedanceWizard
               students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
             />
