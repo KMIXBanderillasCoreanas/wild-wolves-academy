@@ -304,19 +304,25 @@ function LoginContent() {
 
         // Redirección inteligente respetando query params o según rol
         const redirectParam = searchParams.get("redirect");
+        const isTargetGuardian = 
+          userRole === "guardian" || 
+          userRole === "parent" || 
+          activePortal === "guardian" || 
+          userEmail.toLowerCase().includes("tutor");
+
         setTimeout(() => {
           if (redirectParam && (userRole === "coach" || userRole === "superadmin")) {
-            router.push(redirectParam);
+            window.location.href = redirectParam;
           } else if (userRole === "superadmin") {
-            router.push("/master-bunker-hq");
+            window.location.href = "/master-bunker-hq";
           } else if (userRole === "coach") {
-            router.push("/dashboard-coach");
-          } else if (userRole === "guardian" || userRole === "parent") {
-            router.push("/dashboard-guardian");
+            window.location.href = "/dashboard-coach";
+          } else if (isTargetGuardian) {
+            window.location.href = "/dashboard-guardian";
           } else {
-            router.push("/dashboard-student");
+            window.location.href = "/dashboard-student";
           }
-        }, 800);
+        }, 300);
       }
     } catch (err: any) {
       console.warn("Error de autenticación:", err);

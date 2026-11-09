@@ -41,7 +41,7 @@ export default function AuthSync() {
         try {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("role, status, full_name")
+            .select("role, status, full_name, account_category")
             .eq("id", user.id)
             .single();
 
@@ -54,11 +54,19 @@ export default function AuthSync() {
               role: "superadmin",
               status: "active"
             });
+          } else if (profile?.role === "guardian" || profile?.role === "parent" || profile?.account_category === "guardian_family") {
+            detectedRole = "guardian";
           } else if (profile?.role) {
             detectedRole = profile.role;
           }
         } catch (err) {
           console.warn("Aviso en sincronización de perfil:", err);
+        }
+
+        // Si ya está guardado como tutor en localStorage o el correo es de tutor, no degradar a student
+        const localStoredRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
+        if ((localStoredRole === "guardian" || localStoredRole === "parent" || email.toLowerCase().includes("tutor")) && detectedRole === "student") {
+          detectedRole = "guardian";
         }
 
         // Sincronizar almacenamiento local y cookies
