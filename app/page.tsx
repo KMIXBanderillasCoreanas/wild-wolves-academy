@@ -63,7 +63,7 @@ export default function WildWolvesHome() {
 
   // WhatsApp dinámico con mensaje estructurado según selección
   const branchText = selectedBranch === "femenil" ? "Femenil (Wild Wolves Girls)" : "Varonil";
-  const shiftText = selectedShift === "matutino" ? "Matutino (09:00 - 11:00 hrs)" : "Vespertino (17:00 - 19:00 hrs)";
+  const shiftText = selectedShift === "matutino" ? "Matutino (09:00 - 11:00 hrs)" : "Vespertino (16:00 - 18:00 hrs)";
   const whatsappUrl = `https://wa.me/525522427769?text=${encodeURIComponent(
     `Hola Coach Ricardo, quiero agendar mi Clase Muestra Gratuita en Wild Wolves CDMX (Deportivo Carmen Serdán).\n\n• Rama: ${branchText}\n• Turno de Interés: ${shiftText}\n\n¿Qué días tienen cupo esta semana?`
   )}`;
@@ -83,7 +83,6 @@ export default function WildWolvesHome() {
       name: "Cachorros & Iniciación",
       age: "6 a 10 Años",
       focus: "Fundamentos motrices, bote ambidiestro, mecánica de tiro natural, respeto y diversión formativa en equipo.",
-      schedule: "Lun a Sáb • Turno Matutino (9-11) o Vespertino (17-19)",
       tag: "Principiantes Bienvenidos",
       color: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10",
       skills: ["Bote básico ambas manos", "Pase de pecho y picado", "Juegos de agilidad motriz", "Coordinación ojo-mano"]
@@ -93,7 +92,6 @@ export default function WildWolvesHome() {
       name: "Desarrollo Competitivo",
       age: "11 a 15 Años",
       focus: "Mecánica de suspensión, salto vertical con cuerda, defensa individual, lecturas de pantalla y transición rápida.",
-      schedule: "Lun a Sáb • Turno Matutino (9-11) o Vespertino (17-19)",
       tag: "Categoría Estrella",
       color: "border-[#ea580c]/50 text-[#ea580c] bg-[#ea580c]/10",
       skills: ["Tiro tras drible", "Salto de cuerda 500+ repeticiones", "Defensa 1v1 y ayudas", "Ataque contra zona"]
@@ -103,7 +101,6 @@ export default function WildWolvesHome() {
       name: "Élite & Selectivo CDMX",
       age: "16 a 21 Años",
       focus: "Acondicionamiento físico de alta exigencia, tiro de 3 puntos perimetral, visorías universitarias y torneos metropolitanos.",
-      schedule: "Lun a Sáb • Turno Matutino (9-11) o Vespertino (17-19)",
       tag: "Alto Rendimiento",
       color: "border-sky-500/40 text-sky-400 bg-sky-500/10",
       skills: ["Radar de Tiro 360°", "Fuerza explosiva pliométrica", "Sistemas ofensivos tácticos", "Preparación para visorías"]
@@ -113,7 +110,6 @@ export default function WildWolvesHome() {
       name: "Adultos & Adaptación (+20 Años)",
       age: "+20 Años (Cero Experiencia)",
       focus: "Acondicionamiento físico progresivo, sin presiones ni sobrecargas. Movilidad, fundamentos de bote y tiro para iniciar desde cero a tu propio ritmo.",
-      schedule: "Lun a Sáb • Turno Matutino (9-11) o Vespertino (17-19)",
       tag: "Adultos Sedentarios",
       color: "border-purple-500/40 text-purple-400 bg-purple-500/10",
       skills: ["Movilidad articular y cardio sano", "Bote y tiro sin impacto lesivo", "Rutinas progresivas sin sobrecarga", "Salud, antiestrés y comunidad"]
@@ -186,7 +182,7 @@ export default function WildWolvesHome() {
     },
     {
       q: "¿Dónde está ubicada la cancha y en qué horarios entrenan?",
-      a: "Entrenamos en el Deportivo Carmen Serdán (Gustavo A. Madero, CDMX). Las sesiones se imparten de Lunes a Sábado en dos turnos: Matutino de 09:00 a 11:00 hrs y Vespertino de 17:00 a 19:00 hrs. Puedes asistir en el turno que mejor se adapte a tus actividades escolares o laborales."
+      a: "Entrenamos en el Deportivo Carmen Serdán (Gustavo A. Madero, CDMX). Las sesiones se imparten de Lunes a Sábado en dos turnos: Matutino de 09:00 a 11:00 hrs y Vespertino de 16:00 a 18:00 hrs. Puedes asistir en el turno que mejor se adapte a tus actividades escolares o laborales."
     }
   ];
 
@@ -340,7 +336,7 @@ export default function WildWolvesHome() {
                     : "bg-[#121724] text-zinc-400 hover:text-white"
                 }`}
               >
-                <Clock className="w-3.5 h-3.5" /> Vespertino (17:00 - 19:00)
+                <Clock className="w-3.5 h-3.5" /> Vespertino (16:00 - 18:00)
               </button>
             </div>
           </div>
@@ -486,11 +482,6 @@ export default function WildWolvesHome() {
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-zinc-800 text-[11px] text-zinc-300 flex items-center gap-1.5 font-mono">
-                <Clock className="w-3.5 h-3.5 text-[#38bdf8] flex-shrink-0" />
-                <span>{cat.schedule}</span>
               </div>
             </div>
           ))}

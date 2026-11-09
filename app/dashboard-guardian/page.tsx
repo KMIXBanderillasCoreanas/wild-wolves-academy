@@ -70,8 +70,8 @@ const DEFAULT_STUDENT_DATA = {
   metabolic_age: 15,
   subscription_status: "FREE",
   subscription_plan: "FREE",
-  training_schedule: "Vespertino: 17:00 - 19:00",
-  training_days: "Lun-Mié-Vie",
+  training_schedule: "Vespertino (16:00 - 18:00)",
+  training_days: "Lunes a Sábado",
   financial_status: "al_corriente",
   current_debt_amount: 0,
   current_tier: "Intermedio"
