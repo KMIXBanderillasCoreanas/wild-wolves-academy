@@ -17,6 +17,7 @@ import {
   Timer
 } from 'lucide-react';
 import BasketballCourtHeatmap from '@/components/BasketballCourtHeatmap';
+import DuelaHolografica3D from '@/components/DuelaHolografica3D';
 
 export interface CleanTabMetrics {
   verticalJumpCm: number;
@@ -419,20 +420,24 @@ export default function CleanPortalTabs({
               </div>
             </div>
 
-            {/* Componente React de Heatmap Oficial */}
-            <BasketballCourtHeatmap
-              data={{
-                freeThrowsMade: metrics.shotHeatmapData.freeThrowsMade,
-                midRangeLeftMade: metrics.shotHeatmapData.midRangeLeftMade,
-                midRangeRightMade: metrics.shotHeatmapData.midRangeRightMade,
-                threeCornerLeftMade: metrics.shotHeatmapData.threeCornerLeftMade,
-                threeWingLeftMade: metrics.shotHeatmapData.threeWingLeftMade,
-                threeTopKeyMade: metrics.shotHeatmapData.threeTopKeyMade,
-                threeWingRightMade: metrics.shotHeatmapData.threeWingRightMade,
-                threeCornerRightMade: metrics.shotHeatmapData.threeCornerRightMade,
-                athleteName
-              }}
-              showPhysicals={false}
+            {/* Componente React de Heatmap Oficial Duela Holográfica Neón */}
+            <DuelaHolografica3D
+              freeThrowsMade={metrics.shotHeatmapData.freeThrowsMade}
+              freeThrowsAttempted={metrics.shotHeatmapData.freeThrowsAttempts || 10}
+              midLeftMade={metrics.shotHeatmapData.midRangeLeftMade}
+              midLeftAttempted={10}
+              midRightMade={metrics.shotHeatmapData.midRangeRightMade}
+              midRightAttempted={10}
+              cornerLeftMade={metrics.shotHeatmapData.threeCornerLeftMade}
+              cornerLeftAttempted={5}
+              wingLeftMade={metrics.shotHeatmapData.threeWingLeftMade}
+              wingLeftAttempted={5}
+              topKeyMade={metrics.shotHeatmapData.threeTopKeyMade}
+              topKeyAttempted={5}
+              wingRightMade={metrics.shotHeatmapData.threeWingRightMade}
+              wingRightAttempted={5}
+              cornerRightMade={metrics.shotHeatmapData.threeCornerRightMade}
+              cornerRightAttempted={5}
             />
           </div>
         </div>
