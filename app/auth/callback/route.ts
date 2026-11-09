@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role, status, full_name")
+          .select("role, status, full_name, account_category")
           .eq("id", data.user.id)
           .maybeSingle();
 
@@ -63,6 +63,8 @@ export async function GET(request: Request) {
             status: "active",
             is_provisional: false,
           });
+        } else if (profile?.role === "guardian" || profile?.role === "parent" || profile?.account_category === "guardian_family") {
+          role = "guardian";
         } else if (profile?.role) {
           role = profile.role;
         } else {

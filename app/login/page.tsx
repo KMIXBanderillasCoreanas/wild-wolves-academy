@@ -229,45 +229,44 @@ function LoginContent() {
           userEmail.toLowerCase().includes("wildwolvescdmx");
 
         let userRole = isMasterDirector ? "superadmin" : (activePortal === "coach" ? "coach" : (activePortal === "guardian" ? "guardian" : "student"));
+        let dbProfile: any = null;
 
         try {
           // Consultar perfil de forma segura vía API para evitar recursión RLS
-          let profile: any = null;
           try {
             const profRes = await fetch(`/api/get-user-profile?id=${user.id}`);
             if (profRes.ok) {
               const profData = await profRes.json();
-              profile = profData.profile;
+              dbProfile = profData.profile;
             }
           } catch {
             // Fallback a cliente supabase
             const { data: p } = await supabase
               .from("profiles")
-              .select("role, status, full_name")
+              .select("role, status, full_name, account_category")
               .eq("id", user.id)
               .maybeSingle();
-            profile = p;
+            dbProfile = p;
           }
 
-          if (profile?.role === "coach_pending" || profile?.status === "pending") {
+          if (dbProfile?.role === "coach_pending" || dbProfile?.status === "pending") {
             setErrorMsg("Tu postulación de Coach sigue en revisión por la Dirección Técnica en el Búnker Central.");
             await supabase.auth.signOut();
             setLoading(false);
             return;
           }
 
-          if (profile?.role) {
-            userRole = profile.role;
-          } else if (profile?.account_category === "guardian_family") {
+          // Prioridad estricta al rol 'guardian' o categoría 'guardian_family' registrado en la BD o pestaña activa
+          if (dbProfile?.role === "guardian" || dbProfile?.role === "parent" || dbProfile?.account_category === "guardian_family" || activePortal === "guardian" || userEmail.toLowerCase().includes("tutor")) {
             userRole = "guardian";
-          } else if (activePortal === "guardian") {
-            userRole = "guardian";
+          } else if (dbProfile?.role) {
+            userRole = dbProfile.role;
           } else if (isMasterDirector) {
             // Asegurar perfil directivo
             await supabase.from("profiles").upsert({
               id: user.id,
               email: userEmail,
-              full_name: profile?.full_name || "Coach Ricardo",
+              full_name: dbProfile?.full_name || "Coach Ricardo",
               role: "superadmin",
               status: "active"
             });
@@ -281,6 +280,12 @@ function LoginContent() {
         if (typeof window !== "undefined") {
           localStorage.setItem("ww_user_role", userRole);
           localStorage.setItem("ww_user_email", userEmail);
+          if (userRole === "guardian") {
+            localStorage.setItem("ww_account_category", "guardian_family");
+            localStorage.setItem("ww_active_role", "guardian");
+            document.cookie = `ww_active_role=guardian; path=/; max-age=31536000; SameSite=Lax`;
+            document.cookie = `account_category=guardian_family; path=/; max-age=31536000; SameSite=Lax`;
+          }
           document.cookie = `user_role=${userRole}; path=/; max-age=31536000; SameSite=Lax`;
           document.cookie = `user_email=${encodeURIComponent(userEmail)}; path=/; max-age=31536000; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
@@ -307,6 +312,8 @@ function LoginContent() {
         const isTargetGuardian = 
           userRole === "guardian" || 
           userRole === "parent" || 
+          dbProfile?.role === "guardian" ||
+          dbProfile?.account_category === "guardian_family" ||
           activePortal === "guardian" || 
           userEmail.toLowerCase().includes("tutor");
 

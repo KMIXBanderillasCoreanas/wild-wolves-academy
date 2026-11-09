@@ -47,11 +47,22 @@ export default function AuthSync() {
         let detectedRole = isMasterAdmin ? "superadmin" : (isTutorAccount ? "guardian" : "student");
 
         try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, status, full_name, account_category")
-            .eq("id", user.id)
-            .single();
+          // Consultar perfil de forma segura vía API para evitar recursión de políticas RLS
+          let profile: any = null;
+          try {
+            const profRes = await fetch(`/api/get-user-profile?id=${user.id}`);
+            if (profRes.ok) {
+              const profData = await profRes.json();
+              profile = profData.profile;
+            }
+          } catch {
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("role, status, full_name, account_category")
+              .eq("id", user.id)
+              .maybeSingle();
+            profile = p;
+          }
 
           if (isMasterAdmin) {
             detectedRole = "superadmin";
@@ -62,7 +73,7 @@ export default function AuthSync() {
               role: "superadmin",
               status: "active"
             });
-          } else if (isTutorAccount || profile?.role === "guardian" || profile?.role === "parent" || profile?.account_category === "guardian_family") {
+          } else if (profile?.role === "guardian" || profile?.role === "parent" || profile?.account_category === "guardian_family" || isTutorAccount) {
             detectedRole = "guardian";
           } else if (profile?.role) {
             detectedRole = profile.role;
