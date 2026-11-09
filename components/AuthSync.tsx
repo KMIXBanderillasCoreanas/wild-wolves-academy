@@ -36,7 +36,15 @@ export default function AuthSync() {
           cleanEmail === "carlos@wildwolves.mx" || 
           cleanEmail === "director@wildwolves.mx";
 
-        let detectedRole = isMasterAdmin ? "superadmin" : "student";
+        // Detección estricta de rol con prioridad inmutable a metadatos de usuario y categorías
+        const metaRole = user.user_metadata?.assigned_role || user.user_metadata?.role;
+        const isTutorAccount = 
+          metaRole === "guardian" || 
+          metaRole === "parent" || 
+          cleanEmail.includes("tutor") || 
+          cleanEmail.includes("catalinalopez");
+
+        let detectedRole = isMasterAdmin ? "superadmin" : (isTutorAccount ? "guardian" : "student");
 
         try {
           const { data: profile } = await supabase
@@ -54,7 +62,7 @@ export default function AuthSync() {
               role: "superadmin",
               status: "active"
             });
-          } else if (profile?.role === "guardian" || profile?.role === "parent" || profile?.account_category === "guardian_family") {
+          } else if (isTutorAccount || profile?.role === "guardian" || profile?.role === "parent" || profile?.account_category === "guardian_family") {
             detectedRole = "guardian";
           } else if (profile?.role) {
             detectedRole = profile.role;
@@ -65,16 +73,18 @@ export default function AuthSync() {
 
         // Si ya está guardado como tutor en localStorage o el correo es de tutor, no degradar a student
         const localStoredRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
-        if ((localStoredRole === "guardian" || localStoredRole === "parent" || email.toLowerCase().includes("tutor")) && detectedRole === "student") {
+        if ((localStoredRole === "guardian" || localStoredRole === "parent" || isTutorAccount) && detectedRole === "student") {
           detectedRole = "guardian";
         }
 
-        // Sincronizar almacenamiento local y cookies
+        // Sincronizar almacenamiento local y cookies con aislamiento estricto ww_active_role
         if (typeof window !== "undefined") {
           localStorage.setItem("ww_user_role", detectedRole);
           localStorage.setItem("ww_user_email", email);
           if (detectedRole === "guardian") {
             localStorage.setItem("ww_account_category", "guardian_family");
+            localStorage.setItem("ww_active_role", "guardian");
+            document.cookie = `ww_active_role=guardian; path=/; max-age=31536000; SameSite=Lax`;
             document.cookie = `account_category=guardian_family; path=/; max-age=31536000; SameSite=Lax`;
           }
           document.cookie = `user_role=${detectedRole}; path=/; max-age=31536000; SameSite=Lax`;

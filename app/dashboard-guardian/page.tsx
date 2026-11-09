@@ -170,6 +170,24 @@ function GuardianDashboardContent() {
         return;
       }
 
+      // Validar si el usuario autenticado es un alumno puro sin acceso de tutor
+      const userRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
+      const userCat = typeof window !== "undefined" ? localStorage.getItem("ww_account_category") : null;
+      const metaRole = user?.user_metadata?.assigned_role || user?.user_metadata?.role;
+      const isPureStudent = 
+        userRole === "student" && 
+        userCat !== "guardian_family" && 
+        metaRole !== "guardian" && 
+        !effectiveEmail.toLowerCase().includes("tutor") && 
+        effectiveEmail.toLowerCase() !== "wildwolvescdmx@gmail.com";
+
+      if (isPureStudent) {
+        if (typeof window !== "undefined") {
+          window.location.replace("/dashboard-student");
+        }
+        return;
+      }
+
       const queryTarget = overrideStudentQuery || selectedStudentId;
 
       // 2. Cargar datos garantizados desde el endpoint administrativo /api/portal-data

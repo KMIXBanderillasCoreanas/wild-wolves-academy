@@ -6,7 +6,8 @@ export function middleware(request: NextRequest) {
     const { pathname, searchParams } = request.nextUrl;
     
     // Lectura de cookies de sesión
-    const rawRole = request.cookies.get('user_role')?.value;
+    const activeRoleCookie = request.cookies.get('ww_active_role')?.value;
+    const rawRole = activeRoleCookie || request.cookies.get('user_role')?.value;
     const userRole = rawRole ? decodeURIComponent(rawRole).toLowerCase().trim() : '';
     const rawCategory = request.cookies.get('account_category')?.value;
     const accountCategory = rawCategory ? decodeURIComponent(rawCategory).toLowerCase().trim() : '';
@@ -18,6 +19,7 @@ export function middleware(request: NextRequest) {
 
     // Detección estricta e inmutable de Tutor (Rol, Categoría o Patrón de Correo)
     const isGuardian = 
+      activeRoleCookie === 'guardian' ||
       userRole === 'guardian' || 
       userRole === 'parent' || 
       accountCategory === 'guardian_family' || 
