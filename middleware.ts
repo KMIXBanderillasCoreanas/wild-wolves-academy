@@ -8,11 +8,21 @@ export function middleware(request: NextRequest) {
     // Lectura de cookies de sesión
     const rawRole = request.cookies.get('user_role')?.value;
     const userRole = rawRole ? decodeURIComponent(rawRole).toLowerCase().trim() : '';
+    const rawCategory = request.cookies.get('account_category')?.value;
+    const accountCategory = rawCategory ? decodeURIComponent(rawCategory).toLowerCase().trim() : '';
     const rawEmail = request.cookies.get('user_email')?.value;
     const userEmail = rawEmail ? decodeURIComponent(rawEmail).toLowerCase().trim() : '';
 
     // El ÚNICO dueño, programador y SuperAdmin con acceso total irrestricto a todo el sistema
     const isOwner = userEmail === 'wildwolvescdmx@gmail.com';
+
+    // Detección estricta e inmutable de Tutor (Rol, Categoría o Patrón de Correo)
+    const isGuardian = 
+      userRole === 'guardian' || 
+      userRole === 'parent' || 
+      accountCategory === 'guardian_family' || 
+      userEmail.includes('tutor') || 
+      userEmail.includes('catalinalopez');
 
     // 1. Control de Cuota de IA
     if (pathname.startsWith('/api/student-mentor-ai') || pathname.startsWith('/api/ai/chat')) {
@@ -73,14 +83,15 @@ export function middleware(request: NextRequest) {
 
     // 4. Blindaje de /dashboard-student (SOLO Alumnos y Dueño wildwolvescdmx@gmail.com)
     if (pathname.startsWith('/dashboard-student')) {
+      // Si es tutor bajo cualquier criterio, BLOQUEAR y desviar INMEDIATAMENTE a su portal
+      if (isGuardian && !isOwner) {
+        return NextResponse.redirect(new URL('/dashboard-guardian', request.url));
+      }
+
       if (isOwner || userRole === 'student') {
         return NextResponse.next();
       }
 
-      // Si es tutor, mandarlo a su zona de tutor
-      if (userRole === 'guardian' || userRole === 'parent') {
-        return NextResponse.redirect(new URL('/dashboard-guardian', request.url));
-      }
       // Si es coach, mandarlo a la duela
       if (userRole === 'coach') {
         return NextResponse.redirect(new URL('/dashboard-coach', request.url));
@@ -97,11 +108,11 @@ export function middleware(request: NextRequest) {
 
     // 5. Blindaje de /dashboard-guardian (SOLO Tutores/Padres y Dueño wildwolvescdmx@gmail.com)
     if (pathname.startsWith('/dashboard-guardian')) {
-      if (isOwner || userRole === 'guardian' || userRole === 'parent') {
+      if (isOwner || isGuardian) {
         return NextResponse.next();
       }
 
-      // Si es estudiante, mandarlo a su zona de estudiante
+      // Si es estudiante verificado (y no tutor), mandarlo a su zona de estudiante
       if (userRole === 'student') {
         return NextResponse.redirect(new URL('/dashboard-student', request.url));
       }

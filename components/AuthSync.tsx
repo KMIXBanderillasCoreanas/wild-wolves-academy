@@ -73,9 +73,19 @@ export default function AuthSync() {
         if (typeof window !== "undefined") {
           localStorage.setItem("ww_user_role", detectedRole);
           localStorage.setItem("ww_user_email", email);
+          if (detectedRole === "guardian") {
+            localStorage.setItem("ww_account_category", "guardian_family");
+            document.cookie = `account_category=guardian_family; path=/; max-age=31536000; SameSite=Lax`;
+          }
           document.cookie = `user_role=${detectedRole}; path=/; max-age=31536000; SameSite=Lax`;
           document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
+        }
+
+        // Si es tutor y está parado en /dashboard-student, forzar salto inmediato a /dashboard-guardian
+        if (detectedRole === "guardian" && typeof window !== "undefined" && window.location.pathname.startsWith("/dashboard-student")) {
+          window.location.replace("/dashboard-guardian");
+          return;
         }
 
         // Actualizar HoopStore según el rol

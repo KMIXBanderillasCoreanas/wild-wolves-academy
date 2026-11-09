@@ -513,6 +513,36 @@ function StudentDashboardContent() {
   const [officialTestsCount, setOfficialTestsCount] = useState<number>(0);
   const [previousMetrics, setPreviousMetrics] = useState<any | null>(null);
 
+  // Protocolo ECC: Bloqueo Síncrono de Acceso para Tutores
+  // Si en el navegador se detecta la cookie o credencial de tutor, desviar sin renderizar la UI de alumno
+  if (typeof window !== "undefined") {
+    const roleCookie = document.cookie.split("; ").find(row => row.startsWith("user_role="))?.split("=")[1];
+    const emailCookie = document.cookie.split("; ").find(row => row.startsWith("user_email="))?.split("=")[1];
+    const catCookie = document.cookie.split("; ").find(row => row.startsWith("account_category="))?.split("=")[1];
+    const localRole = localStorage.getItem("ww_user_role");
+    const localEmail = localStorage.getItem("ww_user_email") || "";
+    const localCat = localStorage.getItem("ww_account_category");
+
+    const isTutorSession = 
+      roleCookie === "guardian" || 
+      roleCookie === "parent" || 
+      catCookie === "guardian_family" || 
+      localRole === "guardian" || 
+      localRole === "parent" || 
+      localCat === "guardian_family" || 
+      localEmail.toLowerCase().includes("tutor") || 
+      (emailCookie && decodeURIComponent(emailCookie).toLowerCase().includes("tutor"));
+
+    if (isTutorSession) {
+      window.location.replace("/dashboard-guardian");
+      return (
+        <div className="min-h-screen bg-[#07090e] flex items-center justify-center text-xs text-purple-400 font-mono">
+          <span>🛡️ Redirigiendo al Portal Oficial del Tutor...</span>
+        </div>
+      );
+    }
+  }
+
   useEffect(() => {
     async function loadData() {
       try {

@@ -68,9 +68,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (typeof window !== "undefined") {
         localStorage.setItem("ww_user_role", effectiveRole);
         if (cleanEmail) localStorage.setItem("ww_user_email", cleanEmail);
+        if (isGuardian) {
+          localStorage.setItem("ww_account_category", "guardian_family");
+          document.cookie = `account_category=guardian_family; path=/; max-age=31536000; SameSite=Lax`;
+        }
         document.cookie = `user_role=${effectiveRole}; path=/; max-age=31536000; SameSite=Lax`;
         if (cleanEmail) document.cookie = `user_email=${encodeURIComponent(cleanEmail)}; path=/; max-age=31536000; SameSite=Lax`;
         window.dispatchEvent(new Event("auth_changed"));
+      }
+
+      // Si es tutor y se encuentra en dashboard-student, redirigir sin demora
+      if (isGuardian && typeof window !== "undefined" && window.location.pathname.startsWith("/dashboard-student")) {
+        window.location.replace("/dashboard-guardian");
+        return;
       }
 
       // Redirección inteligente solo si está en la raíz "/" o login para evitar parpadeos y bucles
