@@ -75,6 +75,29 @@ export async function getFinancialBunkerMetricsAction(): Promise<{
 
     const admin = getAdminSupabase();
 
+    // 0. INTENTO PRIORITARIO: Llamar a la función RPC nativa en Supabase
+    try {
+      const { data: rpcData, error: rpcError } = await admin.rpc('get_academy_financial_summary');
+      if (!rpcError && rpcData) {
+        return {
+          success: true,
+          metrics: {
+            totalRevenue: Number(rpcData.total_revenue) || 0,
+            totalDebt: Number(rpcData.total_debt || rpcData.total_receivable) || 0,
+            activeMembershipsCount: Number(rpcData.active_memberships_count) || 0,
+            activePro99Count: Number(rpcData.active_pro_99_count) || 0,
+            activeElite149Count: Number(rpcData.active_elite_149_count) || 0,
+            courtFeesCollected: Number(rpcData.court_fees_collected) || 0,
+            courtFeesCount: Number(rpcData.court_fees_count) || 0,
+            transactionsCount: Number(rpcData.transactions_count) || 0,
+            debtorsCount: Number(rpcData.debtors_count) || 0,
+          },
+        };
+      }
+    } catch (rpcErr) {
+      console.warn('Fallback de agregación directa (RPC no ejecutada aún en DB):', rpcErr);
+    }
+
     // 1. Consultar historial de pagos (payment_transactions_history y membership_payments)
     const [txRes, memRes, profRes, vouchersRes, actCodesRes] = await Promise.all([
       admin.from('payment_transactions_history').select('id, amount_paid, payment_method, membership_tier, concept, created_at'),
@@ -123,15 +146,23 @@ export async function getFinancialBunkerMetricsAction(): Promise<{
       }
     }
 
-    // 2. Adeudos pendientes de atletas
-    const studentProfiles = profiles.filter((p) => ['student', 'alumno'].includes((p.role || '').toLowerCase()));
+    // 2. Adeudos pendientes de atletas (suma de adeudos o clases pendientes calculadas a $50 MXN)
+    const studentProfiles = profiles.filter((p) => 
+      ['student', 'alumno'].includes((p.role || '').toLowerCase()) ||
+      (p as any).user_type === 'student' ||
+      (p as any).user_type === 'alumno'
+    );
     let totalDebt = 0;
     let debtorsCount = 0;
 
     for (const s of studentProfiles) {
-      const debt = Number(s.current_debt_amount) || 0;
-      if (debt > 0 || s.financial_status === 'adeudo') {
-        totalDebt += debt;
+      const explicitDebt = Number(s.current_debt_amount) || 0;
+      if (explicitDebt > 0) {
+        totalDebt += explicitDebt;
+        debtorsCount += 1;
+      } else if (s.financial_status === 'adeudo' || s.financial_status === 'pendiente') {
+        // Si tiene estatus de adeudo pero deuda en 0, calcular clase pendiente base ($50 MXN)
+        totalDebt += 50;
         debtorsCount += 1;
       }
     }
@@ -230,15 +261,22 @@ export async function getDebtorsControlListAction(): Promise<{
     }
 
     const athletes: DebtorAthleteRecord[] = (rawAthletes || []).map((a) => {
-      const debt = Number(a.current_debt_amount) || 0;
-      const isAdeudo = debt > 0 || a.financial_status === 'adeudo';
+      let debt = Number(a.current_debt_amount) || 0;
+      const isAdeudoStatus = a.financial_status === 'adeudo' || a.financial_status === 'pendiente';
+      
+      // Si el estatus es de adeudo pero debt es 0, asignamos 1 clase pendiente ($50 MXN)
+      if (debt === 0 && isAdeudoStatus) {
+        debt = 50;
+      }
+      
+      const isAdeudo = debt > 0 || isAdeudoStatus;
       const costPerClass = Number(a.default_class_cost) || 50;
       const pendingClasses = isAdeudo ? Math.max(1, Math.round(debt / costPerClass)) : 0;
       const lastPay = lastPaymentMap.get(a.id);
 
       return {
         id: a.id,
-        fullName: a.full_name || 'Atleta Sin Nombre',
+        fullName: a.full_name || 'Atleta Wild Wolves',
         guardianName: a.guardian_name || 'Tutor Responsable',
         guardianPhone: a.parent_phone || a.phone || '+52 55 2242 7769',
         phone: a.phone || '+52 55 2242 7769',
