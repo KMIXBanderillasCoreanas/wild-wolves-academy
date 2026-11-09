@@ -41,7 +41,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         cleanEmail === "carlos@wildwolves.mx" || 
         cleanEmail === "director@wildwolves.mx";
 
-      const effectiveRole = isMasterAdmin ? "superadmin" : (data?.role || "student");
+      const isGuardian = 
+        data?.account_category === "guardian_family" || 
+        data?.role === "guardian" || 
+        data?.role === "parent" || 
+        (typeof window !== "undefined" && localStorage.getItem("ww_user_role") === "guardian");
+
+      const effectiveRole = isMasterAdmin ? "superadmin" : (isGuardian ? "guardian" : (data?.role || "student"));
 
       // Auto-vinculación en login con prospect_athletes si existe pre-ficha por nombre
       if (data?.full_name && userId && !isMasterAdmin) {

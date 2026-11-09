@@ -528,6 +528,15 @@ function StudentDashboardContent() {
         const storedName = typeof window !== "undefined" ? (localStorage.getItem("ww_student_name") || localStorage.getItem("ww_target_name")) : null;
         const storedRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
 
+        // Si el usuario en localStorage o cookie ya está identificado como tutor, redirigir de inmediato antes de cargar la vista de atleta
+        if (storedRole === "guardian" || storedRole === "parent" || (typeof window !== "undefined" && localStorage.getItem("ww_account_category") === "guardian_family")) {
+          if (typeof window !== "undefined") {
+            window.location.replace("/dashboard-guardian");
+          }
+          setLoading(false);
+          return;
+        }
+
         // Si no hay usuario ni credenciales guardadas, redirigir a login para proteger la privacidad del atleta
         if (!user && !storedEmail) {
           if (typeof window !== "undefined") {
@@ -578,6 +587,17 @@ function StudentDashboardContent() {
           pay = py;
 
           if (p) {
+            // Si el perfil obtenido de la base de datos es tutor, sacarlo de inmediato de la vista de alumno
+            if ((p.role === "guardian" || p.role === "parent" || p.account_category === "guardian_family") && !isSuperAdminEmail) {
+              if (typeof window !== "undefined") {
+                localStorage.setItem("ww_user_role", "guardian");
+                document.cookie = `user_role=guardian; path=/; max-age=31536000; SameSite=Lax`;
+                window.location.replace("/dashboard-guardian");
+              }
+              setLoading(false);
+              return;
+            }
+
             setProfileFinancialData({
               current_debt_amount: Number(p.current_debt_amount || 0),
               financial_status: p.financial_status || "al_corriente",
