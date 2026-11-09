@@ -866,6 +866,16 @@ function StudentDashboardContent() {
         const cleanEmail = effectiveEmail.toLowerCase().trim();
         const isSuperAdmin = prof?.role === "superadmin" || isSuperAdminEmail || storedRole === "superadmin";
         const isCoachOrAdmin = isSuperAdmin || prof?.role === "coach" || storedRole === "coach";
+        const isGuardianUser = prof?.role === "guardian" || prof?.role === "parent" || storedRole === "guardian" || storedRole === "parent" || prof?.account_category === "guardian_family";
+
+        // Si el usuario es un tutor o familiar, redirigirlo inmediatamente a su portal dedicado
+        if (isGuardianUser && !isCoachOrAdmin) {
+          if (typeof window !== "undefined") {
+            window.location.href = "/dashboard-guardian";
+          }
+          setLoading(false);
+          return;
+        }
 
         // Si el SuperAdmin o Coach entra a este dashboard para supervisar o como alumno demo,
         // permitirle navegar y ver sus métricas de prueba sin forzar redirección al búnker.

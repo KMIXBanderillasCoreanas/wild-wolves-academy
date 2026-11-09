@@ -258,6 +258,10 @@ function LoginContent() {
 
           if (profile?.role) {
             userRole = profile.role;
+          } else if (profile?.account_category === "guardian_family") {
+            userRole = "guardian";
+          } else if (activePortal === "guardian") {
+            userRole = "guardian";
           } else if (isMasterDirector) {
             // Asegurar perfil directivo
             await supabase.from("profiles").upsert({

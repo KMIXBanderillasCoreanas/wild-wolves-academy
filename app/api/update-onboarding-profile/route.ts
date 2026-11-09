@@ -20,6 +20,11 @@ export async function POST(req: Request) {
 
     const supabase = getAdminSupabase();
 
+    // Si en el onboarding se seleccionó ser tutor familiar, asegurar también el rol "guardian"
+    if (payload.account_category === "guardian_family") {
+      payload.role = "guardian";
+    }
+
     // Actualizar perfil de forma segura sin bloqueo por recursión de políticas RLS
     const { data, error } = await supabase
       .from("profiles")

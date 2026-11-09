@@ -78,11 +78,22 @@ export default function FamilyOnboardingModal({ userId, userEmail, onComplete }:
         localStorage.setItem("ww_referred_by", referredBy);
         localStorage.setItem("ww_selected_days", JSON.stringify(selectedDays));
         localStorage.setItem("ww_schedules_by_day", JSON.stringify(schedules));
+
+        if (isGuardian) {
+          localStorage.setItem("ww_user_role", "guardian");
+          document.cookie = `user_role=guardian; path=/; max-age=31536000; SameSite=Lax`;
+        }
+
         window.dispatchEvent(new Event("profile_updated"));
+        window.dispatchEvent(new Event("auth_changed"));
       }
 
       alert("Registro completado con éxito. Bienvenido al sistema Wild Wolves.");
       onComplete();
+
+      if (isGuardian && typeof window !== "undefined") {
+        window.location.href = "/dashboard-guardian";
+      }
     } catch (err: any) {
       alert("Error al guardar: " + err.message);
     } finally {
