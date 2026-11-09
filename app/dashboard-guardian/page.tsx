@@ -662,24 +662,31 @@ function GuardianDashboardContent() {
           onOpenUpgradeModal={() => setShowProModal(true)}
         />
 
-        {/* BANNER DEL ALUMNO REPRESENTADO */}
-        <div className="bg-gradient-to-r from-purple-950/40 via-[#121624] to-[#0d1017] border border-purple-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        {/* BANNER DEL TUTOR Y ALUMNO REPRESENTADO */}
+        <div className="bg-gradient-to-r from-purple-950/60 via-[#121624] to-[#0d1017] border border-purple-500/40 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f66018] to-orange-700 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-orange-950/50 shrink-0">
-              {studentProfile?.jersey_number ? `#${studentProfile.jersey_number}` : "🐺"}
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-purple-950/50 shrink-0 border border-purple-400/30">
+              <Users className="w-7 h-7 text-purple-200" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">
-                  {studentName}
-                </h1>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 uppercase">
-                  {studentProfile?.category || "Categoría Formativa"}
+                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase">
+                  Tutor Familiar Titular
+                </span>
+                <span className="text-xs text-zinc-400 font-medium">
+                  Parentesco: <b className="text-purple-300 capitalize">{guardianProfile?.relationship_type === "padre_madre" ? "Padre / Madre" : (guardianProfile?.relationship_type || "Padre / Madre / Tutor")}</b>
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 mt-1">
-                Sede: <b className="text-white">Deportivo Carmen Serdán</b> • Días: <b className="text-[#f66018]">{trainingDays}</b> ({trainingSchedule})
-              </p>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5">
+                {tutorName}
+              </h1>
+              <div className="flex items-center gap-2 text-xs text-zinc-300 mt-1 flex-wrap">
+                <span>Atleta Representado: <strong className="text-[#f66018] font-bold text-sm">{studentName}</strong></span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-400">Dorsal #{studentProfile?.jersey_number || 11}</span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-400">Horario: <b className="text-amber-400">{trainingDays} ({trainingSchedule})</b></span>
+              </div>
             </div>
           </div>
 
