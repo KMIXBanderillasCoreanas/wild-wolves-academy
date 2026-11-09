@@ -31,6 +31,7 @@ import DualCoachCommand from '@/components/DualCoachCommand';
 import SmartPlacementCRM from '@/components/SmartPlacementCRM';
 import { FinanceManager } from '@/components/FinanceManager';
 import BioimpedanceWizard from '@/components/BioimpedanceWizard';
+import MatchSheetScanner from '@/components/MatchSheetScanner';
 import WhatsAppAIEngine from '@/components/WhatsAppAIEngine';
 import CourtVisionHUD from '@/components/CourtVisionHUD';
 import confetti from 'canvas-confetti';
@@ -66,8 +67,8 @@ function CoachDashboardContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | 'superadmin'>('coach');
 
-  // Pestañas Principales en Estructura de 3 Vistas: 1. Cancha & Evaluaciones | 2. Físico & Cuerda | 3. Finanzas & Caja
-  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'fisico_tactico' | 'finanzas_gestion'>('cancha_eval');
+  // Pestañas Principales en Estructura: 1. Cancha & Evaluaciones | 2. Escáner de Hoja de Partido | 3. Físico & Cuerda | 4. Finanzas & Caja
+  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'match_ocr' | 'fisico_tactico' | 'finanzas_gestion'>('cancha_eval');
 
 
   // Filtros del Roster
@@ -782,51 +783,64 @@ function CoachDashboardContent() {
         </div>
       ) : (
         <>
-          {/* SELECTOR SUPERIOR: ESTRUCTURA DE 3 PESTAÑAS DEL COACH */}
+          {/* SELECTOR SUPERIOR: ESTRUCTURA DE 4 PESTAÑAS DEL COACH */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#121724] border border-zinc-800 rounded-2xl shadow-xl">
             <div className="flex items-center gap-2 flex-wrap flex-1">
               <button
                 type="button"
                 onClick={() => setCoachActiveTab('cancha_eval')}
-                className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'cancha_eval'
                     ? 'bg-[#ea580c] text-white shadow-lg shadow-orange-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <Zap className="w-4 h-4 text-amber-400" />
-                <span>Tab 1: Cancha, Lista & Evaluaciones</span>
+                <span>1. Cancha & Evaluaciones</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCoachActiveTab('match_ocr')}
+                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'match_ocr'
+                    ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-600/30 ring-1 ring-orange-400'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-orange-400" />
+                <span>2. Escáner de Hoja de Partido</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setCoachActiveTab('fisico_tactico')}
-                className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'fisico_tactico'
                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <Target className="w-4 h-4 text-purple-300" />
-                <span>Tab 2: Cuerda, Físico & Resistencia</span>
+                <span>3. Cuerda & Resistencia</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setCoachActiveTab('finanzas_gestion')}
-                className={`flex-1 min-w-[200px] flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'finanzas_gestion'
                     ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <span className="text-amber-400 font-bold">$</span>
-                <span>Tab 3: Finanzas, Caja & Cobranza</span>
+                <span>4. Finanzas & Caja</span>
               </button>
             </div>
 
-            <div className="text-[11px] font-mono text-zinc-400 px-3 py-1 hidden lg:block">
-              {coachActiveTab === 'cancha_eval' ? '⚡ Cancha y Evaluaciones Combine' : coachActiveTab === 'fisico_tactico' ? '🏃 Cuerda y Resistencia' : '💰 Finanzas y Control de Pagos'}
+            <div className="text-[11px] font-mono text-zinc-400 px-3 py-1 hidden xl:block">
+              {coachActiveTab === 'cancha_eval' ? '⚡ Cancha y Evaluaciones Combine' : coachActiveTab === 'match_ocr' ? '📷 Escáner de Cédulas OCR' : coachActiveTab === 'fisico_tactico' ? '🏃 Cuerda y Resistencia' : '💰 Finanzas y Control de Pagos'}
             </div>
           </div>
 
@@ -862,7 +876,20 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 2: CUERDA, FÍSICO & RESISTENCIA */}
+          {/* VISTA 2: ESCÁNER DE HOJA DE PARTIDO (OCR DUELA) */}
+          {coachActiveTab === 'match_ocr' && (
+            <div className="space-y-6 animate-fadeIn">
+              <MatchSheetScanner
+                studentId={selectedStudent.id}
+                studentName={selectedStudent.fullName}
+                onSyncSuccess={() => {
+                  setStudents(HoopStore.getStudents());
+                }}
+              />
+            </div>
+          )}
+
+          {/* VISTA 3: CUERDA, FÍSICO & RESISTENCIA */}
           {coachActiveTab === 'fisico_tactico' && (
             <div className="space-y-6 animate-fadeIn">
               {/* Módulo Táctico Dual sincronizado con el atleta seleccionado */}

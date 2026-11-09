@@ -33,6 +33,7 @@ import PaywallLockCard from "@/components/PaywallLockCard";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { generateFullReportHTML } from "@/lib/reportGenerator";
+import CleanPortalTabs, { CleanTabMetrics } from "@/components/CleanPortalTabs";
 import {
   Camera,
   ExternalLink,
@@ -417,7 +418,7 @@ function StudentDashboardContent() {
   const [profile, setProfile] = useState<any>(null);
   const isRealPro = profile?.subscription_status === "ACTIVE" || profile?.ai_plan === "pro" || profile?.ai_plan === "elite_familiar";
   const { isPro: isEffectivePro } = useSubscriptionTier(Boolean(isRealPro));
-  const [activeTab, setActiveTab] = useState<'profile_tests' | 'exercises_video' | 'nba_comparison'>('profile_tests');
+  const [activeTab, setActiveTab] = useState<'clean_portal' | 'profile_tests' | 'exercises_video' | 'nba_comparison'>('clean_portal');
   const [commitment, setCommitment] = useState<any>(null);
   const [lastPayment, setLastPayment] = useState<any>(null);
   const [profileFinancialData, setProfileFinancialData] = useState<{
@@ -1388,6 +1389,25 @@ function StudentDashboardContent() {
           <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-2xl">
             <button
               type="button"
+              onClick={() => setActiveTab('clean_portal')}
+              className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+                activeTab === 'clean_portal'
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/40 ring-2 ring-orange-400/50'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+              }`}
+            >
+              <Zap className="w-5 h-5 shrink-0" />
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-mono opacity-80 uppercase">Estelar</span>
+                <span className="truncate font-bold">Portal Limpio (4 Tabs)</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 font-bold hidden md:inline shrink-0">
+                Nuevo
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('profile_tests')}
               className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
                 activeTab === 'profile_tests'
@@ -1398,7 +1418,7 @@ function StudentDashboardContent() {
               <User className="w-5 h-5 shrink-0" />
               <div className="flex flex-col items-center">
                 <span className="text-[10px] font-mono opacity-80 uppercase">Paso 1</span>
-                <span className="truncate font-bold">1. Perfil y Pruebas</span>
+                <span className="truncate font-bold">1. Perfil & Pruebas</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold hidden md:inline shrink-0">
                 Básico Libre
@@ -1444,6 +1464,78 @@ function StudentDashboardContent() {
             </button>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA ESTELAR: PORTAL LIMPIO POR PESTAÑAS (4 TABS MINIMALISTAS)         */}
+        {/* ========================================================================= */}
+        {activeTab === 'clean_portal' && (
+          <CleanPortalTabs
+            athleteName={profile?.full_name || 'Atleta Lobo'}
+            category={profile?.category || 'U-17 Competitivo'}
+            jerseyNumber={profile?.jersey_number || 11}
+            mode="student"
+            metrics={{
+              verticalJumpCm: currentPerformance.verticalJumpCm || evaluation.vertical_jump_cm || 65,
+              sprint20mSeconds: currentPerformance.sprint_100m_seconds ? Number((currentPerformance.sprint_100m_seconds / 5).toFixed(1)) : 3.2,
+              shootingEfficiencyPct: currentPerformance.spots_total_made ? Math.round((currentPerformance.spots_total_made / 25) * 100) : 78,
+              overallOvr: evaluation.overall_ovr || 88,
+              freeThrowsPct: currentPerformance.free_throws_made ? Math.round((currentPerformance.free_throws_made / 10) * 100) : 80,
+              midRangePct: currentPerformance.mid_range_made ? Math.round((currentPerformance.mid_range_made / 20) * 100) : 75,
+              threePointPct: currentPerformance.three_point_made ? Math.round((currentPerformance.three_point_made / 25) * 100) : 68,
+              baseline: {
+                verticalJumpCm: baseline.initial_jump_rope_max ? 48 : 50,
+                sprint20mSeconds: 3.8,
+                shootingEfficiencyPct: 52,
+                entryDate: baseline.entry_date || "2026-01-15"
+              },
+              monthlyProgression: [
+                { month: 'Mes 1 (Base)', verticalJumpCm: 50, sprint20mSeconds: 3.8, shootingPct: 52, ovr: 70 },
+                { month: 'Mes 2', verticalJumpCm: 55, sprint20mSeconds: 3.6, shootingPct: 62, ovr: 76 },
+                { month: 'Mes 3', verticalJumpCm: 60, sprint20mSeconds: 3.4, shootingPct: 70, ovr: 82 },
+                { month: 'Actual', verticalJumpCm: currentPerformance.verticalJumpCm || 65, sprint20mSeconds: 3.2, shootingPct: 78, ovr: evaluation.overall_ovr || 88 }
+              ],
+              shotHeatmapData: {
+                freeThrowsMade: currentPerformance.free_throws_made || 8,
+                midRangeLeftMade: currentPerformance.mid_range_made ? Math.floor(currentPerformance.mid_range_made / 2) : 7,
+                midRangeRightMade: currentPerformance.mid_range_made ? Math.ceil(currentPerformance.mid_range_made / 2) : 8,
+                threeCornerLeftMade: currentPerformance.spot_corner_left || 4,
+                threeWingLeftMade: currentPerformance.spot_wing_left || 3,
+                threeTopKeyMade: currentPerformance.spot_top_key || 4,
+                threeWingRightMade: currentPerformance.spot_wing_right || 3,
+                threeCornerRightMade: currentPerformance.spot_corner_right || 3
+              },
+              officialHistory: [
+                {
+                  date: evaluation.evaluation_date !== 'Por programar' ? evaluation.evaluation_date : '2026-11-01',
+                  ovr: evaluation.overall_ovr || 88,
+                  verticalJump: `${currentPerformance.verticalJumpCm || 65} cm`,
+                  sprint: '3.2 s (20m)',
+                  shooting: '78%',
+                  evaluator: 'Head Coach Ricardo',
+                  status: 'Oficial Duela'
+                },
+                {
+                  date: '2026-10-15',
+                  ovr: 82,
+                  verticalJump: '60 cm',
+                  sprint: '3.4 s (20m)',
+                  shooting: '70%',
+                  evaluator: 'Head Coach Ricardo',
+                  status: 'Oficial Duela'
+                },
+                {
+                  date: '2026-09-20',
+                  ovr: 76,
+                  verticalJump: '55 cm',
+                  sprint: '3.6 s (20m)',
+                  shooting: '62%',
+                  evaluator: 'Head Coach Ricardo',
+                  status: 'Oficial Duela'
+                }
+              ]
+            }}
+          />
+        )}
 
         {/* ========================================================================= */}
         {/* PESTAÑA 1: PERFIL Y PRUEBAS DEPORTIVAS (MÉTRICAS BÁSICAS LIBRES / PRO)     */}

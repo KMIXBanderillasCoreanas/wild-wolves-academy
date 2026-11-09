@@ -21,6 +21,7 @@ import {
   generarReporteWhatsAppTutor,
   generarReporteSemanalHumanoCoachAction
 } from "@/app/actions/wild-wolves-actions";
+import CleanPortalTabs from "@/components/CleanPortalTabs";
 import { 
   Users, 
   MessageSquare, 
@@ -106,7 +107,7 @@ const DEFAULT_UNIFIED_TEST = {
 function GuardianDashboardContent() {
   const { isPro: isProMode, setMode: setDemoMode } = useSubscriptionTier();
   const [mounted, setMounted] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'profile_physical' | 'court_thermal' | 'nba_comparison'>('profile_physical');
+  const [activeTab, setActiveTab] = useState<'clean_portal' | 'profile_physical' | 'court_thermal' | 'nba_comparison'>('clean_portal');
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [guardianProfile, setGuardianProfile] = useState<any>({
     full_name: "Tutor Familiar",
@@ -793,6 +794,25 @@ function GuardianDashboardContent() {
           <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl sticky top-[69px] z-30 backdrop-blur-md">
             <button
               type="button"
+              onClick={() => setActiveTab('clean_portal')}
+              className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+                activeTab === 'clean_portal'
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/40 ring-2 ring-orange-400/50'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+              }`}
+            >
+              <Zap className="w-5 h-5 shrink-0" />
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-mono opacity-80 uppercase">Estelar</span>
+                <span className="truncate font-bold">Portal Limpio (4 Tabs)</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 font-bold hidden md:inline shrink-0">
+                Nuevo
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('profile_physical')}
               className={`flex-1 py-3.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
                 activeTab === 'profile_physical'
@@ -850,6 +870,78 @@ function GuardianDashboardContent() {
           </div>
         </div>
 
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA ESTELAR: PORTAL LIMPIO POR PESTAÑAS (4 TABS MINIMALISTAS)         */}
+        {/* ========================================================================= */}
+        {activeTab === 'clean_portal' && (
+          <CleanPortalTabs
+            athleteName={studentProfile?.full_name || 'Alumno Representado'}
+            category={studentProfile?.category || 'U-17 Competitivo'}
+            jerseyNumber={studentProfile?.jersey_number || 11}
+            mode="guardian"
+            metrics={{
+              verticalJumpCm: Number(latestTest?.vertical_jump_cm || DEFAULT_UNIFIED_TEST.vertical_jump_cm || 65),
+              sprint20mSeconds: Number((Number(latestTest?.sprint_100m_seconds || DEFAULT_UNIFIED_TEST.sprint_100m_seconds || 13.5) / 4.2).toFixed(1)),
+              shootingEfficiencyPct: Number(latestTest?.shooting_percentage || 78),
+              overallOvr: Number(latestTest?.overall_ovr || DEFAULT_UNIFIED_TEST.overall_ovr || 88),
+              freeThrowsPct: Number(latestTest?.free_throws_made ? Math.round((latestTest.free_throws_made / 10) * 100) : 80),
+              midRangePct: Number(latestTest?.mid_range_made ? Math.round((latestTest.mid_range_made / 20) * 100) : 75),
+              threePointPct: Number(latestTest?.three_point_made ? Math.round((latestTest.three_point_made / 25) * 100) : 68),
+              baseline: {
+                verticalJumpCm: 50,
+                sprint20mSeconds: 3.8,
+                shootingEfficiencyPct: 52,
+                entryDate: "2026-01-15"
+              },
+              monthlyProgression: [
+                { month: 'Mes 1 (Base)', verticalJumpCm: 50, sprint20mSeconds: 3.8, shootingPct: 52, ovr: 70 },
+                { month: 'Mes 2', verticalJumpCm: 55, sprint20mSeconds: 3.6, shootingPct: 62, ovr: 76 },
+                { month: 'Mes 3', verticalJumpCm: 60, sprint20mSeconds: 3.4, shootingPct: 70, ovr: 82 },
+                { month: 'Actual', verticalJumpCm: Number(latestTest?.vertical_jump_cm || 65), sprint20mSeconds: 3.2, shootingPct: Number(latestTest?.shooting_percentage || 78), ovr: Number(latestTest?.overall_ovr || 88) }
+              ],
+              shotHeatmapData: {
+                freeThrowsMade: Number(latestTest?.free_throws_made || 8),
+                midRangeLeftMade: Number(latestTest?.mid_range_made ? Math.floor(latestTest.mid_range_made / 2) : 7),
+                midRangeRightMade: Number(latestTest?.mid_range_made ? Math.ceil(latestTest.mid_range_made / 2) : 8),
+                threeCornerLeftMade: Number(latestTest?.spot_corner_left || 4),
+                threeWingLeftMade: Number(latestTest?.spot_wing_left || 3),
+                threeTopKeyMade: Number(latestTest?.spot_top_key || 4),
+                threeWingRightMade: Number(latestTest?.spot_wing_right || 3),
+                threeCornerRightMade: Number(latestTest?.spot_corner_right || 3)
+              },
+              officialHistory: [
+                {
+                  date: latestTest?.evaluation_date || '2026-11-01',
+                  ovr: Number(latestTest?.overall_ovr || 88),
+                  verticalJump: `${latestTest?.vertical_jump_cm || 65} cm`,
+                  sprint: '3.2 s (20m)',
+                  shooting: `${latestTest?.shooting_percentage || 78}%`,
+                  evaluator: 'Head Coach Ricardo',
+                  status: 'Oficial Duela'
+                },
+                {
+                  date: '2026-10-15',
+                  ovr: 82,
+                  verticalJump: '60 cm',
+                  sprint: '3.4 s (20m)',
+                  shooting: '70%',
+                  evaluator: 'Head Coach Ricardo',
+                  status: 'Oficial Duela'
+                },
+                {
+                  date: '2026-09-20',
+                  ovr: 76,
+                  verticalJump: '55 cm',
+                  sprint: '3.6 s (20m)',
+                  shooting: '62%',
+                  evaluator: 'Head Coach Ricardo',
+                  status: 'Oficial Duela'
+                }
+              ]
+            }}
+          />
+        )}
 
         {/* ================================================================= */}
         {/* PESTAÑA 1: PERFIL DEL ATLETA Y ESTADO FÍSICO (100% GRATIS)         */}
