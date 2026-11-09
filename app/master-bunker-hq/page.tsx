@@ -53,6 +53,14 @@ import ExpensesManager from "@/components/ExpensesManager";
 import SecurityBackupManager from "@/components/SecurityBackupManager";
 import VideoApprovalPanel from "@/components/video-library/VideoApprovalPanel";
 import ActivationCodeManager from "@/components/ActivationCodeManager";
+import FinancialMetricsBunker from "@/components/FinancialMetricsBunker";
+import DebtControlTable from "@/components/DebtControlTable";
+import { 
+  FinancialBunkerMetrics, 
+  DebtorAthleteRecord, 
+  getFinancialBunkerMetricsAction, 
+  getDebtorsControlListAction 
+} from "@/lib/actions/finance-bunker-actions";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 function MasterBunkerHQContent() {
@@ -92,6 +100,11 @@ function MasterBunkerHQContent() {
     debtCount: 0
   });
   const [debtorsList, setDebtorsList] = useState<any[]>([]);
+
+  // Estados consolidados del Módulo Financiero ECC
+  const [bunkerFinancialMetrics, setBunkerFinancialMetrics] = useState<FinancialBunkerMetrics | null>(null);
+  const [debtControlAthletes, setDebtControlAthletes] = useState<DebtorAthleteRecord[]>([]);
+  const [bunkerFinanceLoading, setBunkerFinanceLoading] = useState<boolean>(false);
 
   useEffect(() => {
     setMounted(true);
@@ -436,6 +449,25 @@ function MasterBunkerHQContent() {
           totalDebt: totalDebts,
           debtCount: debtorsFound.length,
         });
+      }
+
+      // 4. Cargar métricas y lista del Módulo Financiero ECC
+      try {
+        setBunkerFinanceLoading(true);
+        const [mRes, aRes] = await Promise.all([
+          getFinancialBunkerMetricsAction(),
+          getDebtorsControlListAction()
+        ]);
+        if (mRes.success && mRes.metrics) {
+          setBunkerFinancialMetrics(mRes.metrics);
+        }
+        if (aRes.success && aRes.athletes) {
+          setDebtControlAthletes(aRes.athletes);
+        }
+      } catch (errFin) {
+        console.warn("Aviso al consultar Server Actions financieras ECC:", errFin);
+      } finally {
+        setBunkerFinanceLoading(false);
       }
     } catch (err) {
       console.error("Error al cargar datos del Búnker:", err);
@@ -1073,6 +1105,22 @@ function MasterBunkerHQContent() {
 
       {activeTab === "finance" && (
         <div className="space-y-6 animate-fade-in">
+          {/* NUEVO PANEL OFICIAL ECC: 4 TARJETAS DE ALTO IMPACTO VISUAL */}
+          <ErrorBoundary fallbackTitle="Panel de Métricas Financieras del Búnker en Pausa">
+            <FinancialMetricsBunker 
+              metrics={bunkerFinancialMetrics} 
+              loading={bunkerFinanceLoading} 
+            />
+          </ErrorBoundary>
+
+          {/* NUEVA TABLA INTERACTIVA DE CONTROL DE ADEUDOS */}
+          <ErrorBoundary fallbackTitle="Tabla de Control de Adeudos en Pausa">
+            <DebtControlTable 
+              athletes={debtControlAthletes} 
+              onDataChanged={fetchDashboardData} 
+            />
+          </ErrorBoundary>
+
           {/* TARJETAS KPI DE INGRESOS Y SALDOS PENDIENTES */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
             <div className="bg-[#121724] border border-zinc-800 p-4 sm:p-5 rounded-2xl">
