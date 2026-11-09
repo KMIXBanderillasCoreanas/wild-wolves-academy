@@ -161,6 +161,7 @@ function GuardianDashboardContent() {
 
       const storedEmail = typeof window !== "undefined" ? localStorage.getItem("ww_user_email") : null;
       const effectiveEmail = user?.email || storedEmail || "";
+      const effectiveUserId = user?.id || null;
 
       // Si no hay correo ni sesión iniciada, enviar de inmediato al portal de login
       if (!effectiveEmail && !user) {
@@ -179,6 +180,7 @@ function GuardianDashboardContent() {
         userCat !== "guardian_family" && 
         metaRole !== "guardian" && 
         !effectiveEmail.toLowerCase().includes("tutor") && 
+        effectiveEmail.toLowerCase() !== "catalinalopez2450@gmail.com" &&
         effectiveEmail.toLowerCase() !== "wildwolvescdmx@gmail.com";
 
       if (isPureStudent) {
@@ -190,7 +192,41 @@ function GuardianDashboardContent() {
 
       const queryTarget = overrideStudentQuery || selectedStudentId;
 
-      // 2. Cargar datos garantizados desde el endpoint administrativo /api/portal-data
+      // 2. Consulta directa y exclusiva a Supabase por ID o correo del tutor autenticado
+      let directGuardian: any = null;
+      let directStudent: any = null;
+
+      try {
+        let gQuery = supabase.from("profiles").select("*");
+        if (effectiveUserId) {
+          gQuery = gQuery.eq("id", effectiveUserId);
+        } else if (effectiveEmail) {
+          gQuery = gQuery.eq("email", effectiveEmail);
+        }
+        const { data: gData } = await gQuery.maybeSingle();
+        directGuardian = gData;
+
+        // Si encontramos al tutor, buscar a su atleta vinculado
+        if (directGuardian?.linked_student_id) {
+          const { data: sData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", directGuardian.linked_student_id)
+            .maybeSingle();
+          directStudent = sData;
+        } else if (directGuardian?.linked_student_name) {
+          const { data: sData } = await supabase
+            .from("profiles")
+            .select("*")
+            .ilike("full_name", `%${directGuardian.linked_student_name}%`)
+            .maybeSingle();
+          directStudent = sData;
+        }
+      } catch (directDbErr) {
+        console.warn("Aviso en consulta directa de tutor/atleta Supabase:", directDbErr);
+      }
+
+      // 3. Cargar datos garantizados desde el endpoint administrativo /api/portal-data
       let portalResponse: any = null;
       try {
         let apiUrl = `/api/portal-data?role=guardian&email=${encodeURIComponent(effectiveEmail)}`;
@@ -209,8 +245,8 @@ function GuardianDashboardContent() {
         setAvailableStudents(portalResponse.availableStudents);
       }
 
-      let gProfile: any = portalResponse?.guardianProfile || null;
-      let sProfile: any = portalResponse?.studentProfile || null;
+      let gProfile: any = directGuardian || portalResponse?.guardianProfile || null;
+      let sProfile: any = directStudent || portalResponse?.studentProfile || null;
 
       // Si por alguna razón no vinieron del endpoint, usar defaults sólidos
       if (!gProfile) {

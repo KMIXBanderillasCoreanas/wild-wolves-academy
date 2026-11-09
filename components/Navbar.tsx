@@ -82,7 +82,7 @@ export function Navbar() {
     },
     {
       href: '/dashboard-student',
-      label: 'Mi Zona (Alumno)',
+      label: currentUserRole === 'guardian' || currentUserRole === 'parent' ? 'Mi Zona (Familiar / Tutor)' : 'Mi Zona (Alumno)',
       icon: Dumbbell,
       isActive: pathname?.startsWith('/dashboard-student'),
       isAccent: false,
@@ -90,7 +90,7 @@ export function Navbar() {
     },
     {
       href: '/dashboard-guardian',
-      label: 'Tutor (Familia)',
+      label: 'Mi Zona (Familiar / Tutor)',
       icon: HeartHandshake,
       isActive: pathname?.startsWith('/dashboard-guardian'),
       isAccent: false,
