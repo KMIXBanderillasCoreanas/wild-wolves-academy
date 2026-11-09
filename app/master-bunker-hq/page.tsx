@@ -904,6 +904,13 @@ function MasterBunkerHQContent() {
         <TacticalRadarAlerts />
       </div>
 
+      {/* MÉTRICAS FINANCIERAS ARRIBA DE TODO (3 TARJETAS RPC) */}
+      <div className="my-6">
+        <ErrorBoundary fallbackTitle="Panel de Métricas Financieras del Búnker en Pausa">
+          <FinancialMetricsBunker />
+        </ErrorBoundary>
+      </div>
+
       {/* CENTRO DE MANDO IA: LOBO CENTRAL (EXCLUSIVO HEAD COACH RICARDO) */}
       <div className="mb-6">
         <MasterAICockpit />
@@ -1105,20 +1112,9 @@ function MasterBunkerHQContent() {
 
       {activeTab === "finance" && (
         <div className="space-y-6 animate-fade-in">
-          {/* NUEVO PANEL OFICIAL ECC: 4 TARJETAS DE ALTO IMPACTO VISUAL */}
-          <ErrorBoundary fallbackTitle="Panel de Métricas Financieras del Búnker en Pausa">
-            <FinancialMetricsBunker 
-              metrics={bunkerFinancialMetrics} 
-              loading={bunkerFinanceLoading} 
-            />
-          </ErrorBoundary>
-
-          {/* NUEVA TABLA INTERACTIVA DE CONTROL DE ADEUDOS */}
+          {/* TABLA INTERACTIVA DE CONTROL DE ADEUDOS (WHATSAPP 1-TAP Y CONDONACIÓN) */}
           <ErrorBoundary fallbackTitle="Tabla de Control de Adeudos en Pausa">
-            <DebtControlTable 
-              athletes={debtControlAthletes} 
-              onDataChanged={fetchDashboardData} 
-            />
+            <DebtControlTable />
           </ErrorBoundary>
 
           {/* TARJETAS KPI DE INGRESOS Y SALDOS PENDIENTES */}

@@ -83,8 +83,8 @@ export async function getFinancialBunkerMetricsAction(): Promise<{
           success: true,
           metrics: {
             totalRevenue: Number(rpcData.total_revenue) || 0,
-            totalDebt: Number(rpcData.total_debt || rpcData.total_receivable) || 0,
-            activeMembershipsCount: Number(rpcData.active_memberships_count) || 0,
+            totalDebt: Number(rpcData.total_receivables ?? (rpcData.total_debt || rpcData.total_receivable)) || 0,
+            activeMembershipsCount: Number(rpcData.active_memberships ?? rpcData.active_memberships_count) || 0,
             activePro99Count: Number(rpcData.active_pro_99_count) || 0,
             activeElite149Count: Number(rpcData.active_elite_149_count) || 0,
             courtFeesCollected: Number(rpcData.court_fees_collected) || 0,

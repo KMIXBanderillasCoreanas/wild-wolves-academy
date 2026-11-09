@@ -128,13 +128,15 @@ BEGIN
     'total_revenue', v_total_revenue,
     'total_debt', v_total_receivable,
     'total_receivable', v_total_receivable,
-    'debtors_count', v_debtors_count,
+    'total_receivables', v_total_receivable,
+    'active_memberships', v_active_memberships,
     'active_memberships_count', v_active_memberships,
     'active_pro_99_count', v_active_pro_99,
     'active_elite_149_count', v_active_elite_149,
     'court_fees_collected', v_court_fees_collected,
     'court_fees_count', v_court_fees_count,
     'transactions_count', v_total_transactions,
+    'debtors_count', v_debtors_count,
     'sede', 'Deportivo Carmen Serdán, CDMX',
     'calculated_at', NOW()
   );
