@@ -166,77 +166,50 @@ export default function CourtAttendanceCommand() {
 
   const loadRoster = useCallback(async () => {
     try {
-      // 1. Intentar cargar desde Supabase si hay conexión con timeout de protección
+      // 1. Intentar cargar desde el endpoint resiliente del servidor (/api/roster-students)
       if (typeof window !== "undefined" && navigator.onLine) {
-        const fetchProfilesPromise = supabase
-          .from("profiles")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        // Timeout de 3.5 segundos para no colgar la UI en canchas con baja señal celular
-        const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout de red en duela")), 3500)
-        );
-
         let profiles: any[] | null = null;
+        let comms: any[] = [];
+        let payments: any[] = [];
+        let todayAttendance: any[] = [];
+        let prospects: any[] = [];
+        let skillsLogs: any[] = [];
+        let baselineLogs: any[] = [];
+
         try {
-          const res: any = await Promise.race([fetchProfilesPromise, timeoutPromise]);
-          profiles = res?.data || null;
-        } catch {
-          // Si timeout o red inestable, saltar de inmediato al caché local
-          profiles = null;
+          const targetDate = selectedDate || new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Mexico_City",
+          }).format(new Date());
+
+          const apiRes = await fetch(`/api/roster-students?date=${targetDate}`, {
+            headers: { "Cache-Control": "no-cache" }
+          });
+
+          if (apiRes.ok) {
+            const apiJson = await apiRes.json();
+            if (apiJson.athletes && Array.isArray(apiJson.athletes)) {
+              profiles = apiJson.athletes;
+              prospects = apiJson.prospects || [];
+              todayAttendance = apiJson.attendance || [];
+              payments = apiJson.payments || [];
+              skillsLogs = apiJson.skillsLogs || [];
+              baselineLogs = apiJson.baselineLogs || [];
+            }
+          }
+        } catch (e) {
+          console.warn("Fallo endpoint /api/roster-students, intentando fallback directo:", e);
         }
 
-        // Fallback a API administrativo si Supabase anon devuelve vacío por RLS
+        // Fallback directo a Supabase cliente si el endpoint falla
         if (!profiles || profiles.length === 0) {
           try {
-            const apiRes = await fetch("/api/admin/attendance-finance-manage", {
-              headers: {
-                "x-admin-secret": "WW-SUPERADMIN-FULL-2026",
-                "x-admin-email": "wildwolvescdmx@gmail.com"
-              }
-            });
-            if (apiRes.ok) {
-              const apiJson = await apiRes.json();
-              if (apiJson.athletes && apiJson.athletes.length > 0) {
-                profiles = apiJson.athletes;
-              }
-            }
-          } catch (e) {
-            console.warn("Fallback api admin en CourtAttendanceCommand:", e);
-          }
+            const { data } = await supabase.from("profiles").select("*");
+            if (data && data.length > 0) profiles = data;
+          } catch {}
         }
 
         if (profiles && profiles.length > 0) {
-          const { data: comms } = await supabase
-            .from("attendance_commitments")
-            .select("user_id, days_selected, shift");
-
-          const { data: payments } = await supabase
-            .from("membership_payments")
-            .select("student_id, amount, status, payment_date")
-            .order("payment_date", { ascending: false });
-
-          let todayAttendance: any[] = [];
-          try {
-            const targetDate = selectedDate || new Intl.DateTimeFormat("en-CA", {
-              timeZone: "America/Mexico_City",
-            }).format(new Date());
-            const { data: attData, error: attError } = await supabase
-              .from("daily_attendance")
-              .select("id, student_id, status, date")
-              .eq("date", targetDate);
-            if (attError) {
-              console.warn("Aviso en daily_attendance de CourtAttendanceCommand:", attError.message);
-            } else if (attData) {
-              todayAttendance = attData;
-            }
-          } catch (err) {
-            console.error("Fallo recuperable en asistencia:", err);
-          }
-
-          // Exclusión permanente del Head Coach Ricardo de listas de evaluación
-          // Exclusión permanente del Head Coach Ricardo y tutores/familiares de listas de evaluación en cancha
+          // Exclusión permanente del Head Coach Ricardo y tutores de tarjetas de duela directa
           const nonCoachProfiles = (profiles || []).filter((p: any) => {
             if (!p) return false;
             const email = (p.email || "").toLowerCase().trim();
@@ -366,17 +339,8 @@ export default function CourtAttendanceCommand() {
 
           // Cargar pruebas deportivas registradas (55 tiros, 100m sprint, saltar cuerda, líneas)
           try {
-            const { data: skillsLogs } = await supabase
-              .from("basketball_skills_logs")
-              .select("student_id, free_throws_made, mid_range_made, three_point_made, sprint_100m_seconds, lines_round_trip_seconds")
-              .order("created_at", { ascending: false });
-
-            const { data: baselineLogs } = await supabase
-              .from("student_initial_baseline")
-              .select("student_id, initial_jump_rope_max");
-
             const map: Record<string, any> = {};
-            skillsLogs?.forEach((log: any) => {
+            (skillsLogs || []).forEach((log: any) => {
               if (log.student_id && !map[log.student_id]) {
                 const totalShots = (log.free_throws_made || 0) + (log.mid_range_made || 0) + (log.three_point_made || 0);
                 const ovr = Math.min(99, Math.max(50, Math.round((totalShots / 55) * 60 + 35)));
@@ -392,7 +356,7 @@ export default function CourtAttendanceCommand() {
               }
             });
 
-            baselineLogs?.forEach((b: any) => {
+            (baselineLogs || []).forEach((b: any) => {
               if (b.student_id) {
                 if (map[b.student_id]) {
                   map[b.student_id].jumpRopeCount = b.initial_jump_rope_max || 50;

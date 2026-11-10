@@ -13,15 +13,36 @@ export const SupabaseSync = {
     if (!isSupabaseConfigured || !supabase) return null;
 
     try {
-      // 1. Obtener perfiles de atletas desde la tabla oficial 'profiles'
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'student')
-        .order('full_name', { ascending: true });
+      // 1. Obtener perfiles de atletas desde el endpoint del servidor (bypassa RLS de forma segura)
+      let baseAthletes: any[] = [];
+      try {
+        if (typeof window !== "undefined") {
+          const res = await fetch("/api/roster-students", {
+            headers: { "Cache-Control": "no-cache" }
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.athletes && Array.isArray(json.athletes)) {
+              baseAthletes = json.athletes;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Fallo fetch /api/roster-students en SupabaseSync, fallback a cliente:", err);
+      }
+
+      // Fallback a cliente Supabase si fuera necesario
+      if (baseAthletes.length === 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('role', 'student')
+          .order('full_name', { ascending: true });
+
+        baseAthletes = profilesData || [];
+      }
 
       // Si no hay profiles o falló, intentar fallback a legacy 'students'
-      let baseAthletes = profilesData || [];
       if (baseAthletes.length === 0) {
         const { data: legacyData } = await supabase
           .from('students')

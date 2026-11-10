@@ -26,6 +26,8 @@ import { WhatsAppReportButton } from '@/components/WhatsAppReportButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { AttendanceTracker } from '@/components/AttendanceTracker';
 import CourtAttendanceCommand from '@/components/CourtAttendanceCommand';
+import BasketballCourtHeatmap from '@/components/BasketballCourtHeatmap';
+import SportsTestExpressModal from '@/components/SportsTestExpressModal';
 import TestDayEvaluator from '@/components/TestDayEvaluator';
 import DualCoachCommand from '@/components/DualCoachCommand';
 import SmartPlacementCRM from '@/components/SmartPlacementCRM';
@@ -47,6 +49,7 @@ import {
   Zap,
   Target,
   Activity,
+  Flame,
   Layers,
   ChevronDown,
   Edit3,
@@ -67,8 +70,9 @@ function CoachDashboardContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | 'superadmin'>('coach');
 
-  // Pestañas Principales en Estructura: 1. Cancha & Asistencia | 2. Cédulas OCR | 3. Finanzas | 4. Reportes IA & WhatsApp
-  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'match_ocr' | 'finanzas_gestion' | 'reportes_ia'>('cancha_eval');
+  // Pestañas Principales en Estructura: 1. Cancha & Asistencia | 2. Pruebas Básicas | 3. Cédulas OCR | 4. Finanzas | 5. Reportes IA & WhatsApp
+  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'pruebas_basicas' | 'match_ocr' | 'finanzas_gestion' | 'reportes_ia'>('cancha_eval');
+  const [selectedAthleteForModal, setSelectedAthleteForModal] = useState<StudentProfile | null>(null);
 
 
   // Filtros del Roster
@@ -543,6 +547,19 @@ function CoachDashboardContent() {
 
               <button
                 type="button"
+                onClick={() => setCoachActiveTab('pruebas_basicas')}
+                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'pruebas_basicas'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30 ring-1 ring-purple-400'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Target className="w-4 h-4 text-purple-300" />
+                <span>2. Pruebas Deportivas Básicas</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setCoachActiveTab('match_ocr')}
                 className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'match_ocr'
@@ -551,7 +568,7 @@ function CoachDashboardContent() {
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-orange-400" />
-                <span>2. Cédulas OCR</span>
+                <span>3. Cédulas OCR</span>
               </button>
 
               <button
@@ -564,7 +581,7 @@ function CoachDashboardContent() {
                 }`}
               >
                 <span className="text-amber-400 font-bold">$</span>
-                <span>3. Finanzas & Caja</span>
+                <span>4. Finanzas & Caja</span>
               </button>
 
               <button
@@ -577,13 +594,15 @@ function CoachDashboardContent() {
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-emerald-300" />
-                <span>4. Reportes IA & WhatsApp</span>
+                <span>5. Reportes IA & WhatsApp</span>
               </button>
             </div>
 
             <div className="text-[11px] font-mono text-zinc-400 px-3 py-1 hidden xl:block">
               {coachActiveTab === 'cancha_eval' 
                 ? '⚡ Cancha en Vivo: Pase 1-Tap & Cobro' 
+                : coachActiveTab === 'pruebas_basicas'
+                ? '🎯 Pruebas Deportivas Básicas (Tiro, Velocidad, Cuerda)'
                 : coachActiveTab === 'match_ocr' 
                 ? '📷 Escáner de Cédulas OCR' 
                 : coachActiveTab === 'finanzas_gestion'
@@ -600,7 +619,135 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 2: ESCÁNER DE HOJA DE PARTIDO (OCR DUELA) */}
+          {/* VISTA 2: PRUEBAS DEPORTIVAS BÁSICAS (EJECUCIÓN DE TIRO, VELOCIDAD 100M, SALTO DE CUERDA) */}
+          {coachActiveTab === 'pruebas_basicas' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="bg-[#0f1420] border border-zinc-800 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0">
+                      <Target className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight">
+                        Registro de Pruebas Deportivas Básicas
+                      </h2>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        Duela Carmen Serdán • Ejecución de Tiro (55 Lanzamientos), Máxima Velocidad (100m sprint), Salto de Cuerda y Líneas.
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedStudent && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAthleteForModal(selectedStudent)}
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-950/50 transition cursor-pointer shrink-0"
+                    >
+                      <PlusCircle className="w-4 h-4 text-purple-200" />
+                      <span>+ Calificar Pruebas de {selectedStudent.fullName.split(' ')[0]}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Selector de Atleta Rápido */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 font-mono block">
+                    Selecciona al Atleta para Ver su % de Tiro y Registrar Pruebas:
+                  </span>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                    {students.map((st) => {
+                      const isSelected = selectedStudent?.id === st.id;
+                      return (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setSelectedStudentId(st.id)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 ${
+                            isSelected
+                              ? 'bg-purple-600 text-white shadow-lg shadow-purple-950/50 font-black ring-1 ring-purple-300'
+                              : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700'
+                          }`}
+                        >
+                          <span className="text-[10px] opacity-75">#{st.jerseyNumber || 11}</span>
+                          <span>{st.fullName}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Media Cancha Interactiva con Pruebas Físicas */}
+                {selectedStudent && (
+                  <div className="space-y-4">
+                    <BasketballCourtHeatmap
+                      data={{
+                        freeThrowsMade: selectedStudent.metricsCurrent?.freeThrow ? Math.round((selectedStudent.metricsCurrent.freeThrow / 100) * 10) : 7,
+                        midRangeLeftMade: 6,
+                        midRangeRightMade: 6,
+                        threeCornerLeftMade: 3,
+                        threeWingLeftMade: 3,
+                        threeTopKeyMade: 4,
+                        threeWingRightMade: 3,
+                        threeCornerRightMade: 2,
+                        jumpRopeCount: selectedStudent.training?.ropeJumpsToday || 50,
+                        circuitLinesSeconds: 11.2,
+                        sprint100mSeconds: (selectedStudent as any).rawStats?.sprint100mSeconds || 14.5,
+                        athleteName: selectedStudent.fullName,
+                        evaluationDate: new Date().toLocaleDateString('es-MX'),
+                        overallOvr: selectedStudent.metricsCurrent?.threePoint || 80
+                      }}
+                      showPhysicals={true}
+                    />
+
+                    {/* Fichas de las 3 Pruebas Básicas Clave */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                      <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-orange-400 uppercase font-mono">1. Tiro (55 Lanzamientos)</span>
+                          <Target className="w-4 h-4 text-orange-400" />
+                        </div>
+                        <p className="text-xl font-black text-white">
+                          {selectedStudent.metricsCurrent?.freeThrow || 75}% Acertado
+                        </p>
+                        <p className="text-[11px] text-zinc-400">
+                          10 Tiros Libres + 20 Media Distancia + 25 Triples en 5 spots
+                        </p>
+                      </div>
+
+                      <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-emerald-400 uppercase font-mono">2. Velocidad (100 Metros)</span>
+                          <Activity className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <p className="text-xl font-black text-emerald-400 font-mono">
+                          {(selectedStudent as any).rawStats?.sprint100mSeconds ? `${(selectedStudent as any).rawStats.sprint100mSeconds}s` : '14.5s'}
+                        </p>
+                        <p className="text-[11px] text-zinc-400">
+                          Máxima potencia aláctica y aceleración en duela
+                        </p>
+                      </div>
+
+                      <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-amber-400 uppercase font-mono">3. Saltar la Cuerda</span>
+                          <Flame className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <p className="text-xl font-black text-amber-400 font-mono">
+                          {selectedStudent.training?.ropeJumpsToday || 50} saltos continuos
+                        </p>
+                        <p className="text-[11px] text-zinc-400">
+                          Resistencia pliométrica de tobillos y tren inferior
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* VISTA 3: ESCÁNER DE HOJA DE PARTIDO (OCR DUELA) */}
           {coachActiveTab === 'match_ocr' && (
             <div className="space-y-6 animate-fadeIn">
               <MatchSheetScanner
@@ -613,7 +760,7 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 3: FINANZAS & CONTROL DE PAGOS */}
+          {/* VISTA 4: FINANZAS & CONTROL DE PAGOS */}
           {coachActiveTab === 'finanzas_gestion' && (
             <div className="space-y-6 animate-fadeIn">
               <FinanceManager
@@ -624,7 +771,7 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 4: GENERADOR DE REPORTES AUTOMATIZADOS CON IA & WHATSAPP CRM */}
+          {/* VISTA 5: GENERADOR DE REPORTES AUTOMATIZADOS CON IA & WHATSAPP CRM */}
           {coachActiveTab === 'reportes_ia' && (
             <div className="space-y-6 animate-fadeIn">
               <WhatsAppAIEngine 
@@ -1121,6 +1268,24 @@ function CoachDashboardContent() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 11. MODAL DE PRUEBAS DEPORTIVAS BÁSICAS EXPRESS */}
+      {selectedAthleteForModal && (
+        <SportsTestExpressModal
+          athlete={{
+            id: selectedAthleteForModal.id,
+            full_name: selectedAthleteForModal.fullName,
+            category: (selectedAthleteForModal as any).category || "U-15",
+          }}
+          onClose={() => setSelectedAthleteForModal(null)}
+          onSaved={() => {
+            setSelectedAthleteForModal(null);
+            HoopStore.syncWithSupabase().then((list) => {
+              if (list) setStudents(list);
+            });
+          }}
+        />
       )}
       </div>
     </>
