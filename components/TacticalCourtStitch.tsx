@@ -316,6 +316,16 @@ export default function TacticalCourtStitch({
                   </feMerge>
                 </filter>
 
+                {/* Intense Fluorescent Zone Glow on Selection */}
+                <filter id="zone-fluorescent-glow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+
                 {/* Wolf Orange Hoop Glow */}
                 <filter id="stitch-hoop-glow" x="-30%" y="-30%" width="160%" height="160%">
                   <feGaussianBlur stdDeviation="3.5" result="blur" />
@@ -348,14 +358,15 @@ export default function TacticalCourtStitch({
                 <line x1="0" y1="455" x2="500" y2="455" />
               </g>
 
-              {/* ZONAS POLIGONALES CON COLORES FLORESCENTES EXACTOS DE STITCH */}
+              {/* ZONAS POLIGONALES CON COLORES FLORESCENTES EXACTOS DE STITCH & GLOW ACTIVO */}
               {/* Esquina Izquierda 60% */}
               <polygon
                 points="0,0 45,0 45,170 0,170"
                 fill="#F59E0B"
-                fillOpacity={selectedZone === 'corner-left' ? 0.6 : 0.28}
+                fillOpacity={selectedZone === 'corner-left' ? 0.75 : 0.35}
                 stroke="#F59E0B"
-                strokeWidth={selectedZone === 'corner-left' ? "2.5" : "1.5"}
+                strokeWidth={selectedZone === 'corner-left' ? "3" : "1.5"}
+                filter={selectedZone === 'corner-left' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('corner-left')}
               />
@@ -364,9 +375,10 @@ export default function TacticalCourtStitch({
               <polygon
                 points="455,0 500,0 500,170 455,170"
                 fill="#06B6D4"
-                fillOpacity={selectedZone === 'corner-right' ? 0.6 : 0.25}
+                fillOpacity={selectedZone === 'corner-right' ? 0.75 : 0.32}
                 stroke="#06B6D4"
-                strokeWidth={selectedZone === 'corner-right' ? "2.5" : "1.5"}
+                strokeWidth={selectedZone === 'corner-right' ? "3" : "1.5"}
+                filter={selectedZone === 'corner-right' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('corner-right')}
               />
@@ -374,10 +386,11 @@ export default function TacticalCourtStitch({
               {/* Media Distancia Izquierda 100% */}
               <path
                 d="M 45,0 L 175,0 L 175,230 L 45,170 Z"
-                fill="#7F1D1D"
-                fillOpacity={selectedZone === 'mid-left' ? 0.95 : 0.78}
-                stroke="#EF4444"
-                strokeWidth={selectedZone === 'mid-left' ? "2.5" : "1.8"}
+                fill="#EF4444"
+                fillOpacity={selectedZone === 'mid-left' ? 0.88 : 0.65}
+                stroke="#FF5722"
+                strokeWidth={selectedZone === 'mid-left' ? "3.5" : "2"}
+                filter={selectedZone === 'mid-left' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('mid-left')}
               />
@@ -385,10 +398,11 @@ export default function TacticalCourtStitch({
               {/* Media Distancia Derecha 100% */}
               <path
                 d="M 325,0 L 455,0 L 455,170 L 325,230 Z"
-                fill="#7F1D1D"
-                fillOpacity={selectedZone === 'mid-right' ? 0.95 : 0.78}
-                stroke="#EF4444"
-                strokeWidth={selectedZone === 'mid-right' ? "2.5" : "1.8"}
+                fill="#EF4444"
+                fillOpacity={selectedZone === 'mid-right' ? 0.88 : 0.65}
+                stroke="#FF5722"
+                strokeWidth={selectedZone === 'mid-right' ? "3.5" : "2"}
+                filter={selectedZone === 'mid-right' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('mid-right')}
               />
@@ -396,10 +410,11 @@ export default function TacticalCourtStitch({
               {/* Pintura / Tiro Libre 100% */}
               <polygon
                 points="175,0 325,0 325,230 175,230"
-                fill="#5C1417"
-                fillOpacity={selectedZone === 'paint' ? 0.98 : 0.88}
+                fill="#EA580C"
+                fillOpacity={selectedZone === 'paint' ? 0.92 : 0.75}
                 stroke="#FF6B00"
-                strokeWidth={selectedZone === 'paint' ? "3" : "2"}
+                strokeWidth={selectedZone === 'paint' ? "4" : "2.5"}
+                filter={selectedZone === 'paint' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('paint')}
               />
@@ -408,9 +423,10 @@ export default function TacticalCourtStitch({
               <path
                 d="M 0,170 L 45,170 A 215,215 0 0,0 175,295 L 140,510 L 0,510 Z"
                 fill="#D97706"
-                fillOpacity={selectedZone === 'wing-left' ? 0.65 : 0.35}
+                fillOpacity={selectedZone === 'wing-left' ? 0.80 : 0.45}
                 stroke="#F59E0B"
-                strokeWidth={selectedZone === 'wing-left' ? "2.5" : "1.5"}
+                strokeWidth={selectedZone === 'wing-left' ? "3" : "1.8"}
+                filter={selectedZone === 'wing-left' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('wing-left')}
               />
@@ -419,9 +435,10 @@ export default function TacticalCourtStitch({
               <path
                 d="M 500,170 L 455,170 A 215,215 0 0,1 325,295 L 360,510 L 500,510 Z"
                 fill="#F59E0B"
-                fillOpacity={selectedZone === 'wing-right' ? 0.92 : 0.75}
+                fillOpacity={selectedZone === 'wing-right' ? 0.85 : 0.60}
                 stroke="#F59E0B"
-                strokeWidth={selectedZone === 'wing-right' ? "3" : "2"}
+                strokeWidth={selectedZone === 'wing-right' ? "3.5" : "2"}
+                filter={selectedZone === 'wing-right' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('wing-right')}
               />
@@ -429,10 +446,11 @@ export default function TacticalCourtStitch({
               {/* Triple Top Key 80% */}
               <path
                 d="M 175,295 A 215,215 0 0,0 325,295 L 360,510 L 140,510 Z"
-                fill="#7F1D1D"
-                fillOpacity={selectedZone === 'top-key' ? 0.95 : 0.82}
-                stroke="#EF4444"
-                strokeWidth={selectedZone === 'top-key' ? "3" : "2"}
+                fill="#EF4444"
+                fillOpacity={selectedZone === 'top-key' ? 0.90 : 0.70}
+                stroke="#FF5722"
+                strokeWidth={selectedZone === 'top-key' ? "3.5" : "2"}
+                filter={selectedZone === 'top-key' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('top-key')}
               />
@@ -464,109 +482,109 @@ export default function TacticalCourtStitch({
               </g>
             </svg>
 
-            {/* PÍLDORAS FLOTANTES INTERACTIVAS (EXACTAS AL RENDER DE STITCH) */}
+            {/* PÍLDORAS FLOTANTES GLASSMORPHISM SEMI-TRANSPARENTES (CERO AMONTONAMIENTO) */}
             {/* Esquina Izquierda 60% */}
             <div
               onClick={() => setSelectedZone('corner-left')}
-              className={`absolute top-[12%] left-[2%] cursor-pointer bg-[#0B0E17]/95 border-2 rounded-lg px-2 py-1 text-center transition-all ${
+              className={`absolute top-[12%] left-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
                 selectedZone === 'corner-left'
-                  ? 'border-[#FF6B00] shadow-[0_0_18px_rgba(255,107,0,0.8)] scale-105'
-                  : 'border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)] hover:scale-105'
+                  ? 'bg-amber-500/25 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
               }`}
             >
-              <div className="text-xs sm:text-sm font-mono font-black text-white">60%</div>
-              <div className="text-[10px] font-mono text-slate-300">3-5</div>
+              <div className="text-[11px] sm:text-xs font-mono font-black text-white">60%</div>
+              <div className="text-[9px] font-mono text-amber-200/90 font-bold">3-5</div>
             </div>
 
             {/* Esquina Derecha 40% */}
             <div
               onClick={() => setSelectedZone('corner-right')}
-              className={`absolute top-[12%] right-[2%] cursor-pointer bg-[#0B0E17]/95 border-2 rounded-lg px-2 py-1 text-center transition-all ${
+              className={`absolute top-[12%] right-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
                 selectedZone === 'corner-right'
-                  ? 'border-[#FF6B00] shadow-[0_0_18px_rgba(255,107,0,0.8)] scale-105'
-                  : 'border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] hover:scale-105'
+                  ? 'bg-cyan-500/25 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/60 border-cyan-400/40 hover:border-cyan-400 hover:bg-cyan-500/20 z-10'
               }`}
             >
-              <div className="text-xs sm:text-sm font-mono font-black text-white">40%</div>
-              <div className="text-[10px] font-mono text-slate-300">2-5</div>
+              <div className="text-[11px] sm:text-xs font-mono font-black text-white">40%</div>
+              <div className="text-[9px] font-mono text-cyan-200/90 font-bold">2-5</div>
             </div>
 
             {/* Media Izq 100% */}
             <div
               onClick={() => setSelectedZone('mid-left')}
-              className={`absolute top-[21%] left-[10%] sm:left-[13%] cursor-pointer bg-[#0B0E17]/95 border-2 rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 text-center transition-all ${
+              className={`absolute top-[21%] left-[8%] sm:left-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                 selectedZone === 'mid-left'
-                  ? 'border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.8)] scale-105'
-                  : 'border-[#FF6B00] shadow-[0_0_16px_rgba(255,107,0,0.6)] hover:scale-105'
+                  ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
               }`}
             >
-              <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">100%</div>
-              <div className="text-[10px] sm:text-xs font-mono text-slate-200 font-semibold whitespace-nowrap">Media Izq (10-10)</div>
+              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
+              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Izq (10-10)</div>
             </div>
 
             {/* Línea Libre / Pintura 100% (Central Activa) */}
             <div
               onClick={() => setSelectedZone('paint')}
-              className={`absolute top-[26%] left-1/2 -translate-x-1/2 cursor-pointer bg-[#0B0E17]/95 border-2 rounded-xl px-3 sm:px-5 py-2 text-center transition-all ${
+              className={`absolute top-[25%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border-2 rounded-xl px-3 sm:px-4 py-1.5 text-center transition-all ${
                 selectedZone === 'paint'
-                  ? 'border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.85)] scale-105'
-                  : 'border-[#FF6B00] shadow-[0_0_16px_rgba(255,107,0,0.6)] hover:scale-105'
+                  ? 'bg-orange-500/35 border-[#FF6B00] shadow-[0_0_25px_rgba(255,107,0,0.95)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/65 border-orange-500/50 hover:border-[#FF6B00] hover:bg-orange-500/25 z-10'
               }`}
             >
-              <div className="text-base sm:text-xl font-mono font-black text-white leading-tight">100%</div>
-              <div className="text-[10px] sm:text-xs font-mono text-amber-300 font-bold whitespace-nowrap">Línea Libre / Pintura (10-10)</div>
+              <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">100%</div>
+              <div className="text-[9px] sm:text-[11px] font-mono text-amber-200 font-bold whitespace-nowrap">Línea Libre (10-10)</div>
             </div>
 
             {/* Media Der 100% */}
             <div
               onClick={() => setSelectedZone('mid-right')}
-              className={`absolute top-[21%] right-[10%] sm:right-[13%] cursor-pointer bg-[#0B0E17]/95 border-2 rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 text-center transition-all ${
+              className={`absolute top-[21%] right-[8%] sm:right-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                 selectedZone === 'mid-right'
-                  ? 'border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.8)] scale-105'
-                  : 'border-[#FF6B00] shadow-[0_0_16px_rgba(255,107,0,0.6)] hover:scale-105'
+                  ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
               }`}
             >
-              <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">100%</div>
-              <div className="text-[10px] sm:text-xs font-mono text-slate-200 font-semibold whitespace-nowrap">Media Der (10-10)</div>
+              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
+              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Der (10-10)</div>
             </div>
 
             {/* 3P Ala Izq 60% */}
             <div
               onClick={() => setSelectedZone('wing-left')}
-              className={`absolute bottom-[26%] left-[6%] sm:left-[9%] cursor-pointer bg-[#0B0E17]/95 border-2 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-center transition-all ${
+              className={`absolute bottom-[24%] left-[5%] sm:left-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                 selectedZone === 'wing-left'
-                  ? 'border-[#FF6B00] shadow-[0_0_18px_rgba(255,107,0,0.8)] scale-105'
-                  : 'border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.5)] hover:scale-105'
+                  ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
               }`}
             >
-              <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">60%</div>
-              <div className="text-[10px] sm:text-xs font-mono text-slate-200 whitespace-nowrap">3P Ala Izq (3-5)</div>
+              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
+              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Izq (3-5)</div>
             </div>
 
             {/* 3P Ala Der 60% */}
             <div
               onClick={() => setSelectedZone('wing-right')}
-              className={`absolute bottom-[30%] right-[7%] sm:right-[10%] cursor-pointer bg-[#0B0E17]/95 border-2 rounded-xl px-3 sm:px-5 py-2 text-center transition-all ${
+              className={`absolute bottom-[28%] right-[5%] sm:right-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                 selectedZone === 'wing-right'
-                  ? 'border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.8)] scale-105'
-                  : 'border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.6)] hover:scale-105'
+                  ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
               }`}
             >
-              <div className="text-base sm:text-xl font-mono font-black text-white leading-tight">60%</div>
-              <div className="text-[10px] sm:text-xs font-mono text-slate-200 whitespace-nowrap">3P Ala Der (3-5)</div>
+              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
+              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Der (3-5)</div>
             </div>
 
             {/* 3P Top Key 80% */}
             <div
               onClick={() => setSelectedZone('top-key')}
-              className={`absolute bottom-[10%] left-1/2 -translate-x-1/2 cursor-pointer bg-[#0B0E17]/95 border-2 rounded-xl px-4 sm:px-6 py-2 text-center transition-all ${
+              className={`absolute bottom-[8%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border rounded-xl px-3 sm:px-4 py-1 text-center transition-all ${
                 selectedZone === 'top-key'
-                  ? 'border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.8)] scale-105'
-                  : 'border-[#FF6B00] shadow-[0_0_18px_rgba(255,107,0,0.6)] hover:scale-105'
+                  ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
+                  : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
               }`}
             >
-              <div className="text-base sm:text-xl font-mono font-black text-white leading-tight">80%</div>
-              <div className="text-[10px] sm:text-xs font-mono text-slate-200 whitespace-nowrap">3P Top Key (4-5)</div>
+              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">80%</div>
+              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Top Key (4-5)</div>
             </div>
           </div>
 
