@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Target, 
   Sparkles, 
@@ -14,8 +14,7 @@ import {
   Layers,
   Eye,
   Compass,
-  Crosshair,
-  Move
+  Crosshair
 } from 'lucide-react';
 
 export interface TacticalZoneData {
@@ -586,49 +585,9 @@ export default function TacticalCourtStitch({
   
   // SWITCH DUAL: MODO EFECTIVIDAD % vs MODO GUÍA BIOMECÁNICA 100%
   const [tacticalViewMode, setTacticalViewMode] = useState<'effectiveness' | 'biomechanics'>('effectiveness');
-  const [showBackboardZoom, setShowBackboardZoom] = useState<boolean>(true);
-
-  // ESTADO PARA RECUADRO MOVIBLE (DRAGGABLE HUD)
-  const [hudPos, setHudPos] = useState<{ x: number; y: number }>({ x: 12, y: 12 });
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const dragStartRef = useRef<{ mouseX: number; mouseY: number; startX: number; startY: number }>({
-    mouseX: 0,
-    mouseY: 0,
-    startX: 12,
-    startY: 12
-  });
 
   const zoneDataMap = getZoneDataForAthlete(athleteName, shootingPercentage);
   const currentData = zoneDataMap[selectedZone] || zoneDataMap['paint'];
-
-  // Manejadores de Arrastre (Mouse + Touch)
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    dragStartRef.current = {
-      mouseX: e.clientX,
-      mouseY: e.clientY,
-      startX: hudPos.x,
-      startY: hudPos.y
-    };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const deltaX = e.clientX - dragStartRef.current.mouseX;
-    const deltaY = e.clientY - dragStartRef.current.mouseY;
-    setHudPos({
-      x: Math.max(0, Math.min(340, dragStartRef.current.startX + deltaX)),
-      y: Math.max(0, Math.min(380, dragStartRef.current.startY + deltaY))
-    });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setIsDragging(false);
-    try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
-  };
 
   return (
     <div className="w-full bg-[#07090E] text-slate-200 rounded-3xl border border-[#1F2433] p-4 sm:p-6 shadow-2xl relative overflow-hidden font-sans">
@@ -955,36 +914,65 @@ export default function TacticalCourtStitch({
                 <circle cx="250" cy="72" r="6" fill="none" stroke="#FFFFFF" strokeDasharray="2,2" strokeWidth="1.5" />
               </g>
 
-              {/* CAPA DE BIOMECÁNICA 100%: HUELLAS, PROYECCIONES Y LÁSER */}
+              {/* CAPA DE BIOMECÁNICA 100%: DIAGRAMA INTEGRADO DEL TABLERO, PROYECCIONES Y HUELLAS */}
               {tacticalViewMode === 'biomechanics' && (
                 <g className="animate-fadeIn">
-                  {/* Línea Láser de Trayectoria con Resplandor Neón */}
+                  {/* DIAGRAMA FIJO DEL TABLERO SUSPENDIDO SUPERIOR FIEL A LA IMAGEN TÉCNICA */}
+                  <g id="integrated-top-backboard" transform="translate(145, 12)">
+                    {/* Cristal Exterior con Marco Naranja y Brillo Cian */}
+                    <rect x="0" y="0" width="210" height="110" rx="4" fill="#0A1120" stroke="#FF6B00" strokeWidth="3" filter="url(#stitch-neon-glow)" />
+                    {/* Retícula suave y reflejo diagonal de cristal */}
+                    <line x1="0" y1="0" x2="110" y2="110" stroke="#00F0FF" strokeWidth="0.8" opacity="0.25" />
+                    <line x1="100" y1="0" x2="210" y2="110" stroke="#00F0FF" strokeWidth="0.8" opacity="0.25" />
+
+                    {/* Recuadro Interior Naranja FIBA (Inner Box) */}
+                    <rect x="70" y="38" width="70" height="48" fill="none" stroke="#FF6B00" strokeWidth="2.5" />
+
+                    {/* Aro con soporte y red de canasta detallada */}
+                    <line x1="92" y1="86" x2="118" y2="86" stroke="#FF6B00" strokeWidth="3" strokeLinecap="round" />
+                    <ellipse cx="105" cy="91" rx="18" ry="5.5" fill="#FF6B00" fillOpacity="0.3" stroke="#FF6B00" strokeWidth="2.5" />
+                    {/* Red con entramado blanco */}
+                    <path d="M 88,92 L 94,112 L 105,114 L 116,112 L 122,92" fill="none" stroke="#FFFFFF" strokeWidth="1" opacity="0.8" />
+                    <line x1="96" y1="93" x2="113" y2="113" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.5" />
+                    <line x1="114" y1="93" x2="97" y2="113" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.5" />
+
+                    {/* PUNTOS DE IMPACTO FIJOS DEL TABLERO:
+                        - Esquina exterior derecha (Azul para impactos interiores)
+                        - Esquina exterior (Verde para impactos en esquina) */}
+                    {/* Punto Azul: Impactos interiores */}
+                    <circle cx="136" cy="40" r="5" fill="#00F0FF" stroke="#FFFFFF" strokeWidth="1.5" className="animate-pulse" />
+                    {/* Punto Verde: Impactos en esquinas */}
+                    <circle cx="147" cy="40" r="5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1.5" />
+
+                    {/* Línea punteada que conecta desde los puntos de impacto al centro del aro */}
+                    <line x1="140" y1="42" x2="105" y2="91" stroke="#10B981" strokeWidth="1.5" strokeDasharray="3 3" />
+                  </g>
+
+                  {/* PROYECCIONES FUNCIONALES OFICIALES SEGÚN IMAGEN:
+                      - Líneas verdes punteadas hacia las esquinas (impactos en esquinas)
+                      - Líneas azules punteadas hacia las posiciones interiores (media distancia y alas)
+                      - CERO líneas verdes en la pintura/tiro libre */}
+                  
+                  {/* Proyección Azul hacia Media Distancia Derecha (Impacto interior) */}
+                  <line x1="292" y1="52" x2="380" y2="150" stroke="#00F0FF" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.85" filter="url(#stitch-neon-glow)" />
+
+                  {/* Proyección Azul hacia Media Distancia Izquierda (Impacto interior) */}
+                  <line x1="215" y1="52" x2="120" y2="150" stroke="#00F0FF" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.85" filter="url(#stitch-neon-glow)" />
+
+                  {/* Proyecciones Verdes hacia las Esquinas (Impactos en esquinas) */}
+                  <line x1="292" y1="52" x2="475" y2="90" stroke="#10B981" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.85" />
+                  <line x1="215" y1="52" x2="25" y2="90" stroke="#10B981" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.85" />
+
+                  {/* Línea Láser Dinámica de la Zona Seleccionada hacia el Aro */}
                   <line
                     x1={currentData.laserTrajectory.startX}
                     y1={currentData.laserTrajectory.startY}
                     x2={currentData.laserTrajectory.endX}
                     y2={currentData.laserTrajectory.endY}
-                    stroke="#06B6D4"
-                    strokeWidth="3"
-                    strokeDasharray="6 4"
+                    stroke={selectedZone.includes('corner') ? '#10B981' : '#00F0FF'}
+                    strokeWidth="2.5"
+                    strokeDasharray="6 3"
                     filter="url(#stitch-neon-glow)"
-                  />
-                  {/* Proyecciones de abanico hacia el aro como en Imagen 4 */}
-                  <line x1="250" y1="72" x2="120" y2="150" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                  <line x1="250" y1="72" x2="380" y2="150" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                  <line x1="250" y1="72" x2="250" y2="410" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                  <line x1="250" y1="72" x2="85" y2="340" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
-                  <line x1="250" y1="72" x2="415" y2="340" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
-
-                  {/* Punto de impacto en el aro */}
-                  <circle
-                    cx={currentData.laserTrajectory.endX}
-                    cy={currentData.laserTrajectory.endY}
-                    r="5"
-                    fill="#10B981"
-                    stroke="#FFFFFF"
-                    strokeWidth="2"
-                    filter="url(#stitch-hoop-glow)"
                   />
 
                   {/* Par de Huellas de Posición Exacta del Tirador */}
@@ -1110,91 +1098,6 @@ export default function TacticalCourtStitch({
               </>
             )}
 
-            {/* CAPA MODO 2: RECUADRO MOVIBLE (DRAGGABLE HUD DEL TABLERO FIEL A IMAGEN 4) */}
-            {tacticalViewMode === 'biomechanics' && showBackboardZoom && (
-              <div 
-                style={{
-                  transform: `translate(${hudPos.x}px, ${hudPos.y}px)`,
-                  touchAction: 'none'
-                }}
-                className={`absolute top-0 left-0 z-30 bg-[#0A101D]/95 border-2 border-[#FF6B00] rounded-2xl p-3 shadow-[0_0_30px_rgba(255,107,0,0.45)] backdrop-blur-md w-[220px] transition-shadow ${
-                  isDragging ? 'shadow-[0_0_40px_rgba(6,182,212,0.8)] border-[#06B6D4] cursor-grabbing' : 'cursor-grab'
-                }`}
-              >
-                {/* Cabecera para arrastrar con icono Move */}
-                <div 
-                  onPointerDown={handlePointerDown}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  className="flex items-center justify-between pb-1.5 mb-2 border-b border-[#1F2433] select-none cursor-grab active:cursor-grabbing"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Move className="w-3.5 h-3.5 text-[#06B6D4]" />
-                    <span className="text-[9px] font-mono font-black text-emerald-400 uppercase tracking-wider">
-                      PUNTO DE IMPACTO
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[8px] font-mono text-zinc-500">ARRASTRAR</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowBackboardZoom(false)}
-                      className="text-[10px] text-zinc-400 hover:text-white px-1"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                {/* SVG Cristal del Tablero idéntico a la Imagen 4 */}
-                <div className="relative aspect-[16/10] w-full bg-[#0D1525] rounded-xl border border-cyan-500/50 overflow-hidden flex items-center justify-center p-1.5 shadow-inner">
-                  <svg viewBox="0 0 120 75" className="w-full h-full">
-                    {/* Cristal exterior con marco naranja y sombra interna */}
-                    <rect x="2" y="2" width="116" height="71" rx="3" fill="#0A1120" stroke="#FF6B00" strokeWidth="2.5" />
-                    {/* Reflejos diagonales de cristal */}
-                    <line x1="2" y1="2" x2="60" y2="73" stroke="#06B6D4" strokeWidth="0.5" opacity="0.25" />
-                    <line x1="60" y1="2" x2="118" y2="73" stroke="#06B6D4" strokeWidth="0.5" opacity="0.25" />
-                    
-                    {/* Recuadro Interior Naranja FIBA (Inner Box) */}
-                    <rect x="40" y="26" width="40" height="30" fill="none" stroke="#FF6B00" strokeWidth="2" />
-                    
-                    {/* Aro con soporte y red de malla */}
-                    <line x1="53" y1="56" x2="67" y2="56" stroke="#FF6B00" strokeWidth="2.5" strokeLinecap="round" />
-                    <ellipse cx="60" cy="59" rx="11" ry="3.5" fill="#FF6B00" fillOpacity="0.4" stroke="#FF6B00" strokeWidth="1.5" />
-                    {/* Red con trama */}
-                    <path d="M 50,60 L 53,72 L 60,73 L 67,72 L 70,60" fill="none" stroke="#FFFFFF" strokeWidth="0.75" opacity="0.7" />
-                    <line x1="55" y1="60" x2="65" y2="73" stroke="#FFFFFF" strokeWidth="0.5" opacity="0.5" />
-                    <line x1="65" y1="60" x2="55" y2="73" stroke="#FFFFFF" strokeWidth="0.5" opacity="0.5" />
-
-                    {/* Diana 1: Esquina exterior azul cian como en Imagen 4 */}
-                    <circle cx="78" cy="27" r="3.5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1" className="animate-pulse" />
-                    {/* Diana 2: Esquina interior verde como en Imagen 4 */}
-                    <circle cx="84" cy="28" r="3.5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1" />
-
-                    {/* Trazo láser discontinuo que conecta con el aro */}
-                    <line
-                      x1="81"
-                      y1="28"
-                      x2="60"
-                      y2="59"
-                      stroke="#10B981"
-                      strokeWidth="1"
-                      strokeDasharray="2 2"
-                    />
-                  </svg>
-                </div>
-
-                <div className="mt-2 text-[9px] font-mono text-zinc-300 leading-tight space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
-                    <span className="text-[#FF6B00] font-black">PUNTO DE IMPACTO:</span>
-                  </div>
-                  <span className="text-zinc-200 block pl-3.5">
-                    {currentData.backboardTarget.description}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400 border-t border-[#1F2433] pt-3">
@@ -1203,10 +1106,10 @@ export default function TacticalCourtStitch({
               <span>
                 {tacticalViewMode === 'effectiveness'
                   ? `Métricas reales de ${athleteName}: haz clic en cada zona para desglosar tiros.`
-                  : 'Modo Biomecánica: arrastra el recuadro del tablero a cualquier parte de la duela.'}
+                  : 'Modo Biomecánica: tablero integrado superior con dianas fija y trayectoria de impacto al aro.'}
               </span>
             </div>
-            <div className="text-[#06B6D4]">Duela Carmen Serdán · CDMX</div>
+            <div className="text-[#00F0FF]">Duela Carmen Serdán · CDMX</div>
           </div>
         </section>
 
