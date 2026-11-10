@@ -207,7 +207,8 @@ export default function AttendanceTracker({
       const result = await syncOfflineQueueToSupabase((count) => {
         showNotification(`⚡ ¡${count} registro${count > 1 ? "s" : ""} sincronizado${count > 1 ? "s" : ""} con éxito en la nube!`);
       });
-      setQueueCount(result.failed);
+      const remainingCount = getOfflineQueueCount();
+      setQueueCount(remainingCount);
       if (result.synced > 0) {
         fetchRoster();
       }
@@ -215,6 +216,7 @@ export default function AttendanceTracker({
       console.error("Error al sincronizar cola offline:", err);
     } finally {
       setIsSyncing(false);
+      setQueueCount(getOfflineQueueCount());
     }
   }, [fetchRoster]);
 
@@ -243,16 +245,24 @@ export default function AttendanceTracker({
     window.addEventListener("offline", onOffline);
     window.addEventListener("offline_queue_updated", onQueueUpdated as EventListener);
 
-    // Revisar cola pendiente al montar
-    setQueueCount(getOfflineQueueCount());
-    if (navigator.onLine && getOfflineQueueCount() > 0) {
+    // Revisar cola pendiente al montar y sincronizar si hay red
+    const currentQueue = getOfflineQueueCount();
+    setQueueCount(currentQueue);
+    if (navigator.onLine && currentQueue > 0) {
       handleTriggerSync();
     }
+
+    // Intervalo de seguridad para mantener la UI al día con la cola local
+    const interval = setInterval(() => {
+      const q = getOfflineQueueCount();
+      setQueueCount(q);
+    }, 3000);
 
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
       window.removeEventListener("offline_queue_updated", onQueueUpdated as EventListener);
+      clearInterval(interval);
     };
   }, [handleTriggerSync]);
 
@@ -489,7 +499,7 @@ export default function AttendanceTracker({
       )}
 
       {/* BANNER 2: REGISTROS PENDIENTES DE SINCRONIZAR (CUANDO HAY RED) */}
-      {isOnline && queueCount > 0 && (
+      {isOnline && queueCount > 0 ? (
         <div className="mb-5 bg-gradient-to-r from-sky-950/70 via-sky-900/40 to-[#0d1017] border border-sky-500/40 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sky-200 animate-fade-in">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-sky-500/20 rounded-xl text-sky-400 border border-sky-500/30">
@@ -514,7 +524,7 @@ export default function AttendanceTracker({
             {isSyncing ? "Sincronizando..." : "Sincronizar Ahora"}
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* HEADER DE CONTROL EN CANCHA */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">

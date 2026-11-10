@@ -402,10 +402,12 @@ export default function CourtAttendanceCommand() {
     setSyncing(true);
     try {
       await syncOfflineQueueToSupabase();
-      setOfflineCount(getOfflineQueueCount());
+      const rem = getOfflineQueueCount();
+      setOfflineCount(rem);
       await loadRoster();
     } finally {
       setSyncing(false);
+      setOfflineCount(getOfflineQueueCount());
     }
   };
 
