@@ -688,6 +688,11 @@ function CoachDashboardContent() {
                               body: JSON.stringify(parsed)
                             });
                             if (res.ok) {
+                              if (typeof window !== "undefined") {
+                                localStorage.removeItem("ww_offline_queue");
+                                localStorage.removeItem("ww_offline_sports_tests");
+                                localStorage.removeItem("wild_wolves_offline_queue");
+                              }
                               alert("¡Pruebas deportivas subidas y sincronizadas con éxito a Supabase!");
                               HoopStore.syncWithSupabase().then((list) => {
                                 if (list && list.length > 0) setStudents(list);

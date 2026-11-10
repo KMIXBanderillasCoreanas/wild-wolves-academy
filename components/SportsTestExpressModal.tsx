@@ -168,6 +168,15 @@ export default function SportsTestExpressModal({
         throw new Error(errJson.error || `Error del servidor HTTP ${res.status}`);
       }
 
+      // Auto-limpieza de la cola offline al confirmar status 200 en Supabase
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("ww_offline_queue");
+          localStorage.removeItem("ww_offline_sports_tests");
+          localStorage.removeItem("wild_wolves_offline_queue");
+        } catch {}
+      }
+
       // Respaldo en localStorage
       try {
         const stored = JSON.parse(localStorage.getItem("ww_student_evaluations") || "{}");
