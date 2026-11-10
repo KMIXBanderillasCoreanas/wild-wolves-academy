@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import BasketballCourtHeatmap from '@/components/BasketballCourtHeatmap';
 import DuelaHolografica3D from '@/components/DuelaHolografica3D';
+import TacticalCourtStitch from '@/components/TacticalCourtStitch';
 
 export interface CleanTabMetrics {
   verticalJumpCm: number;
@@ -89,7 +90,7 @@ export default function CleanPortalTabs({
   return (
     <div className="w-full space-y-6">
       {/* NAVEGACIÓN POR PESTAÑAS HORIZONTALES LIMPIAS */}
-      <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 shadow-xl flex flex-wrap sm:flex-nowrap gap-1.5">
+      <div className="bg-[#0b0e17]/90 backdrop-blur-xl border border-zinc-800/90 rounded-2xl p-1.5 shadow-2xl flex flex-wrap sm:flex-nowrap gap-1.5 sticky top-[72px] z-30">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -98,16 +99,16 @@ export default function CleanPortalTabs({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer ${
+              className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 ring-1 ring-orange-400/50'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 ring-1 ring-orange-400/60 scale-[1.01]'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
+              <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'scale-110 text-white' : 'text-zinc-500'}`} />
               <span className="truncate">{tab.label}</span>
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold hidden md:inline shrink-0 ${
-                isActive ? 'bg-black/30 text-white' : 'bg-zinc-800 text-zinc-400'
+              <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold hidden md:inline shrink-0 ${
+                isActive ? 'bg-black/40 text-orange-200 border border-orange-400/40' : 'bg-zinc-800/80 text-zinc-400'
               }`}>
                 {tab.badge}
               </span>
@@ -167,7 +168,7 @@ export default function CleanPortalTabs({
               </div>
               <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
                 <span className="text-zinc-400">Línea Base: {metrics.baseline.sprint20mSeconds}s</span>
-                <span className="text-emerald-400 font-bold">
+                <span className="text-cyan-400 font-bold">
                   {(metrics.baseline.sprint20mSeconds - metrics.sprint20mSeconds).toFixed(1)}s más rápido
                 </span>
               </div>
@@ -402,44 +403,14 @@ export default function CleanPortalTabs({
       {/* ========================================================================= */}
       {activeTab === 'mapa_tiro' && (
         <div className="space-y-6">
-          <div className="bg-[#0b0e17] border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800 mb-6">
-              <div>
-                <h3 className="text-lg font-black text-white flex items-center gap-2">
-                  <Target className="w-5 h-5 text-orange-500" />
-                  Mapa Táctico de Tiro en Duela Carmen Serdán
-                </h3>
-                <p className="text-zinc-400 text-xs mt-0.5">
-                  Visualización táctica de efectividad por zonas: Perímetro 3PT, Mid-Range y Tiro Libre.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
-                  Efectividad Total: {metrics.shootingEfficiencyPct}%
-                </span>
-              </div>
-            </div>
-
-            {/* Componente React de Heatmap Oficial Duela Holográfica Neón */}
-            <DuelaHolografica3D
-              freeThrowsMade={metrics.shotHeatmapData.freeThrowsMade}
-              freeThrowsAttempted={metrics.shotHeatmapData.freeThrowsAttempts || 10}
-              midLeftMade={metrics.shotHeatmapData.midRangeLeftMade}
-              midLeftAttempted={10}
-              midRightMade={metrics.shotHeatmapData.midRangeRightMade}
-              midRightAttempted={10}
-              cornerLeftMade={metrics.shotHeatmapData.threeCornerLeftMade}
-              cornerLeftAttempted={5}
-              wingLeftMade={metrics.shotHeatmapData.threeWingLeftMade}
-              wingLeftAttempted={5}
-              topKeyMade={metrics.shotHeatmapData.threeTopKeyMade}
-              topKeyAttempted={5}
-              wingRightMade={metrics.shotHeatmapData.threeWingRightMade}
-              wingRightAttempted={5}
-              cornerRightMade={metrics.shotHeatmapData.threeCornerRightMade}
-              cornerRightAttempted={5}
-            />
-          </div>
+          {/* Mapeador Táctico Oficial Diseñado en Google Stitch */}
+          <TacticalCourtStitch
+            athleteName={athleteName}
+            jerseyNumber={jerseyNumber}
+            category={category}
+            overallOvr={metrics.overallOvr}
+            initialZone="paint"
+          />
         </div>
       )}
 
