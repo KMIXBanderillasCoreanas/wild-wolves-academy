@@ -77,7 +77,7 @@ export async function GET(request: Request) {
           ).trim();
           const newUserPhone = data.user.user_metadata?.phone || "";
 
-          // 1. Buscar en prospect_athletes primero (caso Bruno Sánchez, Osmar, etc.)
+          // 1. Buscar en prospect_athletes primero (caso Isaac, Toya, etc.)
           let matchedProspect: any = null;
           if (newUserName) {
             const { data: foundPr } = await supabase

@@ -56,7 +56,7 @@ interface ShotScienceDashboardProps {
 }
 
 export default function ShotScienceDashboard({
-  athleteName = 'Bruno Díaz',
+  athleteName = 'Isaac',
   isCoachView = false
 }: ShotScienceDashboardProps) {
   const [selectedShotType, setSelectedShotType] = useState<'Catch & Shoot' | 'Off the Dribble' | 'Layup'>('Catch & Shoot');
@@ -120,7 +120,7 @@ export default function ShotScienceDashboard({
     }
   };
 
-  // Datos históricos acumulados del atleta (Devon / Bruno Díaz)
+  // Datos históricos acumulados del atleta (Wild Wolves Squad)
   const volumeStats: Record<'WEEKLY' | 'MONTHLY' | 'ALL-TIME', AllTimeVolumeStats> = {
     'WEEKLY': {
       totalShots: 1450,

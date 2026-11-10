@@ -2,7 +2,7 @@
  * WILD WOLVES CDMX - GENERADOR DE REPORTES BIOMECÁNICOS Y TÁCTICOS EN DOCUMENTO ÚNICO HTML
  * Genera un archivo HTML autosuficiente, interactivo, portable y descargable
  * que incluye:
- * 1. Ficha del atleta (Bruno Díaz, 15 años, Escolta #11)
+ * 1. Ficha del atleta (Atleta de academia, categoría formativa/competitiva)
  * 2. Biometría vs. Defensores más altos (Envergadura, tiempo de soltado <0.65s, parábola >50°)
  * 3. Mapa de calor de tiro (55 lanzamientos oficiales)
  * 4. Micro-cinemática del muñequeo (Follow-through a 60 FPS) y despegue de salto vertical

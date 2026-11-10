@@ -250,7 +250,7 @@ export default function OfflineSyncUploader() {
 
     // Fallback estándar
     return [{
-      athlete_name: 'Bruno Díaz',
+      athlete_name: 'Isaac',
       evaluation_date: new Date().toISOString().split('T')[0],
       free_throws_made: 10,
       mid_range_made: 20,

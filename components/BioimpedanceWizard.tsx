@@ -63,7 +63,7 @@ export default function BioimpedanceWizard({
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || {
     id: 'demo',
-    fullName: 'Bruno Díaz',
+    fullName: 'Isaac',
     currentTier: 'competitivo_elite'
   };
 
@@ -174,7 +174,7 @@ export default function BioimpedanceWizard({
                 </option>
               ))
             ) : (
-              <option value="demo">Bruno Díaz (Alumno Demo)</option>
+              <option value="demo">Isaac (Alumno)</option>
             )}
           </select>
         </div>

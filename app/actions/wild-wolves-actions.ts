@@ -143,7 +143,7 @@ Extrae de la siguiente información los registros de los atletas en formato JSON
 Debe ser UN ARRAY de objetos con la siguiente estructura exacta:
 [
   {
-    "athlete_full_name": string (ej: "Bruno Díaz", "Isaac", "Jesús"),
+    "athlete_full_name": string (ej: "Isaac", "Toya Fushiguro", "Jesús"),
     "evaluation_date": string (YYYY-MM-DD, si no hay pon la fecha de hoy),
     "overall_ovr": number (ej: 79),
     "free_throws_made": number,

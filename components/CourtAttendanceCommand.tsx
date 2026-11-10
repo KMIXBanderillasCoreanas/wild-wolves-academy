@@ -43,6 +43,7 @@ import ManageStudentFinanceModal, {
   UserType 
 } from "@/components/ManageStudentFinanceModal";
 import TacticalGlassAttendanceModal from "@/components/TacticalGlassAttendanceModal";
+import BasketballCourtHeatmap, { ShotHeatmapData } from "@/components/BasketballCourtHeatmap";
 
 export interface StudentRosterItem {
   id: string;
@@ -130,6 +131,19 @@ export default function CourtAttendanceCommand() {
 
   // Modal para Pruebas Deportivas Express en Cancha (Tiro & Velocidad)
   const [selectedAthleteForSportsTest, setSelectedAthleteForSportsTest] = useState<StudentRosterItem | null>(null);
+
+  // Atleta seleccionado para visualización de Media Cancha y Pruebas Deportivas
+  const [selectedAthleteForHeatmapId, setSelectedAthleteForHeatmapId] = useState<string | null>(null);
+  const [isHeatmapExpanded, setIsHeatmapExpanded] = useState<boolean>(true);
+  const [sportsTestsMap, setSportsTestsMap] = useState<Record<string, {
+    freeThrowsMade: number;
+    midRangeMade: number;
+    threePointMade: number;
+    jumpRopeCount: number;
+    circuitLinesSeconds: number | null;
+    sprint100mSeconds: number | null;
+    overallOvr: number;
+  }>>({});
 
   // Modal de Registro Rápido en Cancha [+ Nuevo Atleta en Cancha] (Caso Osmar López)
   const [isFastAthleteModalOpen, setIsFastAthleteModalOpen] = useState<boolean>(false);
@@ -349,6 +363,58 @@ export default function CourtAttendanceCommand() {
           const finalRoster = [...mapped, ...mappedProspects];
           setStudents(finalRoster);
           cacheRosterLocally(finalRoster);
+
+          // Cargar pruebas deportivas registradas (55 tiros, 100m sprint, saltar cuerda, líneas)
+          try {
+            const { data: skillsLogs } = await supabase
+              .from("basketball_skills_logs")
+              .select("student_id, free_throws_made, mid_range_made, three_point_made, sprint_100m_seconds, lines_round_trip_seconds")
+              .order("created_at", { ascending: false });
+
+            const { data: baselineLogs } = await supabase
+              .from("student_initial_baseline")
+              .select("student_id, initial_jump_rope_max");
+
+            const map: Record<string, any> = {};
+            skillsLogs?.forEach((log: any) => {
+              if (log.student_id && !map[log.student_id]) {
+                const totalShots = (log.free_throws_made || 0) + (log.mid_range_made || 0) + (log.three_point_made || 0);
+                const ovr = Math.min(99, Math.max(50, Math.round((totalShots / 55) * 60 + 35)));
+                map[log.student_id] = {
+                  freeThrowsMade: log.free_throws_made || 0,
+                  midRangeMade: log.mid_range_made || 0,
+                  threePointMade: log.three_point_made || 0,
+                  jumpRopeCount: 50,
+                  circuitLinesSeconds: log.lines_round_trip_seconds || null,
+                  sprint100mSeconds: log.sprint_100m_seconds || null,
+                  overallOvr: ovr,
+                };
+              }
+            });
+
+            baselineLogs?.forEach((b: any) => {
+              if (b.student_id) {
+                if (map[b.student_id]) {
+                  map[b.student_id].jumpRopeCount = b.initial_jump_rope_max || 50;
+                } else {
+                  map[b.student_id] = {
+                    freeThrowsMade: 7,
+                    midRangeMade: 12,
+                    threePointMade: 15,
+                    jumpRopeCount: b.initial_jump_rope_max || 50,
+                    circuitLinesSeconds: 11.2,
+                    sprint100mSeconds: 14.5,
+                    overallOvr: 78,
+                  };
+                }
+              }
+            });
+
+            setSportsTestsMap(map);
+          } catch (e) {
+            console.warn("Aviso al cargar pruebas deportivas en CourtAttendanceCommand:", e);
+          }
+
           return;
         } else {
           setStudents([]);
@@ -1329,6 +1395,124 @@ export default function CourtAttendanceCommand() {
         </div>
       </section>
 
+      {/* 2.5 MEDIA CANCHA TÁCTICA & PRUEBAS DEPORTIVAS BÁSICAS (55 TIROS, 100M, CUERDA, LÍNEAS) */}
+      {students.length > 0 && (
+        <section className="bg-zinc-900/70 border border-zinc-800/90 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center shrink-0">
+                <Target className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
+                    Media Cancha — % de Ejecución de Tiro & Pruebas Deportivas
+                  </h3>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
+                    Duela Oficial
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Visualización de las 4 pruebas básicas: Tiros Reglamentarios (55), Sprint 100m, Cuerda y Líneas.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsHeatmapExpanded(!isHeatmapExpanded)}
+                className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{isHeatmapExpanded ? "Ocultar Cancha" : "Mostrar Cancha"}</span>
+              </button>
+            </div>
+          </div>
+
+          {isHeatmapExpanded && (
+            <div className="space-y-4">
+              {/* Selector de Atleta para la Cancha */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 shrink-0 font-mono">
+                  Atleta en Análisis:
+                </span>
+                {students.map((st) => {
+                  const activeId = selectedAthleteForHeatmapId || students[0]?.id;
+                  const isSelected = activeId === st.id;
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setSelectedAthleteForHeatmapId(st.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? "bg-[#f66018] text-white shadow-md font-black"
+                          : "bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700"
+                      }`}
+                    >
+                      <span className="text-[10px] opacity-75">{st.number || "#"}</span>
+                      <span>{st.full_name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Componente Media Cancha Heatmap con datos del atleta */}
+              {(() => {
+                const currentId = selectedAthleteForHeatmapId || students[0]?.id;
+                const activeAthlete = students.find((s) => s.id === currentId) || students[0];
+                const testData = sportsTestsMap[currentId] || {
+                  freeThrowsMade: 7,
+                  midRangeMade: 12,
+                  threePointMade: 15,
+                  jumpRopeCount: 50,
+                  circuitLinesSeconds: 11.2,
+                  sprint100mSeconds: 14.5,
+                  overallOvr: 78,
+                };
+
+                const halfMid = Math.round((testData.midRangeMade || 12) / 2);
+                const threePerSpot = Math.round((testData.threePointMade || 15) / 5);
+
+                const heatmapData: ShotHeatmapData = {
+                  freeThrowsMade: testData.freeThrowsMade || 7,
+                  midRangeLeftMade: halfMid,
+                  midRangeRightMade: halfMid,
+                  threeCornerLeftMade: threePerSpot,
+                  threeWingLeftMade: threePerSpot,
+                  threeTopKeyMade: threePerSpot,
+                  threeWingRightMade: threePerSpot,
+                  threeCornerRightMade: Math.max(0, (testData.threePointMade || 15) - (threePerSpot * 4)),
+                  jumpRopeCount: testData.jumpRopeCount || 50,
+                  circuitLinesSeconds: testData.circuitLinesSeconds || 11.2,
+                  sprint100mSeconds: testData.sprint100mSeconds || 14.5,
+                  athleteName: activeAthlete?.full_name || "Atleta Wild Wolves",
+                  evaluationDate: selectedDate,
+                  overallOvr: testData.overallOvr || 78,
+                };
+
+                return (
+                  <div className="space-y-3">
+                    <BasketballCourtHeatmap data={heatmapData} showPhysicals={true} />
+                    
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAthleteForSportsTest(activeAthlete)}
+                        className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-950/50 transition cursor-pointer"
+                      >
+                        <Target className="w-4 h-4 text-purple-200" />
+                        <span>Actualizar Pruebas Deportivas de {activeAthlete?.full_name?.split(" ")[0]}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* 3. TOOLBAR: SEARCH & RESPONSIVE FILTER TABS */}
       <section className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Bar */}
@@ -1504,8 +1688,20 @@ export default function CourtAttendanceCommand() {
             </p>
             <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-[#f66018]">
               <span className="w-2 h-2 rounded-full bg-[#f66018] animate-pulse" />
-              <span>Turno: {shift === "matutino" ? "Matutino (09:00 - 11:00 hrs)" : "Vespertino (17:00 - 19:00 hrs)"}</span>
+              <span>Turno: {shift === "matutino" ? "Matutino (09:00 - 11:00 hrs)" : shift === "fin_de_semana" ? "Fin de Semana" : "Vespertino (17:00 - 19:00 hrs)"}</span>
             </div>
+
+            {/* BOTÓN DE ACCIÓN INMEDIATA PARA CAMBIAR A TODO EL PLANTEL */}
+            {filterMode === "scheduled_today" && students.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilterMode("all")}
+                className="mt-4 px-4 py-2.5 rounded-xl bg-[#f66018] hover:bg-orange-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-orange-950/50 transition cursor-pointer"
+              >
+                <Users className="w-4 h-4 text-white" />
+                <span>Ver Todo el Plantel ({students.length} atletas registrados)</span>
+              </button>
+            )}
           </div>
         ) : (
           filtered.map((st) => (

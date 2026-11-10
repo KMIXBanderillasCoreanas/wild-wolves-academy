@@ -127,14 +127,12 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
           const em = (email || "").toLowerCase();
           if (n.includes("jesús") || n.includes("jesus") || em.includes("jesus")) return "#7";
           if (n.includes("isaac") || em.includes("isaac")) return "#10";
-          if (n.includes("bruno") || em.includes("bruno")) return "#11";
-          if (n.includes("osmar") || em.includes("osmar")) return "#23";
-          return "#11";
+          if (n.includes("toya") || em.includes("toya") || n.includes("fushiguro")) return "#23";
+          if (n.includes("allan") || em.includes("allan")) return "#8";
+          return "#15";
         };
 
         const getCategory = (name: string) => {
-          const n = (name || "").toLowerCase();
-          if (n.includes("bruno")) return "U-17 Competitivo";
           return "U-15 Formativo";
         };
 

@@ -42,7 +42,7 @@ export default function WhatsAppAIEngine({
   // Lista con respaldo de atletas oficiales si viene vacía
   const defaultRecords: AthleteRecord[] = records.length > 0 ? records : [
     {
-      athlete_name: 'Bruno Díaz',
+      athlete_name: 'Isaac',
       jersey_number: 11,
       category: 'U-17 Competitivo',
       overall_ovr: 88,

@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       // Si el nombre quedó vacío o genérico
       if (!rawName) rawName = "Nuevo Atleta Wild Wolves";
 
-      // Validar homónimos en la base de datos (Ej: Bruno Díaz vs Bruno Sánchez)
+      // Validar homónimos en la base de datos (Ej: Isaac Salinas vs Isaac)
       const { data: existingAthletes } = await supabase
         .from("profiles")
         .select("id, full_name, email, role")
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2. COMANDO ACCIONABLE: PERDONAR ADEUDO (Ej: "Perdónale la deuda a Bruno" o "Condonar deuda de Bruno Sánchez")
+    // 2. COMANDO ACCIONABLE: PERDONAR ADEUDO (Ej: "Perdónale la deuda a Isaac" o "Condonar deuda de Toya")
     if (
       isCoach &&
       (lowerUserMsg.includes("perdona") || lowerUserMsg.includes("perdonale") || lowerUserMsg.includes("condonar")) &&

@@ -41,7 +41,7 @@ const CANONICAL_SUCCESS_STORIES: SuccessStory[] = [
   },
   {
     id: "trans-02",
-    atleta_nombre: "Bruno Díaz",
+    atleta_nombre: "Isaac",
     logro_descripcion: "Perfeccionamiento de tiro tras drible y paso cero con 72% de efectividad",
     youtube_video_id: "5f9VdG7mY3I",
     metricas_ia: "Ángulo de tiro: 47° | Release: 0.58s | +12% triples",

@@ -185,8 +185,8 @@ export const SupabaseSync = {
 
         // Asignación de jersey y categoría
         const nLower = studentName.toLowerCase();
-        let jersey = s.jersey_number || (nLower.includes('jesús') ? 7 : nLower.includes('isaac') ? 10 : nLower.includes('bruno') ? 11 : nLower.includes('osmar') ? 23 : 11);
-        let category = s.category || (nLower.includes('bruno') ? 'U-17 Competitivo' : 'U-15 Formativo');
+        let jersey = s.jersey_number || (nLower.includes('jesús') ? 7 : nLower.includes('isaac') ? 10 : nLower.includes('toya') || nLower.includes('fushiguro') ? 23 : nLower.includes('allan') ? 8 : 15);
+        let category = s.category || 'U-15 Formativo';
 
         return {
           id: studentId,
@@ -195,8 +195,8 @@ export const SupabaseSync = {
           phone: s.phone_number || s.phone || '55 2242 7769',
           parentPhone: s.emergency_phone || s.parent_phone || '55 2242 7769',
           gender: s.gender || 'M',
-          age: s.age || (category.includes('17') ? 16 : 14),
-          position: s.position || (nLower.includes('bruno') ? 'Alero (SF)' : nLower.includes('jesús') ? 'Base (PG)' : 'Escolta (SG)'),
+          age: s.age || 15,
+          position: s.position || (nLower.includes('isaac') ? 'Alero (SF)' : nLower.includes('jesús') ? 'Base (PG)' : 'Escolta (SG)'),
           role: 'student',
           avatarUrl: s.avatar_url || '/logo-official.png',
           stripeStatus: 'active',

@@ -22,7 +22,7 @@ interface CourtVisionHUDProps {
 
 export default function CourtVisionHUD({
   studentId,
-  studentName = 'Bruno Díaz',
+  studentName = 'Isaac',
   onAnalysisComplete
 }: CourtVisionHUDProps) {
   const [analyzing, setAnalyzing] = useState<boolean>(false);

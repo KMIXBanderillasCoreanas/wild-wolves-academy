@@ -652,7 +652,7 @@ function StudentDashboardContent() {
           }
 
           // Determinar qué student_id consultar para pruebas:
-          // Soporta selector por URL (?student=Jesus o ?student=Isaac o ?student=Bruno) o localStorage
+          // Soporta selector por URL (?student=Jesus o ?student=Isaac o ?student=Toya) o localStorage
           const isCoachDemo = p?.role === "superadmin" || isSuperAdminEmail;
           let queryTargetId = effectiveId;
 
@@ -680,13 +680,14 @@ function StudentDashboardContent() {
               });
             }
           } else if (isCoachDemo) {
-            const { data: brunoProfile } = await supabase
+            const { data: realStudentProfile } = await supabase
               .from("profiles")
               .select("id")
-              .ilike("full_name", "%Bruno%")
+              .eq("role", "student")
+              .limit(1)
               .maybeSingle();
-            if (brunoProfile?.id) {
-              queryTargetId = brunoProfile.id;
+            if (realStudentProfile?.id) {
+              queryTargetId = realStudentProfile.id;
             }
           }
 
@@ -1761,7 +1762,7 @@ function StudentDashboardContent() {
                       type="button"
                       onClick={() => {
                         const reportHtml = generateFullReportHTML({
-                          studentName: profile?.full_name || "Bruno Díaz",
+                          studentName: profile?.full_name || "Isaac",
                           jerseyNumber: profile?.jersey_number || 11,
                           category: profile?.category || "U-17 Competitivo",
                           age: 15,
