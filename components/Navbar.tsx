@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { 
@@ -146,8 +147,15 @@ export function Navbar() {
         
         {/* Logo / Marca */}
         <Link href="/" className="flex items-center space-x-3 group shrink-0">
-          <div className="bg-orange-600 p-2 rounded-xl text-white font-black tracking-wider shadow-md group-hover:bg-orange-500 transition">
-            WW
+          <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
+            <Image
+              src="/logo-official.png"
+              alt="Wild Wolves Logo"
+              width={44}
+              height={44}
+              className="object-contain group-hover:scale-105 transition"
+              priority
+            />
           </div>
           <div>
             <span className="font-bold text-lg tracking-wide block leading-none">Wild Wolves</span>
