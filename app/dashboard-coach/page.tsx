@@ -67,8 +67,8 @@ function CoachDashboardContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | 'superadmin'>('coach');
 
-  // Pestañas Principales en Estructura: 1. Cancha & Evaluaciones | 2. Escáner de Hoja de Partido | 3. Físico & Cuerda | 4. Finanzas & Caja
-  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'match_ocr' | 'fisico_tactico' | 'finanzas_gestion'>('cancha_eval');
+  // Pestañas Principales en Estructura: 1. Cancha & Asistencia | 2. Pruebas & Combine | 3. Escáner OCR | 4. Cuerda & Resistencia | 5. Finanzas | 6. Reportes IA & WhatsApp
+  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'test_evaluations' | 'match_ocr' | 'fisico_tactico' | 'finanzas_gestion' | 'reportes_ia'>('cancha_eval');
 
 
   // Filtros del Roster
@@ -783,87 +783,114 @@ function CoachDashboardContent() {
         </div>
       ) : (
         <>
-          {/* SELECTOR SUPERIOR: ESTRUCTURA DE 4 PESTAÑAS DEL COACH */}
+          {/* SELECTOR SUPERIOR: ESTRUCTURA MODULAR INDEPENDIENTE */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#121724] border border-zinc-800 rounded-2xl shadow-xl">
             <div className="flex items-center gap-2 flex-wrap flex-1">
               <button
                 type="button"
                 onClick={() => setCoachActiveTab('cancha_eval')}
-                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'cancha_eval'
                     ? 'bg-[#ea580c] text-white shadow-lg shadow-orange-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <Zap className="w-4 h-4 text-amber-400" />
-                <span>1. Cancha & Evaluaciones</span>
+                <span>1. Cancha & Asistencia</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCoachActiveTab('test_evaluations')}
+                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'test_evaluations'
+                    ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Activity className="w-4 h-4 text-sky-300" />
+                <span>2. Test Day & Combine</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setCoachActiveTab('match_ocr')}
-                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'match_ocr'
                     ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-600/30 ring-1 ring-orange-400'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-orange-400" />
-                <span>2. Escáner de Hoja de Partido</span>
+                <span>3. Cédulas OCR</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setCoachActiveTab('fisico_tactico')}
-                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'fisico_tactico'
                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <Target className="w-4 h-4 text-purple-300" />
-                <span>3. Cuerda & Resistencia</span>
+                <span>4. Cuerda & Resistencia</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setCoachActiveTab('finanzas_gestion')}
-                className={`flex-1 min-w-[180px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'finanzas_gestion'
                     ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
                 }`}
               >
                 <span className="text-amber-400 font-bold">$</span>
-                <span>4. Finanzas & Caja</span>
+                <span>5. Finanzas & Caja</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCoachActiveTab('reportes_ia')}
+                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
+                  coachActiveTab === 'reportes_ia'
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-emerald-300" />
+                <span>6. Reportes IA & WhatsApp</span>
               </button>
             </div>
 
             <div className="text-[11px] font-mono text-zinc-400 px-3 py-1 hidden xl:block">
-              {coachActiveTab === 'cancha_eval' ? '⚡ Cancha y Evaluaciones Combine' : coachActiveTab === 'match_ocr' ? '📷 Escáner de Cédulas OCR' : coachActiveTab === 'fisico_tactico' ? '🏃 Cuerda y Resistencia' : '💰 Finanzas y Control de Pagos'}
+              {coachActiveTab === 'cancha_eval' 
+                ? '⚡ Cancha en Vivo: Pase 1-Tap & Cobro' 
+                : coachActiveTab === 'test_evaluations'
+                ? '📊 Test Day Biomecánico & Combine'
+                : coachActiveTab === 'match_ocr' 
+                ? '📷 Escáner de Cédulas OCR' 
+                : coachActiveTab === 'fisico_tactico' 
+                ? '🏃 Cuerda y Resistencia' 
+                : coachActiveTab === 'finanzas_gestion'
+                ? '💰 Finanzas y Control de Pagos'
+                : '🤖 Reportes Automatizados IA para Tutores'}
             </div>
           </div>
 
-          {/* VISTA 1: MODO CANCHA, LISTA & EVALUACIONES */}
+          {/* VISTA 1: MODO CANCHA — EXCLUSIVO COMANDO EN VIVO (PASO DE LISTA & COBROS) */}
           {coachActiveTab === 'cancha_eval' && (
             <div className="space-y-6 animate-fadeIn">
-              {/* Comando Táctico Stitch en Cancha */}
+              {/* Comando Táctico Stitch en Cancha con Lista, Horarios Oficiales y Cobro */}
               <CourtAttendanceCommand />
+            </div>
+          )}
 
-              {/* Pase de Lista y Asistencia de Respaldo */}
-              <AttendanceTracker
-                student={selectedStudent}
-                allStudents={students}
-                readOnly={false}
-                onRecordDailyAttendance={handleRecordDailyAttendance}
-                onPaymentRecorded={() => {
-                  setStudents(HoopStore.getStudents());
-                }}
-              />
-
-              {/* Diagnóstico Exprés de Colocación & Pipeline CRM */}
-              <SmartPlacementCRM />
-
+          {/* VISTA 2: TEST DAY BIOMECÁNICO & COMBINE (RADAR 360 & EVALUACIONES) */}
+          {coachActiveTab === 'test_evaluations' && (
+            <div className="space-y-6 animate-fadeIn">
               {/* Módulo de Captura en Cancha: Test Day Biomecánico */}
               <TestDayEvaluator />
 
@@ -873,10 +900,150 @@ function CoachDashboardContent() {
                 metricsPrevious={selectedStudent.metricsPrevious}
                 athleteName={selectedStudent.fullName}
               />
+
+              {/* Diagnóstico Exprés de Colocación & Pipeline CRM */}
+              <SmartPlacementCRM />
+
+              {/* OjOS Y OÍDOS DE LA CANCHA: VISIÓN ARTIFICIAL & SHOT SCIENCE HUD */}
+              <CourtVisionHUD 
+                studentId={selectedStudent?.id}
+                studentName={selectedStudent?.fullName}
+              />
+
+              {/* SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}
+              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
+                        HISTORIAL DE PRUEBAS DEPORTIVAS (TEST DAY)
+                      </span>
+                      {isSuperAdmin ? (
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <Crown className="w-3 h-3 text-amber-400" />
+                          PERMISOS ACTIVOS: EDICIÓN &amp; ELIMINACIÓN
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono text-zinc-400 bg-[#0a0e17] px-2 py-0.5 rounded border border-[#27272a] flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-zinc-500" />
+                          Modo Coach: Solo Lectura del Histórico
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                      <History className="w-5 h-5 text-orange-400" />
+                      <span>Bitácora de Evaluaciones: {athleteDisplayName}</span>
+                    </h3>
+                    <p className="text-xs text-zinc-400 font-mono">
+                      {isSuperAdmin
+                        ? 'Como Super Administrador puedes editar cualquier prueba previa o eliminarla con recalibración del radar.'
+                        : 'Los Coaches pueden ingresar nuevas pruebas deportivas pero no pueden modificar ni borrar el histórico de métricas.'}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setIsEvalModalOpen(true)}
+                    className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer self-start sm:self-auto"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>+ Cargar Evaluación Mensual</span>
+                  </button>
+                </div>
+
+                {/* Lista de Evaluaciones del Atleta con Botones según Rol */}
+                {evaluationsList.length === 0 ? (
+                  <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a]">
+                    Este atleta no tiene evaluaciones históricas registradas. Haz clic en &quot;+ Cargar Evaluación Mensual&quot;.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {evaluationsList.map((ev, index) => (
+                      <div
+                        key={ev?.id || `eval_${index}`}
+                        className="bg-[#0a0e17] border border-[#27272a] hover:border-zinc-700 rounded-xl p-4 font-mono text-xs transition"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-white font-bold text-sm font-sans">{ev?.date || 'Fecha'}</span>
+                            <span className="text-[10px] text-zinc-400">evaluado por {ev?.coachName || 'Coach'}</span>
+                            {index === 0 && (
+                              <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+                                Vigente
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Acciones de Edición/Eliminación: EXCLUSIVAS PARA SUPERADMIN */}
+                          {isSuperAdmin ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleOpenEditEval(ev)}
+                                className="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                                title="Editar evaluación deportiva"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Editar</span>
+                              </button>
+                              <button
+                                onClick={() => handleOpenDeleteEval(ev)}
+                                className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                                title="Eliminar evaluación del histórico"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Eliminar</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-zinc-500 font-mono flex items-center gap-1">
+                              <Lock className="w-3 h-3 text-zinc-600" />
+                              <span>Protegido contra edición</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Métricas Raw de la Prueba */}
+                        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 my-2 text-[11px] pt-1 border-t border-zinc-800/60">
+                          <div className="p-2 bg-zinc-900/60 rounded-lg">
+                            <span className="text-zinc-500 text-[10px] block">T. Libres</span>
+                            <strong className="text-white">{ev?.rawStats?.freeThrowMade ?? Math.round(((ev?.metrics?.freeThrow ?? 0) * 20)/100)}/20</strong>
+                          </div>
+                          <div className="p-2 bg-zinc-900/60 rounded-lg">
+                            <span className="text-zinc-500 text-[10px] block">Media Dist.</span>
+                            <strong className="text-white">{ev?.rawStats?.midRangePct ?? (ev?.metrics?.midRange ?? 0)}%</strong>
+                          </div>
+                          <div className="p-2 bg-zinc-900/60 rounded-lg">
+                            <span className="text-zinc-500 text-[10px] block">Triples</span>
+                            <strong className="text-white">{ev?.rawStats?.threePointPct ?? (ev?.metrics?.threePoint ?? 0)}%</strong>
+                          </div>
+                          <div className="p-2 bg-zinc-900/60 rounded-lg">
+                            <span className="text-zinc-500 text-[10px] block">Salto</span>
+                            <strong className="text-orange-400">{ev?.rawStats?.verticalJumpCm ?? Math.round(((ev?.metrics?.verticalJump ?? 0) * 90)/100)} cm</strong>
+                          </div>
+                          <div className="p-2 bg-zinc-900/60 rounded-lg">
+                            <span className="text-zinc-500 text-[10px] block">100m Sprint</span>
+                            <strong className="text-sky-400">{ev?.rawStats?.sprint100mSeconds ?? 11.5}s</strong>
+                          </div>
+                          <div className="p-2 bg-zinc-900/60 rounded-lg">
+                            <span className="text-zinc-500 text-[10px] block">T-Test Agilidad</span>
+                            <strong className="text-emerald-400">{ev?.rawStats?.agilityTTestSeconds ?? 9.2}s</strong>
+                          </div>
+                        </div>
+
+                        {ev?.coachNotes && (
+                          <div className="p-2.5 bg-zinc-900/40 rounded-lg text-zinc-300 font-sans text-xs mt-2 border border-zinc-800/40">
+                            <span className="font-mono font-bold text-orange-400 mr-1.5">Feedback:</span>
+                            {ev.coachNotes}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* VISTA 2: ESCÁNER DE HOJA DE PARTIDO (OCR DUELA) */}
+          {/* VISTA 3: ESCÁNER DE HOJA DE PARTIDO (OCR DUELA) */}
           {coachActiveTab === 'match_ocr' && (
             <div className="space-y-6 animate-fadeIn">
               <MatchSheetScanner
@@ -889,11 +1056,16 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 3: CUERDA, FÍSICO & RESISTENCIA */}
+          {/* VISTA 4: CUERDA, FÍSICO & RESISTENCIA */}
           {coachActiveTab === 'fisico_tactico' && (
             <div className="space-y-6 animate-fadeIn">
               {/* Módulo Táctico Dual sincronizado con el atleta seleccionado */}
               <DualCoachCommand externalSelectedStudentId={selectedStudent?.id} />
+
+              {/* Vista rápida de Bioimpedancia */}
+              <BioimpedanceWizard
+                students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
+              />
 
               {/* Cuerda & Resistencia */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -914,7 +1086,7 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 3: FINANZAS & CONTROL DE PAGOS */}
+          {/* VISTA 5: FINANZAS & CONTROL DE PAGOS */}
           {coachActiveTab === 'finanzas_gestion' && (
             <div className="space-y-6 animate-fadeIn">
               <FinanceManager
@@ -925,182 +1097,26 @@ function CoachDashboardContent() {
             </div>
           )}
 
-
-          {/* VISTA RÁPIDA DE BIOIMPEDANCIA & PREPARACIÓN FÍSICA */}
-          <div className="pt-2 space-y-4">
-            <BioimpedanceWizard
-              students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
-            />
-            {/* OJOS Y OÍDOS DE LA CANCHA: VISIÓN ARTIFICIAL & SHOT SCIENCE HUD */}
-            <CourtVisionHUD 
-              studentId={selectedStudent?.id}
-              studentName={selectedStudent?.fullName}
-            />
-            {/* GENERADOR DE REPORTES AUTOMATIZADOS CON IA & WHATSAPP CRM */}
-            <WhatsAppAIEngine 
-              records={students.map(s => ({
-                athlete_name: s.fullName,
-                jersey_number: s.jerseyNumber || 11,
-                category: (s as any).category || 'U-17 Competitivo',
-                overall_ovr: (s as any).ovr || 85,
-                free_throws_made: s.metricsCurrent?.freeThrow ? Math.round(s.metricsCurrent.freeThrow / 10) : 10,
-                three_point_made: s.metricsCurrent?.threePoint ? Math.round(s.metricsCurrent.threePoint / 4) : 15,
-                vertical_jump_cm: s.metricsCurrent?.verticalJump || 110,
-                coach_feedback: 'Evaluación técnica completada en duela Carmen Serdán.',
-                tutor_phone: (s as any).parentPhone || (s as any).phone || '5522427769',
-                parent_name: (s as any).parentName,
-                student_id: s.id
-              }))}
-            />
-          </div>
-
-      {/* 4. PASO 3: SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}
-      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
-                HISTORIAL DE PRUEBAS DEPORTIVAS (TEST DAY)
-              </span>
-              {isSuperAdmin ? (
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                  <Crown className="w-3 h-3 text-amber-400" />
-                  PERMISOS ACTIVOS: EDICIÓN &amp; ELIMINACIÓN
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono text-zinc-400 bg-[#0a0e17] px-2 py-0.5 rounded border border-[#27272a] flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-zinc-500" />
-                  Modo Coach: Solo Lectura del Histórico
-                </span>
-              )}
+          {/* VISTA 6: GENERADOR DE REPORTES AUTOMATIZADOS CON IA & WHATSAPP CRM */}
+          {coachActiveTab === 'reportes_ia' && (
+            <div className="space-y-6 animate-fadeIn">
+              <WhatsAppAIEngine 
+                records={students.map(s => ({
+                  athlete_name: s.fullName,
+                  jersey_number: s.jerseyNumber || 11,
+                  category: (s as any).category || 'U-17 Competitivo',
+                  overall_ovr: (s as any).ovr || 85,
+                  free_throws_made: s.metricsCurrent?.freeThrow ? Math.round(s.metricsCurrent.freeThrow / 10) : 10,
+                  three_point_made: s.metricsCurrent?.threePoint ? Math.round(s.metricsCurrent.threePoint / 4) : 15,
+                  vertical_jump_cm: s.metricsCurrent?.verticalJump || 110,
+                  coach_feedback: 'Evaluación técnica completada en duela Carmen Serdán.',
+                  tutor_phone: (s as any).parentPhone || (s as any).phone || '5522427769',
+                  parent_name: (s as any).parentName,
+                  student_id: s.id
+                }))}
+              />
             </div>
-            <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-              <History className="w-5 h-5 text-orange-400" />
-              <span>Bitácora de Evaluaciones: {athleteDisplayName}</span>
-            </h3>
-            <p className="text-xs text-zinc-400 font-mono">
-              {isSuperAdmin
-                ? 'Como Super Administrador puedes editar cualquier prueba previa o eliminarla con recalibración del radar.'
-                : 'Los Coaches pueden ingresar nuevas pruebas deportivas pero no pueden modificar ni borrar el histórico de métricas.'}
-            </p>
-          </div>
-
-          <button
-            onClick={() => setIsEvalModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer self-start sm:self-auto"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>+ Cargar Evaluación Mensual</span>
-          </button>
-        </div>
-
-        {/* Lista de Evaluaciones del Atleta con Botones según Rol */}
-        {evaluationsList.length === 0 ? (
-          <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a]">
-            Este atleta no tiene evaluaciones históricas registradas. Haz clic en &quot;+ Cargar Evaluación Mensual&quot;.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {evaluationsList.map((ev, index) => (
-              <div
-                key={ev?.id || `eval_${index}`}
-                className="bg-[#0a0e17] border border-[#27272a] hover:border-zinc-700 rounded-xl p-4 font-mono text-xs transition"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-white font-bold text-sm font-sans">{ev?.date || 'Fecha'}</span>
-                    <span className="text-[10px] text-zinc-400">evaluado por {ev?.coachName || 'Coach'}</span>
-                    {index === 0 && (
-                      <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-                        Vigente
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Acciones de Edición/Eliminación: EXCLUSIVAS PARA SUPERADMIN */}
-                  {isSuperAdmin ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEditEval(ev)}
-                        className="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-                        title="Editar evaluación deportiva"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Editar</span>
-                      </button>
-                      <button
-                        onClick={() => handleOpenDeleteEval(ev)}
-                        className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-                        title="Eliminar evaluación del histórico"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Eliminar</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-zinc-500 font-mono flex items-center gap-1">
-                      <Lock className="w-3 h-3 text-zinc-600" />
-                      <span>Protegido contra edición</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Métricas Raw de la Prueba */}
-                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 my-2 text-[11px] pt-1 border-t border-zinc-800/60">
-                  <div className="p-2 bg-zinc-900/60 rounded-lg">
-                    <span className="text-zinc-500 text-[10px] block">T. Libres</span>
-                    <strong className="text-white">{ev?.rawStats?.freeThrowMade ?? Math.round(((ev?.metrics?.freeThrow ?? 0) * 20)/100)}/20</strong>
-                  </div>
-                  <div className="p-2 bg-zinc-900/60 rounded-lg">
-                    <span className="text-zinc-500 text-[10px] block">Media Dist.</span>
-                    <strong className="text-white">{ev?.rawStats?.midRangePct ?? (ev?.metrics?.midRange ?? 0)}%</strong>
-                  </div>
-                  <div className="p-2 bg-zinc-900/60 rounded-lg">
-                    <span className="text-zinc-500 text-[10px] block">Triples</span>
-                    <strong className="text-white">{ev?.rawStats?.threePointPct ?? (ev?.metrics?.threePoint ?? 0)}%</strong>
-                  </div>
-                  <div className="p-2 bg-zinc-900/60 rounded-lg">
-                    <span className="text-zinc-500 text-[10px] block">Salto</span>
-                    <strong className="text-orange-400">{ev?.rawStats?.verticalJumpCm ?? Math.round(((ev?.metrics?.verticalJump ?? 0) * 90)/100)} cm</strong>
-                  </div>
-                  <div className="p-2 bg-zinc-900/60 rounded-lg">
-                    <span className="text-zinc-500 text-[10px] block">100m Sprint</span>
-                    <strong className="text-sky-400">{ev?.rawStats?.sprint100mSeconds ?? 11.5}s</strong>
-                  </div>
-                  <div className="p-2 bg-zinc-900/60 rounded-lg">
-                    <span className="text-zinc-500 text-[10px] block">T-Test Agilidad</span>
-                    <strong className="text-emerald-400">{ev?.rawStats?.agilityTTestSeconds ?? 9.2}s</strong>
-                  </div>
-                </div>
-
-                {ev?.coachNotes && (
-                  <div className="p-2.5 bg-zinc-900/40 rounded-lg text-zinc-300 font-sans text-xs mt-2 border border-zinc-800/40">
-                    <span className="font-mono font-bold text-orange-400 mr-1.5">Feedback:</span>
-                    {ev.coachNotes}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 5. Cuerda & Resistencia */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RopeTracker
-          training={trainingData}
-          readOnly={false}
-          onToggleDay={handleToggleDay}
-          onUpdateTargets={handleUpdateRopeTargets}
-        />
-
-        <EnduranceCalendar
-          training={trainingData}
-          readOnly={false}
-          onToggleDay={handleToggleDay}
-          onUpdateTargets={handleUpdateJoggingTargets}
-        />
-      </div>
+          )}
 
       {/* 6. Modal de Ficha Médica */}
       <MedicalModal
