@@ -1,23 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  Target, 
-  Sparkles, 
-  Activity, 
-  Info, 
-  Flame, 
-  Eye, 
-  Compass, 
-  ChevronRight,
-  Crosshair,
-  Award,
-  Layers,
-  ArrowUpRight,
-  Star
-} from 'lucide-react';
 
-interface PrecisionTargetProps {
+interface BiomechanicsProps {
   athleteName?: string;
   jerseyNumber?: string | number;
   overallOvr?: number;
@@ -27,442 +12,422 @@ export default function BiomechanicsShotBackboardSystem({
   athleteName = 'Mateo Silva',
   jerseyNumber = '11',
   overallOvr = 88
-}: PrecisionTargetProps) {
-  // Estado para la zona seleccionada: 'green_mid' | 'blue_3pt' | 'center_ft'
-  const [activeZone, setActiveZone] = useState<'green_mid' | 'blue_3pt' | 'center_ft'>('green_mid');
-  const [showProjectionLines, setShowProjectionLines] = useState<boolean>(true);
+}: BiomechanicsProps) {
+  const [activeZone, setActiveZone] = useState<'green' | 'blue' | 'paint'>('green');
 
   return (
-    <div className="w-full bg-[#07090E] text-slate-200 rounded-3xl border border-[#1F2433] p-4 sm:p-6 shadow-2xl relative overflow-hidden font-sans select-none">
-      {/* TACTICAL GRID PATTERN */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-40" 
-        style={{
-          backgroundImage: `
-            radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.12) 0%, transparent 70%),
-            linear-gradient(rgba(31, 36, 51, 0.4) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(31, 36, 51, 0.4) 1px, transparent 1px)
-          `,
-          backgroundSize: '100% 100%, 32px 32px, 32px 32px'
-        }}
-      />
-
-      {/* TOP HEADER: SISTEMA BIOMECÁNICO & TELEMETRÍA (DESACOPLADA Y LIMPIA) */}
-      <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-[#1F2433] mb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono tracking-widest text-[#FF6B00] uppercase font-black">
-              SISTEMA BIOMECÁNICO WILD WOLVES
-            </span>
-            <span className="px-2 py-0.5 rounded text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-              GUÍA DE PUNTERÍA AL 100%
-            </span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5 mt-1">
-            <Crosshair className="w-6 h-6 text-[#FF6B00]" />
-            TABLERO MILIMÉTRICO &amp; DUELA TÁCTICA
-          </h2>
-        </div>
-
-        {/* CONTROLES Y CHIP DEL ATLETA INTEGRADO EN CABECERA */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-3 bg-[#0B0E17]/90 px-3.5 py-1.5 rounded-xl border border-[#1F2433]">
-            <div className="w-7 h-7 rounded-lg bg-[#131620] border border-[#FF6B00]/40 flex items-center justify-center font-mono font-black text-xs text-[#FF6B00]">
-              #{jerseyNumber}
-            </div>
-            <div>
-              <div className="text-xs font-bold text-white leading-none">{athleteName}</div>
-              <div className="text-[10px] text-slate-400 font-mono">Base / Escolta • U-17 Élite</div>
-            </div>
-            <div className="h-5 w-px bg-[#1F2433] mx-1" />
-            <div className="text-right">
-              <span className="text-[9px] uppercase font-mono text-slate-400 block leading-none">OVR</span>
-              <span className="text-xs font-mono font-black text-[#FF6B00] leading-none">{overallOvr}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowProjectionLines(!showProjectionLines)}
-            className={`px-3 py-1.5 rounded-xl border transition flex items-center gap-1.5 text-xs font-mono ${
-              showProjectionLines
-                ? 'bg-[#06B6D4]/15 text-[#06B6D4] border-[#06B6D4]/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                : 'bg-[#131620] text-slate-400 border-[#1F2433]'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>{showProjectionLines ? 'Vectores ON' : 'Vectores OFF'}</span>
-          </button>
+    <div className="w-full bg-[#0a0f18] text-slate-200 rounded-3xl border border-[#1b263b] shadow-2xl overflow-hidden font-sans select-none p-3 sm:p-5">
+      
+      {/* HEADER BAR CON TEXTO TÁCTICO */}
+      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pb-3 border-b border-[#1b263b] mb-3">
+        <span className="tracking-widest uppercase font-bold text-slate-300">
+          SISTEMA BIOMECÁNICO WILD WOLVES: GUÍA DE PUNTERÍA AL 100%
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[#00e5ff] font-bold">CALIBRACIÓN ACTIVA</span>
         </div>
       </div>
 
-      {/* CONTENEDOR PRINCIPAL: LIENZO INTEGRADO EXACTO A LA IMAGEN 2 */}
-      <div className="relative z-10 space-y-4">
-        {/* BANNER DE ACCIÓN RÁPIDA / IMPACTO ACTIVO */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0B0E17]/80 backdrop-blur-md rounded-2xl border border-[#1F2433] text-xs font-mono">
-          <div className="flex items-center gap-2.5">
-            <span className={`w-3 h-3 rounded-full ${activeZone === 'green_mid' ? 'bg-emerald-400 shadow-[0_0_8px_#10b981]' : activeZone === 'blue_3pt' ? 'bg-cyan-400 shadow-[0_0_8px_#06b6d4]' : 'bg-[#FF6B00] shadow-[0_0_8px_#ff6b00]'}`} />
-            <span className="text-slate-400 uppercase">Punto de Impacto Seleccionado:</span>
-            <strong className={activeZone === 'green_mid' ? 'text-emerald-400 font-bold' : activeZone === 'blue_3pt' ? 'text-cyan-400 font-bold' : 'text-[#FF6B00] font-bold'}>
-              {activeZone === 'green_mid' 
-                ? 'PUNTO VERDE: Esquina Exterior del Recuadro Chico (Media Distancia / Alas)' 
-                : activeZone === 'blue_3pt' 
-                ? 'PUNTO AZUL: Línea Horizontal Superior Interna (3PT Perímetro)' 
-                : 'PUNTO CENTRAL: Centro de Pintura Directo al Aro'}
-            </strong>
-          </div>
-          <span className="text-emerald-400 font-bold text-[11px] bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-            ✓ 100% Efectivo Calibrado
-          </span>
-        </div>
+      {/* LIENZO COMPLETO IDÉNTICO A LA IMAGEN DE REFERENCIA */}
+      <div className="relative w-full aspect-[16/10] bg-[#0c1322] rounded-2xl border border-[#1b263b] overflow-hidden">
+        <svg 
+          viewBox="0 0 1000 600" 
+          className="w-full h-full"
+          style={{ backgroundColor: '#0b121e' }}
+        >
+          <defs>
+            {/* Resplandor neón cian intenso para líneas de cancha */}
+            <filter id="court-glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00e5ff" floodOpacity="0.8" />
+            </filter>
 
-        {/* LIENZO SVG COMPLETO: TABLERO SUPERIOR IZQUIERDO + DUELA COMPLETA SIN OBSTRUCCIONES */}
-        <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[460px] max-h-[640px] bg-[#070A11] rounded-3xl border-2 border-[#1F2433] overflow-hidden shadow-inner">
-          <svg viewBox="0 0 1000 600" className="w-full h-full select-none">
-            <defs>
-              {/* Filtro Resplandor Neón Cian */}
-              <filter id="fiba-neon-cyan" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
+            {/* Resplandor verde para punto y zonas */}
+            <filter id="glow-green" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ff66" floodOpacity="0.9" />
+            </filter>
 
-              {/* Filtro Resplandor Verde Fluorescente */}
-              <filter id="glow-green-dot" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
+            {/* Resplandor azul para punto y zonas */}
+            <filter id="glow-blue" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00b0ff" floodOpacity="0.9" />
+            </filter>
 
-              {/* Filtro Resplandor Azul Fluorescente */}
-              <filter id="glow-blue-dot" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
+            {/* Marcadores de flecha de proyección */}
+            <marker id="arr-orange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#ff6b00" />
+            </marker>
+            <marker id="arr-cyan" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#00e5ff" />
+            </marker>
+            <marker id="arr-green" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#00ff66" />
+            </marker>
+          </defs>
 
-              {/* Gradiente de Vidrio del Tablero */}
-              <linearGradient id="backboard-glass-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1E293B" stopOpacity="0.75" />
-                <stop offset="100%" stopColor="#0B0F19" stopOpacity="0.95" />
-              </linearGradient>
+          {/* ========================================================= */}
+          {/* 1. MALLA / GRID TÁCTICA DEL SUELO                         */}
+          {/* ========================================================= */}
+          <g stroke="#141f33" strokeWidth="1" opacity="0.6">
+            {[50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950].map((x) => (
+              <line key={`x-${x}`} x1={x} y1="0" x2={x} y2="600" />
+            ))}
+            {[50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550].map((y) => (
+              <line key={`y-${y}`} x1="0" y1={y} x2="1000" y2={y} />
+            ))}
+          </g>
 
-              {/* Marcador de Flecha Vectorial */}
-              <marker id="arrow-green" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981" />
-              </marker>
-              <marker id="arrow-blue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#06B6D4" />
-              </marker>
-              <marker id="arrow-orange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF6B00" />
-              </marker>
-            </defs>
+          {/* ========================================================= */}
+          {/* 2. LÍNEAS NEÓN CIAN DE LA CANCHA                          */}
+          {/* ========================================================= */}
+          <g stroke="#00e5ff" strokeWidth="3" fill="none" filter="url(#court-glow-cyan)">
+            {/* Perímetro exterior */}
+            <rect x="25" y="85" width="850" height="490" />
+            {/* Línea central */}
+            <line x1="250" y1="85" x2="250" y2="575" strokeWidth="3.5" />
+            {/* Círculo central */}
+            <circle cx="250" cy="330" r="75" strokeWidth="3.5" />
 
-            {/* 1. CUADRÍCULA TÁCTICA DE FONDO (SUAVE Y PROFESIONAL) */}
-            <g stroke="#161B28" strokeWidth="1" opacity="0.6">
-              {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((x) => (
-                <line key={`gx-${x}`} x1={x} y1="0" x2={x} y2="600" />
-              ))}
-              {[80, 160, 240, 320, 400, 480, 560].map((y) => (
-                <line key={`gy-${y}`} x1="0" y1={y} x2="1000" y2={y} />
-              ))}
-            </g>
+            {/* Línea de fondo derecha */}
+            <line x1="875" y1="85" x2="875" y2="575" strokeWidth="3.5" />
+            {/* Contorno rectangular de la zona de pintura */}
+            <rect x="650" y="230" width="225" height="200" strokeWidth="3" />
+            {/* Semicírculo de tiro libre (hacia la izquierda) */}
+            <path d="M 650 230 A 100 100 0 0 0 650 430" strokeWidth="3" />
 
-            {/* 2. LÍNEAS TÁCTICAS NEÓN CIAN DE LA DUELA (CENTRO Y MEDIA CANCHA FIBA) */}
-            <g stroke="#06B6D4" strokeWidth="2.5" fill="none" filter="url(#fiba-neon-cyan)">
-              {/* Contorno perimetral de la duela */}
-              <rect x="30" y="30" width="940" height="540" rx="6" strokeWidth="3" opacity="0.85" />
-              {/* Línea central divisoria */}
-              <line x1="280" y1="30" x2="280" y2="570" strokeWidth="3" />
-              {/* Círculo central */}
-              <circle cx="280" cy="300" r="70" strokeWidth="3" />
-              {/* Línea de fondo derecha */}
-              <line x1="880" y1="30" x2="880" y2="570" strokeWidth="3" />
-            </g>
+            {/* Arco perimetral de 3 puntos */}
+            <path d="M 875 115 L 750 115 A 255 255 0 0 0 550 330 A 255 255 0 0 0 750 545 L 875 545" strokeWidth="3.5" />
 
-            {/* ========================================================================= */}
-            {/* 3. ZONAS POLIGONALES EXACTAS DE LA DUELA (DERECHA, ORIENTADA A CANASTA)  */}
-            {/* ========================================================================= */}
+            {/* Semicírculo de no-carga bajo el aro */}
+            <path d="M 875 285 A 45 45 0 0 0 875 375" strokeWidth="2.5" />
+          </g>
+
+          {/* ========================================================= */}
+          {/* 3. ZONAS POLIGONALES COLOREADAS EXACTAS A LA REFERENCIA   */}
+          {/* ========================================================= */}
+
+          {/* A. ZONA PINTURA / RECTÁNGULO CENTRAL (ROJO PROFUNDO / BORGOÑA #5a1419) */}
+          <rect 
+            x="650" y="230" width="225" height="200" 
+            fill="#5a1419" 
+            fillOpacity={activeZone === 'paint' ? 0.95 : 0.75}
+            stroke="#ff3b30"
+            strokeWidth="1.5"
+            className="cursor-pointer"
+            onClick={() => setActiveZone('paint')}
+          />
+          {/* Semicírculo de tiro libre coloreado */}
+          <path 
+            d="M 650 230 A 100 100 0 0 0 650 430 Z" 
+            fill="#5a1419" 
+            fillOpacity={activeZone === 'paint' ? 0.95 : 0.75}
+            className="cursor-pointer"
+            onClick={() => setActiveZone('paint')}
+          />
+
+          {/* B. ZONAS VERDES (MEDIA DISTANCIA / ALAS INTERIORES) */}
+          <g 
+            className="cursor-pointer" 
+            onClick={() => setActiveZone('green')}
+          >
+            {/* 1. Ala Verde Superior (Trapecio / Polígono exacto) */}
+            <polygon 
+              points="650,150 780,150 780,230 650,230" 
+              fill="#00c853" 
+              fillOpacity={activeZone === 'green' ? 0.9 : 0.65} 
+              stroke="#00e676" 
+              strokeWidth="2" 
+            />
+
+            {/* 2. Ala Verde Inferior (Simétrica exacta) */}
+            <polygon 
+              points="650,430 780,430 780,510 650,510" 
+              fill="#00c853" 
+              fillOpacity={activeZone === 'green' ? 0.9 : 0.65} 
+              stroke="#00e676" 
+              strokeWidth="2" 
+            />
+
+            {/* 3. Frontal Verde de Tiro Libre (Entre arco de tiro libre y arco de 3PT) */}
+            <path 
+              d="M 650,170 A 240 240 0 0 0 575,330 A 240 240 0 0 0 650,490 L 650,430 A 100 100 0 0 1 650,230 Z" 
+              fill="#00c853" 
+              fillOpacity={activeZone === 'green' ? 0.9 : 0.65} 
+              stroke="#00e676" 
+              strokeWidth="2" 
+            />
+          </g>
+
+          {/* C. ZONAS AZULES (PERÍMETRO EXTERIOR / 3 PUNTOS) */}
+          <g 
+            className="cursor-pointer" 
+            onClick={() => setActiveZone('blue')}
+          >
+            {/* Cuña Azul Superior (Cerca de la esquina superior izquierda del arco) */}
+            <polygon 
+              points="650,150 780,150 740,85 650,85" 
+              fill="#0288d1" 
+              fillOpacity={activeZone === 'blue' ? 0.9 : 0.65} 
+              stroke="#00b0ff" 
+              strokeWidth="2" 
+            />
+
+            {/* Banda Azul Perimetral Diagonal Superior */}
+            <polygon 
+              points="605,175 660,140 710,195 655,230" 
+              fill="#0288d1" 
+              fillOpacity={activeZone === 'blue' ? 0.9 : 0.65} 
+              stroke="#00b0ff" 
+              strokeWidth="2" 
+            />
+
+            {/* Banda Azul Perimetral Diagonal Inferior */}
+            <polygon 
+              points="605,485 660,520 710,465 655,430" 
+              fill="#0288d1" 
+              fillOpacity={activeZone === 'blue' ? 0.9 : 0.65} 
+              stroke="#00b0ff" 
+              strokeWidth="2" 
+            />
+
+            {/* Arco Exterior Azul Frontal */}
+            <path 
+              d="M 605,175 A 285 285 0 0 0 540,330 A 285 285 0 0 0 605,485 L 575,485 A 240 240 0 0 1 575,175 Z" 
+              fill="#0288d1" 
+              fillOpacity={activeZone === 'blue' ? 0.9 : 0.65} 
+              stroke="#00b0ff" 
+              strokeWidth="2" 
+            />
+          </g>
+
+          {/* ========================================================= */}
+          {/* 4. SILUETAS DE HUELLAS DE PIES (FOOTPRINTS TÁCTICOS)      */}
+          {/* ========================================================= */}
+
+          {/* Huellas Naranja en la Pintura (Doble pie) */}
+          <g stroke="#ff6b00" fill="#ff6b00" fillOpacity="0.4" strokeWidth="2">
+            <ellipse cx="690" cy="320" rx="7" ry="16" />
+            <ellipse cx="708" cy="320" rx="7" ry="16" />
+          </g>
+
+          {/* Huella Verde en Ala Superior (Pie individual) */}
+          <g stroke="#a7f3d0" fill="#00ff66" fillOpacity="0.3" strokeWidth="2">
+            <ellipse cx="740" cy="185" rx="7" ry="15" transform="rotate(-15 740 185)" />
+            <circle cx="738" cy="180" r="2.5" fill="#ffb703" />
+          </g>
+
+          {/* Huellas Verdes en Ala Inferior (Doble pie) */}
+          <g stroke="#a7f3d0" fill="#00ff66" fillOpacity="0.3" strokeWidth="2">
+            <ellipse cx="735" cy="470" rx="7" ry="15" transform="rotate(15 735 470)" />
+            <ellipse cx="752" cy="465" rx="7" ry="15" transform="rotate(15 752 465)" />
+          </g>
+
+          {/* Huella Verde Frontal (Tiro Libre) */}
+          <g stroke="#a7f3d0" fill="#00ff66" fillOpacity="0.3" strokeWidth="2">
+            <ellipse cx="615" cy="330" rx="7" ry="16" />
+          </g>
+
+          {/* Huella Azul Diagonal Inferior */}
+          <g stroke="#7dd3fc" fill="#00b0ff" fillOpacity="0.3" strokeWidth="2">
+            <ellipse cx="660" cy="475" rx="6.5" ry="15" transform="rotate(25 660 475)" />
+          </g>
+
+          {/* ========================================================= */}
+          {/* 5. FLECHAS Y VECTORES DE TRAYECTORIA RADIAL               */}
+          {/* ========================================================= */}
+          <g strokeDasharray="5,4" strokeWidth="2" opacity="0.9">
+            {/* Desde la canasta hacia la pintura */}
+            <line x1="845" y1="330" x2="690" y2="320" stroke="#ff6b00" markerEnd="url(#arr-orange)" />
             
-            {/* A. ZONA PINTURA / LLAVE CENTRAL (ROJO PROFUNDO #5C1417 / #7F1D1D) */}
-            <g 
-              className="cursor-pointer transition-opacity duration-200"
-              onClick={() => setActiveZone('center_ft')}
-            >
-              {/* Rectángulo de pintura */}
-              <rect 
-                x="650" y="225" width="230" height="150" 
-                fill="#7F1D1D" 
-                fillOpacity={activeZone === 'center_ft' ? 0.90 : 0.65} 
-                stroke="#FF6B00" 
-                strokeWidth="2.5" 
-              />
-              {/* Círculo de tiro libre (borde izquierdo de pintura) */}
-              <path 
-                d="M 650 225 A 75 75 0 0 0 650 375" 
-                fill="#7F1D1D" 
-                fillOpacity={activeZone === 'center_ft' ? 0.90 : 0.65} 
-                stroke="#06B6D4" 
-                strokeWidth="2" 
-              />
-              <path 
-                d="M 650 225 A 75 75 0 0 1 650 375" 
-                fill="none" 
-                stroke="#06B6D4" 
-                strokeWidth="2" 
-                strokeDasharray="6,6" 
-              />
-            </g>
+            {/* Vectores rojos/naranja directos del aro a los bordes de la pintura */}
+            <line x1="845" y1="330" x2="650" y2="230" stroke="#ff3b30" strokeWidth="1.5" />
+            <line x1="845" y1="330" x2="650" y2="430" stroke="#ff3b30" strokeWidth="1.5" />
+            <line x1="845" y1="330" x2="650" y2="280" stroke="#ff3b30" strokeWidth="1.5" />
+            <line x1="845" y1="330" x2="650" y2="380" stroke="#ff3b30" strokeWidth="1.5" />
 
-            {/* B. ZONAS VERDES (MEDIA DISTANCIA / ALAS INTERIORES - SIMÉTRICAS) */}
-            <g 
-              className="cursor-pointer transition-all duration-200"
-              onClick={() => setActiveZone('green_mid')}
-            >
-              {/* Ala Verde Superior (Polígono exacto a la imagen) */}
-              <polygon 
-                points="650,225 650,150 790,150 790,225" 
-                fill="#10B981" 
-                fillOpacity={activeZone === 'green_mid' ? 0.85 : 0.45} 
-                stroke="#10B981" 
-                strokeWidth="2.5" 
-              />
-              {/* Ala Verde Inferior (Polígono exacto simétrico) */}
-              <polygon 
-                points="650,375 790,375 790,450 650,450" 
-                fill="#10B981" 
-                fillOpacity={activeZone === 'green_mid' ? 0.85 : 0.45} 
-                stroke="#10B981" 
-                strokeWidth="2.5" 
-              />
-              {/* Sector Verde Frontal / Arco Central */}
-              <path 
-                d="M 650,150 A 210 210 0 0 0 580,300 A 210 210 0 0 0 650,450 L 650,375 A 75 75 0 0 1 650,225 Z" 
-                fill="#10B981" 
-                fillOpacity={activeZone === 'green_mid' ? 0.85 : 0.45} 
-                stroke="#10B981" 
-                strokeWidth="2" 
-              />
-              {/* Textos sutiles tácticos dentro de la zona verde */}
-              <text x="825" y="475" fill="#34D399" fontSize="10" fontFamily="monospace" fontWeight="bold" opacity="0.9">
-                ZONA VERDE (Impacto Interior)
-              </text>
-            </g>
+            {/* Vector verde desde ala superior proyectado hacia afuera */}
+            <line x1="740" y1="185" x2="640" y2="135" stroke="#ff6b00" markerEnd="url(#arr-orange)" />
+            <line x1="845" y1="330" x2="740" y2="185" stroke="#00e5ff" />
 
-            {/* C. ZONAS AZULES (PERÍMETRO PROFUNDO / 3 PUNTOS - BANDA EXTERIOR) */}
-            <g 
-              className="cursor-pointer transition-all duration-200"
-              onClick={() => setActiveZone('blue_3pt')}
-            >
-              {/* Banda Perimetral Segmentada 3PT */}
-              <path 
-                d="M 790,150 L 790,100 A 260 260 0 0 0 530,300 A 260 260 0 0 0 790,500 L 790,450 A 210 210 0 0 1 580,300 A 210 210 0 0 1 790,150 Z" 
-                fill="#0284C7" 
-                fillOpacity={activeZone === 'blue_3pt' ? 0.85 : 0.45} 
-                stroke="#06B6D4" 
-                strokeWidth="2.5" 
-              />
-              {/* Textos sutiles tácticos dentro de la zona azul */}
-              <text x="670" y="135" fill="#38BDF8" fontSize="10" fontFamily="monospace" fontWeight="bold" opacity="0.9">
-                ZONA AZUL (Impacto Exterior)
-              </text>
-            </g>
+            {/* Vector verde desde ala inferior */}
+            <line x1="845" y1="330" x2="735" y2="470" stroke="#00e5ff" />
+            <line x1="735" y1="470" x2="650" y2="520" stroke="#00e5ff" markerEnd="url(#arr-cyan)" />
 
-            {/* D. SILUETAS VECTORIALES DE PIES DE ATLETA (FOOTPRINTS POSICIONADOS) */}
-            <g fill="none" strokeWidth="1.8">
-              {/* Footprints Naranja (Pintura Central) */}
-              <g stroke="#FF6B00" fill="#FF6B00" fillOpacity="0.2">
-                <ellipse cx="685" cy="292" rx="6" ry="14" />
-                <ellipse cx="700" cy="292" rx="6" ry="14" />
-              </g>
+            {/* Vector hacia la huella frontal */}
+            <line x1="845" y1="330" x2="615" y2="330" stroke="#ff6b00" markerEnd="url(#arr-orange)" />
 
-              {/* Footprints Verde (Ala Superior) */}
-              <g stroke="#34D399" fill="#10B981" fillOpacity="0.3">
-                <ellipse cx="745" cy="188" rx="6" ry="13" transform="rotate(-15 745 188)" />
-                <ellipse cx="757" cy="191" rx="6" ry="13" transform="rotate(-15 757 191)" />
-              </g>
+            {/* Proyección diagonal azul exterior */}
+            <line x1="845" y1="330" x2="660" y2="475" stroke="#00e5ff" />
+            <line x1="660" y1="475" x2="550" y2="540" stroke="#00e5ff" markerEnd="url(#arr-cyan)" />
 
-              {/* Footprints Verde (Ala Inferior) */}
-              <g stroke="#34D399" fill="#10B981" fillOpacity="0.3">
-                <ellipse cx="745" cy="412" rx="6" ry="13" transform="rotate(15 745 412)" />
-                <ellipse cx="757" cy="409" rx="6" ry="13" transform="rotate(15 757 409)" />
-              </g>
+            {/* Proyección punteada que sube desde el ala verde hacia el tablero de arriba */}
+            <line x1="740" y1="185" x2="505" y2="115" stroke="#ff6b00" strokeWidth="2" strokeDasharray="6,4" />
+          </g>
 
-              {/* Footprints Azul (Perímetro Exterior Izquierdo) */}
-              <g stroke="#38BDF8" fill="#0284C7" fillOpacity="0.3">
-                <ellipse cx="555" cy="300" rx="6" ry="14" />
-              </g>
-              {/* Footprints Azul (Perímetro Esquina Inferior) */}
-              <g stroke="#38BDF8" fill="#0284C7" fillOpacity="0.3">
-                <ellipse cx="670" cy="475" rx="6" ry="13" transform="rotate(25 670 475)" />
-              </g>
-            </g>
+          {/* ========================================================= */}
+          {/* 6. CANASTA DERECHA EN PERSPECTIVA TÁCTICA ISOMÉTRICA      */}
+          {/* ========================================================= */}
+          <g>
+            {/* Soporte hacia la pared */}
+            <rect x="885" y="322" width="55" height="16" fill="#1b263b" stroke="#0f172a" />
+            <polygon points="915,310 940,310 940,350 915,350" fill="#111827" />
 
-            {/* E. LÍNEAS VECTORIALES DE TRAYECTORIA RADIAL HACIA EL ARO DERECHO */}
-            {showProjectionLines && (
-              <g strokeDasharray="4,4" opacity="0.9" strokeWidth="1.8">
-                {/* Desde Pintura al Aro */}
-                <line x1="850" y1="300" x2="685" y2="292" stroke="#FF6B00" markerEnd="url(#arrow-orange)" />
-                {/* Desde Ala Verde Superior */}
-                <line x1="850" y1="300" x2="745" y2="188" stroke="#10B981" />
-                <line x1="745" y1="188" x2="640" y2="120" stroke="#10B981" markerEnd="url(#arrow-green)" strokeDasharray="5,4" />
-                {/* Desde Ala Verde Inferior */}
-                <line x1="850" y1="300" x2="745" y2="412" stroke="#10B981" />
-                <line x1="745" y1="412" x2="640" y2="480" stroke="#10B981" markerEnd="url(#arrow-green)" strokeDasharray="5,4" />
-                {/* Desde Perímetro Azul */}
-                <line x1="850" y1="300" x2="555" y2="300" stroke="#06B6D4" markerEnd="url(#arrow-blue)" />
-                <line x1="850" y1="300" x2="670" y2="475" stroke="#06B6D4" markerEnd="url(#arrow-blue)" />
-                <line x1="850" y1="300" x2="670" y2="125" stroke="#06B6D4" markerEnd="url(#arrow-blue)" />
+            {/* Tablero lateral en perspectiva (inclinado) */}
+            <polygon 
+              points="875,235 905,250 905,410 875,425" 
+              fill="#1e293b" 
+              fillOpacity="0.8"
+              stroke="#ff6b00" 
+              strokeWidth="4" 
+            />
+            {/* Recuadro interno en perspectiva */}
+            <polygon 
+              points="883,300 897,307 897,353 883,360" 
+              fill="none" 
+              stroke="#ff6b00" 
+              strokeWidth="2.5" 
+            />
+            {/* Aro de baloncesto y soporte horizontal */}
+            <line x1="875" y1="330" x2="845" y2="330" stroke="#ff6b00" strokeWidth="4" />
+            <circle cx="845" cy="330" r="16" fill="#ff6b00" fillOpacity="0.3" stroke="#ff6b00" strokeWidth="3" />
+          </g>
 
-                {/* VECTORES CONECTANDO DUELA CON PUNTOS DE IMPACTO EN TABLERO INSET */}
-                <path 
-                  d="M 745,188 Q 580,120 493,125" 
-                  fill="none" 
-                  stroke="#10B981" 
-                  strokeWidth="2" 
-                  strokeDasharray="6,4" 
-                />
-                <path 
-                  d="M 555,300 Q 420,240 475,125" 
-                  fill="none" 
-                  stroke="#06B6D4" 
-                  strokeWidth="2" 
-                  strokeDasharray="6,4" 
-                />
-              </g>
-            )}
+          {/* ========================================================= */}
+          {/* 7. TABLERO INSET SUPERIOR EXACTO (FIBA)                   */}
+          {/* ========================================================= */}
+          <g>
+            {/* Marco exterior negro con borde naranja brillante */}
+            <rect 
+              x="310" y="35" width="280" height="175" rx="8" 
+              fill="#0f172a" 
+              stroke="#ff6b00" 
+              strokeWidth="4.5" 
+            />
 
-            {/* F. CANASTA, ARO Y TABLERO DERECHO (POSTE Y SOPORTE) */}
-            <g>
-              {/* Estructura del soporte */}
-              <line x1="880" y1="300" x2="940" y2="300" stroke="#1F2433" strokeWidth="8" />
-              <rect x="880" y="240" width="8" height="120" rx="3" fill="#FF6B00" stroke="#FF8800" strokeWidth="2" />
-              {/* Semicírculo de no-carga bajo el aro */}
-              <path d="M 880 270 A 30 30 0 0 0 880 330" fill="none" stroke="#06B6D4" strokeWidth="2" />
-              {/* Aro */}
-              <circle cx="855" cy="300" r="16" fill="#FF6B00" fillOpacity="0.3" stroke="#FF6B00" strokeWidth="3" />
-            </g>
+            {/* Líneas en 'X' transparentes de vidrio templado */}
+            <line x1="310" y1="35" x2="590" y2="210" stroke="#1e293b" strokeWidth="1.5" />
+            <line x1="310" y1="210" x2="590" y2="35" stroke="#1e293b" strokeWidth="1.5" />
 
-            {/* ========================================================================= */}
-            {/* 4. INSET SUPERIOR IZQUIERDO: DETALLE DEL TABLERO FIBA Y PUNTOS EXACTOS   */}
-            {/* ========================================================================= */}
-            <g>
-              {/* Recuadro contenedor oscuro con marco naranja */}
-              <rect 
-                x="315" y="45" width="270" height="190" rx="10" 
-                fill="url(#backboard-glass-gradient)" 
-                stroke="#FF6B00" 
-                strokeWidth="4" 
-                className="filter drop-shadow-[0_0_15px_rgba(255,107,0,0.5)]"
-              />
+            {/* Recuadro interior (59cm x 45cm) */}
+            <rect 
+              x="395" y="115" width="105" height="75" rx="2" 
+              fill="none" 
+              stroke="#ff6b00" 
+              strokeWidth="3.5" 
+            />
 
-              {/* Recuadro interior del tablero (59cm x 45cm) */}
-              <rect 
-                x="400" y="125" width="100" height="75" rx="3" 
-                fill="none" 
-                stroke="#FF6B00" 
-                strokeWidth="3.5" 
-              />
+            {/* Aro bajo el recuadro */}
+            <line x1="432" y1="190" x2="468" y2="190" stroke="#ff6b00" strokeWidth="3.5" />
+            <ellipse cx="450" cy="194" rx="14" ry="5" fill="#ff6b00" fillOpacity="0.4" stroke="#ff6b00" strokeWidth="2.5" />
+            {/* Red blanca */}
+            <path d="M 436 194 L 442 225 L 458 225 L 464 194" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeDasharray="3,3" />
 
-              {/* Aro y red bajo el tablero inset */}
-              <line x1="435" y1="200" x2="465" y2="200" stroke="#FF6B00" strokeWidth="3.5" />
-              <circle cx="450" cy="210" r="12" fill="#FF6B00" fillOpacity="0.2" stroke="#FF6B00" strokeWidth="3" />
-              {/* Red colgante */}
-              <path d="M 440 210 L 444 235 L 456 235 L 460 210" fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="2,2" />
+            {/* PUNTOS DE IMPACTO MILIMÉTRICOS EXACTOS DE LA IMAGEN:
+                1. Punto Verde: En la esquina superior derecha del recuadro
+                2. Punto Azul: Inmediatamente a la izquierda, sobre la misma línea horizontal superior
+            */}
+            {/* PUNTO VERDE */}
+            <circle 
+              cx="495" cy="115" r="9" 
+              fill="#00ff66" 
+              stroke="#bbf7d0" 
+              strokeWidth="2" 
+              filter="url(#glow-green)"
+              className="cursor-pointer"
+              onClick={() => setActiveZone('green')}
+            />
 
-              {/* LÍNEA HORIZONTAL SUPERIOR DEL RECUADRO: Y = 125 */}
-              {/* ESQUINA SUPERIOR DERECHA: X = 500, Y = 125 */}
-              
-              {/* PUNTO VERDE: Exactamente en la esquina exterior (X = 495, Y = 125) */}
-              <circle 
-                cx="495" cy="125" r="8" 
-                fill="#10B981" 
-                stroke="#34D399" 
-                strokeWidth="2.5" 
-                filter="url(#glow-green-dot)"
-                className="cursor-pointer hover:scale-125 transition-transform"
-                onClick={() => setActiveZone('green_mid')}
-              />
-              <circle cx="495" cy="125" r="2.5" fill="#FFFFFF" />
+            {/* PUNTO AZUL */}
+            <circle 
+              cx="476" cy="115" r="9" 
+              fill="#00b0ff" 
+              stroke="#bae6fd" 
+              strokeWidth="2" 
+              filter="url(#glow-blue)"
+              className="cursor-pointer"
+              onClick={() => setActiveZone('blue')}
+            />
+          </g>
 
-              {/* PUNTO AZUL: Inmediatamente al lado, sobre la misma línea horizontal superior (X = 478, Y = 125) */}
-              <circle 
-                cx="478" cy="125" r="8" 
-                fill="#06B6D4" 
-                stroke="#22D3EE" 
-                strokeWidth="2.5" 
-                filter="url(#glow-blue-dot)"
-                className="cursor-pointer hover:scale-125 transition-transform"
-                onClick={() => setActiveZone('blue_3pt')}
-              />
-              <circle cx="478" cy="125" r="2.5" fill="#FFFFFF" />
-            </g>
-
-            {/* 5. TARJETA FLOTANTE SUPERIOR IZQUIERDA (PUNTO DE IMPACTO ESQUINA) */}
-            <g>
-              <rect x="45" y="115" width="220" height="52" rx="8" fill="#0B0E17" fillOpacity="0.9" stroke="#1F2433" strokeWidth="1.5" />
-              <circle cx="62" cy="132" r="5" fill="#10B981" filter="url(#glow-green-dot)" />
-              <text x="75" y="135" fill="#FFFFFF" fontSize="9" fontFamily="monospace" fontWeight="bold">
-                PUNTO DE IMPACTO ESQUINA:
-              </text>
-              <text x="75" y="152" fill="#94A3B8" fontSize="9" fontFamily="monospace">
-                Esquina Exterior del Recuadro
-              </text>
-            </g>
-
-            {/* 6. TELEMETRY LAB PIE DE DUELA */}
-            <text x="720" y="582" fill="#64748B" fontSize="10" fontFamily="monospace">
-              TELEMETRY LAB // Prof. Marcos Delgado
+          {/* ========================================================= */}
+          {/* 8. TARJETA SUPERIOR IZQUIERDA: "PUNTO DE IMPACTO ESQUINA" */}
+          {/* ========================================================= */}
+          <g>
+            <rect x="25" y="95" width="215" height="52" rx="8" fill="#0b121e" fillOpacity="0.9" stroke="#1b263b" strokeWidth="1.5" />
+            <circle cx="42" cy="113" r="5" fill="#00ff66" filter="url(#glow-green)" />
+            <text x="54" y="116" fill="#ffffff" fontSize="9.5" fontFamily="monospace" fontWeight="bold">
+              PUNTO DE IMPACTO ESQUINA:
             </text>
-          </svg>
-        </div>
+            <text x="54" y="134" fill="#94a3b8" fontSize="9.5" fontFamily="monospace">
+              Esquina Exterior del Recuadro
+            </text>
+          </g>
 
-        {/* PIE CON DOS TARJETAS INTERACTIVAS GLASS NO INTRUSIVAS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div 
-            onClick={() => setActiveZone('green_mid')}
-            className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
-              activeZone === 'green_mid'
-                ? 'bg-emerald-500/10 border-emerald-400 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)]'
-                : 'bg-[#0B0E17]/80 border-[#1F2433] text-slate-300 hover:border-emerald-500/40'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]" />
-              <div>
-                <strong className="text-white block text-sm font-sans font-bold">Punto Verde (Media Distancia / Alas):</strong>
-                <span className="text-xs text-emerald-300 font-mono">Esquina exterior del recuadro • Impacto a 40–60 cm arriba</span>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-emerald-400 shrink-0" />
-          </div>
+          {/* ========================================================= */}
+          {/* 9. TEXTOS DE ROTULACIÓN EN LA DUELA (COMO EN LA IMAGEN)   */}
+          {/* ========================================================= */}
+          <g fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+            <text x="670" y="135" fill="#38bdf8">ZONA</text>
+            <text x="662" y="146" fill="#38bdf8">(Impacto</text>
+            <text x="664" y="157" fill="#38bdf8">Exterior)</text>
 
-          <div 
-            onClick={() => setActiveZone('blue_3pt')}
-            className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
-              activeZone === 'blue_3pt'
-                ? 'bg-cyan-500/10 border-cyan-400 text-white shadow-[0_0_20px_rgba(6,182,212,0.2)]'
-                : 'bg-[#0B0E17]/80 border-[#1F2433] text-slate-300 hover:border-cyan-500/40'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_10px_#06b6d4]" />
-              <div>
-                <strong className="text-white block text-sm font-sans font-bold">Punto Azul (Perímetro / 3 Puntos):</strong>
-                <span className="text-xs text-cyan-300 font-mono">Línea horizontal superior interna • 5–10 cm del borde</span>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-cyan-400 shrink-0" />
-          </div>
-        </div>
+            <text x="820" y="475" fill="#4ade80">ZONA</text>
+            <text x="820" y="486" fill="#4ade80">AZUL</text>
+            <text x="815" y="497" fill="#4ade80">(Impacto</text>
+            <text x="817" y="508" fill="#4ade80">Interior)</text>
+          </g>
 
+          {/* FIRMA DE TELEMETRÍA EN PIE DE PÁGINA */}
+          <text x="720" y="588" fill="#475569" fontSize="10" fontFamily="monospace">
+            TELEMETRY LAB // Prof. Marcos Delgado
+          </text>
+        </svg>
       </div>
+
+      {/* TARJETAS GLASS INFERIORES: EXPLICACIÓN DE IMPACTO */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+        <div 
+          onClick={() => setActiveZone('green')}
+          className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+            activeZone === 'green'
+              ? 'bg-emerald-500/15 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+              : 'bg-[#0c1322] border-[#1b263b] text-slate-300 hover:border-emerald-500/40'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="w-4 h-4 rounded-full bg-[#00ff66] shadow-[0_0_10px_#00ff66]" />
+            <div>
+              <strong className="text-white block text-xs font-bold font-sans">
+                Punto Verde (Media Distancia / Alas):
+              </strong>
+              <span className="text-[11px] text-emerald-300 font-mono">
+                Esquina exterior superior del recuadro chico
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => setActiveZone('blue')}
+          className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+            activeZone === 'blue'
+              ? 'bg-cyan-500/15 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.25)]'
+              : 'bg-[#0c1322] border-[#1b263b] text-slate-300 hover:border-cyan-500/40'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="w-4 h-4 rounded-full bg-[#00b0ff] shadow-[0_0_10px_#00b0ff]" />
+            <div>
+              <strong className="text-white block text-xs font-bold font-sans">
+                Punto Azul (Triples / Perímetro):
+              </strong>
+              <span className="text-[11px] text-cyan-300 font-mono">
+                Línea horizontal superior (5–10 cm hacia adentro)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
