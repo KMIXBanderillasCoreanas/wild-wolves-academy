@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Target, 
   Sparkles, 
@@ -14,7 +14,8 @@ import {
   Layers,
   Eye,
   Compass,
-  Crosshair
+  Crosshair,
+  Move
 } from 'lucide-react';
 
 export interface TacticalZoneData {
@@ -29,7 +30,6 @@ export interface TacticalZoneData {
   percentile: string;
   releaseTime: string;
   notes: string;
-  // Metadatos biomecánicos Stitch 14342678165460180381
   footPosition: { x: number; y: number; angle: number; label: string };
   laserTrajectory: { startX: number; startY: number; endX: number; endY: number };
   backboardTarget: { x: number; y: number; description: string; color: string };
@@ -41,205 +41,593 @@ export interface TacticalShotMapProps {
   jerseyNumber?: string | number;
   category?: string;
   overallOvr?: number;
+  shootingPercentage?: number;
   initialZone?: string;
 }
 
-const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
-  'paint': {
-    title: 'Línea Libre / Pintura',
-    cluster: 'Clúster Central - Penetración & Tiro en Suspensión',
-    tier: 'MÁXIMA EFICACIA',
-    tierColor: 'bg-red-950/80 text-red-400 border-red-700/60 shadow-[0_0_8px_rgba(239,68,68,0.4)]',
-    percentage: '100%',
-    ratio: '10 / 10',
-    points: '20 PTS',
-    shotType: 'Tiro en Suspensión / Flotadora',
-    percentile: 'ÉLITE (Percentil 96)',
-    releaseTime: '0.72 seg (Óptimo)',
-    notes: 'Máxima agresividad atacando el aro; soltura de muñeca impecable y lectura de defensa cerrada con cambio de ritmo en el Deportivo Carmen Serdán.',
-    footPosition: { x: 250, y: 220, angle: 0, label: 'Línea de Tiro Libre Central' },
-    laserTrajectory: { startX: 250, startY: 215, endX: 250, endY: 72 },
-    backboardTarget: { x: 50, y: 50, description: 'Directo al centro del aro (Swish limpio sin tabla)', color: '#FF6B00' },
-    biomechanicsTips: [
-      'Pies paralelos a la anchura de hombros, pie dominante adelantado 5 cm.',
-      'Codo a 90° alineado con la rodilla y el centro del aro.',
-      'Parábola de entrada de 48° para maximizar área efectiva del aro.'
-    ]
-  },
-  'mid-left': {
-    title: 'Media Distancia Codo Izquierdo',
-    cluster: 'Zona Media / Salida Pick & Roll',
-    tier: 'IMPECABLE',
-    tierColor: 'bg-red-950/80 text-red-400 border-red-700/60 shadow-[0_0_8px_rgba(239,68,68,0.4)]',
-    percentage: '100%',
-    ratio: '10 / 10',
-    points: '20 PTS',
-    shotType: 'Pull-up Jumper tras drible lateral',
-    percentile: 'ÉLITE (Percentil 94)',
-    releaseTime: '0.69 seg (Rápido)',
-    notes: 'Mecánica de codo a 90 grados muy estable. Desaceleración en un tiempo sin perder el eje vertical.',
-    footPosition: { x: 120, y: 150, angle: 35, label: 'Codo Izquierdo 45°' },
-    laserTrajectory: { startX: 125, startY: 145, endX: 242, endY: 65 },
-    backboardTarget: { x: 38, y: 35, description: 'Vértice superior izquierdo del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
-    biomechanicsTips: [
-      'Orientar pie izquierdo hacia el tablero antes de la batida.',
-      'Apuntar al cuadrado superior izquierdo del cristal para rebote amortiguado.',
-      'Extensión completa de la muñeca sin rotación lateral.'
-    ]
-  },
-  'mid-right': {
-    title: 'Media Distancia Codo Derecho',
-    cluster: 'Zona Media / Aislamiento Directo',
-    tier: 'IMPECABLE',
-    tierColor: 'bg-red-950/80 text-red-400 border-red-700/60 shadow-[0_0_8px_rgba(239,68,68,0.4)]',
-    percentage: '100%',
-    ratio: '10 / 10',
-    points: '20 PTS',
-    shotType: 'Fadeaway corto / Step-back',
-    percentile: 'ÉLITE (Percentil 95)',
-    releaseTime: '0.71 seg (Equilibrado)',
-    notes: 'Excelente elevación superando defensores altos de la Liga CDMX. La rotación hacia atrás de balón genera rebotes dóciles.',
-    footPosition: { x: 380, y: 150, angle: -35, label: 'Codo Derecho 45°' },
-    laserTrajectory: { startX: 375, startY: 145, endX: 258, endY: 65 },
-    backboardTarget: { x: 62, y: 35, description: 'Vértice superior derecho del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
-    biomechanicsTips: [
-      'Frenado en dos tiempos: pie derecho clava y pie izquierdo nivela el tiro.',
-      'Impacto en la esquina superior derecha del recuadro para entrada al 100%.',
-      'Rotación hacia atrás constante (Backspin de 2.5 rev/seg).'
-    ]
-  },
-  'top-key': {
-    title: 'Triple 3P Top Key',
-    cluster: 'Perímetro Frontal',
-    tier: 'ALTO RENDIMIENTO',
-    tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
-    percentage: '80%',
-    ratio: '4 / 5',
-    points: '12 PTS',
-    shotType: 'Catch & Shoot con pies asentados',
-    percentile: 'AVANZADO (Percentil 88)',
-    releaseTime: '0.74 seg',
-    notes: 'Arco alto con más de 48 grados de entrada al aro. Es su tiro de confianza para romper defensas de zona 2-3.',
-    footPosition: { x: 250, y: 410, angle: 0, label: 'Cúspide Central Triple 6.75m' },
-    laserTrajectory: { startX: 250, startY: 400, endX: 250, endY: 72 },
-    backboardTarget: { x: 50, y: 55, description: 'Centro de aro con entrada vertical de 50°', color: '#FF6B00' },
-    biomechanicsTips: [
-      'Generación de fuerza desde gemelos y caderas (Doble flexión armónica).',
-      'El balón sube en línea recta sin cruzar el eje de la cara.',
-      'Sostener el seguimiento (Follow-through) con la muñeca quebrada hasta el bote.'
-    ]
-  },
-  'wing-left': {
-    title: 'Triple 3P Ala Izquierda',
-    cluster: 'Perímetro 45 Grados Flanco Izquierdo',
-    tier: 'CONSISTENTE',
-    tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
-    percentage: '60%',
-    ratio: '3 / 5',
-    points: '9 PTS',
-    shotType: 'Recepción en transición abierta',
-    percentile: 'SOBRESALIENTE (Percentil 79)',
-    releaseTime: '0.76 seg',
-    notes: 'Trabajar en mantener los hombros alineados hacia la canasta cuando llega en carrera diagonal por la banda.',
-    footPosition: { x: 85, y: 340, angle: 30, label: 'Ala Perimetral 45° Izq' },
-    laserTrajectory: { startX: 90, startY: 330, endX: 245, endY: 72 },
-    backboardTarget: { x: 42, y: 52, description: 'Entrada directa con vista limpia del cilindro', color: '#F59E0B' },
-    biomechanicsTips: [
-      'Rotar los hombros en el aire 10° para encarar el tablero perpendicularmente.',
-      'Asegurar apoyo del dedo índice en la válvula para espín equilibrado.',
-      'Soltura antes del descenso para no perder energía de salto.'
-    ]
-  },
-  'wing-right': {
-    title: 'Triple 3P Ala Derecha',
-    cluster: 'Perímetro 45 Grados Flanco Derecho',
-    tier: 'CONSISTENTE',
-    tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
-    percentage: '60%',
-    ratio: '3 / 5',
-    points: '9 PTS',
-    shotType: 'Pick & Pop Perimetral',
-    percentile: 'SOBRESALIENTE (Percentil 81)',
-    releaseTime: '0.75 seg',
-    notes: 'Gran lectura cuando la defensa colapsa hacia la pintura. Excelente timing con el base creador.',
-    footPosition: { x: 415, y: 340, angle: -30, label: 'Ala Perimetral 45° Der' },
-    laserTrajectory: { startX: 410, startY: 330, endX: 255, endY: 72 },
-    backboardTarget: { x: 58, y: 52, description: 'Entrada directa al cilindro', color: '#F59E0B' },
-    biomechanicsTips: [
-      'Pie izquierdo como pivote de carga para alineación instantánea.',
-      'Mano no dominante solo guía y se separa a 10 cm antes de la soltura.',
-      'Aterrizar exactamente sobre el mismo punto de elevación.'
-    ]
-  },
-  'corner-left': {
-    title: 'Triple 3P Esquina Izquierda',
-    cluster: 'Esquina Corta / Baseline',
-    tier: 'CALIBRACIÓN CONTINUA',
-    tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
-    percentage: '60%',
-    ratio: '3 / 5',
-    points: '9 PTS',
-    shotType: 'Corner Spot-up sin bote',
-    percentile: 'COMPETITIVO (Percentil 74)',
-    releaseTime: '0.68 seg',
-    notes: 'Cuidado con pisar la línea lateral al recibir balones rápidos en la esquina. Buena parábola y foco.',
-    footPosition: { x: 25, y: 90, angle: 90, label: 'Esquina Corta 0° Izq' },
-    laserTrajectory: { startX: 35, startY: 90, endX: 235, endY: 72 },
-    backboardTarget: { x: 30, y: 55, description: 'Sin apoyo de tablero: swish estricto', color: '#10B981' },
-    biomechanicsTips: [
-      'Colocación del talón a 15 cm de la línea de banda (evitar pisar fuera).',
-      'Arco más pronunciado (52°) por falta de tablero como respaldo.',
-      'Mirada fija en la parte frontal del aro.'
-    ]
-  },
-  'corner-right': {
-    title: 'Triple 3P Esquina Derecha',
-    cluster: 'Esquina Corta / Baseline Débil',
-    tier: 'EN AJUSTE TÁCTICO',
-    tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
-    percentage: '40%',
-    ratio: '2 / 5',
-    points: '6 PTS',
-    shotType: 'Corner Jumper bajo presión',
-    percentile: 'REGULAR (Percentil 58)',
-    releaseTime: '0.82 seg',
-    notes: 'Tendencia a empujar con el pulgar de apoyo en esta esquina. Se programaron 50 repeticiones extra para corregir balance.',
-    footPosition: { x: 475, y: 90, angle: -90, label: 'Esquina Corta 0° Der' },
-    laserTrajectory: { startX: 465, startY: 90, endX: 265, endY: 72 },
-    backboardTarget: { x: 70, y: 55, description: 'Sin apoyo de tablero: entrada limpia', color: '#06B6D4' },
-    biomechanicsTips: [
-      'Ajustar el pulgar de apoyo para no desviar la trayectoria a la derecha.',
-      'Mantener la espalda erguida en la caída sin desvanecer hacia atrás.',
-      'Mayor velocidad de batida (subir en un solo compás).'
-    ]
+// Generador dinámico de datos de zona según el atleta seleccionado
+export function getZoneDataForAthlete(athleteName: string = '', overallPct: number = 60): Record<string, TacticalZoneData> {
+  const nLow = athleteName.toLowerCase();
+  const isJesus = nLow.includes('jesús') || nLow.includes('jesus');
+  const isIsaac = nLow.includes('isaac');
+
+  if (isJesus) {
+    // Jesús (OVR 52, 24% efectividad global, 12 de 50 totales)
+    return {
+      'paint': {
+        title: 'Línea Libre / Pintura (Zona 1)',
+        cluster: 'Zona de Definición Interior & Tiros Libres',
+        tier: 'EN DESARROLLO',
+        tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
+        percentage: '40%',
+        ratio: '4 / 10',
+        points: '8 PTS',
+        shotType: 'Tiro Libre Directo / Flotadora',
+        percentile: 'BÁSICO (Percentil 45)',
+        releaseTime: '0.88 seg',
+        notes: 'Consistencia en fase inicial. Apoyo en metatarsos y buen seguimiento tras la soltura. Requiere mayor arco de entrada.',
+        footPosition: { x: 250, y: 220, angle: 0, label: 'Línea Libre 4.60m' },
+        laserTrajectory: { startX: 250, startY: 215, endX: 250, endY: 72 },
+        backboardTarget: { x: 50, y: 50, description: 'Directo al centro del aro (Swish limpio sin tocar tabla)', color: '#FF6B00' },
+        biomechanicsTips: [
+          'Pies paralelos a la anchura de hombros, pie derecho adelantado 4 cm.',
+          'Codo a 90° alineado perpendicular con el centro del aro.',
+          'Extensión total del brazo buscando un arco de entrada de 48°.'
+        ]
+      },
+      'mid-left': {
+        title: 'Media Distancia Codo Izquierdo',
+        cluster: 'Salida de Bloqueo / Flanco Izquierdo',
+        tier: 'REGULAR',
+        tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
+        percentage: '30%',
+        ratio: '3 / 10',
+        points: '6 PTS',
+        shotType: 'Pull-up Jumper en 2 tiempos',
+        percentile: 'BÁSICO (Percentil 40)',
+        releaseTime: '0.85 seg',
+        notes: 'Alineación de pies correcta al recibir el balón. Ajustar la desaceleración frontal para no quedar corto.',
+        footPosition: { x: 120, y: 150, angle: 35, label: 'Codo Izquierdo 45°' },
+        laserTrajectory: { startX: 125, startY: 145, endX: 242, endY: 65 },
+        backboardTarget: { x: 38, y: 35, description: 'Vértice superior izquierdo del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+        biomechanicsTips: [
+          'Orientar hombros al tablero antes de iniciar la batida de salto.',
+          'Apuntar al cuadrado superior izquierdo para rebote suave.',
+          'Caída equilibrada sobre ambos pies para proteger articulaciones.'
+        ]
+      },
+      'mid-right': {
+        title: 'Media Distancia Codo Derecho',
+        cluster: 'Flanco Fuerte / Tiro Tras Bote',
+        tier: 'CALIBRANDO',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '20%',
+        ratio: '2 / 10',
+        points: '4 PTS',
+        shotType: 'Catch & Shoot con parada',
+        percentile: 'BÁSICO (Percentil 35)',
+        releaseTime: '0.89 seg',
+        notes: 'Tiende a soltar con velocidad variable. Mejorar la sincronía entre el salto y la palanca del brazo.',
+        footPosition: { x: 380, y: 150, angle: -35, label: 'Codo Derecho 45°' },
+        laserTrajectory: { startX: 375, startY: 145, endX: 258, endY: 65 },
+        backboardTarget: { x: 62, y: 35, description: 'Vértice superior derecho del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+        biomechanicsTips: [
+          'Frenado en dos tiempos: pie derecho clava y pie izquierdo equilibra.',
+          'Impacto en la esquina superior derecha del recuadro para entrada efectiva.',
+          'Mantener la mirada en el aro hasta que el balón toque la red.'
+        ]
+      },
+      'top-key': {
+        title: 'Triple 3P Cúspide Frontal',
+        cluster: 'Perímetro 6.75m Central',
+        tier: 'RANGO EN DESARROLLO',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '20%',
+        ratio: '1 / 5',
+        points: '3 PTS',
+        shotType: 'Tiro de Larga Distancia',
+        percentile: 'INICIAL (Percentil 30)',
+        releaseTime: '0.94 seg',
+        notes: 'Generación de impulso desde cadera y piernas. Faltan repeticiones de sobrecarga para fijar distancia.',
+        footPosition: { x: 250, y: 410, angle: 0, label: 'Cúspide Central Triple 6.75m' },
+        laserTrajectory: { startX: 250, startY: 400, endX: 250, endY: 72 },
+        backboardTarget: { x: 50, y: 55, description: 'Entrada limpia directa sin tabla', color: '#10B981' },
+        biomechanicsTips: [
+          'Mayor flexión de rodillas a 110° para transferir fuerza al balón.',
+          'Subir el balón continuo sin pausas intermedias frente al pecho.',
+          'Muñeca quebrada en el punto más alto del salto.'
+        ]
+      },
+      'wing-left': {
+        title: 'Triple 3P Ala Izquierda',
+        cluster: 'Perímetro 45° Izq',
+        tier: 'INICIACIÓN',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '20%',
+        ratio: '1 / 5',
+        points: '3 PTS',
+        shotType: 'Spot-up en esquina abierta',
+        percentile: 'INICIAL (Percentil 28)',
+        releaseTime: '0.92 seg',
+        notes: 'Rotar hombros hacia el aro antes de soltar. Gran actitud y progreso continuo.',
+        footPosition: { x: 85, y: 340, angle: 30, label: 'Ala Izq 45°' },
+        laserTrajectory: { startX: 90, startY: 330, endX: 245, endY: 72 },
+        backboardTarget: { x: 42, y: 52, description: 'Directo al cilindro con vista limpia', color: '#10B981' },
+        biomechanicsTips: [
+          'Alinear pie de apoyo con la bisectriz del tablero.',
+          'Evitar inclinar el torso hacia atrás durante el despegue.',
+          'Sostener el follow-through 1 segundo tras la soltura.'
+        ]
+      },
+      'wing-right': {
+        title: 'Triple 3P Ala Derecha',
+        cluster: 'Perímetro 45° Der',
+        tier: 'INICIACIÓN',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '20%',
+        ratio: '1 / 5',
+        points: '3 PTS',
+        shotType: 'Catch & Shoot',
+        percentile: 'INICIAL (Percentil 30)',
+        releaseTime: '0.91 seg',
+        notes: 'Mano de apoyo sale a tiempo. Calibrar altura del balón antes del tiro.',
+        footPosition: { x: 415, y: 340, angle: -30, label: 'Ala Der 45°' },
+        laserTrajectory: { startX: 410, startY: 330, endX: 255, endY: 72 },
+        backboardTarget: { x: 58, y: 52, description: 'Entrada directa al aro', color: '#10B981' },
+        biomechanicsTips: [
+          'Pies firmes en el suelo antes de recibir el pase.',
+          'No empujar con el pulgar de la mano izquierda.',
+          'Caída equilibrada sobre ambos pies.'
+        ]
+      },
+      'corner-left': {
+        title: 'Triple 3P Esquina Izquierda',
+        cluster: 'Línea de Fondo Corta',
+        tier: 'EN PRÁCTICA',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '0%',
+        ratio: '0 / 2',
+        points: '0 PTS',
+        shotType: 'Corner Spot-up',
+        percentile: 'INICIAL (Percentil 25)',
+        releaseTime: '0.95 seg',
+        notes: 'Ángulo sin tablero requiere mayor curva y parábola de elevación.',
+        footPosition: { x: 25, y: 90, angle: 90, label: 'Esquina 0° Izq' },
+        laserTrajectory: { startX: 35, startY: 90, endX: 235, endY: 72 },
+        backboardTarget: { x: 30, y: 55, description: 'Sin apoyo de tablero: entrada limpia vertical', color: '#06B6D4' },
+        biomechanicsTips: [
+          'Separarse 20 cm de la línea lateral.',
+          'Arco alto a 52° de parábola.',
+          'Foco visual en la pestaña delantera del aro.'
+        ]
+      },
+      'corner-right': {
+        title: 'Triple 3P Esquina Derecha',
+        cluster: 'Línea de Fondo Corta',
+        tier: 'EN PRÁCTICA',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '0%',
+        ratio: '0 / 3',
+        points: '0 PTS',
+        shotType: 'Corner Spot-up',
+        percentile: 'INICIAL (Percentil 25)',
+        releaseTime: '0.96 seg',
+        notes: 'Entrenar rutina de 20 tiros diarios en esta esquina.',
+        footPosition: { x: 475, y: 90, angle: -90, label: 'Esquina 0° Der' },
+        laserTrajectory: { startX: 465, startY: 90, endX: 265, endY: 72 },
+        backboardTarget: { x: 70, y: 55, description: 'Sin apoyo de tablero: entrada limpia', color: '#06B6D4' },
+        biomechanicsTips: [
+          'Ajustar muñeca hacia el centro del cilindro.',
+          'No precipitar el salto con la carrera previa.',
+          'Respiración rítmica antes del tiro.'
+        ]
+      }
+    };
   }
-};
+
+  if (isIsaac) {
+    // Isaac (OVR 50, 16% efectividad global, 8 de 50 totales)
+    return {
+      'paint': {
+        title: 'Línea Libre / Pintura (Zona 1)',
+        cluster: 'Zona de Definición Interior & Tiros Libres',
+        tier: 'EN ADAPTACIÓN',
+        tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
+        percentage: '30%',
+        ratio: '3 / 10',
+        points: '6 PTS',
+        shotType: 'Tiro Libre Directo / Media Pintura',
+        percentile: 'INICIACIÓN (Percentil 35)',
+        releaseTime: '0.92 seg',
+        notes: 'Constancia motriz en evolución. Mecánica de tiro con buena base, requiere mayor repetición para consolidar memoria muscular.',
+        footPosition: { x: 250, y: 220, angle: 0, label: 'Línea Libre 4.60m' },
+        laserTrajectory: { startX: 250, startY: 215, endX: 250, endY: 72 },
+        backboardTarget: { x: 50, y: 50, description: 'Directo al centro del aro (Swish limpio)', color: '#FF6B00' },
+        biomechanicsTips: [
+          'Apoyo simétrico en metatarsos sin cargar el talón.',
+          'Pies alineados con el centro del aro.',
+          'Seguimiento prolongado de muñeca para rotación óptima de balón.'
+        ]
+      },
+      'mid-left': {
+        title: 'Media Distancia Codo Izquierdo',
+        cluster: 'Media Distancia / Flanco Izquierdo',
+        tier: 'INICIACIÓN',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '20%',
+        ratio: '2 / 10',
+        points: '4 PTS',
+        shotType: 'Jumper en 2 tiempos',
+        percentile: 'BÁSICO (Percentil 30)',
+        releaseTime: '0.90 seg',
+        notes: 'Frenado controlado. Desarrollar mayor elevación vertical sin desplazamiento hacia el frente.',
+        footPosition: { x: 120, y: 150, angle: 35, label: 'Codo Izquierdo 45°' },
+        laserTrajectory: { startX: 125, startY: 145, endX: 242, endY: 65 },
+        backboardTarget: { x: 38, y: 35, description: 'Vértice superior izquierdo del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+        biomechanicsTips: [
+          'Girar cadera y hombros alineados al aro en el aire.',
+          'Apuntar a la esquina superior del recuadro interior.',
+          'Aterrizar suave absorbiendo impacto con rodillas flexionadas.'
+        ]
+      },
+      'mid-right': {
+        title: 'Media Distancia Codo Derecho',
+        cluster: 'Media Distancia / Flanco Derecho',
+        tier: 'INICIACIÓN',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '10%',
+        ratio: '1 / 10',
+        points: '2 PTS',
+        shotType: 'Catch & Shoot corto',
+        percentile: 'INICIACIÓN (Percentil 25)',
+        releaseTime: '0.94 seg',
+        notes: 'Trabajo específico de codo a 90 grados para evitar que el balón salga desbalanceado.',
+        footPosition: { x: 380, y: 150, angle: -35, label: 'Codo Derecho 45°' },
+        laserTrajectory: { startX: 375, startY: 145, endX: 258, endY: 65 },
+        backboardTarget: { x: 62, y: 35, description: 'Vértice superior derecho del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+        biomechanicsTips: [
+          'No empujar con la mano guía (mano izquierda quieta).',
+          'Impulso sincronizado de tobillos y rodillas.',
+          'Punto de impacto claro en el ángulo superior del tablero.'
+        ]
+      },
+      'top-key': {
+        title: 'Triple 3P Cúspide Frontal',
+        cluster: 'Perímetro 6.75m Central',
+        tier: 'EN DESARROLLO',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '20%',
+        ratio: '1 / 5',
+        points: '3 PTS',
+        shotType: 'Tiro de Larga Distancia',
+        percentile: 'INICIACIÓN (Percentil 28)',
+        releaseTime: '0.95 seg',
+        notes: 'Gran energía en duela. Ejercicios con balón medicinal aumentarán la potencia de tiro perimetral.',
+        footPosition: { x: 250, y: 410, angle: 0, label: 'Cúspide Central Triple 6.75m' },
+        laserTrajectory: { startX: 250, startY: 400, endX: 250, endY: 72 },
+        backboardTarget: { x: 50, y: 55, description: 'Entrada limpia directa sin tabla', color: '#10B981' },
+        biomechanicsTips: [
+          'Mayor flexión de cadera y rodillas al recibir.',
+          'Subir el tiro por la línea media del cuerpo.',
+          'Dejar la mano arriba hasta que la pelota descienda.'
+        ]
+      },
+      'wing-left': {
+        title: 'Triple 3P Ala Izquierda',
+        cluster: 'Perímetro 45° Izq',
+        tier: 'CALIBRANDO',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '20%',
+        ratio: '1 / 5',
+        points: '3 PTS',
+        shotType: 'Spot-up en transición',
+        percentile: 'INICIACIÓN (Percentil 25)',
+        releaseTime: '0.93 seg',
+        notes: 'Parada previa al tiro bien plantada. Fortalecer muñeca para mayor arco.',
+        footPosition: { x: 85, y: 340, angle: 30, label: 'Ala Izq 45°' },
+        laserTrajectory: { startX: 90, startY: 330, endX: 245, endY: 72 },
+        backboardTarget: { x: 42, y: 52, description: 'Directo al cilindro con vista limpia', color: '#10B981' },
+        biomechanicsTips: [
+          'Cargar el peso en el metatarso antes del salto.',
+          'Orientar el torso hacia el aro en el punto cero.',
+          'Evitar torsión del cuello al tirar.'
+        ]
+      },
+      'wing-right': {
+        title: 'Triple 3P Ala Derecha',
+        cluster: 'Perímetro 45° Der',
+        tier: 'EN PRÁCTICA',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '0%',
+        ratio: '0 / 5',
+        points: '0 PTS',
+        shotType: 'Catch & Shoot',
+        percentile: 'INICIAL (Percentil 20)',
+        releaseTime: '0.97 seg',
+        notes: 'Paciencia en la recepción. Trabajar en rutina guiada de 10 lanzamientos consecutivos.',
+        footPosition: { x: 415, y: 340, angle: -30, label: 'Ala Der 45°' },
+        laserTrajectory: { startX: 410, startY: 330, endX: 255, endY: 72 },
+        backboardTarget: { x: 58, y: 52, description: 'Entrada limpia al aro', color: '#10B981' },
+        biomechanicsTips: [
+          'Concentración en el punto de contacto de los dedos.',
+          'No acelerar el disparo sin plantar los pies.',
+          'Mantener la línea visual fija.'
+        ]
+      },
+      'corner-left': {
+        title: 'Triple 3P Esquina Izquierda',
+        cluster: 'Línea de Fondo Corta',
+        tier: 'EN PRÁCTICA',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '0%',
+        ratio: '0 / 2',
+        points: '0 PTS',
+        shotType: 'Corner Spot-up',
+        percentile: 'INICIAL (Percentil 20)',
+        releaseTime: '0.98 seg',
+        notes: 'Ajuste del arco necesario.',
+        footPosition: { x: 25, y: 90, angle: 90, label: 'Esquina 0° Izq' },
+        laserTrajectory: { startX: 35, startY: 90, endX: 235, endY: 72 },
+        backboardTarget: { x: 30, y: 55, description: 'Sin apoyo de tablero: entrada limpia', color: '#06B6D4' },
+        biomechanicsTips: [
+          'Arco de 50° obligatorio.',
+          'Equilibrio sin pisar la línea.',
+          'Pies a 90° respecto a la línea lateral.'
+        ]
+      },
+      'corner-right': {
+        title: 'Triple 3P Esquina Derecha',
+        cluster: 'Línea de Fondo Corta',
+        tier: 'EN PRÁCTICA',
+        tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60 shadow-[0_0_8px_rgba(6,182,212,0.4)]',
+        percentage: '0%',
+        ratio: '0 / 3',
+        points: '0 PTS',
+        shotType: 'Corner Spot-up',
+        percentile: 'INICIAL (Percentil 20)',
+        releaseTime: '0.99 seg',
+        notes: 'Plan de mejora con 30 tiros por sesión en esta esquina.',
+        footPosition: { x: 475, y: 90, angle: -90, label: 'Esquina 0° Der' },
+        laserTrajectory: { startX: 465, startY: 90, endX: 265, endY: 72 },
+        backboardTarget: { x: 70, y: 55, description: 'Sin apoyo de tablero: entrada limpia', color: '#06B6D4' },
+        biomechanicsTips: [
+          'Soltura suave con muñeca recta.',
+          'Caída en el mismo sitio.',
+          'Buen balance de hombros.'
+        ]
+      }
+    };
+  }
+
+  // Plantilla general para demás atletas
+  const basePct = overallPct || 60;
+  return {
+    'paint': {
+      title: 'Línea Libre / Pintura (Zona 1)',
+      cluster: 'Zona de Definición Interior & Tiros Libres',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'CONSISTENTE',
+      tierColor: basePct >= 70 ? 'bg-red-950/80 text-red-400 border-red-700/60' : 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.min(100, Math.round(basePct * 1.25))}%`,
+      ratio: `${Math.round((basePct * 1.25) / 10)} / 10`,
+      points: '16 PTS',
+      shotType: 'Tiro Libre Directo / Flotadora',
+      percentile: 'COMPETITIVO (Percentil 75)',
+      releaseTime: '0.74 seg',
+      notes: 'Buen ritmo y balance en la pintura en el Deportivo Carmen Serdán.',
+      footPosition: { x: 250, y: 220, angle: 0, label: 'Línea Libre 4.60m' },
+      laserTrajectory: { startX: 250, startY: 215, endX: 250, endY: 72 },
+      backboardTarget: { x: 50, y: 50, description: 'Directo al centro del aro (Swish limpio)', color: '#FF6B00' },
+      biomechanicsTips: [
+        'Pies paralelos a la anchura de hombros.',
+        'Codo a 90° alineado con la rodilla y el centro del aro.',
+        'Parábola de entrada de 48° para maximizar área efectiva del aro.'
+      ]
+    },
+    'mid-left': {
+      title: 'Media Distancia Codo Izquierdo',
+      cluster: 'Zona Media / Salida Pick & Roll',
+      tier: 'EFICAZ',
+      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.round(basePct * 0.9)}%`,
+      ratio: `${Math.round((basePct * 0.9) / 10)} / 10`,
+      points: '12 PTS',
+      shotType: 'Pull-up Jumper',
+      percentile: 'COMPETITIVO (Percentil 70)',
+      releaseTime: '0.76 seg',
+      notes: 'Mecánica de codo a 90 grados estable.',
+      footPosition: { x: 120, y: 150, angle: 35, label: 'Codo Izquierdo 45°' },
+      laserTrajectory: { startX: 125, startY: 145, endX: 242, endY: 65 },
+      backboardTarget: { x: 38, y: 35, description: 'Vértice superior izquierdo del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+      biomechanicsTips: [
+        'Orientar pie izquierdo hacia el tablero antes de la batida.',
+        'Apuntar al cuadrado superior izquierdo para rebote amortiguado.',
+        'Extensión completa de la muñeca sin rotación lateral.'
+      ]
+    },
+    'mid-right': {
+      title: 'Media Distancia Codo Derecho',
+      cluster: 'Zona Media / Aislamiento Directo',
+      tier: 'EFICAZ',
+      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.round(basePct * 0.9)}%`,
+      ratio: `${Math.round((basePct * 0.9) / 10)} / 10`,
+      points: '12 PTS',
+      shotType: 'Fadeaway corto / Step-back',
+      percentile: 'COMPETITIVO (Percentil 72)',
+      releaseTime: '0.75 seg',
+      notes: 'Buena elevación superando defensores.',
+      footPosition: { x: 380, y: 150, angle: -35, label: 'Codo Derecho 45°' },
+      laserTrajectory: { startX: 375, startY: 145, endX: 258, endY: 65 },
+      backboardTarget: { x: 62, y: 35, description: 'Vértice superior derecho del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+      biomechanicsTips: [
+        'Frenado en dos tiempos: pie derecho clava y pie izquierdo nivela.',
+        'Impacto en la esquina superior derecha del recuadro interior.',
+        'Rotación hacia atrás constante (Backspin continuo).'
+      ]
+    },
+    'top-key': {
+      title: 'Triple 3P Top Key',
+      cluster: 'Perímetro Frontal',
+      tier: 'CONSISTENTE',
+      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.round(basePct * 0.8)}%`,
+      ratio: `${Math.max(1, Math.round((basePct * 0.8) / 20))} / 5`,
+      points: '9 PTS',
+      shotType: 'Catch & Shoot',
+      percentile: 'REGULAR (Percentil 65)',
+      releaseTime: '0.78 seg',
+      notes: 'Arco alto con más de 48 grados de entrada al aro.',
+      footPosition: { x: 250, y: 410, angle: 0, label: 'Cúspide Central Triple 6.75m' },
+      laserTrajectory: { startX: 250, startY: 400, endX: 250, endY: 72 },
+      backboardTarget: { x: 50, y: 55, description: 'Centro de aro con entrada vertical', color: '#10B981' },
+      biomechanicsTips: [
+        'Generación de fuerza desde piernas y caderas.',
+        'El balón sube en línea recta.',
+        'Sostener el follow-through con la muñeca quebrada.'
+      ]
+    },
+    'wing-left': {
+      title: 'Triple 3P Ala Izquierda',
+      cluster: 'Perímetro 45° Flanco Izquierdo',
+      tier: 'EN PROGRESO',
+      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.round(basePct * 0.75)}%`,
+      ratio: `${Math.max(1, Math.round((basePct * 0.75) / 20))} / 5`,
+      points: '6 PTS',
+      shotType: 'Recepción abierta',
+      percentile: 'REGULAR (Percentil 60)',
+      releaseTime: '0.80 seg',
+      notes: 'Mantener hombros orientados hacia la canasta.',
+      footPosition: { x: 85, y: 340, angle: 30, label: 'Ala Perimetral 45° Izq' },
+      laserTrajectory: { startX: 90, startY: 330, endX: 245, endY: 72 },
+      backboardTarget: { x: 42, y: 52, description: 'Entrada directa con vista limpia del cilindro', color: '#10B981' },
+      biomechanicsTips: [
+        'Rotar hombros en el aire para encarar el aro perpendicular.',
+        'Dedo índice en la válvula.',
+        'Soltura limpia en la cúspide del salto.'
+      ]
+    },
+    'wing-right': {
+      title: 'Triple 3P Ala Derecha',
+      cluster: 'Perímetro 45° Flanco Derecho',
+      tier: 'EN PROGRESO',
+      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.round(basePct * 0.75)}%`,
+      ratio: `${Math.max(1, Math.round((basePct * 0.75) / 20))} / 5`,
+      points: '6 PTS',
+      shotType: 'Pick & Pop Perimetral',
+      percentile: 'REGULAR (Percentil 62)',
+      releaseTime: '0.79 seg',
+      notes: 'Buena lectura de desmarque perimetral.',
+      footPosition: { x: 415, y: 340, angle: -30, label: 'Ala Perimetral 45° Der' },
+      laserTrajectory: { startX: 410, startY: 330, endX: 255, endY: 72 },
+      backboardTarget: { x: 58, y: 52, description: 'Entrada directa al aro', color: '#10B981' },
+      biomechanicsTips: [
+        'Pie izquierdo como pivote de carga.',
+        'Mano guía no presiona el tiro.',
+        'Aterrizar con balance.'
+      ]
+    },
+    'corner-left': {
+      title: 'Triple 3P Esquina Izquierda',
+      cluster: 'Esquina Corta / Baseline',
+      tier: 'CALIBRACIÓN',
+      tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60',
+      percentage: `${Math.round(basePct * 0.6)}%`,
+      ratio: `${Math.max(1, Math.round((basePct * 0.6) / 20))} / 5`,
+      points: '6 PTS',
+      shotType: 'Corner Spot-up',
+      percentile: 'REGULAR (Percentil 55)',
+      releaseTime: '0.82 seg',
+      notes: 'Cuidado con pisar la línea lateral en la esquina.',
+      footPosition: { x: 25, y: 90, angle: 90, label: 'Esquina Corta 0° Izq' },
+      laserTrajectory: { startX: 35, startY: 90, endX: 235, endY: 72 },
+      backboardTarget: { x: 30, y: 55, description: 'Sin apoyo de tablero: swish estricto', color: '#06B6D4' },
+      biomechanicsTips: [
+        'Colocación del talón a 15 cm de la línea.',
+        'Arco de 52° sin tablero.',
+        'Foco visual en la pestaña delantera del aro.'
+      ]
+    },
+    'corner-right': {
+      title: 'Triple 3P Esquina Derecha',
+      cluster: 'Esquina Corta / Baseline Débil',
+      tier: 'EN AJUSTE',
+      tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60',
+      percentage: `${Math.round(basePct * 0.5)}%`,
+      ratio: `${Math.max(1, Math.round((basePct * 0.5) / 20))} / 5`,
+      points: '3 PTS',
+      shotType: 'Corner Jumper',
+      percentile: 'REGULAR (Percentil 50)',
+      releaseTime: '0.85 seg',
+      notes: 'Fortalecer trayectoria recta hacia el aro.',
+      footPosition: { x: 475, y: 90, angle: -90, label: 'Esquina Corta 0° Der' },
+      laserTrajectory: { startX: 465, startY: 90, endX: 265, endY: 72 },
+      backboardTarget: { x: 70, y: 55, description: 'Sin apoyo de tablero: entrada limpia', color: '#06B6D4' },
+      biomechanicsTips: [
+        'Ajustar el pulgar de apoyo.',
+        'Mantener la espalda erguida en la caída.',
+        'Ritmo continuo en la batida.'
+      ]
+    }
+  };
+}
 
 export default function TacticalCourtStitch({
-  athleteName = 'Mateo Silva',
-  jerseyNumber = '11',
-  category = 'Base / Escolta · U-17 Élite',
-  overallOvr = 88,
+  athleteName = 'Jesús',
+  jerseyNumber = '7',
+  category = 'Base / Escolta · U-15 Formativo',
+  overallOvr = 52,
+  shootingPercentage = 24,
   initialZone = 'paint'
 }: TacticalShotMapProps) {
   const [selectedZone, setSelectedZone] = useState<string>(initialZone);
-  const [courtMode, setCourtMode] = useState<'half' | 'full'>('half');
   const [sessionFilter, setSessionFilter] = useState<'all' | 'last_match' | 'practice'>('all');
   
-  // SWITCH DUAL: MODO EFECTIVIDAD % vs MODO GUÍA BIOMECÁNICA 100% (STITCH FUSIÓN)
+  // SWITCH DUAL: MODO EFECTIVIDAD % vs MODO GUÍA BIOMECÁNICA 100%
   const [tacticalViewMode, setTacticalViewMode] = useState<'effectiveness' | 'biomechanics'>('effectiveness');
   const [showBackboardZoom, setShowBackboardZoom] = useState<boolean>(true);
 
-  const currentData = DEFAULT_ZONE_DATA[selectedZone] || DEFAULT_ZONE_DATA['paint'];
+  // ESTADO PARA RECUADRO MOVIBLE (DRAGGABLE HUD)
+  const [hudPos, setHudPos] = useState<{ x: number; y: number }>({ x: 12, y: 12 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartRef = useRef<{ mouseX: number; mouseY: number; startX: number; startY: number }>({
+    mouseX: 0,
+    mouseY: 0,
+    startX: 12,
+    startY: 12
+  });
 
-  const getDynamicNotes = () => {
-    if (sessionFilter === 'last_match') {
-      return '"Excelente toma de decisiones contra el doble cerco de Halcones Dorados. Aprovechó el tiro tras cortina en el codo izquierdo."';
-    }
-    if (sessionFilter === 'practice') {
-      return '"Sesión técnica matutina enfocada en soltar el balón antes de alcanzar el vértice máximo del salto en Carmen Serdán."';
-    }
-    return `"${currentData.notes}"`;
+  const zoneDataMap = getZoneDataForAthlete(athleteName, shootingPercentage);
+  const currentData = zoneDataMap[selectedZone] || zoneDataMap['paint'];
+
+  // Manejadores de Arrastre (Mouse + Touch)
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      startX: hudPos.x,
+      startY: hudPos.y
+    };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - dragStartRef.current.mouseX;
+    const deltaY = e.clientY - dragStartRef.current.mouseY;
+    setHudPos({
+      x: Math.max(0, Math.min(340, dragStartRef.current.startX + deltaX)),
+      y: Math.max(0, Math.min(380, dragStartRef.current.startY + deltaY))
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
   };
 
   return (
@@ -300,7 +688,7 @@ export default function TacticalCourtStitch({
               onClick={() => setTacticalViewMode('biomechanics')}
               className={`px-3 py-1.5 rounded-xl text-xs font-black font-mono transition flex items-center gap-1.5 cursor-pointer ${
                 tacticalViewMode === 'biomechanics'
-                  ? 'bg-gradient-to-r from-cyan-600 to-[#06B6D4] text-black font-black shadow-[0_0_15px_rgba(6,182,212,0.5)]'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -309,81 +697,65 @@ export default function TacticalCourtStitch({
             </button>
           </div>
 
-          {/* Mini Perfil del Atleta */}
-          <div className="flex items-center gap-3 bg-[#101421] px-3.5 py-1.5 rounded-xl border border-[#1F2433]">
-            <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-[#1F2433] border-2 border-[#FF6B00] flex items-center justify-center font-mono font-black text-xs text-white">
-                #{jerseyNumber}
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#0B0E17]" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-white leading-none">{athleteName}</div>
-              <div className="text-[10px] text-slate-400 font-mono mt-0.5">{category}</div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-[#101421] border border-[#1F2433] rounded-xl text-xs font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-pulse" />
+              <span className="text-white font-bold">{overallOvr} OVR</span>
+              <span className="text-slate-500">·</span>
+              <span className="text-[#06B6D4] font-bold">{shootingPercentage}% Efec.</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BARRA DE CONTROL SECUNDARIA: SESIÓN & LEYENDA DEL MODO ACTIVO */}
-      <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#0B0E17]/80 p-3 rounded-2xl border border-[#1F2433] mb-6">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-3.5 h-3.5 text-[#06B6D4]" />
-          <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Sesión:</span>
-          <select
+      {/* FILTRO RÁPIDO DE SESIÓN & LEYENDA TÁCTICA */}
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 mb-6 bg-[#0B0E17]/80 p-3 rounded-2xl border border-[#1F2433]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-4 h-4 text-[#06B6D4]" />
+          <span className="text-xs font-mono font-bold text-slate-300">SESIÓN:</span>
+          <select 
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value as any)}
-            className="bg-[#131620] text-xs font-mono text-white rounded-lg border border-[#1F2433] focus:border-[#FF6B00] focus:outline-none py-1 px-2.5"
+            className="bg-[#121623] text-xs font-mono border border-[#1F2433] rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-[#FF6B00] cursor-pointer"
           >
-            <option value="all">Todos los Partidos (150 Tiros Totales)</option>
-            <option value="last_match">Último Encuentro vs Halcones Dorados CDMX</option>
-            <option value="practice">Práctica de Tiro Libre y Perímetro Especial</option>
+            <option value="all">Todos los Registros Oficiales (Duela CDMX)</option>
+            <option value="last_match">Último Partido Oficial</option>
+            <option value="practice">Entrenamiento Técnico</option>
           </select>
         </div>
 
-        {tacticalViewMode === 'effectiveness' ? (
-          <div className="flex items-center gap-4 text-xs font-mono flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-red-600/90 border border-red-500 shadow-[0_0_6px_#ef4444]" />
-              <span className="text-slate-300">100% Efectividad</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-amber-500/90 border border-amber-400 shadow-[0_0_6px_#f59e0b]" />
-              <span className="text-slate-300">60% - 80% Frecuente</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-cyan-700/80 border border-cyan-400" />
-              <span className="text-slate-300">≤ 40% En Ajuste</span>
-            </div>
+        {/* LEYENDA TÉRMICA */}
+        <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs font-mono flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#06B6D4]" />
+            <span className="text-slate-400">Fría (&lt;30%)</span>
           </div>
-        ) : (
-          <div className="flex items-center gap-4 text-xs font-mono flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-[#10B981] border border-emerald-400 shadow-[0_0_8px_#10B981]" />
-              <span className="text-emerald-300 font-bold">👣 Huellas de Posición Exacta</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#06B6D4] border border-cyan-300 shadow-[0_0_8px_#06B6D4]" />
-              <span className="text-cyan-300 font-bold">↗️ Láser de Trayectoria</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-[#FF6B00] border border-orange-400 shadow-[0_0_8px_#FF6B00]" />
-              <span className="text-orange-300 font-bold">🎯 Zoom Impacto en Tablero</span>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+            <span className="text-slate-400">Regular (30-50%)</span>
           </div>
-        )}
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#EA580C]" />
+            <span className="text-slate-400">Favorable (50-69%)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+            <span className="text-slate-400">Caliente (≥70%)</span>
+          </div>
+        </div>
       </div>
 
-      {/* GRID PRINCIPAL: DUELA VECTORIAL + PANEL TELEMÉTRICO / BIOMECÁNICO */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* COLUMNA 1: DUELA VECTORIAL FIBA FLORESCENTE CON MODO DUAL */}
+      {/* CONTENIDO PRINCIPAL: DUELA Y TELEMETRÍA */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+        
+        {/* COLUMNA 1: CANCHA TÁCTICA FIBA CON RESPLANDOR NEÓN */}
         <section className="lg:col-span-8 bg-[#0B0E17] border border-[#1F2433] rounded-3xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00]" />
               <span className="text-xs font-mono font-bold text-slate-300 tracking-wider uppercase">
                 {tacticalViewMode === 'effectiveness'
-                  ? 'VISTA: MAPA POLIGONAL DE EFECTIVIDAD (% DE TIRO EN DUELA)'
+                  ? `VISTA: MAPA DE TIRO DE ${athleteName.toUpperCase()} (${shootingPercentage}% EFECTIVIDAD)`
                   : 'VISTA: GUÍA BIOMECÁNICA (HUELLAS, TRAYECTORIAS Y TABLERO)'}
               </span>
             </div>
@@ -392,7 +764,7 @@ export default function TacticalCourtStitch({
             </span>
           </div>
 
-          {/* Marco con borde neón cian exacto a la imagen de Google Stitch */}
+          {/* Marco con borde neón cian exacto a la imagen oficial */}
           <div className="relative w-full max-w-[560px] mx-auto rounded-2xl border-2 border-[#06B6D4]/60 p-1.5 bg-[#090C14] shadow-[0_0_35px_rgba(6,182,212,0.25)] select-none">
             <svg
               id="basketball-court"
@@ -401,7 +773,6 @@ export default function TacticalCourtStitch({
               xmlns="http://www.w3.org/2000/svg"
             >
               <defs>
-                {/* Cyan Line Glow */}
                 <filter id="stitch-neon-glow" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="2.5" result="blur" />
                   <feMerge>
@@ -410,7 +781,6 @@ export default function TacticalCourtStitch({
                   </feMerge>
                 </filter>
 
-                {/* Intense Fluorescent Zone Glow on Selection */}
                 <filter id="zone-fluorescent-glow" x="-40%" y="-40%" width="180%" height="180%">
                   <feGaussianBlur stdDeviation="6" result="blur" />
                   <feMerge>
@@ -420,7 +790,6 @@ export default function TacticalCourtStitch({
                   </feMerge>
                 </filter>
 
-                {/* Wolf Orange Hoop Glow */}
                 <filter id="stitch-hoop-glow" x="-30%" y="-30%" width="160%" height="160%">
                   <feGaussianBlur stdDeviation="3.5" result="blur" />
                   <feMerge>
@@ -429,20 +798,16 @@ export default function TacticalCourtStitch({
                   </feMerge>
                 </filter>
 
-                {/* Radial Court Lighting */}
                 <radialGradient id="stitch-hoop-radial" cx="50%" cy="14%" r="45%">
                   <stop offset="0%" stopColor="#FF6B00" stopOpacity="0.35" />
                   <stop offset="60%" stopColor="#FF6B00" stopOpacity="0.05" />
                   <stop offset="100%" stopColor="#090C14" stopOpacity="0" />
                 </radialGradient>
 
-                {/* Icono de Huella de Pie para Modo Biomecánico */}
+                {/* Icono de Huella Biomecánica */}
                 <g id="footprint-icon">
-                  {/* Planta del pie */}
                   <ellipse cx="0" cy="0" rx="4.5" ry="8" fill="#10B981" stroke="#34D399" strokeWidth="1" />
-                  {/* Talón */}
                   <ellipse cx="0" cy="7.5" rx="3.5" ry="4" fill="#059669" stroke="#34D399" strokeWidth="0.8" />
-                  {/* Dedos */}
                   <circle cx="-3" cy="-10" r="1.2" fill="#6EE7B7" />
                   <circle cx="-1" cy="-11" r="1.3" fill="#6EE7B7" />
                   <circle cx="1" cy="-11" r="1.3" fill="#6EE7B7" />
@@ -465,24 +830,24 @@ export default function TacticalCourtStitch({
                 <line x1="0" y1="455" x2="500" y2="455" />
               </g>
 
-              {/* ZONAS POLIGONALES CON COLORES FLORESCENTES EXACTOS DE STITCH & GLOW ACTIVO */}
-              {/* Esquina Izquierda 60% */}
+              {/* ZONAS POLIGONALES CON COLORES FLORESCENTES EXACTOS */}
+              {/* Esquina Izquierda */}
               <polygon
                 points="0,0 45,0 45,170 0,170"
-                fill="#F59E0B"
-                fillOpacity={selectedZone === 'corner-left' ? 0.80 : 0.35}
-                stroke="#F59E0B"
+                fill="#06B6D4"
+                fillOpacity={selectedZone === 'corner-left' ? 0.85 : 0.28}
+                stroke="#06B6D4"
                 strokeWidth={selectedZone === 'corner-left' ? "3" : "1.5"}
                 filter={selectedZone === 'corner-left' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('corner-left')}
               />
 
-              {/* Esquina Derecha 40% */}
+              {/* Esquina Derecha */}
               <polygon
                 points="455,0 500,0 500,170 455,170"
                 fill="#06B6D4"
-                fillOpacity={selectedZone === 'corner-right' ? 0.80 : 0.32}
+                fillOpacity={selectedZone === 'corner-right' ? 0.85 : 0.28}
                 stroke="#06B6D4"
                 strokeWidth={selectedZone === 'corner-right' ? "3" : "1.5"}
                 filter={selectedZone === 'corner-right' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -490,35 +855,35 @@ export default function TacticalCourtStitch({
                 onClick={() => setSelectedZone('corner-right')}
               />
 
-              {/* Media Distancia Izquierda 100% */}
+              {/* Media Distancia Izquierda */}
               <path
                 d="M 45,0 L 175,0 L 175,230 L 45,170 Z"
-                fill="#EF4444"
-                fillOpacity={selectedZone === 'mid-left' ? 0.90 : 0.65}
-                stroke="#FF5722"
+                fill="#10B981"
+                fillOpacity={selectedZone === 'mid-left' ? 0.90 : 0.45}
+                stroke="#34D399"
                 strokeWidth={selectedZone === 'mid-left' ? "3.5" : "2"}
                 filter={selectedZone === 'mid-left' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('mid-left')}
               />
 
-              {/* Media Distancia Derecha 100% */}
+              {/* Media Distancia Derecha */}
               <path
                 d="M 325,0 L 455,0 L 455,170 L 325,230 Z"
-                fill="#EF4444"
-                fillOpacity={selectedZone === 'mid-right' ? 0.90 : 0.65}
-                stroke="#FF5722"
+                fill="#10B981"
+                fillOpacity={selectedZone === 'mid-right' ? 0.90 : 0.45}
+                stroke="#34D399"
                 strokeWidth={selectedZone === 'mid-right' ? "3.5" : "2"}
                 filter={selectedZone === 'mid-right' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('mid-right')}
               />
 
-              {/* Pintura / Tiro Libre 100% */}
+              {/* Pintura / Tiro Libre */}
               <polygon
                 points="175,0 325,0 325,230 175,230"
                 fill="#EA580C"
-                fillOpacity={selectedZone === 'paint' ? 0.94 : 0.75}
+                fillOpacity={selectedZone === 'paint' ? 0.95 : 0.65}
                 stroke="#FF6B00"
                 strokeWidth={selectedZone === 'paint' ? "4" : "2.5"}
                 filter={selectedZone === 'paint' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -526,36 +891,36 @@ export default function TacticalCourtStitch({
                 onClick={() => setSelectedZone('paint')}
               />
 
-              {/* Triple Ala Izquierda 60% */}
+              {/* Triple Ala Izquierda */}
               <path
                 d="M 0,170 L 45,170 A 215,215 0 0,0 175,295 L 140,510 L 0,510 Z"
-                fill="#D97706"
-                fillOpacity={selectedZone === 'wing-left' ? 0.85 : 0.45}
-                stroke="#F59E0B"
+                fill="#06B6D4"
+                fillOpacity={selectedZone === 'wing-left' ? 0.85 : 0.35}
+                stroke="#06B6D4"
                 strokeWidth={selectedZone === 'wing-left' ? "3" : "1.8"}
                 filter={selectedZone === 'wing-left' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('wing-left')}
               />
 
-              {/* Triple Ala Derecha 60% */}
+              {/* Triple Ala Derecha */}
               <path
                 d="M 500,170 L 455,170 A 215,215 0 0,1 325,295 L 360,510 L 500,510 Z"
-                fill="#F59E0B"
-                fillOpacity={selectedZone === 'wing-right' ? 0.85 : 0.60}
-                stroke="#F59E0B"
+                fill="#06B6D4"
+                fillOpacity={selectedZone === 'wing-right' ? 0.85 : 0.35}
+                stroke="#06B6D4"
                 strokeWidth={selectedZone === 'wing-right' ? "3.5" : "2"}
                 filter={selectedZone === 'wing-right' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedZone('wing-right')}
               />
 
-              {/* Triple Top Key 80% */}
+              {/* Triple Top Key */}
               <path
                 d="M 175,295 A 215,215 0 0,0 325,295 L 360,510 L 140,510 Z"
-                fill="#EF4444"
-                fillOpacity={selectedZone === 'top-key' ? 0.92 : 0.70}
-                stroke="#FF5722"
+                fill="#10B981"
+                fillOpacity={selectedZone === 'top-key' ? 0.90 : 0.45}
+                stroke="#34D399"
                 strokeWidth={selectedZone === 'top-key' ? "3.5" : "2"}
                 filter={selectedZone === 'top-key' ? "url(#zone-fluorescent-glow)" : undefined}
                 className="cursor-pointer transition-all duration-300"
@@ -580,17 +945,17 @@ export default function TacticalCourtStitch({
                 <path d="M 195,510 A 55,55 0 0,1 305,510" />
               </g>
 
-              {/* ARO Y TABLERO NARANJA NEÓN */}
+              {/* ARO Y TABLERO NARANJA NEÓN EXACTO A LA IMAGEN 4 */}
               <g filter="url(#stitch-hoop-glow)">
-                <line x1="220" y1="50" x2="280" y2="50" stroke="#FFFFFF" strokeWidth="4.5" strokeLinecap="round" />
-                <line x1="250" y1="50" x2="250" y2="60" stroke="#FF6B00" strokeWidth="3" />
-                <circle cx="250" cy="72" r="14" fill="#FF6B00" fillOpacity="0.3" stroke="#FF6B00" strokeWidth="3.5" />
+                {/* Tablero suspended */}
+                <line x1="210" y1="46" x2="290" y2="46" stroke="#FF6B00" strokeWidth="5.5" strokeLinecap="round" />
+                <line x1="250" y1="46" x2="250" y2="58" stroke="#FF6B00" strokeWidth="3" />
+                {/* Aro y red */}
+                <circle cx="250" cy="72" r="14" fill="#FF6B00" fillOpacity="0.25" stroke="#FF6B00" strokeWidth="3.5" />
                 <circle cx="250" cy="72" r="6" fill="none" stroke="#FFFFFF" strokeDasharray="2,2" strokeWidth="1.5" />
               </g>
 
-              {/* ======================================================== */}
-              {/* CAPA DE BIOMECÁNICA 100% (STITCH 1434...): HUELLAS & LÁSER */}
-              {/* ======================================================== */}
+              {/* CAPA DE BIOMECÁNICA 100%: HUELLAS, PROYECCIONES Y LÁSER */}
               {tacticalViewMode === 'biomechanics' && (
                 <g className="animate-fadeIn">
                   {/* Línea Láser de Trayectoria con Resplandor Neón */}
@@ -604,6 +969,13 @@ export default function TacticalCourtStitch({
                     strokeDasharray="6 4"
                     filter="url(#stitch-neon-glow)"
                   />
+                  {/* Proyecciones de abanico hacia el aro como en Imagen 4 */}
+                  <line x1="250" y1="72" x2="120" y2="150" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                  <line x1="250" y1="72" x2="380" y2="150" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                  <line x1="250" y1="72" x2="250" y2="410" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                  <line x1="250" y1="72" x2="85" y2="340" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+                  <line x1="250" y1="72" x2="415" y2="340" stroke="#06B6D4" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+
                   {/* Punto de impacto en el aro */}
                   <circle
                     cx={currentData.laserTrajectory.endX}
@@ -617,188 +989,209 @@ export default function TacticalCourtStitch({
 
                   {/* Par de Huellas de Posición Exacta del Tirador */}
                   <g transform={`translate(${currentData.footPosition.x}, ${currentData.footPosition.y}) rotate(${currentData.footPosition.angle})`}>
-                    {/* Pie Izquierdo */}
                     <g transform="translate(-10, 0)">
                       <use href="#footprint-icon" />
                     </g>
-                    {/* Pie Derecho (un poco adelantado) */}
                     <g transform="translate(10, -4)">
                       <use href="#footprint-icon" />
                     </g>
-                    {/* Halo de posicionamiento 100% */}
-                    <circle cx="0" cy="0" r="22" fill="none" stroke="#10B981" strokeWidth="1.5" strokeDasharray="3 3" className="animate-spin" style={{ animationDuration: '8s' }} />
+                    <circle cx="0" cy="0" r="24" fill="none" stroke="#10B981" strokeWidth="1.5" strokeDasharray="3 3" className="animate-spin" style={{ animationDuration: '8s' }} />
                   </g>
                 </g>
               )}
             </svg>
 
-            {/* ======================================================== */}
-            {/* CAPA MODO 1: PÍLDORAS FLOTANTES DE EFECTIVIDAD %        */}
-            {/* ======================================================== */}
+            {/* CAPA MODO 1: PÍLDORAS FLOTANTES DE EFECTIVIDAD CON DATOS REALES */}
             {tacticalViewMode === 'effectiveness' && (
               <>
-                {/* Esquina Izquierda 60% */}
+                {/* Esquina Izquierda */}
                 <div
                   onClick={() => setSelectedZone('corner-left')}
                   className={`absolute top-[12%] left-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
                     selectedZone === 'corner-left'
-                      ? 'bg-amber-500/25 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
+                      ? 'bg-cyan-500/35 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/70 border-cyan-400/40 hover:border-cyan-400 z-10'
                   }`}
                 >
-                  <div className="text-[11px] sm:text-xs font-mono font-black text-white">60%</div>
-                  <div className="text-[9px] font-mono text-amber-200/90 font-bold">3-5</div>
+                  <div className="text-[11px] sm:text-xs font-mono font-black text-white">{zoneDataMap['corner-left'].percentage}</div>
+                  <div className="text-[9px] font-mono text-cyan-200/90 font-bold">{zoneDataMap['corner-left'].ratio}</div>
                 </div>
 
-                {/* Esquina Derecha 40% */}
+                {/* Esquina Derecha */}
                 <div
                   onClick={() => setSelectedZone('corner-right')}
                   className={`absolute top-[12%] right-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
                     selectedZone === 'corner-right'
-                      ? 'bg-cyan-500/25 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/60 border-cyan-400/40 hover:border-cyan-400 hover:bg-cyan-500/20 z-10'
+                      ? 'bg-cyan-500/35 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/70 border-cyan-400/40 hover:border-cyan-400 z-10'
                   }`}
                 >
-                  <div className="text-[11px] sm:text-xs font-mono font-black text-white">40%</div>
-                  <div className="text-[9px] font-mono text-cyan-200/90 font-bold">2-5</div>
+                  <div className="text-[11px] sm:text-xs font-mono font-black text-white">{zoneDataMap['corner-right'].percentage}</div>
+                  <div className="text-[9px] font-mono text-cyan-200/90 font-bold">{zoneDataMap['corner-right'].ratio}</div>
                 </div>
 
-                {/* Media Izq 100% */}
+                {/* Media Izq */}
                 <div
                   onClick={() => setSelectedZone('mid-left')}
                   className={`absolute top-[21%] left-[8%] sm:left-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                     selectedZone === 'mid-left'
-                      ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
+                      ? 'bg-emerald-500/35 border-[#10B981] shadow-[0_0_22px_rgba(16,185,129,0.9)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/70 border-emerald-500/40 hover:border-emerald-400 z-10'
                   }`}
                 >
-                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
-                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Izq (10-10)</div>
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">{zoneDataMap['mid-left'].percentage}</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Izq ({zoneDataMap['mid-left'].ratio})</div>
                 </div>
 
-                {/* Línea Libre / Pintura 100% (Central Activa) */}
+                {/* Línea Libre / Pintura */}
                 <div
                   onClick={() => setSelectedZone('paint')}
                   className={`absolute top-[25%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border-2 rounded-xl px-3 sm:px-4 py-1.5 text-center transition-all ${
                     selectedZone === 'paint'
                       ? 'bg-orange-500/35 border-[#FF6B00] shadow-[0_0_25px_rgba(255,107,0,0.95)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/65 border-orange-500/50 hover:border-[#FF6B00] hover:bg-orange-500/25 z-10'
+                      : 'bg-[#0B0E17]/70 border-orange-500/50 hover:border-[#FF6B00] z-10'
                   }`}
                 >
-                  <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">100%</div>
-                  <div className="text-[9px] sm:text-[11px] font-mono text-amber-200 font-bold whitespace-nowrap">Línea Libre (10-10)</div>
+                  <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">{zoneDataMap['paint'].percentage}</div>
+                  <div className="text-[9px] sm:text-[11px] font-mono text-amber-200 font-bold whitespace-nowrap">Línea Libre ({zoneDataMap['paint'].ratio})</div>
                 </div>
 
-                {/* Media Der 100% */}
+                {/* Media Der */}
                 <div
                   onClick={() => setSelectedZone('mid-right')}
                   className={`absolute top-[21%] right-[8%] sm:right-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                     selectedZone === 'mid-right'
-                      ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
+                      ? 'bg-emerald-500/35 border-[#10B981] shadow-[0_0_22px_rgba(16,185,129,0.9)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/70 border-emerald-500/40 hover:border-emerald-400 z-10'
                   }`}
                 >
-                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
-                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Der (10-10)</div>
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">{zoneDataMap['mid-right'].percentage}</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Der ({zoneDataMap['mid-right'].ratio})</div>
                 </div>
 
-                {/* 3P Ala Izq 60% */}
+                {/* 3P Ala Izq */}
                 <div
                   onClick={() => setSelectedZone('wing-left')}
                   className={`absolute bottom-[24%] left-[5%] sm:left-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                     selectedZone === 'wing-left'
-                      ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
+                      ? 'bg-cyan-500/35 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/70 border-cyan-400/40 hover:border-cyan-400 z-10'
                   }`}
                 >
-                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
-                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Izq (3-5)</div>
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">{zoneDataMap['wing-left'].percentage}</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Izq ({zoneDataMap['wing-left'].ratio})</div>
                 </div>
 
-                {/* 3P Ala Der 60% */}
+                {/* 3P Ala Der */}
                 <div
                   onClick={() => setSelectedZone('wing-right')}
                   className={`absolute bottom-[28%] right-[5%] sm:right-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
                     selectedZone === 'wing-right'
-                      ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
+                      ? 'bg-cyan-500/35 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/70 border-cyan-400/40 hover:border-cyan-400 z-10'
                   }`}
                 >
-                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
-                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Der (3-5)</div>
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">{zoneDataMap['wing-right'].percentage}</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Der ({zoneDataMap['wing-right'].ratio})</div>
                 </div>
 
-                {/* 3P Top Key 80% */}
+                {/* 3P Top Key */}
                 <div
                   onClick={() => setSelectedZone('top-key')}
                   className={`absolute bottom-[8%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border rounded-xl px-3 sm:px-4 py-1 text-center transition-all ${
                     selectedZone === 'top-key'
-                      ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
-                      : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
+                      ? 'bg-emerald-500/35 border-[#10B981] shadow-[0_0_22px_rgba(16,185,129,0.9)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/70 border-emerald-500/40 hover:border-emerald-400 z-10'
                   }`}
                 >
-                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">80%</div>
-                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Top Key (4-5)</div>
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">{zoneDataMap['top-key'].percentage}</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Top Key ({zoneDataMap['top-key'].ratio})</div>
                 </div>
               </>
             )}
 
-            {/* ======================================================== */}
-            {/* CAPA MODO 2: VENTANA HUD ZOOM TABLERO (STITCH 1434...)   */}
-            {/* ======================================================== */}
+            {/* CAPA MODO 2: RECUADRO MOVIBLE (DRAGGABLE HUD DEL TABLERO FIEL A IMAGEN 4) */}
             {tacticalViewMode === 'biomechanics' && showBackboardZoom && (
-              <div className="absolute top-2 left-2 z-30 bg-[#090C14]/95 border-2 border-[#FF6B00]/70 rounded-2xl p-2.5 shadow-[0_0_25px_rgba(255,107,0,0.4)] backdrop-blur-md max-w-[210px] animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-zinc-800">
+              <div 
+                style={{
+                  transform: `translate(${hudPos.x}px, ${hudPos.y}px)`,
+                  touchAction: 'none'
+                }}
+                className={`absolute top-0 left-0 z-30 bg-[#0A101D]/95 border-2 border-[#FF6B00] rounded-2xl p-3 shadow-[0_0_30px_rgba(255,107,0,0.45)] backdrop-blur-md w-[220px] transition-shadow ${
+                  isDragging ? 'shadow-[0_0_40px_rgba(6,182,212,0.8)] border-[#06B6D4] cursor-grabbing' : 'cursor-grab'
+                }`}
+              >
+                {/* Cabecera para arrastrar con icono Move */}
+                <div 
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  className="flex items-center justify-between pb-1.5 mb-2 border-b border-[#1F2433] select-none cursor-grab active:cursor-grabbing"
+                >
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="text-[9px] font-mono font-bold text-emerald-400 uppercase">PUNTO DE IMPACTO</span>
+                    <Move className="w-3.5 h-3.5 text-[#06B6D4]" />
+                    <span className="text-[9px] font-mono font-black text-emerald-400 uppercase tracking-wider">
+                      PUNTO DE IMPACTO
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowBackboardZoom(false)}
-                    className="text-[10px] text-zinc-400 hover:text-white"
-                  >
-                    ✕
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] font-mono text-zinc-500">ARRASTRAR</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowBackboardZoom(false)}
+                      className="text-[10px] text-zinc-400 hover:text-white px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
 
-                {/* SVG Cristal del Tablero con recuadro interior */}
-                <div className="relative aspect-[16/10] w-full bg-[#101421] rounded-lg border border-cyan-500/40 overflow-hidden flex items-center justify-center p-1">
-                  <svg viewBox="0 0 100 65" className="w-full h-full">
-                    {/* Cristal exterior */}
-                    <rect x="2" y="2" width="96" height="61" rx="2" fill="#0E1626" stroke="#06B6D4" strokeWidth="1.5" />
-                    {/* Recuadro Interior Naranja FIBA */}
-                    <rect x="32" y="25" width="36" height="26" fill="none" stroke="#FF6B00" strokeWidth="1.5" />
-                    {/* Aro */}
-                    <ellipse cx="50" cy="53" rx="10" ry="3" fill="#FF6B00" fillOpacity="0.4" stroke="#FF6B00" strokeWidth="1.2" />
-                    <line x1="50" y1="51" x2="50" y2="53" stroke="#FFFFFF" strokeWidth="1" />
+                {/* SVG Cristal del Tablero idéntico a la Imagen 4 */}
+                <div className="relative aspect-[16/10] w-full bg-[#0D1525] rounded-xl border border-cyan-500/50 overflow-hidden flex items-center justify-center p-1.5 shadow-inner">
+                  <svg viewBox="0 0 120 75" className="w-full h-full">
+                    {/* Cristal exterior con marco naranja y sombra interna */}
+                    <rect x="2" y="2" width="116" height="71" rx="3" fill="#0A1120" stroke="#FF6B00" strokeWidth="2.5" />
+                    {/* Reflejos diagonales de cristal */}
+                    <line x1="2" y1="2" x2="60" y2="73" stroke="#06B6D4" strokeWidth="0.5" opacity="0.25" />
+                    <line x1="60" y1="2" x2="118" y2="73" stroke="#06B6D4" strokeWidth="0.5" opacity="0.25" />
+                    
+                    {/* Recuadro Interior Naranja FIBA (Inner Box) */}
+                    <rect x="40" y="26" width="40" height="30" fill="none" stroke="#FF6B00" strokeWidth="2" />
+                    
+                    {/* Aro con soporte y red de malla */}
+                    <line x1="53" y1="56" x2="67" y2="56" stroke="#FF6B00" strokeWidth="2.5" strokeLinecap="round" />
+                    <ellipse cx="60" cy="59" rx="11" ry="3.5" fill="#FF6B00" fillOpacity="0.4" stroke="#FF6B00" strokeWidth="1.5" />
+                    {/* Red con trama */}
+                    <path d="M 50,60 L 53,72 L 60,73 L 67,72 L 70,60" fill="none" stroke="#FFFFFF" strokeWidth="0.75" opacity="0.7" />
+                    <line x1="55" y1="60" x2="65" y2="73" stroke="#FFFFFF" strokeWidth="0.5" opacity="0.5" />
+                    <line x1="65" y1="60" x2="55" y2="73" stroke="#FFFFFF" strokeWidth="0.5" opacity="0.5" />
 
-                    {/* Punto de impacto calculado para la zona seleccionada */}
-                    <circle
-                      cx={currentData.backboardTarget.x}
-                      cy={currentData.backboardTarget.y}
-                      r="3.5"
-                      fill={currentData.backboardTarget.color}
-                      stroke="#FFFFFF"
-                      strokeWidth="1"
-                      className="animate-pulse"
-                    />
-                    {/* Trazo láser hacia el aro */}
+                    {/* Diana 1: Esquina exterior azul cian como en Imagen 4 */}
+                    <circle cx="78" cy="27" r="3.5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1" className="animate-pulse" />
+                    {/* Diana 2: Esquina interior verde como en Imagen 4 */}
+                    <circle cx="84" cy="28" r="3.5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1" />
+
+                    {/* Trazo láser discontinuo que conecta con el aro */}
                     <line
-                      x1={currentData.backboardTarget.x}
-                      y1={currentData.backboardTarget.y}
-                      x2="50"
-                      y2="53"
+                      x1="81"
+                      y1="28"
+                      x2="60"
+                      y2="59"
                       stroke="#10B981"
-                      strokeWidth="0.8"
-                      strokeDasharray="1.5 1.5"
+                      strokeWidth="1"
+                      strokeDasharray="2 2"
                     />
                   </svg>
                 </div>
 
-                <div className="mt-1.5 text-[9px] font-mono text-zinc-300 leading-tight">
-                  <span className="text-[#FF6B00] font-bold block">Diana:</span>
-                  <span>{currentData.backboardTarget.description}</span>
+                <div className="mt-2 text-[9px] font-mono text-zinc-300 leading-tight space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
+                    <span className="text-[#FF6B00] font-black">PUNTO DE IMPACTO:</span>
+                  </div>
+                  <span className="text-zinc-200 block pl-3.5">
+                    {currentData.backboardTarget.description}
+                  </span>
                 </div>
               </div>
             )}
@@ -809,8 +1202,8 @@ export default function TacticalCourtStitch({
               <span className="text-[#FF6B00] font-bold">INFO:</span>
               <span>
                 {tacticalViewMode === 'effectiveness'
-                  ? 'Haz clic en cualquier área para ver su % de tiro y volumen.'
-                  : 'Modo Biomecánica: selecciona la zona para ver cómo colocar los pies y apuntar.'}
+                  ? `Métricas reales de ${athleteName}: haz clic en cada zona para desglosar tiros.`
+                  : 'Modo Biomecánica: arrastra el recuadro del tablero a cualquier parte de la duela.'}
               </span>
             </div>
             <div className="text-[#06B6D4]">Duela Carmen Serdán · CDMX</div>
@@ -819,7 +1212,6 @@ export default function TacticalCourtStitch({
 
         {/* COLUMNA 2: PANEL TELEMÉTRICO LATERAL DE ANÁLISIS EN VIVO & BIOMECÁNICA */}
         <section className="lg:col-span-4 space-y-5">
-          {/* Tarjeta de Telemetría o Guía Biomecánica según el Modo */}
           <div className="bg-[#0B0E17] border border-[#1F2433] rounded-3xl p-5 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF6B00]/5 rounded-full blur-2xl pointer-events-none" />
             
@@ -830,139 +1222,76 @@ export default function TacticalCourtStitch({
                   {tacticalViewMode === 'effectiveness' ? 'ZONA EN ANÁLISIS' : 'POSICIONAMIENTO Y TIRO 100%'}
                 </span>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${currentData.tierColor}`}>
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${currentData.tierColor}`}>
                 {currentData.tier}
               </span>
             </div>
 
             <div className="mt-4">
-              <h3 className="text-lg font-bold text-white font-mono tracking-tight">{currentData.title}</h3>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">{currentData.cluster}</p>
+              <h3 className="text-base font-black text-white tracking-tight">{currentData.title}</h3>
+              <p className="text-xs font-mono text-slate-400 mt-0.5">{currentData.cluster}</p>
             </div>
 
-            {/* Si está en modo efectividad: muestra KPIs numéricos */}
-            {tacticalViewMode === 'effectiveness' ? (
-              <>
-                <div className="grid grid-cols-3 gap-3 my-4">
-                  <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
-                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Acierto</span>
-                    <span className="text-xl font-black font-mono text-emerald-400">{currentData.percentage}</span>
-                  </div>
-                  <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
-                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Tiros</span>
-                    <span className="text-xl font-black font-mono text-white">{currentData.ratio}</span>
-                  </div>
-                  <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
-                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Puntos</span>
-                    <span className="text-xl font-black font-mono text-[#FF6B00]">{currentData.points}</span>
-                  </div>
-                </div>
+            {/* KPIs Métricos */}
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="bg-[#101421] border border-[#1F2433] rounded-2xl p-3">
+                <span className="text-[10px] font-mono text-slate-400 block">EFECTIVIDAD REAL</span>
+                <span className="text-2xl font-black text-white font-mono">{currentData.percentage}</span>
+                <span className="text-[10px] font-mono text-emerald-400 block mt-0.5">{currentData.ratio} tiros</span>
+              </div>
+              <div className="bg-[#101421] border border-[#1F2433] rounded-2xl p-3">
+                <span className="text-[10px] font-mono text-slate-400 block">PUNTOS ZONA</span>
+                <span className="text-2xl font-black text-[#FF6B00] font-mono">{currentData.points}</span>
+                <span className="text-[10px] font-mono text-slate-400 block mt-0.5">{currentData.shotType.split(' ')[0]}</span>
+              </div>
+            </div>
 
-                <div className="space-y-2.5 text-xs font-mono border-t border-[#131620] pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Tiro Predominante:</span>
-                    <span className="text-slate-200 font-semibold">{currentData.shotType}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Eficiencia CDMX U-17:</span>
-                    <span className="text-[#06B6D4] font-bold">{currentData.percentile}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Tiempo de Lanzamiento:</span>
-                    <span className="text-slate-200">{currentData.releaseTime}</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Si está en modo biomecánica: muestra instrucciones técnicas de ejecución */
-              <div className="my-4 space-y-3 font-mono text-xs">
-                <div className="bg-[#101421] p-3 rounded-xl border border-cyan-800/40 space-y-1.5">
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase flex items-center gap-1">
-                    <Compass className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Colocación de Pies en Duela</span>
+            {/* SECCIÓN MODO BIOMECÁNICA: GUÍA PASO A PASO */}
+            {tacticalViewMode === 'biomechanics' ? (
+              <div className="mt-5 space-y-3 bg-[#101421] border border-emerald-500/30 rounded-2xl p-4">
+                <div className="flex items-center gap-2 text-emerald-400">
+                  <Compass className="w-4 h-4" />
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider">
+                    Reglas de Oro Biomecánicas
                   </span>
-                  <p className="text-white font-bold">{currentData.footPosition.label}</p>
                 </div>
-
-                <div className="space-y-2 pt-1">
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-                    Reglas de Oro Biomecánicas (100% Efectivo):
-                  </span>
+                <ul className="space-y-2 text-xs font-mono text-slate-300">
                   {currentData.biomechanicsTips.map((tip, idx) => (
-                    <div key={idx} className="flex items-start gap-2 bg-[#101421]/60 p-2 rounded-lg border border-zinc-800">
-                      <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <span className="text-zinc-300 leading-snug">{tip}</span>
-                    </div>
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-emerald-400 font-bold shrink-0">{idx + 1}.</span>
+                      <span>{tip}</span>
+                    </li>
                   ))}
+                </ul>
+                <div className="pt-2 border-t border-emerald-500/20 text-[11px] font-mono text-slate-400">
+                  <strong className="text-white">Posición de Pies:</strong> {currentData.footPosition.label}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2.5 text-xs font-mono">
+                <div className="flex justify-between py-1 border-b border-[#1F2433]/60">
+                  <span className="text-slate-400">Tipo de Lanzamiento:</span>
+                  <span className="text-white font-medium text-right">{currentData.shotType}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#1F2433]/60">
+                  <span className="text-slate-400">Percentil Academia:</span>
+                  <span className="text-amber-400 font-bold">{currentData.percentile}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#1F2433]/60">
+                  <span className="text-slate-400">Tiempo de Soltura:</span>
+                  <span className="text-white font-medium">{currentData.releaseTime}</span>
                 </div>
               </div>
             )}
 
-            {/* Dictamen del Head Coach */}
-            <div className="mt-4 p-3 bg-[#101421] rounded-xl border-l-4 border-[#FF6B00] text-xs">
-              <div className="flex items-center gap-1.5 text-[#FF6B00] font-mono font-bold mb-1">
-                <span>🐺</span>
-                <span>DICTAMEN HEAD COACH RICARDO:</span>
-              </div>
-              <p className="text-slate-300 italic leading-relaxed">
-                {getDynamicNotes()}
+            {/* Feedback del Coach */}
+            <div className="mt-4 bg-[#101421] border border-[#1F2433] rounded-2xl p-3.5">
+              <span className="text-[10px] font-mono text-[#FF6B00] font-bold block uppercase tracking-wider mb-1">
+                OBSERVACIÓN TÉCNICA · COACH RICARDO:
+              </span>
+              <p className="text-xs text-slate-300 italic leading-relaxed">
+                {currentData.notes}
               </p>
-            </div>
-          </div>
-
-          {/* Resumen Global de Puntería y Barras de Progreso */}
-          <div className="bg-[#0B0E17] border border-[#1F2433] rounded-3xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold font-mono text-white flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#06B6D4]" />
-                RESUMEN GLOBAL DE PUNTERÍA
-              </h4>
-              <span className="text-xs font-mono text-emerald-400 font-bold">78% GLOBAL (117/150)</span>
-            </div>
-
-            <div className="space-y-3 font-mono text-xs">
-              <div>
-                <div className="flex justify-between text-slate-300 mb-1">
-                  <span>Triples (3PT):</span>
-                  <span className="font-bold text-amber-400">68% <span className="text-slate-400 font-normal">(34/50)</span></span>
-                </div>
-                <div className="w-full bg-[#131620] rounded-full h-2 overflow-hidden border border-[#1F2433]">
-                  <div className="bg-amber-400 h-2 rounded-full shadow-[0_0_8px_#f59e0b]" style={{ width: '68%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-slate-300 mb-1">
-                  <span>Dobles Media/Pintura (2PT):</span>
-                  <span className="font-bold text-emerald-400">84% <span className="text-slate-400 font-normal">(63/75)</span></span>
-                </div>
-                <div className="w-full bg-[#131620] rounded-full h-2 overflow-hidden border border-[#1F2433]">
-                  <div className="bg-emerald-400 h-2 rounded-full shadow-[0_0_8px_#10b981]" style={{ width: '84%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-slate-300 mb-1">
-                  <span>Tiros Libres (FT):</span>
-                  <span className="font-bold text-[#06B6D4]">80% <span className="text-slate-400 font-normal">(20/25)</span></span>
-                </div>
-                <div className="w-full bg-[#131620] rounded-full h-2 overflow-hidden border border-[#1F2433]">
-                  <div className="bg-[#06B6D4] h-2 rounded-full shadow-[0_0_8px_#06b6d4]" style={{ width: '80%' }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Botones de Acción */}
-            <div className="pt-3 border-t border-[#1F2433] space-y-2">
-              <button 
-                onClick={() => alert(`Generando expediente de tiro de ${athleteName} (#${jerseyNumber}) en PDF táctico.`)}
-                className="w-full py-2.5 px-4 bg-[#131620] hover:bg-[#1A1F2E] border border-[#1F2433] hover:border-[#FF6B00] text-white text-xs font-mono font-bold rounded-xl flex items-center justify-center gap-2 transition duration-200"
-              >
-                <Download className="w-4 h-4 text-[#FF6B00]" />
-                EXPORTAR FICHA PARA TUTOR / COACH
-              </button>
             </div>
           </div>
         </section>

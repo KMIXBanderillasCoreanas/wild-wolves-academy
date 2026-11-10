@@ -69,12 +69,21 @@ export async function GET(req: Request) {
       if (payData) payments = payData;
     } catch {}
 
-    // 5. Obtener pruebas deportivas más recientes (Tiros 55, Sprint 100m, Líneas, Salto de cuerda)
+    // 5. Obtener pruebas deportivas más recientes (detailed_test_records y basketball_skills_logs)
+    let detailedTests: any[] = [];
+    try {
+      const { data: dtrData } = await supabase
+        .from("detailed_test_records")
+        .select("student_id, evaluation_date, overall_ovr, short_range_shots_made, mid_range_shots_made, three_point_shots_made, jump_rope_count, coach_feedback")
+        .order("evaluation_date", { ascending: false });
+      if (dtrData) detailedTests = dtrData;
+    } catch {}
+
     let skillsLogs: any[] = [];
     try {
       const { data: sLogs } = await supabase
         .from("basketball_skills_logs")
-        .select("student_id, test_date, free_throws_made, mid_range_made, three_point_made, sprint_100m_seconds, lines_round_trip_seconds, vertical_jump_cm")
+        .select("student_id, test_date, free_throws_made, mid_range_made, three_point_made, sprint_100m_seconds, lines_round_trip_seconds, vertical_jump_cm, three_corner_left, three_wing_left, three_top, three_wing_right, three_corner_right")
         .order("created_at", { ascending: false });
       if (sLogs) skillsLogs = sLogs;
     } catch {}
@@ -94,6 +103,7 @@ export async function GET(req: Request) {
       attendance,
       payments,
       skillsLogs,
+      detailedTests,
       baselineLogs,
       targetDate: dateQuery
     });

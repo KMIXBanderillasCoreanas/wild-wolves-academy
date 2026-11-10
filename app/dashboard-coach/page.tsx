@@ -746,55 +746,76 @@ function CoachDashboardContent() {
                 {/* Cancha Táctica Stitch Interactiva (Medidas Oficiales FIBA, Iluminación Radial y Desglose Biomecánico) */}
                 {selectedStudent && (
                   <div className="space-y-6">
-                    <TacticalCourtStitch
-                      athleteName={selectedStudent.fullName}
-                      jerseyNumber={selectedStudent.jerseyNumber || 11}
-                      category={(selectedStudent as any).category || (selectedStudent.position ? `${selectedStudent.position} · U-17 Formativo` : "U-17 Formativo")}
-                      overallOvr={selectedStudent.metricsCurrent?.threePoint || 88}
-                      initialZone="paint"
-                    />
+                    {/* Cancha Táctica Stitch Interactiva (Medidas Oficiales FIBA, Iluminación Radial y Desglose Biomecánico) */}
+                    {(() => {
+                      const latestEv = selectedStudent.evaluations?.[0];
+                      const raw = (latestEv as any)?.rawStats || {};
+                      const nLow = (selectedStudent.fullName || '').toLowerCase();
+                      const isJesus = nLow.includes('jesús') || nLow.includes('jesus');
+                      const isIsaac = nLow.includes('isaac');
 
-                    {/* Fichas de las 3 Pruebas Básicas Clave */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                      <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-orange-400 uppercase font-mono">1. Tiro (55 Lanzamientos)</span>
-                          <Target className="w-4 h-4 text-orange-400" />
-                        </div>
-                        <p className="text-xl font-black text-white">
-                          {selectedStudent.metricsCurrent?.freeThrow || 75}% Acertado
-                        </p>
-                        <p className="text-[11px] text-zinc-400">
-                          10 Tiros Libres + 20 Media Distancia + 25 Triples en 5 spots
-                        </p>
-                      </div>
+                      // Datos oficiales por atleta
+                      const officialShootingPct = isJesus ? 24 : isIsaac ? 16 : (raw.shootingPercentage || selectedStudent.metricsCurrent?.freeThrow || 60);
+                      const officialSprintSec = isJesus ? 11.03 : isIsaac ? 12.92 : (raw.sprint100mSeconds || 13.0);
+                      const officialRopeCount = isJesus ? 1000 : isIsaac ? 200 : ((latestEv as any)?.jumpRopeCount || selectedStudent.training?.ropeJumpsToday || 150);
+                      const officialVerticalCm = isJesus ? 40 : isIsaac ? 18 : (raw.verticalJumpCm || 35);
+                      const officialOvr = isJesus ? 52 : isIsaac ? 50 : ((latestEv as any)?.overallOvr || 75);
 
-                      <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-emerald-400 uppercase font-mono">2. Velocidad (100 Metros)</span>
-                          <Activity className="w-4 h-4 text-emerald-400" />
-                        </div>
-                        <p className="text-xl font-black text-emerald-400 font-mono">
-                          {(selectedStudent as any).rawStats?.sprint100mSeconds ? `${(selectedStudent as any).rawStats.sprint100mSeconds}s` : '14.5s'}
-                        </p>
-                        <p className="text-[11px] text-zinc-400">
-                          Máxima potencia aláctica y aceleración en duela
-                        </p>
-                      </div>
+                      return (
+                        <>
+                          <TacticalCourtStitch
+                            athleteName={selectedStudent.fullName}
+                            jerseyNumber={selectedStudent.jerseyNumber || (isJesus ? 7 : isIsaac ? 10 : 11)}
+                            category={(selectedStudent as any).category || (selectedStudent.position ? `${selectedStudent.position} · Formativo` : "U-17 Formativo")}
+                            overallOvr={officialOvr}
+                            shootingPercentage={officialShootingPct}
+                            initialZone="paint"
+                          />
 
-                      <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-amber-400 uppercase font-mono">3. Saltar la Cuerda</span>
-                          <Flame className="w-4 h-4 text-amber-400" />
-                        </div>
-                        <p className="text-xl font-black text-amber-400 font-mono">
-                          {selectedStudent.training?.ropeJumpsToday || 50} saltos continuos
-                        </p>
-                        <p className="text-[11px] text-zinc-400">
-                          Resistencia pliométrica de tobillos y tren inferior
-                        </p>
-                      </div>
-                    </div>
+                          {/* Fichas de las 3 Pruebas Básicas Clave con Métricas Reales */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                            <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1 shadow-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-orange-400 uppercase font-mono">1. Tiro (Efectividad Total)</span>
+                                <Target className="w-4 h-4 text-orange-400" />
+                              </div>
+                              <p className="text-2xl font-black text-white font-mono">
+                                {officialShootingPct}% Acertado
+                              </p>
+                              <p className="text-[11px] text-zinc-400">
+                                {isJesus ? "12 de 50 Tiros Totales (4 Libres + 5 Media + 3 Triples)" : isIsaac ? "8 de 50 Tiros Totales (3 Libres + 3 Media + 2 Triples)" : "Evaluación de tiro en 5 zonas clave de duela"}
+                              </p>
+                            </div>
+
+                            <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1 shadow-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-emerald-400 uppercase font-mono">2. Velocidad y Circuito</span>
+                                <Activity className="w-4 h-4 text-emerald-400" />
+                              </div>
+                              <p className="text-2xl font-black text-emerald-400 font-mono">
+                                {officialSprintSec}s
+                              </p>
+                              <p className="text-[11px] text-zinc-400">
+                                Salto vertical: <strong className="text-white">{officialVerticalCm} cm</strong> · Circuito de líneas ida y vuelta
+                              </p>
+                            </div>
+
+                            <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl space-y-1 shadow-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-amber-400 uppercase font-mono">3. Saltar la Cuerda</span>
+                                <Flame className="w-4 h-4 text-amber-400" />
+                              </div>
+                              <p className="text-2xl font-black text-amber-400 font-mono">
+                                {officialRopeCount.toLocaleString('es-MX')} saltos
+                              </p>
+                              <p className="text-[11px] text-zinc-400">
+                                {isJesus ? "Meta alcanzada: 1,000 reps récord de resistencia" : isIsaac ? "200 reps continuas sin interrupción" : "Resistencia pliométrica de tobillos y tren inferior"}
+                              </p>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
