@@ -16,9 +16,6 @@ import {
   Dumbbell,
   Timer
 } from 'lucide-react';
-import BasketballCourtHeatmap from '@/components/BasketballCourtHeatmap';
-import DuelaHolografica3D from '@/components/DuelaHolografica3D';
-import TacticalCourtStitch from '@/components/TacticalCourtStitch';
 import BiomechanicsShotBackboardSystem from '@/components/BiomechanicsShotBackboardSystem';
 
 export interface CleanTabMetrics {
@@ -404,20 +401,11 @@ export default function CleanPortalTabs({
       {/* ========================================================================= */}
       {activeTab === 'mapa_tiro' && (
         <div className="space-y-6">
-          {/* 1. SISTEMA BIOMECÁNICO DE PUNTERÍA 100% EFECTIVO: TABLERO MILIMÉTRICO & DUELA */}
+          {/* SISTEMA BIOMECÁNICO DE PUNTERÍA 100% EFECTIVO: TABLERO MILIMÉTRICO & DUELA LIMPIA */}
           <BiomechanicsShotBackboardSystem
             athleteName={athleteName}
             jerseyNumber={jerseyNumber}
             overallOvr={metrics.overallOvr}
-          />
-
-          {/* 2. Mapeador Táctico Oficial Diseñado en Google Stitch con Telemetría */}
-          <TacticalCourtStitch
-            athleteName={athleteName}
-            jerseyNumber={jerseyNumber}
-            category={category}
-            overallOvr={metrics.overallOvr}
-            initialZone="paint"
           />
         </div>
       )}
