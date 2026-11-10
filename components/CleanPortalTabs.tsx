@@ -16,6 +16,7 @@ import {
   Dumbbell,
   Timer
 } from 'lucide-react';
+import TacticalCourtStitch from '@/components/TacticalCourtStitch';
 import BiomechanicsShotBackboardSystem from '@/components/BiomechanicsShotBackboardSystem';
 
 export interface CleanTabMetrics {
@@ -401,11 +402,20 @@ export default function CleanPortalTabs({
       {/* ========================================================================= */}
       {activeTab === 'mapa_tiro' && (
         <div className="space-y-6">
-          {/* SISTEMA BIOMECÁNICO DE PUNTERÍA 100% EFECTIVO: TABLERO MILIMÉTRICO & DUELA LIMPIA */}
+          {/* 1. GUÍA BIOMECÁNICA: TABLERO MILIMÉTRICO CON PUNTOS DE IMPACTO VERDE Y AZUL */}
           <BiomechanicsShotBackboardSystem
             athleteName={athleteName}
             jerseyNumber={jerseyNumber}
             overallOvr={metrics.overallOvr}
+          />
+
+          {/* 2. CANCHA TÁCTICA INTERACTIVA: MAPA DE TIRO, PORCENTAJES Y ZONAS POLIGONALES */}
+          <TacticalCourtStitch
+            athleteName={athleteName}
+            jerseyNumber={jerseyNumber}
+            category={category}
+            overallOvr={metrics.overallOvr}
+            initialZone="paint"
           />
         </div>
       )}
