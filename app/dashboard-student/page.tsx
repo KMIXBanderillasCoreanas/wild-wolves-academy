@@ -844,11 +844,11 @@ function StudentDashboardContent() {
             }));
           } else if (typeof window !== "undefined") {
             // FALLBACK LOCAL: Si se guardó en la planilla offline o en la memoria local
-            const localTests = JSON.parse(localStorage.getItem("ww_offline_sports_tests") || "[]");
+            const rawTests = JSON.parse(localStorage.getItem("ww_offline_sports_tests") || "[]");
+            const localTests = rawTests.filter((t: any) => !(t.athlete_name || "").toLowerCase().includes("bruno"));
             if (localTests.length > 0) {
               const matched = localTests.find((t: any) => 
-                (effectiveName && t.athlete_name && t.athlete_name.toLowerCase().includes(effectiveName.toLowerCase().split(" ")[0])) ||
-                (t.athlete_name && t.athlete_name.toLowerCase().includes("bruno"))
+                effectiveName && t.athlete_name && t.athlete_name.toLowerCase().includes(effectiveName.toLowerCase().split(" ")[0])
               ) || localTests[0];
 
               if (matched) {

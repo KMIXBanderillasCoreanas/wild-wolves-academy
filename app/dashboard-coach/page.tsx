@@ -150,8 +150,28 @@ function CoachDashboardContent() {
       });
     };
 
-    // Carga inicial local
+    // Carga inicial local y limpieza de almacenamiento
     try {
+      if (typeof window !== "undefined") {
+        // Purgar Bruno de todas las llaves locales
+        ['ww_offline_sports_tests', 'wild_wolves_offline_queue', 'ww_offline_queue', 'wildwolves_offline_queue'].forEach(k => {
+          try {
+            const raw = localStorage.getItem(k);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const cleaned = parsed.filter((item: any) => {
+                  const p = item.payload || item;
+                  const name = (p.full_name || p.athlete_name || p.name || p.athlete_full_name || '').toLowerCase();
+                  return !name.includes('bruno');
+                });
+                localStorage.setItem(k, JSON.stringify(cleaned));
+              }
+            }
+          } catch {}
+        });
+      }
+
       const localList = filterRealAthletes(HoopStore.getStudents() || []);
       if (isMounted) {
         setStudents(localList);

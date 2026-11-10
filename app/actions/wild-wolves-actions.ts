@@ -202,10 +202,9 @@ No agregues texto explicativo, ni introducción, ni markdown adicional que no se
         if (found) matchedId = found.id;
       }
 
-      // Si no hay student_id, creamos o usamos un id basado en hash/fallback
+      // Si no hay student_id, usamos el primer perfil disponible del plantel
       if (!matchedId) {
-        const fallbackProfile = athletes?.find(a => (a.full_name || '').toLowerCase().includes('bruno')) || athletes?.[0];
-        matchedId = fallbackProfile?.id;
+        matchedId = athletes?.[0]?.id;
       }
 
       if (!matchedId) continue;

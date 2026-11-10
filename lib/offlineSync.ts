@@ -88,7 +88,16 @@ export const getOfflineQueue = (): PendingAction[] => {
       localStorage.getItem(WW_QUEUE_KEY) ||
       localStorage.getItem(QUEUE_KEY) ||
       localStorage.getItem(LEGACY_QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed: PendingAction[] = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Purgar rigurosamente cualquier acción o prueba asociada a Bruno Díaz
+    return parsed.filter((item: PendingAction) => {
+      const p = item.payload || {};
+      const name = (p.full_name || p.athlete_name || p.name || p.athlete_full_name || "").toLowerCase();
+      const notes = (p.coach_feedback || p.notes || "").toLowerCase();
+      return !name.includes("bruno") && !notes.includes("bruno");
+    });
   } catch {
     return [];
   }

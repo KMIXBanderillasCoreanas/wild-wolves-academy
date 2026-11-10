@@ -91,7 +91,9 @@ export async function getPendingOfflineTests(): Promise<OfflineSportsTestRecord[
       const store = tx.objectStore(STORE_NAME);
       const req = store.getAll();
       req.onsuccess = () => {
-        const pending = (req.result || []).filter((r: OfflineSportsTestRecord) => r.sync_status === 'pending');
+        const pending = (req.result || [])
+          .filter((r: OfflineSportsTestRecord) => r.sync_status === 'pending')
+          .filter((r: OfflineSportsTestRecord) => !(r.athlete_name || '').toLowerCase().includes('bruno'));
         resolve(pending);
       };
       req.onerror = () => reject(req.error);
@@ -102,7 +104,8 @@ export async function getPendingOfflineTests(): Promise<OfflineSportsTestRecord[
 
   // Fallback a LocalStorage
   if (typeof window !== 'undefined') {
-    return JSON.parse(localStorage.getItem('ww_offline_sports_tests') || '[]');
+    const raw = JSON.parse(localStorage.getItem('ww_offline_sports_tests') || '[]');
+    return raw.filter((r: any) => !(r.athlete_name || '').toLowerCase().includes('bruno'));
   }
   return [];
 }

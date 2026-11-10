@@ -55,10 +55,10 @@ import {
 
 // Constantes de Seguridad y Respaldo por Omisión (Safety Guards)
 const DEFAULT_STUDENT_DATA = {
-  id: "student-bruno-diaz",
-  full_name: "Alumno Demo (Atleta)",
-  email: "bruno@wildwolves.mx",
-  jersey_number: 11,
+  id: "student-oficial-jesus",
+  full_name: "Jesús",
+  email: "jesus@wildwolves.mx",
+  jersey_number: 7,
   category: "U-17 Competitivo",
   position: "GUARD (SG)",
   age: 15,
@@ -75,7 +75,7 @@ const DEFAULT_STUDENT_DATA = {
   training_days: "Lunes a Sábado",
   financial_status: "al_corriente",
   current_debt_amount: 0,
-  current_tier: "Intermedio"
+  current_tier: "iniciacion_adaptacion"
 };
 
 const DEFAULT_UNIFIED_TEST = {

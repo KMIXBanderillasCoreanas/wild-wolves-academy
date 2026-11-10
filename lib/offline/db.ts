@@ -132,3 +132,53 @@ export async function removeQueueItem(id: string): Promise<void> {
     console.warn("IndexedDB removeQueueItem fallback:", err);
   }
 }
+
+// Purgar Bruno en IndexedDB
+export async function purgeBrunoFromLocalDB(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const db = await openLocalDB();
+    // 1. Limpiar en sync_queue
+    const txQ = db.transaction("sync_queue", "readwrite");
+    const storeQ = txQ.objectStore("sync_queue");
+    const reqQ = storeQ.getAll();
+    reqQ.onsuccess = () => {
+      const items: OfflineAction[] = reqQ.result || [];
+      items.forEach((item) => {
+        const name = (item.payload?.athlete_name || item.payload?.full_name || item.payload?.name || "").toLowerCase();
+        if (name.includes("bruno")) {
+          storeQ.delete(item.id);
+        }
+      });
+    };
+    // 2. Limpiar en athletes_cache
+    const txA = db.transaction("athletes_cache", "readwrite");
+    const storeA = txA.objectStore("athletes_cache");
+    const reqA = storeA.getAll();
+    reqA.onsuccess = () => {
+      const athletes = reqA.result || [];
+      athletes.forEach((ath: any) => {
+        const name = (ath.full_name || ath.name || "").toLowerCase();
+        if (name.includes("bruno")) {
+          storeA.delete(ath.id);
+        }
+      });
+    };
+  } catch (err) {
+    console.warn("Error en purgeBrunoFromLocalDB:", err);
+  }
+}
+
+export async function clearAllLocalDB(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const db = await openLocalDB();
+    const txQ = db.transaction("sync_queue", "readwrite");
+    txQ.objectStore("sync_queue").clear();
+    const txA = db.transaction("athletes_cache", "readwrite");
+    txA.objectStore("athletes_cache").clear();
+  } catch (err) {
+    console.warn("Error en clearAllLocalDB:", err);
+  }
+}
+
