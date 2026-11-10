@@ -750,6 +750,44 @@ export async function DELETE(req: Request) {
       });
     }
 
+    if (action === "DELETE_ATHLETE" || action === "DELETE_STUDENT") {
+      const { athlete_id, student_id } = body;
+      const targetId = athlete_id || student_id;
+
+      if (!targetId) {
+        return NextResponse.json(
+          { error: "Falta el ID del atleta a eliminar." },
+          { status: 400 }
+        );
+      }
+
+      // Eliminar dependencias primero en orden relacional
+      await supabase.from("daily_attendance").delete().eq("student_id", targetId);
+      await supabase.from("attendance_commitments").delete().eq("user_id", targetId);
+      await supabase.from("membership_payments").delete().eq("student_id", targetId);
+      await supabase.from("payment_transactions_history").delete().eq("student_id", targetId);
+      await supabase.from("basketball_skills_logs").delete().eq("student_id", targetId);
+      await supabase.from("physical_training_logs").delete().eq("student_id", targetId);
+      await supabase.from("detailed_test_records").delete().eq("student_id", targetId);
+      await supabase.from("student_initial_baseline").delete().eq("student_id", targetId);
+      await supabase.from("prospect_athletes").delete().eq("claimed_user_id", targetId);
+      await supabase.from("prospect_athletes").delete().eq("id", targetId);
+
+      // Eliminar registro del perfil
+      const { error: delProfileErr } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", targetId);
+
+      if (delProfileErr) throw delProfileErr;
+
+      return NextResponse.json({
+        success: true,
+        message: "Atleta y todos sus registros asociados eliminados de forma segura.",
+        deleted_athlete_id: targetId,
+      });
+    }
+
     return NextResponse.json({ error: "Acción no reconocida." }, { status: 400 });
   } catch (error: any) {
     console.error("Error en DELETE attendance-finance-manage:", error);

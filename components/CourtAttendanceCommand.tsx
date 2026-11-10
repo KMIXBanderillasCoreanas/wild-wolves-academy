@@ -2204,6 +2204,12 @@ export default function CourtAttendanceCommand() {
           }}
           onClose={() => setSelectedStudentForFinance(null)}
           onSuccess={handleFinanceModalSuccess}
+          onDeleteAthlete={(deletedId) => {
+            setStudents(prev => prev.filter(s => s.id !== deletedId));
+            setSelectedStudentForFinance(null);
+            setInstantSaveToast("✓ Atleta eliminado del sistema");
+            setTimeout(() => setInstantSaveToast(null), 3000);
+          }}
         />
       )}
 

@@ -43,6 +43,7 @@ interface ManageStudentFinanceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (updatedStudent: StudentFinanceData) => void;
+  onDeleteAthlete?: (studentId: string) => void;
 }
 
 const PRESET_DAYS = [
@@ -70,7 +71,51 @@ export default function ManageStudentFinanceModal({
   isOpen,
   onClose,
   onSuccess,
+  onDeleteAthlete,
 }: ManageStudentFinanceModalProps) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm(
+      `⚠️ ¿Estás seguro de que deseas ELIMINAR permanentemente a ${student.full_name}?\n\nEsta acción borrará su perfil y todas sus asistencias y pagos registrados. Esta acción no se puede deshacer.`
+    );
+    if (!confirmDelete) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/admin/attendance-finance-manage", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": "WW-SUPERADMIN-FULL-2026",
+          "x-admin-email": "wildwolvescdmx@gmail.com",
+        },
+        body: JSON.stringify({
+          action: "DELETE_ATHLETE",
+          athlete_id: student.id,
+        }),
+      });
+
+      if (!res.ok) {
+        // Fallback directo a Supabase
+        await supabase.from("daily_attendance").delete().eq("student_id", student.id);
+        await supabase.from("membership_payments").delete().eq("student_id", student.id);
+        await supabase.from("payment_transactions_history").delete().eq("student_id", student.id);
+        await supabase.from("profiles").delete().eq("id", student.id);
+      }
+
+      alert(`✓ ${student.full_name} ha sido eliminado del sistema.`);
+      if (onDeleteAthlete) {
+        onDeleteAthlete(student.id);
+      }
+      onClose();
+    } catch (err: any) {
+      console.error("Error al eliminar atleta:", err);
+      alert("Error al intentar eliminar el atleta: " + (err?.message || ""));
+    } finally {
+      setDeleting(false);
+    }
+  };
   // Estados Financieros
   const [currentDebt, setCurrentDebt] = useState<number>(student.current_debt_amount || 0);
   const [financialStatus, setFinancialStatus] = useState<FinancialStatus>(student.financial_status || "al_corriente");
@@ -618,21 +663,34 @@ export default function ManageStudentFinanceModal({
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="p-4 sm:p-5 border-t border-zinc-800/80 bg-zinc-900/95 flex items-center justify-between gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs uppercase transition cursor-pointer"
-          >
-            Cancelar
-          </button>
+        <div className="p-4 sm:p-5 border-t border-zinc-800/80 bg-zinc-900/95 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting || saving}
+              className="px-3.5 py-3 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-red-400 hover:text-red-300 font-bold text-xs uppercase transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              title="Eliminar permanentemente a este atleta"
+            >
+              <Trash2 className="w-4 h-4 text-red-400" />
+              <span>{deleting ? "Eliminando..." : "Eliminar Atleta"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving || deleting}
+              className="px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs uppercase transition cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
 
           <button
             type="button"
             onClick={handleSaveAll}
-            disabled={saving}
-            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#f66018] to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-orange-950/50 transition active:scale-98 cursor-pointer disabled:opacity-50"
+            disabled={saving || deleting}
+            className="flex-1 min-w-[140px] py-3 px-4 rounded-xl bg-gradient-to-r from-[#f66018] to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-orange-950/50 transition active:scale-98 cursor-pointer disabled:opacity-50"
           >
             {saving ? (
               <span>Sincronizando...</span>
