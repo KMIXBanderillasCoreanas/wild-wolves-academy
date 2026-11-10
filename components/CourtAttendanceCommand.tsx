@@ -1125,59 +1125,6 @@ export default function CourtAttendanceCommand() {
   return (
     <div className="w-full bg-[#0a0d14] text-zinc-100 rounded-3xl border border-zinc-800/80 shadow-2xl p-4 sm:p-6 lg:p-7 space-y-5 transition-all duration-300">
       
-      {/* BARRA DE FLUJO EN DOS FASES: FASE 1 (PASE DE LISTA) vs FASE 2 (CIERRE & COBRO) */}
-      <section className="bg-gradient-to-r from-zinc-950 via-[#101421] to-zinc-950 p-2 sm:p-2.5 rounded-2xl border border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setActiveCourtPhase("fase1_asistencia")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
-              activeCourtPhase === "fase1_asistencia"
-                ? "bg-[#06B6D4] text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                : "bg-zinc-900/80 text-zinc-400 hover:text-white"
-            }`}
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Fase 1: Pase de Lista</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveCourtPhase("fase2_cobro")}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
-              activeCourtPhase === "fase2_cobro"
-                ? "bg-[#FF6B00] text-black shadow-[0_0_15px_rgba(255,107,0,0.4)]"
-                : "bg-zinc-900/80 text-zinc-400 hover:text-white"
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Fase 2: Cobro Fin de Clase</span>
-          </button>
-        </div>
-
-        {/* Botón de Cierre Rápido de Clase y Acceso a Ventana Glassmorphism */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-          <button
-            type="button"
-            onClick={() => setIsGlassModalOpen(true)}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-[#00F0FF] to-[#0284C7] hover:brightness-110 active:scale-95 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 border border-[#00F0FF]/40 transition cursor-pointer"
-            title="Abrir Panel Táctico Flotante con Estética Glassmorphism"
-          >
-            <Sparkles className="w-4 h-4 text-black" />
-            <span>⚡ Ventana Glassmorphism</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsClassClosureModalOpen(true)}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 border border-amber-400/30 transition cursor-pointer"
-          >
-            <Zap className="w-4 h-4 text-yellow-300" />
-            <span>🏁 Cierre Rápido de Clase</span>
-          </button>
-        </div>
-      </section>
-
       {/* 1. COURT SESSION CONTROL & SYNC STRIP (100% RESPONSIVE) */}
       <section className="bg-zinc-900/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

@@ -67,8 +67,8 @@ function CoachDashboardContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | 'superadmin'>('coach');
 
-  // Pestañas Principales en Estructura: 1. Cancha & Asistencia | 2. Pruebas & Combine | 3. Escáner OCR | 4. Cuerda & Resistencia | 5. Finanzas | 6. Reportes IA & WhatsApp
-  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'test_evaluations' | 'match_ocr' | 'fisico_tactico' | 'finanzas_gestion' | 'reportes_ia'>('cancha_eval');
+  // Pestañas Principales en Estructura: 1. Cancha & Asistencia | 2. Cédulas OCR | 3. Finanzas | 4. Reportes IA & WhatsApp
+  const [coachActiveTab, setCoachActiveTab] = useState<'cancha_eval' | 'match_ocr' | 'finanzas_gestion' | 'reportes_ia'>('cancha_eval');
 
 
   // Filtros del Roster
@@ -525,266 +525,8 @@ function CoachDashboardContent() {
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans">
-      {/* 1. Panel Superior de Control con Roster y RBAC Indicator */}
-      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 pb-5 border-b border-[#27272a]">
-          <div className="flex items-center gap-3.5">
-            {/* Logotipo Oficial Original */}
-            <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0">
-              <Image
-                src="/logo-official.png"
-                alt="Wild Wolves Logo"
-                width={44}
-                height={44}
-                className="object-contain"
-                priority
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                  isSuperAdmin
-                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                    : 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
-                }`}>
-                  {isSuperAdmin ? <Crown className="w-3 h-3 text-amber-400" /> : <ShieldCheck className="w-3 h-3 text-orange-400" />}
-                  ROL OPERACIONAL: {isSuperAdmin ? 'SUPER ADMINISTRADOR (NIVEL 0)' : 'COACH DEPORTIVO (NIVEL 1)'}
-                </span>
-                <span className="text-zinc-400 text-xs font-mono">
-                  {students.length} Atletas • Deportivo Carmen Serdán
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Control Técnico, Evaluaciones &amp; Asistencia Diaria
-              </h1>
-            </div>
-          </div>
-
-          {/* Acciones Rápidas & Switcher RBAC */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
-            {/* Toggle RBAC para demostración o superadmin */}
-            <button
-              onClick={toggleRole}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-mono font-bold transition cursor-pointer ${
-                isSuperAdmin
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                  : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:text-white'
-              }`}
-              title="Cambiar permisos de vista"
-            >
-              {isSuperAdmin ? <Crown className="w-3.5 h-3.5 text-amber-400" /> : <Lock className="w-3.5 h-3.5" />}
-              <span>{isSuperAdmin ? 'Modo SuperAdmin' : 'Modo Coach'}</span>
-            </button>
-
-            {selectedStudent && (
-              <button
-                onClick={() => setIsMedicalModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
-              >
-                <Heart className="w-3.5 h-3.5 text-rose-400" />
-                <span>Ficha Médica ({athleteFirstName})</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => setIsAddStudentModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Nuevo Atleta</span>
-            </button>
-
-            {selectedStudent && (
-              <button
-                onClick={() => setIsEvalModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-md"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ Nueva Evaluación</span>
-              </button>
-            )}
-
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-rose-950/60 border border-zinc-700 hover:border-rose-500/50 text-zinc-300 hover:text-rose-300 text-xs font-mono font-bold transition-all cursor-pointer shadow-md"
-              title="Cerrar sesión"
-            >
-              <LogOut className="w-3.5 h-3.5 text-zinc-400 group-hover:text-rose-400" />
-              <span>Cerrar Sesión</span>
-            </button>
-
-            {selectedStudent && <WhatsAppReportButton student={selectedStudent} label="WhatsApp" />}
-          </div>
-        </div>
-
-        {/* Filtros Rápidos del Roster */}
-        <div className="pt-4 space-y-3">
-          {/* BARRA DE BÚSQUEDA RÁPIDA DE ATLETAS */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={athleteSearchQuery}
-                onChange={(e) => setAthleteSearchQuery(e.target.value)}
-                placeholder="🔍 Buscar atleta por nombre, # de jersey o posición (ej. Mateo, #11, Base)..."
-                className="w-full pl-3.5 pr-9 py-2 bg-[#0a0e17] border border-[#27272a] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500 font-sans"
-              />
-              {athleteSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setAthleteSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white text-xs"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <span className="text-[10px] font-mono text-zinc-500 self-center sm:self-auto shrink-0">
-              {filteredStudents.length} de {students.length} atletas
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <Filter className="w-3.5 h-3.5 text-orange-400" />
-              <span>Filtros de Plantel:</span>
-            </div>
-
-            {/* Filtro Género */}
-            <div className="flex items-center bg-[#0a0e17] rounded-lg p-1 border border-[#27272a] gap-1">
-              {(['ALL', 'M', 'F'] as const).map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setFilterGender(g)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors cursor-pointer ${
-                    filterGender === g ? 'bg-orange-600 text-white font-bold' : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  {g === 'ALL' ? 'Todos' : g === 'M' ? 'Varonil' : 'Femenil'}
-                </button>
-              ))}
-            </div>
-
-            {/* Filtro Rango de Edad */}
-            <div className="flex items-center bg-[#0a0e17] rounded-lg p-1 border border-[#27272a] gap-1">
-              {(['ALL', 'SUB15', 'SUB18', 'SENIOR'] as const).map((a) => (
-                <button
-                  key={a}
-                  onClick={() => setFilterAge(a)}
-                  className={`px-2 py-1 rounded text-[11px] font-mono transition-colors cursor-pointer ${
-                    filterAge === a ? 'bg-orange-600 text-white font-bold' : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  {a === 'ALL' ? 'Todas Edades' : a === 'SUB15' ? 'Sub-15' : a === 'SUB18' ? 'Sub-18' : 'Senior'}
-                </button>
-              ))}
-            </div>
-
-            {/* Filtro Posición */}
-            <select
-              value={filterPosition}
-              onChange={(e) => setFilterPosition(e.target.value)}
-              className="bg-[#0a0e17] border border-[#27272a] text-zinc-300 text-xs font-mono py-1.5 px-3 rounded-lg focus:outline-none focus:border-orange-500 cursor-pointer"
-            >
-              <option value="ALL">Todas las Posiciones</option>
-              <option value="Base">Base</option>
-              <option value="Escolta">Escolta</option>
-              <option value="Alero">Alero</option>
-              <option value="Ala-Pívot">Ala-Pívot</option>
-              <option value="Pívot">Pívot</option>
-            </select>
-          </div>
-
-          {/* Roster de Atletas (Selector con Tarjetas Rápidas) */}
-          {filteredStudents.length === 0 ? (
-            <div className="p-6 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a] mt-2">
-              No hay atletas registrados o no coinciden con los filtros. Haz clic en &quot;+ Nuevo Atleta&quot; para dar de alta en cancha.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-2">
-              {filteredStudents.map((st) => {
-                const isSelected = selectedStudent ? st.id === selectedStudent.id : false;
-                return (
-                  <div
-                    key={st.id}
-                    onClick={() => setSelectedStudentId(st.id)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-orange-500/10 border-orange-500 text-white shadow-sm'
-                        : 'bg-[#0a0e17] border-[#27272a] text-zinc-400 hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <img
-                        src={st.avatarUrl || '/logo-official.png'}
-                        alt={st.fullName}
-                        className="w-10 h-10 rounded-xl object-cover border border-zinc-700 flex-shrink-0"
-                      />
-                      <div className="truncate">
-                        <div className="text-xs font-black text-white truncate flex items-center gap-1.5">
-                          <span>{st.fullName}</span>
-                          <span className="text-[10px] text-orange-400 font-mono">#{st.jerseyNumber || '—'}</span>
-                        </div>
-                        <div className="text-[10px] font-mono text-zinc-400 flex items-center gap-1">
-                          <span>{st.position}</span>
-                          <span>•</span>
-                          <span className="text-purple-400 font-bold">{(st as any).currentTier || 'Lobo'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                        st.finances?.status === 'al_corriente' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      }`}>
-                        {st.finances?.status === 'al_corriente' ? '$0' : `$${st.finances?.balanceDue || 50}`}
-                      </span>
-                      {st.evaluations && st.evaluations.length > 0 && (
-                        <span className="text-[9px] font-mono font-black text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1 rounded">
-                          {(st.evaluations[0] as any).overallOvr ? `${(st.evaluations[0] as any).overallOvr} OVR` : `${st.evaluations.length} test`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {!selectedStudent ? (
-        <div className="bg-[#121724] border border-zinc-800 rounded-3xl p-8 sm:p-12 text-center max-w-xl mx-auto shadow-2xl space-y-4 my-8 font-sans">
-          <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mx-auto text-orange-400">
-            <Users className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black uppercase text-white">
-            Plantel de Cancha Listo para Registro
-          </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans">
-            La base de datos se encuentra limpia y en blanco. Puedes dar de alta al primer atleta que se presente a entrenamiento o esperar registros desde la web pública.
-          </p>
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={() => setIsAddStudentModalOpen(true)}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#ea580c] hover:bg-[#c2410c] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-orange-600/30 cursor-pointer active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>+ Registrar Primer Atleta en Cancha</span>
-            </button>
-            <Link
-              href="/master-bunker-hq"
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs flex items-center justify-center gap-1.5 transition"
-            >
-              <KeyRound className="w-4 h-4 text-amber-400" />
-              <span>Ir a Búnker HQ</span>
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* SELECTOR SUPERIOR: ESTRUCTURA MODULAR INDEPENDIENTE */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#121724] border border-zinc-800 rounded-2xl shadow-xl">
+        {/* SELECTOR SUPERIOR: ESTRUCTURA MODULAR INDEPENDIENTE */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#121724] border border-zinc-800 rounded-2xl shadow-xl">
             <div className="flex items-center gap-2 flex-wrap flex-1">
               <button
                 type="button"
@@ -801,19 +543,6 @@ function CoachDashboardContent() {
 
               <button
                 type="button"
-                onClick={() => setCoachActiveTab('test_evaluations')}
-                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                  coachActiveTab === 'test_evaluations'
-                    ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-                }`}
-              >
-                <Activity className="w-4 h-4 text-sky-300" />
-                <span>2. Test Day & Combine</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setCoachActiveTab('match_ocr')}
                 className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                   coachActiveTab === 'match_ocr'
@@ -822,20 +551,7 @@ function CoachDashboardContent() {
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-orange-400" />
-                <span>3. Cédulas OCR</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setCoachActiveTab('fisico_tactico')}
-                className={`flex-1 min-w-[170px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                  coachActiveTab === 'fisico_tactico'
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-                }`}
-              >
-                <Target className="w-4 h-4 text-purple-300" />
-                <span>4. Cuerda & Resistencia</span>
+                <span>2. Cédulas OCR</span>
               </button>
 
               <button
@@ -848,7 +564,7 @@ function CoachDashboardContent() {
                 }`}
               >
                 <span className="text-amber-400 font-bold">$</span>
-                <span>5. Finanzas & Caja</span>
+                <span>3. Finanzas & Caja</span>
               </button>
 
               <button
@@ -861,19 +577,15 @@ function CoachDashboardContent() {
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-emerald-300" />
-                <span>6. Reportes IA & WhatsApp</span>
+                <span>4. Reportes IA & WhatsApp</span>
               </button>
             </div>
 
             <div className="text-[11px] font-mono text-zinc-400 px-3 py-1 hidden xl:block">
               {coachActiveTab === 'cancha_eval' 
                 ? '⚡ Cancha en Vivo: Pase 1-Tap & Cobro' 
-                : coachActiveTab === 'test_evaluations'
-                ? '📊 Test Day Biomecánico & Combine'
                 : coachActiveTab === 'match_ocr' 
                 ? '📷 Escáner de Cédulas OCR' 
-                : coachActiveTab === 'fisico_tactico' 
-                ? '🏃 Cuerda y Resistencia' 
                 : coachActiveTab === 'finanzas_gestion'
                 ? '💰 Finanzas y Control de Pagos'
                 : '🤖 Reportes Automatizados IA para Tutores'}
@@ -888,167 +600,12 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 2: TEST DAY BIOMECÁNICO & COMBINE (RADAR 360 & EVALUACIONES) */}
-          {coachActiveTab === 'test_evaluations' && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Módulo de Captura en Cancha: Test Day Biomecánico */}
-              <TestDayEvaluator />
-
-              {/* Radar 360° del Atleta Seleccionado */}
-              <RadarChart360
-                metricsCurrent={selectedStudent.metricsCurrent}
-                metricsPrevious={selectedStudent.metricsPrevious}
-                athleteName={selectedStudent.fullName}
-              />
-
-              {/* Diagnóstico Exprés de Colocación & Pipeline CRM */}
-              <SmartPlacementCRM />
-
-              {/* OjOS Y OÍDOS DE LA CANCHA: VISIÓN ARTIFICIAL & SHOT SCIENCE HUD */}
-              <CourtVisionHUD 
-                studentId={selectedStudent?.id}
-                studentName={selectedStudent?.fullName}
-              />
-
-              {/* SECCIÓN DE HISTORIAL DE EVALUACIONES & RESTRICCIÓN RBAC */}
-              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 shadow-none">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#27272a] mb-5">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
-                        HISTORIAL DE PRUEBAS DEPORTIVAS (TEST DAY)
-                      </span>
-                      {isSuperAdmin ? (
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                          <Crown className="w-3 h-3 text-amber-400" />
-                          PERMISOS ACTIVOS: EDICIÓN &amp; ELIMINACIÓN
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-mono text-zinc-400 bg-[#0a0e17] px-2 py-0.5 rounded border border-[#27272a] flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-zinc-500" />
-                          Modo Coach: Solo Lectura del Histórico
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                      <History className="w-5 h-5 text-orange-400" />
-                      <span>Bitácora de Evaluaciones: {athleteDisplayName}</span>
-                    </h3>
-                    <p className="text-xs text-zinc-400 font-mono">
-                      {isSuperAdmin
-                        ? 'Como Super Administrador puedes editar cualquier prueba previa o eliminarla con recalibración del radar.'
-                        : 'Los Coaches pueden ingresar nuevas pruebas deportivas pero no pueden modificar ni borrar el histórico de métricas.'}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setIsEvalModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer self-start sm:self-auto"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>+ Cargar Evaluación Mensual</span>
-                  </button>
-                </div>
-
-                {/* Lista de Evaluaciones del Atleta con Botones según Rol */}
-                {evaluationsList.length === 0 ? (
-                  <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-[#0a0e17] rounded-xl border border-[#27272a]">
-                    Este atleta no tiene evaluaciones históricas registradas. Haz clic en &quot;+ Cargar Evaluación Mensual&quot;.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {evaluationsList.map((ev, index) => (
-                      <div
-                        key={ev?.id || `eval_${index}`}
-                        className="bg-[#0a0e17] border border-[#27272a] hover:border-zinc-700 rounded-xl p-4 font-mono text-xs transition"
-                      >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-white font-bold text-sm font-sans">{ev?.date || 'Fecha'}</span>
-                            <span className="text-[10px] text-zinc-400">evaluado por {ev?.coachName || 'Coach'}</span>
-                            {index === 0 && (
-                              <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-                                Vigente
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Acciones de Edición/Eliminación: EXCLUSIVAS PARA SUPERADMIN */}
-                          {isSuperAdmin ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleOpenEditEval(ev)}
-                                className="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-                                title="Editar evaluación deportiva"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span>Editar</span>
-                              </button>
-                              <button
-                                onClick={() => handleOpenDeleteEval(ev)}
-                                className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-                                title="Eliminar evaluación del histórico"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>Eliminar</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="text-[10px] text-zinc-500 font-mono flex items-center gap-1">
-                              <Lock className="w-3 h-3 text-zinc-600" />
-                              <span>Protegido contra edición</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Métricas Raw de la Prueba */}
-                        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 my-2 text-[11px] pt-1 border-t border-zinc-800/60">
-                          <div className="p-2 bg-zinc-900/60 rounded-lg">
-                            <span className="text-zinc-500 text-[10px] block">T. Libres</span>
-                            <strong className="text-white">{ev?.rawStats?.freeThrowMade ?? Math.round(((ev?.metrics?.freeThrow ?? 0) * 20)/100)}/20</strong>
-                          </div>
-                          <div className="p-2 bg-zinc-900/60 rounded-lg">
-                            <span className="text-zinc-500 text-[10px] block">Media Dist.</span>
-                            <strong className="text-white">{ev?.rawStats?.midRangePct ?? (ev?.metrics?.midRange ?? 0)}%</strong>
-                          </div>
-                          <div className="p-2 bg-zinc-900/60 rounded-lg">
-                            <span className="text-zinc-500 text-[10px] block">Triples</span>
-                            <strong className="text-white">{ev?.rawStats?.threePointPct ?? (ev?.metrics?.threePoint ?? 0)}%</strong>
-                          </div>
-                          <div className="p-2 bg-zinc-900/60 rounded-lg">
-                            <span className="text-zinc-500 text-[10px] block">Salto</span>
-                            <strong className="text-orange-400">{ev?.rawStats?.verticalJumpCm ?? Math.round(((ev?.metrics?.verticalJump ?? 0) * 90)/100)} cm</strong>
-                          </div>
-                          <div className="p-2 bg-zinc-900/60 rounded-lg">
-                            <span className="text-zinc-500 text-[10px] block">100m Sprint</span>
-                            <strong className="text-sky-400">{ev?.rawStats?.sprint100mSeconds ?? 11.5}s</strong>
-                          </div>
-                          <div className="p-2 bg-zinc-900/60 rounded-lg">
-                            <span className="text-zinc-500 text-[10px] block">T-Test Agilidad</span>
-                            <strong className="text-emerald-400">{ev?.rawStats?.agilityTTestSeconds ?? 9.2}s</strong>
-                          </div>
-                        </div>
-
-                        {ev?.coachNotes && (
-                          <div className="p-2.5 bg-zinc-900/40 rounded-lg text-zinc-300 font-sans text-xs mt-2 border border-zinc-800/40">
-                            <span className="font-mono font-bold text-orange-400 mr-1.5">Feedback:</span>
-                            {ev.coachNotes}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* VISTA 3: ESCÁNER DE HOJA DE PARTIDO (OCR DUELA) */}
+          {/* VISTA 2: ESCÁNER DE HOJA DE PARTIDO (OCR DUELA) */}
           {coachActiveTab === 'match_ocr' && (
             <div className="space-y-6 animate-fadeIn">
               <MatchSheetScanner
-                studentId={selectedStudent.id}
-                studentName={selectedStudent.fullName}
+                studentId={selectedStudent?.id || students[0]?.id || ''}
+                studentName={selectedStudent?.fullName || students[0]?.fullName || 'Plantel Carmen Serdán'}
                 onSyncSuccess={() => {
                   setStudents(HoopStore.getStudents());
                 }}
@@ -1056,37 +613,7 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 4: CUERDA, FÍSICO & RESISTENCIA */}
-          {coachActiveTab === 'fisico_tactico' && (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Módulo Táctico Dual sincronizado con el atleta seleccionado */}
-              <DualCoachCommand externalSelectedStudentId={selectedStudent?.id} />
-
-              {/* Vista rápida de Bioimpedancia */}
-              <BioimpedanceWizard
-                students={students.map(s => ({ id: s.id, fullName: s.fullName, currentTier: (s as any).currentTier || 'principiante' }))}
-              />
-
-              {/* Cuerda & Resistencia */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <RopeTracker
-                  training={trainingData}
-                  readOnly={false}
-                  onToggleDay={handleToggleDay}
-                  onUpdateTargets={handleUpdateRopeTargets}
-                />
-
-                <EnduranceCalendar
-                  training={trainingData}
-                  readOnly={false}
-                  onToggleDay={handleToggleDay}
-                  onUpdateTargets={handleUpdateJoggingTargets}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* VISTA 5: FINANZAS & CONTROL DE PAGOS */}
+          {/* VISTA 3: FINANZAS & CONTROL DE PAGOS */}
           {coachActiveTab === 'finanzas_gestion' && (
             <div className="space-y-6 animate-fadeIn">
               <FinanceManager
@@ -1097,7 +624,7 @@ function CoachDashboardContent() {
             </div>
           )}
 
-          {/* VISTA 6: GENERADOR DE REPORTES AUTOMATIZADOS CON IA & WHATSAPP CRM */}
+          {/* VISTA 4: GENERADOR DE REPORTES AUTOMATIZADOS CON IA & WHATSAPP CRM */}
           {coachActiveTab === 'reportes_ia' && (
             <div className="space-y-6 animate-fadeIn">
               <WhatsAppAIEngine 
@@ -1447,8 +974,6 @@ function CoachDashboardContent() {
             </div>
           </div>
         </div>
-      )}
-        </>
       )}
 
       {/* 10. MODAL DE REGISTRO RÁPIDO DE ATLETA EN CANCHA (COACH & ADMIN) */}
