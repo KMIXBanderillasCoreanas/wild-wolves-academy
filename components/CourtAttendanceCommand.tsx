@@ -87,12 +87,15 @@ export default function CourtAttendanceCommand() {
     return "vespertino";
   });
   
-  // Selector de fecha CDMX para sesión y filtrado de asistencia
+  // Estados del Flujo de Cancha en Dos Fases
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Mexico_City",
     }).format(new Date());
   });
+  const [activeCourtPhase, setActiveCourtPhase] = useState<"fase1_asistencia" | "fase2_cobro">("fase1_asistencia");
+  const [isClassClosureModalOpen, setIsClassClosureModalOpen] = useState<boolean>(false);
+  const [closureDefaultDebtAmount, setClosureDefaultDebtAmount] = useState<number>(50);
 
   // Notificación de guardado instantáneo 1-tap
   const [instantSaveToast, setInstantSaveToast] = useState<string | null>(null);
@@ -766,6 +769,103 @@ export default function CourtAttendanceCommand() {
     }
   };
 
+  // FASE 2: CIERRE RÁPIDO DE CLASE / COBRO MASIVO (FIN DE CLASE)
+  const handleExecuteClassClosure = async (mode: "liquidar_asistentes" | "adeudar_pendientes") => {
+    const todayDate = selectedDate || new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+    }).format(new Date());
+
+    // Alumnos que asistieron (presente o retardo)
+    const attendees = students.filter(s => s.attendance_status === "presente" || s.attendance_status === "retardo");
+    if (attendees.length === 0) {
+      alert("No hay alumnos marcados como Presentes o con Retardo en esta sesión.");
+      return;
+    }
+
+    if (mode === "liquidar_asistentes") {
+      // Marcar a todos los asistentes como liquidado ($0 adeudo)
+      for (const st of attendees) {
+        if (st.scholarship_percentage === 100) continue;
+        const currentDebt = Number(st.current_debt_amount) || 0;
+        const payAmt = currentDebt > 0 ? currentDebt : (st.default_class_cost || closureDefaultDebtAmount);
+        
+        // Actualizar UI
+        setStudents(prev => prev.map(s => s.id === st.id ? {
+          ...s,
+          financial_status: "al_corriente",
+          current_debt_amount: 0,
+          last_payment_status: "al_corriente",
+          last_payment_amount: payAmt,
+          last_session_date: todayDate
+        } : s));
+
+        const transPayload = {
+          student_id: st.id,
+          amount_paid: payAmt,
+          payment_method: "efectivo",
+          concept: `Cierre de clase: Liquidado en Cancha (${todayDate})`,
+          transaction_date: todayDate,
+          created_at: new Date().toISOString()
+        };
+        const profPayload = {
+          id: st.id,
+          current_debt_amount: 0,
+          financial_status: "al_corriente"
+        };
+
+        if (!navigator.onLine) {
+          enqueueOfflineAction("PAYMENT_TRANSACTION", transPayload);
+          enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profPayload);
+        } else {
+          try {
+            await supabase.from("payment_transactions_history").insert(transPayload);
+            await supabase.from("profiles").update(profPayload).eq("id", st.id);
+          } catch {
+            enqueueOfflineAction("PAYMENT_TRANSACTION", transPayload);
+            enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profPayload);
+          }
+        }
+      }
+      setInstantSaveToast(`🟢 Cierre completado: ${attendees.length} atletas liquidados en cancha`);
+    } else {
+      // Adeudar a los asistentes que no han pagado
+      let debitedCount = 0;
+      for (const st of attendees) {
+        if (st.scholarship_percentage === 100 || st.financial_status === "al_corriente") continue;
+        const nextDebt = (Number(st.current_debt_amount) || 0) + closureDefaultDebtAmount;
+        
+        setStudents(prev => prev.map(s => s.id === st.id ? {
+          ...s,
+          financial_status: "adeudo_pendiente",
+          current_debt_amount: nextDebt,
+          last_payment_status: "adeudo"
+        } : s));
+
+        const profPayload = {
+          id: st.id,
+          current_debt_amount: nextDebt,
+          financial_status: "adeudo_pendiente"
+        };
+
+        if (!navigator.onLine) {
+          enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profPayload);
+        } else {
+          try {
+            await supabase.from("profiles").update(profPayload).eq("id", st.id);
+          } catch {
+            enqueueOfflineAction("PROFILE_FINANCIAL_UPDATE", profPayload);
+          }
+        }
+        debitedCount++;
+      }
+      setInstantSaveToast(`🟠 Cierre completado: ${debitedCount} atletas pasados a adeudo (+$${closureDefaultDebtAmount} MXN)`);
+    }
+
+    setOfflineCount(getOfflineQueueCount());
+    setIsClassClosureModalOpen(false);
+    setTimeout(() => setInstantSaveToast(null), 3500);
+  };
+
   // 3. PASO: ALTA RÁPIDA DE ATLETA EN CANCHA (CASO OSMAR LÓPEZ)
   const handleCreateFastAthlete = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1021,6 +1121,49 @@ export default function CourtAttendanceCommand() {
   return (
     <div className="w-full bg-[#0a0d14] text-zinc-100 rounded-3xl border border-zinc-800/80 shadow-2xl p-4 sm:p-6 lg:p-7 space-y-5 transition-all duration-300">
       
+      {/* BARRA DE FLUJO EN DOS FASES: FASE 1 (PASE DE LISTA) vs FASE 2 (CIERRE & COBRO) */}
+      <section className="bg-gradient-to-r from-zinc-950 via-[#101421] to-zinc-950 p-2 sm:p-2.5 rounded-2xl border border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setActiveCourtPhase("fase1_asistencia")}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
+              activeCourtPhase === "fase1_asistencia"
+                ? "bg-[#06B6D4] text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                : "bg-zinc-900/80 text-zinc-400 hover:text-white"
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Fase 1: Pase de Lista</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveCourtPhase("fase2_cobro")}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
+              activeCourtPhase === "fase2_cobro"
+                ? "bg-[#FF6B00] text-black shadow-[0_0_15px_rgba(255,107,0,0.4)]"
+                : "bg-zinc-900/80 text-zinc-400 hover:text-white"
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Fase 2: Cobro Fin de Clase</span>
+          </button>
+        </div>
+
+        {/* Botón de Cierre Rápido de Clase */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            onClick={() => setIsClassClosureModalOpen(true)}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 border border-amber-400/30 transition cursor-pointer"
+          >
+            <Zap className="w-4 h-4 text-yellow-300" />
+            <span>🏁 Cierre Rápido de Clase</span>
+          </button>
+        </div>
+      </section>
+
       {/* 1. COURT SESSION CONTROL & SYNC STRIP (100% RESPONSIVE) */}
       <section className="bg-zinc-900/60 p-4 sm:p-5 rounded-2xl border border-zinc-800">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -1666,6 +1809,84 @@ export default function CourtAttendanceCommand() {
           ))
         )}
       </section>
+
+      {/* MODAL DE CIERRE RÁPIDO DE CLASE / COBRO MASIVO FIN DE CLASE */}
+      {isClassClosureModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#101421] border border-zinc-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl relative">
+            <button
+              onClick={() => setIsClassClosureModalOpen(false)}
+              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white rounded-full bg-zinc-800/50 hover:bg-zinc-800 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Cierre Rápido de Clase</h3>
+                <p className="text-xs text-zinc-400">
+                  Sesión: {selectedDate} • Turno {shift.toUpperCase()}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 bg-zinc-950 rounded-2xl border border-zinc-800">
+                <span className="text-xs font-mono text-zinc-400 block mb-1">Cuota por clase regular</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-black text-emerald-400">$</span>
+                  <input
+                    type="number"
+                    value={closureDefaultDebtAmount}
+                    onChange={(e) => setClosureDefaultDebtAmount(Number(e.target.value) || 0)}
+                    className="w-24 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-1.5 text-white font-black text-base focus:outline-none"
+                  />
+                  <span className="text-xs font-mono text-zinc-400">MXN por atleta</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-zinc-950/80 rounded-2xl border border-zinc-800/80 text-xs text-zinc-300 space-y-1 font-mono">
+                <div className="flex justify-between">
+                  <span>Asistentes registrados hoy:</span>
+                  <strong className="text-emerald-400">
+                    {students.filter(s => s.attendance_status === "presente" || s.attendance_status === "retardo").length} atletas
+                  </strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Con adeudo o sin liquidar:</span>
+                  <strong className="text-red-400">
+                    {students.filter(s => (s.attendance_status === "presente" || s.attendance_status === "retardo") && s.financial_status !== "al_corriente" && s.scholarship_percentage !== 100).length} atletas
+                  </strong>
+                </div>
+              </div>
+
+              {/* Botones de acción masiva */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleExecuteClassClosure("liquidar_asistentes")}
+                  className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Todos Pagaron ($0 Adeudo)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleExecuteClassClosure("adeudar_pendientes")}
+                  className="p-3.5 rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-red-950/50 transition cursor-pointer"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Pasar a Adeudo (+${closureDefaultDebtAmount})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 5. MODAL TÁCTIL: COBRO RÁPIDO EN CANCHA AL FINALIZAR CLASE */}
       {selectedAthleteForSportsTest && (
