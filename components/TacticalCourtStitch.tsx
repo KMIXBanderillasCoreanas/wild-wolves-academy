@@ -11,7 +11,10 @@ import {
   Info, 
   ShieldCheck, 
   Flame,
-  ChevronRight
+  Layers,
+  Eye,
+  Compass,
+  Crosshair
 } from 'lucide-react';
 
 export interface TacticalZoneData {
@@ -26,6 +29,11 @@ export interface TacticalZoneData {
   percentile: string;
   releaseTime: string;
   notes: string;
+  // Metadatos biomecánicos Stitch 14342678165460180381
+  footPosition: { x: number; y: number; angle: number; label: string };
+  laserTrajectory: { startX: number; startY: number; endX: number; endY: number };
+  backboardTarget: { x: number; y: number; description: string; color: string };
+  biomechanicsTips: string[];
 }
 
 export interface TacticalShotMapProps {
@@ -39,7 +47,7 @@ export interface TacticalShotMapProps {
 const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
   'paint': {
     title: 'Línea Libre / Pintura',
-    cluster: 'Clúster Central - Penetración & Tiro en Salto',
+    cluster: 'Clúster Central - Penetración & Tiro en Suspensión',
     tier: 'MÁXIMA EFICACIA',
     tierColor: 'bg-red-950/80 text-red-400 border-red-700/60 shadow-[0_0_8px_rgba(239,68,68,0.4)]',
     percentage: '100%',
@@ -48,7 +56,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Tiro en Suspensión / Flotadora',
     percentile: 'ÉLITE (Percentil 96)',
     releaseTime: '0.72 seg (Óptimo)',
-    notes: 'Máxima agresividad atacando el aro; soltura de muñeca impecable y lectura de defensa cerrada con cambio de ritmo en el Deportivo Carmen Serdán.'
+    notes: 'Máxima agresividad atacando el aro; soltura de muñeca impecable y lectura de defensa cerrada con cambio de ritmo en el Deportivo Carmen Serdán.',
+    footPosition: { x: 250, y: 220, angle: 0, label: 'Línea de Tiro Libre Central' },
+    laserTrajectory: { startX: 250, startY: 215, endX: 250, endY: 72 },
+    backboardTarget: { x: 50, y: 50, description: 'Directo al centro del aro (Swish limpio sin tabla)', color: '#FF6B00' },
+    biomechanicsTips: [
+      'Pies paralelos a la anchura de hombros, pie dominante adelantado 5 cm.',
+      'Codo a 90° alineado con la rodilla y el centro del aro.',
+      'Parábola de entrada de 48° para maximizar área efectiva del aro.'
+    ]
   },
   'mid-left': {
     title: 'Media Distancia Codo Izquierdo',
@@ -61,7 +77,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Pull-up Jumper tras drible lateral',
     percentile: 'ÉLITE (Percentil 94)',
     releaseTime: '0.69 seg (Rápido)',
-    notes: 'Mecánica de codo a 90 grados muy estable. Desaceleración en un tiempo sin perder el eje vertical.'
+    notes: 'Mecánica de codo a 90 grados muy estable. Desaceleración en un tiempo sin perder el eje vertical.',
+    footPosition: { x: 120, y: 150, angle: 35, label: 'Codo Izquierdo 45°' },
+    laserTrajectory: { startX: 125, startY: 145, endX: 242, endY: 65 },
+    backboardTarget: { x: 38, y: 35, description: 'Vértice superior izquierdo del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+    biomechanicsTips: [
+      'Orientar pie izquierdo hacia el tablero antes de la batida.',
+      'Apuntar al cuadrado superior izquierdo del cristal para rebote amortiguado.',
+      'Extensión completa de la muñeca sin rotación lateral.'
+    ]
   },
   'mid-right': {
     title: 'Media Distancia Codo Derecho',
@@ -74,7 +98,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Fadeaway corto / Step-back',
     percentile: 'ÉLITE (Percentil 95)',
     releaseTime: '0.71 seg (Equilibrado)',
-    notes: 'Excelente elevación superando defensores altos de la Liga CDMX. La rotación hacia atrás de balón genera rebotes dóciles.'
+    notes: 'Excelente elevación superando defensores altos de la Liga CDMX. La rotación hacia atrás de balón genera rebotes dóciles.',
+    footPosition: { x: 380, y: 150, angle: -35, label: 'Codo Derecho 45°' },
+    laserTrajectory: { startX: 375, startY: 145, endX: 258, endY: 65 },
+    backboardTarget: { x: 62, y: 35, description: 'Vértice superior derecho del recuadro interior (Tiro con tabla)', color: '#06B6D4' },
+    biomechanicsTips: [
+      'Frenado en dos tiempos: pie derecho clava y pie izquierdo nivela el tiro.',
+      'Impacto en la esquina superior derecha del recuadro para entrada al 100%.',
+      'Rotación hacia atrás constante (Backspin de 2.5 rev/seg).'
+    ]
   },
   'top-key': {
     title: 'Triple 3P Top Key',
@@ -87,7 +119,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Catch & Shoot con pies asentados',
     percentile: 'AVANZADO (Percentil 88)',
     releaseTime: '0.74 seg',
-    notes: 'Arco alto con más de 48 grados de entrada al aro. Es su tiro de confianza para romper defensas de zona 2-3.'
+    notes: 'Arco alto con más de 48 grados de entrada al aro. Es su tiro de confianza para romper defensas de zona 2-3.',
+    footPosition: { x: 250, y: 410, angle: 0, label: 'Cúspide Central Triple 6.75m' },
+    laserTrajectory: { startX: 250, startY: 400, endX: 250, endY: 72 },
+    backboardTarget: { x: 50, y: 55, description: 'Centro de aro con entrada vertical de 50°', color: '#FF6B00' },
+    biomechanicsTips: [
+      'Generación de fuerza desde gemelos y caderas (Doble flexión armónica).',
+      'El balón sube en línea recta sin cruzar el eje de la cara.',
+      'Sostener el seguimiento (Follow-through) con la muñeca quebrada hasta el bote.'
+    ]
   },
   'wing-left': {
     title: 'Triple 3P Ala Izquierda',
@@ -100,7 +140,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Recepción en transición abierta',
     percentile: 'SOBRESALIENTE (Percentil 79)',
     releaseTime: '0.76 seg',
-    notes: 'Trabajar en mantener los hombros alineados hacia la canasta cuando llega en carrera diagonal por la banda.'
+    notes: 'Trabajar en mantener los hombros alineados hacia la canasta cuando llega en carrera diagonal por la banda.',
+    footPosition: { x: 85, y: 340, angle: 30, label: 'Ala Perimetral 45° Izq' },
+    laserTrajectory: { startX: 90, startY: 330, endX: 245, endY: 72 },
+    backboardTarget: { x: 42, y: 52, description: 'Entrada directa con vista limpia del cilindro', color: '#F59E0B' },
+    biomechanicsTips: [
+      'Rotar los hombros en el aire 10° para encarar el tablero perpendicularmente.',
+      'Asegurar apoyo del dedo índice en la válvula para espín equilibrado.',
+      'Soltura antes del descenso para no perder energía de salto.'
+    ]
   },
   'wing-right': {
     title: 'Triple 3P Ala Derecha',
@@ -113,7 +161,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Pick & Pop Perimetral',
     percentile: 'SOBRESALIENTE (Percentil 81)',
     releaseTime: '0.75 seg',
-    notes: 'Gran lectura cuando la defensa colapsa hacia la pintura. Excelente timing con el base creador.'
+    notes: 'Gran lectura cuando la defensa colapsa hacia la pintura. Excelente timing con el base creador.',
+    footPosition: { x: 415, y: 340, angle: -30, label: 'Ala Perimetral 45° Der' },
+    laserTrajectory: { startX: 410, startY: 330, endX: 255, endY: 72 },
+    backboardTarget: { x: 58, y: 52, description: 'Entrada directa al cilindro', color: '#F59E0B' },
+    biomechanicsTips: [
+      'Pie izquierdo como pivote de carga para alineación instantánea.',
+      'Mano no dominante solo guía y se separa a 10 cm antes de la soltura.',
+      'Aterrizar exactamente sobre el mismo punto de elevación.'
+    ]
   },
   'corner-left': {
     title: 'Triple 3P Esquina Izquierda',
@@ -126,7 +182,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Corner Spot-up sin bote',
     percentile: 'COMPETITIVO (Percentil 74)',
     releaseTime: '0.68 seg',
-    notes: 'Cuidado con pisar la línea lateral al recibir balones rápidos en la esquina. Buena parábola y foco.'
+    notes: 'Cuidado con pisar la línea lateral al recibir balones rápidos en la esquina. Buena parábola y foco.',
+    footPosition: { x: 25, y: 90, angle: 90, label: 'Esquina Corta 0° Izq' },
+    laserTrajectory: { startX: 35, startY: 90, endX: 235, endY: 72 },
+    backboardTarget: { x: 30, y: 55, description: 'Sin apoyo de tablero: swish estricto', color: '#10B981' },
+    biomechanicsTips: [
+      'Colocación del talón a 15 cm de la línea de banda (evitar pisar fuera).',
+      'Arco más pronunciado (52°) por falta de tablero como respaldo.',
+      'Mirada fija en la parte frontal del aro.'
+    ]
   },
   'corner-right': {
     title: 'Triple 3P Esquina Derecha',
@@ -139,7 +203,15 @@ const DEFAULT_ZONE_DATA: Record<string, TacticalZoneData> = {
     shotType: 'Corner Jumper bajo presión',
     percentile: 'REGULAR (Percentil 58)',
     releaseTime: '0.82 seg',
-    notes: 'Tendencia a empujar con el pulgar de apoyo en esta esquina. Se programaron 50 repeticiones extra para corregir balance.'
+    notes: 'Tendencia a empujar con el pulgar de apoyo en esta esquina. Se programaron 50 repeticiones extra para corregir balance.',
+    footPosition: { x: 475, y: 90, angle: -90, label: 'Esquina Corta 0° Der' },
+    laserTrajectory: { startX: 465, startY: 90, endX: 265, endY: 72 },
+    backboardTarget: { x: 70, y: 55, description: 'Sin apoyo de tablero: entrada limpia', color: '#06B6D4' },
+    biomechanicsTips: [
+      'Ajustar el pulgar de apoyo para no desviar la trayectoria a la derecha.',
+      'Mantener la espalda erguida en la caída sin desvanecer hacia atrás.',
+      'Mayor velocidad de batida (subir en un solo compás).'
+    ]
   }
 };
 
@@ -153,6 +225,10 @@ export default function TacticalCourtStitch({
   const [selectedZone, setSelectedZone] = useState<string>(initialZone);
   const [courtMode, setCourtMode] = useState<'half' | 'full'>('half');
   const [sessionFilter, setSessionFilter] = useState<'all' | 'last_match' | 'practice'>('all');
+  
+  // SWITCH DUAL: MODO EFECTIVIDAD % vs MODO GUÍA BIOMECÁNICA 100% (STITCH FUSIÓN)
+  const [tacticalViewMode, setTacticalViewMode] = useState<'effectiveness' | 'biomechanics'>('effectiveness');
+  const [showBackboardZoom, setShowBackboardZoom] = useState<boolean>(true);
 
   const currentData = DEFAULT_ZONE_DATA[selectedZone] || DEFAULT_ZONE_DATA['paint'];
 
@@ -181,7 +257,7 @@ export default function TacticalCourtStitch({
         }}
       />
 
-      {/* TOP BAR / HEADER (Stitch Reference) */}
+      {/* TOP BAR / HEADER CON SWITCH DE MODOS 1 Y 2 */}
       <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 border-b border-[#1F2433] mb-6">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#131620] to-[#0B0E17] border border-[#FF6B00]/60 flex items-center justify-center shadow-[0_0_15px_rgba(255,107,0,0.35)] shrink-0">
@@ -193,19 +269,47 @@ export default function TacticalCourtStitch({
                 WILD WOLVES ACADEMY OS
               </span>
               <span className="px-2 py-0.5 text-[9px] font-mono bg-[#06B6D4]/10 border border-[#06B6D4]/30 text-[#06B6D4] rounded font-bold">
-                CARMEN SERDÁN · CDMX
+                CARMEN SERDÁN · FIBA 28x15m
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
-              MAPA TÁCTICO DE TIRO
+              DUELA TÁCTICA 2 EN 1
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-mono text-slate-400 font-normal hidden sm:inline">TELEMETRÍA EN VIVO</span>
+              <span className="text-xs font-mono text-slate-400 font-normal hidden sm:inline">TELEMETRÍA & BIOMECÁNICA</span>
             </h2>
           </div>
         </div>
 
-        {/* Mini Perfil del Atleta y Selector de Modo de Cancha */}
+        {/* SELECTOR DUAL DE MODO: 1. % DE EFECTIVIDAD | 2. GUÍA BIOMECÁNICA 100% */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+          <div className="bg-[#101421] p-1 rounded-2xl border border-[#1F2433] flex items-center gap-1 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setTacticalViewMode('effectiveness')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black font-mono transition flex items-center gap-1.5 cursor-pointer ${
+                tacticalViewMode === 'effectiveness'
+                  ? 'bg-gradient-to-r from-orange-600 to-[#FF6B00] text-white shadow-[0_0_15px_rgba(255,107,0,0.5)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Target className="w-3.5 h-3.5" />
+              <span>1. % Efectividad de Tiro</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTacticalViewMode('biomechanics')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black font-mono transition flex items-center gap-1.5 cursor-pointer ${
+                tacticalViewMode === 'biomechanics'
+                  ? 'bg-gradient-to-r from-cyan-600 to-[#06B6D4] text-black font-black shadow-[0_0_15px_rgba(6,182,212,0.5)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>2. Guía Biomecánica 100%</span>
+            </button>
+          </div>
+
+          {/* Mini Perfil del Atleta */}
           <div className="flex items-center gap-3 bg-[#101421] px-3.5 py-1.5 rounded-xl border border-[#1F2433]">
             <div className="relative">
               <div className="w-8 h-8 rounded-full bg-[#1F2433] border-2 border-[#FF6B00] flex items-center justify-center font-mono font-black text-xs text-white">
@@ -217,42 +321,11 @@ export default function TacticalCourtStitch({
               <div className="text-xs font-bold text-white leading-none">{athleteName}</div>
               <div className="text-[10px] text-slate-400 font-mono mt-0.5">{category}</div>
             </div>
-            <div className="h-6 w-px bg-[#1F2433] mx-1" />
-            <div className="text-right">
-              <div className="text-[9px] uppercase font-mono text-slate-400">Rating OVR</div>
-              <div className="text-xs font-mono font-black text-[#FF6B00] leading-none">
-                {overallOvr} <span className="text-[9px] text-emerald-400 font-normal">+3 mes</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Selector de Cancha (Media Cancha / Completa) */}
-          <div className="bg-[#101421] p-1 rounded-xl border border-[#1F2433] flex items-center text-xs font-mono">
-            <button
-              onClick={() => setCourtMode('half')}
-              className={`px-3 py-1 rounded-lg font-bold transition ${
-                courtMode === 'half'
-                  ? 'bg-[#FF6B00] text-black shadow-[0_0_12px_rgba(255,107,0,0.4)]'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              📐 Media Cancha
-            </button>
-            <button
-              onClick={() => setCourtMode('full')}
-              className={`px-3 py-1 rounded-lg font-bold transition ${
-                courtMode === 'full'
-                  ? 'bg-[#06B6D4] text-black shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              🏟️ Cancha Completa
-            </button>
           </div>
         </div>
       </div>
 
-      {/* FILTROS SECUNDARIOS & LEYENDA (Stitch Reference) */}
+      {/* BARRA DE CONTROL SECUNDARIA: SESIÓN & LEYENDA DEL MODO ACTIVO */}
       <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#0B0E17]/80 p-3 rounded-2xl border border-[#1F2433] mb-6">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter className="w-3.5 h-3.5 text-[#06B6D4]" />
@@ -268,41 +341,62 @@ export default function TacticalCourtStitch({
           </select>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-mono flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-red-600/90 border border-red-500 shadow-[0_0_6px_#ef4444]" />
-            <span className="text-slate-300">100% Efectividad</span>
+        {tacticalViewMode === 'effectiveness' ? (
+          <div className="flex items-center gap-4 text-xs font-mono flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-red-600/90 border border-red-500 shadow-[0_0_6px_#ef4444]" />
+              <span className="text-slate-300">100% Efectividad</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-amber-500/90 border border-amber-400 shadow-[0_0_6px_#f59e0b]" />
+              <span className="text-slate-300">60% - 80% Frecuente</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-cyan-700/80 border border-cyan-400" />
+              <span className="text-slate-300">≤ 40% En Ajuste</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-amber-500/90 border border-amber-400 shadow-[0_0_6px_#f59e0b]" />
-            <span className="text-slate-300">60% - 80% Frecuente</span>
+        ) : (
+          <div className="flex items-center gap-4 text-xs font-mono flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-[#10B981] border border-emerald-400 shadow-[0_0_8px_#10B981]" />
+              <span className="text-emerald-300 font-bold">👣 Huellas de Posición Exacta</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-[#06B6D4] border border-cyan-300 shadow-[0_0_8px_#06B6D4]" />
+              <span className="text-cyan-300 font-bold">↗️ Láser de Trayectoria</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-[#FF6B00] border border-orange-400 shadow-[0_0_8px_#FF6B00]" />
+              <span className="text-orange-300 font-bold">🎯 Zoom Impacto en Tablero</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-cyan-700/80 border border-cyan-400" />
-            <span className="text-slate-300">≤ 40% En Ajuste</span>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* GRID PRINCIPAL: DUELA VECTORIAL + PANEL TELEMÉTRICO LATERAL */}
+      {/* GRID PRINCIPAL: DUELA VECTORIAL + PANEL TELEMÉTRICO / BIOMECÁNICO */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* COLUMNA 1: DUELA VECTORIAL FIBA FLORESCENTE */}
+        {/* COLUMNA 1: DUELA VECTORIAL FIBA FLORESCENTE CON MODO DUAL */}
         <section className="lg:col-span-8 bg-[#0B0E17] border border-[#1F2433] rounded-3xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#FF6B00]" />
               <span className="text-xs font-mono font-bold text-slate-300 tracking-wider uppercase">
-                {courtMode === 'half' ? 'VISTA: MEDIA CANCHA OFENSIVA (DUELA CARMEN SERDÁN)' : 'VISTA: CANCHA COMPLETA REGULACIÓN FIBA'}
+                {tacticalViewMode === 'effectiveness'
+                  ? 'VISTA: MAPA POLIGONAL DE EFECTIVIDAD (% DE TIRO EN DUELA)'
+                  : 'VISTA: GUÍA BIOMECÁNICA (HUELLAS, TRAYECTORIAS Y TABLERO)'}
               </span>
             </div>
-            <span className="text-xs font-mono text-[#06B6D4] font-bold">DISTRIBUCIÓN POLIGONAL</span>
+            <span className="text-xs font-mono text-[#06B6D4] font-bold">
+              {tacticalViewMode === 'effectiveness' ? 'MODO EFECTIVIDAD' : 'MODO BIOMECÁNICA 100%'}
+            </span>
           </div>
 
           {/* Marco con borde neón cian exacto a la imagen de Google Stitch */}
           <div className="relative w-full max-w-[560px] mx-auto rounded-2xl border-2 border-[#06B6D4]/60 p-1.5 bg-[#090C14] shadow-[0_0_35px_rgba(6,182,212,0.25)] select-none">
             <svg
               id="basketball-court"
-              viewBox={courtMode === 'half' ? "0 0 500 520" : "0 0 500 940"}
+              viewBox="0 0 500 520"
               className="w-full h-auto block rounded-xl overflow-hidden transition-all duration-500"
               xmlns="http://www.w3.org/2000/svg"
             >
@@ -341,11 +435,24 @@ export default function TacticalCourtStitch({
                   <stop offset="60%" stopColor="#FF6B00" stopOpacity="0.05" />
                   <stop offset="100%" stopColor="#090C14" stopOpacity="0" />
                 </radialGradient>
+
+                {/* Icono de Huella de Pie para Modo Biomecánico */}
+                <g id="footprint-icon">
+                  {/* Planta del pie */}
+                  <ellipse cx="0" cy="0" rx="4.5" ry="8" fill="#10B981" stroke="#34D399" strokeWidth="1" />
+                  {/* Talón */}
+                  <ellipse cx="0" cy="7.5" rx="3.5" ry="4" fill="#059669" stroke="#34D399" strokeWidth="0.8" />
+                  {/* Dedos */}
+                  <circle cx="-3" cy="-10" r="1.2" fill="#6EE7B7" />
+                  <circle cx="-1" cy="-11" r="1.3" fill="#6EE7B7" />
+                  <circle cx="1" cy="-11" r="1.3" fill="#6EE7B7" />
+                  <circle cx="3" cy="-10" r="1.2" fill="#6EE7B7" />
+                </g>
               </defs>
 
               {/* Fondo base de duela oscura */}
-              <rect width="500" height={courtMode === 'half' ? "520" : "940"} fill="#0B0E17" />
-              <rect width="500" height={courtMode === 'half' ? "520" : "940"} fill="url(#stitch-hoop-radial)" />
+              <rect width="500" height="520" fill="#0B0E17" />
+              <rect width="500" height="520" fill="url(#stitch-hoop-radial)" />
 
               {/* Líneas tenues de duela de madera */}
               <g opacity="0.6" stroke="#131826" strokeWidth="1">
@@ -363,7 +470,7 @@ export default function TacticalCourtStitch({
               <polygon
                 points="0,0 45,0 45,170 0,170"
                 fill="#F59E0B"
-                fillOpacity={selectedZone === 'corner-left' ? 0.75 : 0.35}
+                fillOpacity={selectedZone === 'corner-left' ? 0.80 : 0.35}
                 stroke="#F59E0B"
                 strokeWidth={selectedZone === 'corner-left' ? "3" : "1.5"}
                 filter={selectedZone === 'corner-left' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -375,7 +482,7 @@ export default function TacticalCourtStitch({
               <polygon
                 points="455,0 500,0 500,170 455,170"
                 fill="#06B6D4"
-                fillOpacity={selectedZone === 'corner-right' ? 0.75 : 0.32}
+                fillOpacity={selectedZone === 'corner-right' ? 0.80 : 0.32}
                 stroke="#06B6D4"
                 strokeWidth={selectedZone === 'corner-right' ? "3" : "1.5"}
                 filter={selectedZone === 'corner-right' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -387,7 +494,7 @@ export default function TacticalCourtStitch({
               <path
                 d="M 45,0 L 175,0 L 175,230 L 45,170 Z"
                 fill="#EF4444"
-                fillOpacity={selectedZone === 'mid-left' ? 0.88 : 0.65}
+                fillOpacity={selectedZone === 'mid-left' ? 0.90 : 0.65}
                 stroke="#FF5722"
                 strokeWidth={selectedZone === 'mid-left' ? "3.5" : "2"}
                 filter={selectedZone === 'mid-left' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -399,7 +506,7 @@ export default function TacticalCourtStitch({
               <path
                 d="M 325,0 L 455,0 L 455,170 L 325,230 Z"
                 fill="#EF4444"
-                fillOpacity={selectedZone === 'mid-right' ? 0.88 : 0.65}
+                fillOpacity={selectedZone === 'mid-right' ? 0.90 : 0.65}
                 stroke="#FF5722"
                 strokeWidth={selectedZone === 'mid-right' ? "3.5" : "2"}
                 filter={selectedZone === 'mid-right' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -411,7 +518,7 @@ export default function TacticalCourtStitch({
               <polygon
                 points="175,0 325,0 325,230 175,230"
                 fill="#EA580C"
-                fillOpacity={selectedZone === 'paint' ? 0.92 : 0.75}
+                fillOpacity={selectedZone === 'paint' ? 0.94 : 0.75}
                 stroke="#FF6B00"
                 strokeWidth={selectedZone === 'paint' ? "4" : "2.5"}
                 filter={selectedZone === 'paint' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -423,7 +530,7 @@ export default function TacticalCourtStitch({
               <path
                 d="M 0,170 L 45,170 A 215,215 0 0,0 175,295 L 140,510 L 0,510 Z"
                 fill="#D97706"
-                fillOpacity={selectedZone === 'wing-left' ? 0.80 : 0.45}
+                fillOpacity={selectedZone === 'wing-left' ? 0.85 : 0.45}
                 stroke="#F59E0B"
                 strokeWidth={selectedZone === 'wing-left' ? "3" : "1.8"}
                 filter={selectedZone === 'wing-left' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -447,7 +554,7 @@ export default function TacticalCourtStitch({
               <path
                 d="M 175,295 A 215,215 0 0,0 325,295 L 360,510 L 140,510 Z"
                 fill="#EF4444"
-                fillOpacity={selectedZone === 'top-key' ? 0.90 : 0.70}
+                fillOpacity={selectedZone === 'top-key' ? 0.92 : 0.70}
                 stroke="#FF5722"
                 strokeWidth={selectedZone === 'top-key' ? "3.5" : "2"}
                 filter={selectedZone === 'top-key' ? "url(#zone-fluorescent-glow)" : undefined}
@@ -457,7 +564,7 @@ export default function TacticalCourtStitch({
 
               {/* LÍNEAS REGLAMENTARIAS FIBA CON RESPLANDOR NEÓN CIAN */}
               <g fill="none" stroke="#06B6D4" strokeWidth="2.5" filter="url(#stitch-neon-glow)">
-                <rect x="2" y="2" width="496" height={courtMode === 'half' ? "508" : "936"} strokeWidth="3" />
+                <rect x="2" y="2" width="496" height="508" strokeWidth="3" />
                 <line x1="0" y1="510" x2="500" y2="510" strokeDasharray="6,4" strokeWidth="3" />
                 <rect x="175" y="2" width="150" height="225" />
                 <line x1="175" y1="80" x2="167" y2="80" strokeWidth="3" />
@@ -480,132 +587,248 @@ export default function TacticalCourtStitch({
                 <circle cx="250" cy="72" r="14" fill="#FF6B00" fillOpacity="0.3" stroke="#FF6B00" strokeWidth="3.5" />
                 <circle cx="250" cy="72" r="6" fill="none" stroke="#FFFFFF" strokeDasharray="2,2" strokeWidth="1.5" />
               </g>
+
+              {/* ======================================================== */}
+              {/* CAPA DE BIOMECÁNICA 100% (STITCH 1434...): HUELLAS & LÁSER */}
+              {/* ======================================================== */}
+              {tacticalViewMode === 'biomechanics' && (
+                <g className="animate-fadeIn">
+                  {/* Línea Láser de Trayectoria con Resplandor Neón */}
+                  <line
+                    x1={currentData.laserTrajectory.startX}
+                    y1={currentData.laserTrajectory.startY}
+                    x2={currentData.laserTrajectory.endX}
+                    y2={currentData.laserTrajectory.endY}
+                    stroke="#06B6D4"
+                    strokeWidth="3"
+                    strokeDasharray="6 4"
+                    filter="url(#stitch-neon-glow)"
+                  />
+                  {/* Punto de impacto en el aro */}
+                  <circle
+                    cx={currentData.laserTrajectory.endX}
+                    cy={currentData.laserTrajectory.endY}
+                    r="5"
+                    fill="#10B981"
+                    stroke="#FFFFFF"
+                    strokeWidth="2"
+                    filter="url(#stitch-hoop-glow)"
+                  />
+
+                  {/* Par de Huellas de Posición Exacta del Tirador */}
+                  <g transform={`translate(${currentData.footPosition.x}, ${currentData.footPosition.y}) rotate(${currentData.footPosition.angle})`}>
+                    {/* Pie Izquierdo */}
+                    <g transform="translate(-10, 0)">
+                      <use href="#footprint-icon" />
+                    </g>
+                    {/* Pie Derecho (un poco adelantado) */}
+                    <g transform="translate(10, -4)">
+                      <use href="#footprint-icon" />
+                    </g>
+                    {/* Halo de posicionamiento 100% */}
+                    <circle cx="0" cy="0" r="22" fill="none" stroke="#10B981" strokeWidth="1.5" strokeDasharray="3 3" className="animate-spin" style={{ animationDuration: '8s' }} />
+                  </g>
+                </g>
+              )}
             </svg>
 
-            {/* PÍLDORAS FLOTANTES GLASSMORPHISM SEMI-TRANSPARENTES (CERO AMONTONAMIENTO) */}
-            {/* Esquina Izquierda 60% */}
-            <div
-              onClick={() => setSelectedZone('corner-left')}
-              className={`absolute top-[12%] left-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
-                selectedZone === 'corner-left'
-                  ? 'bg-amber-500/25 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
-              }`}
-            >
-              <div className="text-[11px] sm:text-xs font-mono font-black text-white">60%</div>
-              <div className="text-[9px] font-mono text-amber-200/90 font-bold">3-5</div>
-            </div>
+            {/* ======================================================== */}
+            {/* CAPA MODO 1: PÍLDORAS FLOTANTES DE EFECTIVIDAD %        */}
+            {/* ======================================================== */}
+            {tacticalViewMode === 'effectiveness' && (
+              <>
+                {/* Esquina Izquierda 60% */}
+                <div
+                  onClick={() => setSelectedZone('corner-left')}
+                  className={`absolute top-[12%] left-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
+                    selectedZone === 'corner-left'
+                      ? 'bg-amber-500/25 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
+                  }`}
+                >
+                  <div className="text-[11px] sm:text-xs font-mono font-black text-white">60%</div>
+                  <div className="text-[9px] font-mono text-amber-200/90 font-bold">3-5</div>
+                </div>
 
-            {/* Esquina Derecha 40% */}
-            <div
-              onClick={() => setSelectedZone('corner-right')}
-              className={`absolute top-[12%] right-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
-                selectedZone === 'corner-right'
-                  ? 'bg-cyan-500/25 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/60 border-cyan-400/40 hover:border-cyan-400 hover:bg-cyan-500/20 z-10'
-              }`}
-            >
-              <div className="text-[11px] sm:text-xs font-mono font-black text-white">40%</div>
-              <div className="text-[9px] font-mono text-cyan-200/90 font-bold">2-5</div>
-            </div>
+                {/* Esquina Derecha 40% */}
+                <div
+                  onClick={() => setSelectedZone('corner-right')}
+                  className={`absolute top-[12%] right-[2%] cursor-pointer backdrop-blur-md border rounded-lg px-2 py-0.5 text-center transition-all ${
+                    selectedZone === 'corner-right'
+                      ? 'bg-cyan-500/25 border-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/60 border-cyan-400/40 hover:border-cyan-400 hover:bg-cyan-500/20 z-10'
+                  }`}
+                >
+                  <div className="text-[11px] sm:text-xs font-mono font-black text-white">40%</div>
+                  <div className="text-[9px] font-mono text-cyan-200/90 font-bold">2-5</div>
+                </div>
 
-            {/* Media Izq 100% */}
-            <div
-              onClick={() => setSelectedZone('mid-left')}
-              className={`absolute top-[21%] left-[8%] sm:left-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
-                selectedZone === 'mid-left'
-                  ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
-              }`}
-            >
-              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
-              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Izq (10-10)</div>
-            </div>
+                {/* Media Izq 100% */}
+                <div
+                  onClick={() => setSelectedZone('mid-left')}
+                  className={`absolute top-[21%] left-[8%] sm:left-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
+                    selectedZone === 'mid-left'
+                      ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
+                  }`}
+                >
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Izq (10-10)</div>
+                </div>
 
-            {/* Línea Libre / Pintura 100% (Central Activa) */}
-            <div
-              onClick={() => setSelectedZone('paint')}
-              className={`absolute top-[25%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border-2 rounded-xl px-3 sm:px-4 py-1.5 text-center transition-all ${
-                selectedZone === 'paint'
-                  ? 'bg-orange-500/35 border-[#FF6B00] shadow-[0_0_25px_rgba(255,107,0,0.95)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/65 border-orange-500/50 hover:border-[#FF6B00] hover:bg-orange-500/25 z-10'
-              }`}
-            >
-              <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">100%</div>
-              <div className="text-[9px] sm:text-[11px] font-mono text-amber-200 font-bold whitespace-nowrap">Línea Libre (10-10)</div>
-            </div>
+                {/* Línea Libre / Pintura 100% (Central Activa) */}
+                <div
+                  onClick={() => setSelectedZone('paint')}
+                  className={`absolute top-[25%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border-2 rounded-xl px-3 sm:px-4 py-1.5 text-center transition-all ${
+                    selectedZone === 'paint'
+                      ? 'bg-orange-500/35 border-[#FF6B00] shadow-[0_0_25px_rgba(255,107,0,0.95)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/65 border-orange-500/50 hover:border-[#FF6B00] hover:bg-orange-500/25 z-10'
+                  }`}
+                >
+                  <div className="text-sm sm:text-lg font-mono font-black text-white leading-tight">100%</div>
+                  <div className="text-[9px] sm:text-[11px] font-mono text-amber-200 font-bold whitespace-nowrap">Línea Libre (10-10)</div>
+                </div>
 
-            {/* Media Der 100% */}
-            <div
-              onClick={() => setSelectedZone('mid-right')}
-              className={`absolute top-[21%] right-[8%] sm:right-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
-                selectedZone === 'mid-right'
-                  ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
-              }`}
-            >
-              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
-              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Der (10-10)</div>
-            </div>
+                {/* Media Der 100% */}
+                <div
+                  onClick={() => setSelectedZone('mid-right')}
+                  className={`absolute top-[21%] right-[8%] sm:right-[11%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
+                    selectedZone === 'mid-right'
+                      ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
+                  }`}
+                >
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">100%</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 font-medium whitespace-nowrap">Media Der (10-10)</div>
+                </div>
 
-            {/* 3P Ala Izq 60% */}
-            <div
-              onClick={() => setSelectedZone('wing-left')}
-              className={`absolute bottom-[24%] left-[5%] sm:left-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
-                selectedZone === 'wing-left'
-                  ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
-              }`}
-            >
-              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
-              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Izq (3-5)</div>
-            </div>
+                {/* 3P Ala Izq 60% */}
+                <div
+                  onClick={() => setSelectedZone('wing-left')}
+                  className={`absolute bottom-[24%] left-[5%] sm:left-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
+                    selectedZone === 'wing-left'
+                      ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
+                  }`}
+                >
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Izq (3-5)</div>
+                </div>
 
-            {/* 3P Ala Der 60% */}
-            <div
-              onClick={() => setSelectedZone('wing-right')}
-              className={`absolute bottom-[28%] right-[5%] sm:right-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
-                selectedZone === 'wing-right'
-                  ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
-              }`}
-            >
-              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
-              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Der (3-5)</div>
-            </div>
+                {/* 3P Ala Der 60% */}
+                <div
+                  onClick={() => setSelectedZone('wing-right')}
+                  className={`absolute bottom-[28%] right-[5%] sm:right-[8%] cursor-pointer backdrop-blur-md border rounded-xl px-2.5 sm:px-3 py-1 text-center transition-all ${
+                    selectedZone === 'wing-right'
+                      ? 'bg-amber-500/30 border-[#FF6B00] shadow-[0_0_20px_rgba(255,107,0,0.85)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/60 border-amber-400/40 hover:border-amber-400 hover:bg-amber-500/20 z-10'
+                  }`}
+                >
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">60%</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Ala Der (3-5)</div>
+                </div>
 
-            {/* 3P Top Key 80% */}
-            <div
-              onClick={() => setSelectedZone('top-key')}
-              className={`absolute bottom-[8%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border rounded-xl px-3 sm:px-4 py-1 text-center transition-all ${
-                selectedZone === 'top-key'
-                  ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
-                  : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
-              }`}
-            >
-              <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">80%</div>
-              <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Top Key (4-5)</div>
-            </div>
+                {/* 3P Top Key 80% */}
+                <div
+                  onClick={() => setSelectedZone('top-key')}
+                  className={`absolute bottom-[8%] left-1/2 -translate-x-1/2 cursor-pointer backdrop-blur-md border rounded-xl px-3 sm:px-4 py-1 text-center transition-all ${
+                    selectedZone === 'top-key'
+                      ? 'bg-red-500/30 border-[#FF6B00] shadow-[0_0_22px_rgba(255,107,0,0.9)] scale-110 z-20'
+                      : 'bg-[#0B0E17]/60 border-red-500/40 hover:border-red-400 hover:bg-red-500/20 z-10'
+                  }`}
+                >
+                  <div className="text-xs sm:text-base font-mono font-black text-white leading-tight">80%</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-slate-200/90 whitespace-nowrap">3P Top Key (4-5)</div>
+                </div>
+              </>
+            )}
+
+            {/* ======================================================== */}
+            {/* CAPA MODO 2: VENTANA HUD ZOOM TABLERO (STITCH 1434...)   */}
+            {/* ======================================================== */}
+            {tacticalViewMode === 'biomechanics' && showBackboardZoom && (
+              <div className="absolute top-2 left-2 z-30 bg-[#090C14]/95 border-2 border-[#FF6B00]/70 rounded-2xl p-2.5 shadow-[0_0_25px_rgba(255,107,0,0.4)] backdrop-blur-md max-w-[210px] animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-zinc-800">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-[9px] font-mono font-bold text-emerald-400 uppercase">PUNTO DE IMPACTO</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowBackboardZoom(false)}
+                    className="text-[10px] text-zinc-400 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* SVG Cristal del Tablero con recuadro interior */}
+                <div className="relative aspect-[16/10] w-full bg-[#101421] rounded-lg border border-cyan-500/40 overflow-hidden flex items-center justify-center p-1">
+                  <svg viewBox="0 0 100 65" className="w-full h-full">
+                    {/* Cristal exterior */}
+                    <rect x="2" y="2" width="96" height="61" rx="2" fill="#0E1626" stroke="#06B6D4" strokeWidth="1.5" />
+                    {/* Recuadro Interior Naranja FIBA */}
+                    <rect x="32" y="25" width="36" height="26" fill="none" stroke="#FF6B00" strokeWidth="1.5" />
+                    {/* Aro */}
+                    <ellipse cx="50" cy="53" rx="10" ry="3" fill="#FF6B00" fillOpacity="0.4" stroke="#FF6B00" strokeWidth="1.2" />
+                    <line x1="50" y1="51" x2="50" y2="53" stroke="#FFFFFF" strokeWidth="1" />
+
+                    {/* Punto de impacto calculado para la zona seleccionada */}
+                    <circle
+                      cx={currentData.backboardTarget.x}
+                      cy={currentData.backboardTarget.y}
+                      r="3.5"
+                      fill={currentData.backboardTarget.color}
+                      stroke="#FFFFFF"
+                      strokeWidth="1"
+                      className="animate-pulse"
+                    />
+                    {/* Trazo láser hacia el aro */}
+                    <line
+                      x1={currentData.backboardTarget.x}
+                      y1={currentData.backboardTarget.y}
+                      x2="50"
+                      y2="53"
+                      stroke="#10B981"
+                      strokeWidth="0.8"
+                      strokeDasharray="1.5 1.5"
+                    />
+                  </svg>
+                </div>
+
+                <div className="mt-1.5 text-[9px] font-mono text-zinc-300 leading-tight">
+                  <span className="text-[#FF6B00] font-bold block">Diana:</span>
+                  <span>{currentData.backboardTarget.description}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400 border-t border-[#1F2433] pt-3">
             <div className="flex items-center gap-2">
               <span className="text-[#FF6B00] font-bold">INFO:</span>
-              <span>Haz clic en cualquier área coloreada o tarjeta para ver el desglose biomecánico.</span>
+              <span>
+                {tacticalViewMode === 'effectiveness'
+                  ? 'Haz clic en cualquier área para ver su % de tiro y volumen.'
+                  : 'Modo Biomecánica: selecciona la zona para ver cómo colocar los pies y apuntar.'}
+              </span>
             </div>
-            <div className="text-[#06B6D4]">Duela Central Carmen Serdán · FIBA Standard 28x15m</div>
+            <div className="text-[#06B6D4]">Duela Carmen Serdán · CDMX</div>
           </div>
         </section>
 
-        {/* COLUMNA 2: PANEL TELEMÉTRICO LATERAL DE ANÁLISIS EN VIVO */}
+        {/* COLUMNA 2: PANEL TELEMÉTRICO LATERAL DE ANÁLISIS EN VIVO & BIOMECÁNICA */}
         <section className="lg:col-span-4 space-y-5">
-          {/* Tarjeta de Telemetría de Zona Activa */}
+          {/* Tarjeta de Telemetría o Guía Biomecánica según el Modo */}
           <div className="bg-[#0B0E17] border border-[#1F2433] rounded-3xl p-5 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF6B00]/5 rounded-full blur-2xl pointer-events-none" />
+            
             <div className="flex items-center justify-between pb-3 border-b border-[#1F2433]">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-ping" />
-                <span className="text-xs font-mono uppercase tracking-wider text-[#FF6B00] font-bold">ZONA EN ANÁLISIS</span>
+                <span className="text-xs font-mono uppercase tracking-wider text-[#FF6B00] font-bold">
+                  {tacticalViewMode === 'effectiveness' ? 'ZONA EN ANÁLISIS' : 'POSICIONAMIENTO Y TIRO 100%'}
+                </span>
               </div>
               <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${currentData.tierColor}`}>
                 {currentData.tier}
@@ -617,37 +840,65 @@ export default function TacticalCourtStitch({
               <p className="text-xs text-slate-400 font-mono mt-0.5">{currentData.cluster}</p>
             </div>
 
-            {/* Grid Cuantitativo */}
-            <div className="grid grid-cols-3 gap-3 my-4">
-              <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
-                <span className="text-[10px] uppercase font-mono text-slate-400 block">Acierto</span>
-                <span className="text-xl font-black font-mono text-emerald-400">{currentData.percentage}</span>
-              </div>
-              <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
-                <span className="text-[10px] uppercase font-mono text-slate-400 block">Tiros</span>
-                <span className="text-xl font-black font-mono text-white">{currentData.ratio}</span>
-              </div>
-              <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
-                <span className="text-[10px] uppercase font-mono text-slate-400 block">Puntos</span>
-                <span className="text-xl font-black font-mono text-[#FF6B00]">{currentData.points}</span>
-              </div>
-            </div>
+            {/* Si está en modo efectividad: muestra KPIs numéricos */}
+            {tacticalViewMode === 'effectiveness' ? (
+              <>
+                <div className="grid grid-cols-3 gap-3 my-4">
+                  <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
+                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Acierto</span>
+                    <span className="text-xl font-black font-mono text-emerald-400">{currentData.percentage}</span>
+                  </div>
+                  <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
+                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Tiros</span>
+                    <span className="text-xl font-black font-mono text-white">{currentData.ratio}</span>
+                  </div>
+                  <div className="bg-[#101421] p-2.5 rounded-xl border border-[#1F2433] text-center">
+                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Puntos</span>
+                    <span className="text-xl font-black font-mono text-[#FF6B00]">{currentData.points}</span>
+                  </div>
+                </div>
 
-            {/* Indicadores Técnicos */}
-            <div className="space-y-2.5 text-xs font-mono border-t border-[#131620] pt-3">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Tiro Predominante:</span>
-                <span className="text-slate-200 font-semibold">{currentData.shotType}</span>
+                <div className="space-y-2.5 text-xs font-mono border-t border-[#131620] pt-3">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Tiro Predominante:</span>
+                    <span className="text-slate-200 font-semibold">{currentData.shotType}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Eficiencia CDMX U-17:</span>
+                    <span className="text-[#06B6D4] font-bold">{currentData.percentile}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Tiempo de Lanzamiento:</span>
+                    <span className="text-slate-200">{currentData.releaseTime}</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Si está en modo biomecánica: muestra instrucciones técnicas de ejecución */
+              <div className="my-4 space-y-3 font-mono text-xs">
+                <div className="bg-[#101421] p-3 rounded-xl border border-cyan-800/40 space-y-1.5">
+                  <span className="text-[10px] font-bold text-cyan-400 uppercase flex items-center gap-1">
+                    <Compass className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Colocación de Pies en Duela</span>
+                  </span>
+                  <p className="text-white font-bold">{currentData.footPosition.label}</p>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                    Reglas de Oro Biomecánicas (100% Efectivo):
+                  </span>
+                  {currentData.biomechanicsTips.map((tip, idx) => (
+                    <div key={idx} className="flex items-start gap-2 bg-[#101421]/60 p-2 rounded-lg border border-zinc-800">
+                      <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <span className="text-zinc-300 leading-snug">{tip}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Eficiencia CDMX U-17:</span>
-                <span className="text-[#06B6D4] font-bold">{currentData.percentile}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Tiempo de Lanzamiento:</span>
-                <span className="text-slate-200">{currentData.releaseTime}</span>
-              </div>
-            </div>
+            )}
 
             {/* Dictamen del Head Coach */}
             <div className="mt-4 p-3 bg-[#101421] rounded-xl border-l-4 border-[#FF6B00] text-xs">
@@ -711,13 +962,6 @@ export default function TacticalCourtStitch({
               >
                 <Download className="w-4 h-4 text-[#FF6B00]" />
                 EXPORTAR FICHA PARA TUTOR / COACH
-              </button>
-              <button 
-                onClick={() => alert("Sensor óptico activado para nueva tanda de 50 lanzamientos en la duela del Deportivo Carmen Serdán.")}
-                className="w-full py-2.5 px-4 bg-[#FF6B00] hover:bg-[#FF8800] text-black text-xs font-mono font-black rounded-xl flex items-center justify-center gap-2 transition duration-200 shadow-[0_0_15px_rgba(255,107,0,0.4)]"
-              >
-                <Zap className="w-4 h-4" />
-                INICIAR NUEVA CALIBRACIÓN EN DUELA
               </button>
             </div>
           </div>
