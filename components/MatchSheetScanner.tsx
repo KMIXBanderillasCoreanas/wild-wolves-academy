@@ -233,10 +233,15 @@ export default function MatchSheetScanner({
                 className="w-full h-full object-contain"
               />
               {isProcessing && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
-                  <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
-                  <p className="text-white font-mono text-xs uppercase tracking-widest animate-pulse">
-                    Extrayendo Cédula con IA OCR...
+                <div className="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/40 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
+                  </div>
+                  <div className="w-3/4 max-w-[200px] h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 animate-pulse" />
+                  </div>
+                  <p className="text-orange-300 font-mono text-xs uppercase tracking-widest font-black animate-pulse text-center px-4">
+                    Extrayendo Cédula con Visión Artificial OCR...
                   </p>
                 </div>
               )}
