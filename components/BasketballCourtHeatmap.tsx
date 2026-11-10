@@ -97,24 +97,25 @@ export default function BasketballCourtHeatmap({
   const totalShotsAttempts = total2PtAttempts + total3PtAttempts;
   const overallPct = totalShotsAttempts > 0 ? Math.round((totalShotsMade / totalShotsAttempts) * 100) : 0;
 
-  // Paleta oficial HomeCourt / NBA Court Heatmap:
-  // - Azul oscuro táctico (#253b6d / #1e3a8a) para zonas frías / bajo volumen
-  // - Naranja intenso (#e65100 / #f97316) para zonas calientes
-  // - Ámbar / Salmón / Azul intermedio para zonas medias
+  // Paleta FLOUROSCENTE DE DUELA CARMEN SERDÁN (Neon Glow & Tactical Vibrance):
+  // - Caliente (≥70%): Neón Naranja/Fuego carmesí intenso (#FF3B30 / #EA580C) con borde naranja neón (#FF6B00)
+  // - Favorable (50-69%): Neón Ámbar eléctrico (#F59E0B) con borde dorado neón (#FFB703)
+  // - Regular (35-49%): Neón Cian eléctrico (#06B6D4) con borde celeste neón (#22D3EE)
+  // - Fría (<35%): Azul Índigo profundo táctico (#1E1B4B) con borde neón violeta/azul (#38BDF8)
   const getZoneColor = (pct: number, attempts: number) => {
-    if (attempts === 0) return { bg: "#1f293d", border: "#374151", text: "#9ca3af", fillOpacity: 0.85, label: "Sin tiros" };
+    if (attempts === 0) return { bg: "#0f172a", border: "#334155", text: "#94a3b8", fillOpacity: 0.60, label: "Sin tiros" };
     if (pct >= 70) {
-      // Zona Súper Caliente (Orange Flame HomeCourt)
-      return { bg: "#e64a19", border: "#ff7043", text: "#ffffff", fillOpacity: 0.95, label: "Élite (≥70%)" };
+      // Zona Súper Caliente (Fluorescent Orange / Red)
+      return { bg: "#EA580C", border: "#FF6B00", text: "#FFFFFF", fillOpacity: 0.88, label: "Élite Neón (≥70%)" };
     } else if (pct >= 50) {
-      // Zona Media-Alta (Warm Orange-Amber)
-      return { bg: "#f57c00", border: "#ffb74d", text: "#ffffff", fillOpacity: 0.90, label: "Favorable (50-69%)" };
+      // Zona Media-Alta (Fluorescent Amber / Golden)
+      return { bg: "#F59E0B", border: "#FBBF24", text: "#FFFFFF", fillOpacity: 0.82, label: "Favorable (50-69%)" };
     } else if (pct >= 35) {
-      // Zona Táctica Intermedia (Blue/Indigo HomeCourt)
-      return { bg: "#2a4365", border: "#4299e1", text: "#ffffff", fillOpacity: 0.90, label: "Regular (35-49%)" };
+      // Zona Táctica Regular (Fluorescent Electric Cyan)
+      return { bg: "#0891B2", border: "#06B6D4", text: "#FFFFFF", fillOpacity: 0.78, label: "Regular (35-49%)" };
     } else {
-      // Zona Fría (Deep Dark Blue HomeCourt)
-      return { bg: "#1a2a47", border: "#2b4c7e", text: "#93c5fd", fillOpacity: 0.90, label: "Fría (<35%)" };
+      // Zona Fría (Deep Neon Indigo)
+      return { bg: "#1E1B4B", border: "#6366F1", text: "#A5B4FC", fillOpacity: 0.80, label: "Fría (<35%)" };
     }
   };
 
@@ -239,46 +240,72 @@ export default function BasketballCourtHeatmap({
       {/* 2. MEDIA CANCHA INTERACTIVA ESTILO APP PROFESIONAL (NBA / HOMECORT SHOT CHART) */}
       <div className="relative w-full max-w-[660px] mx-auto bg-[#07090e] rounded-3xl p-3 sm:p-5 border border-zinc-800/90 shadow-2xl overflow-hidden">
         
-        {/* LEYENDA TÉRMICA BIOMECÁNICA: AZUL PROFUNDO (FRÍO) A NARANJA FLAMA (CALIENTE) */}
-        <div className="flex flex-wrap items-center justify-between text-[10px] font-mono text-zinc-300 mb-3 px-3 py-2 bg-zinc-900/80 rounded-2xl border border-zinc-800/80">
+        {/* LEYENDA TÉRMICA BIOMECÁNICA FLOUROSCENTE: NEÓN CIAN, ÁMBAR Y NARANJA LOBO */}
+        <div className="flex flex-wrap items-center justify-between text-[10px] font-mono text-zinc-300 mb-3 px-3 py-2 bg-[#090C14]/90 rounded-2xl border border-cyan-900/40">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#1a2a47] border border-[#2b4c7e]"></span>
-            <span className="text-blue-300 font-bold">Fría (&lt;35%)</span>
+            <span className="w-2.5 h-2.5 rounded bg-[#1E1B4B] border border-[#6366F1] shadow-[0_0_6px_rgba(99,102,241,0.5)]"></span>
+            <span className="text-indigo-300 font-bold">Fría (&lt;35%)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#2a4365] border border-[#4299e1]"></span>
-            <span className="text-sky-300 font-bold">Regular (35-49%)</span>
+            <span className="w-2.5 h-2.5 rounded bg-[#0891B2] border border-[#06B6D4] shadow-[0_0_8px_rgba(6,182,212,0.6)]"></span>
+            <span className="text-cyan-300 font-bold">Regular (35-49%)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#f57c00] border border-[#ffb74d]"></span>
+            <span className="w-2.5 h-2.5 rounded bg-[#F59E0B] border border-[#FBBF24] shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
             <span className="text-amber-300 font-bold">Favorable (50-69%)</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#e64a19] border border-[#ff7043] shadow-[0_0_8px_rgba(230,74,25,0.7)]"></span>
+            <span className="w-2.5 h-2.5 rounded bg-[#EA580C] border border-[#FF6B00] shadow-[0_0_10px_rgba(255,107,0,0.8)]"></span>
             <span className="text-orange-400 font-bold">Caliente (≥70%)</span>
           </div>
         </div>
 
-        {/* SVG MEDIA CANCHA CON ZONAS TÉRMICAS QUE CUBREN TODO EL POLÍGONO DE TIRO */}
-        <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border border-zinc-800/60 bg-[#0a0d14]">
+        {/* SVG MEDIA CANCHA CON ZONAS TÉRMICAS FLOUROSCENTES & BORDES NEÓN */}
+        <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border-2 border-[#06B6D4]/50 bg-[#090C14] shadow-[0_0_30px_rgba(6,182,212,0.2)]">
           <svg
             viewBox="0 0 500 380"
             className="w-full h-full select-none"
-            style={{ filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.6))" }}
           >
-            {/* DEFINICIONES DE MÁSCARAS / RECORTE DE CANCHA */}
+            {/* DEFINICIONES DE FILTROS NEÓN FLOUROSCENTES */}
             <defs>
-              <clipPath id="court-boundary">
-                <rect x="15" y="15" width="470" height="350" rx="12" />
-              </clipPath>
-              {/* Recorte del Arco de 3 Puntos: Todo lo exterior al semicírculo */}
-              <clipPath id="beyond-three-arc">
-                <path d="M 15 15 L 485 15 L 485 365 L 15 365 Z" />
-              </clipPath>
+              {/* Resplandor neón cian para las líneas */}
+              <filter id="stitch-neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              {/* Resplandor de aro neón lobo */}
+              <filter id="stitch-hoop-glow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              {/* Radial Court Lighting */}
+              <radialGradient id="stitch-court-radial" cx="50%" cy="14%" r="50%">
+                <stop offset="0%" stopColor="#FF6B00" stopOpacity="0.25" />
+                <stop offset="60%" stopColor="#06B6D4" stopOpacity="0.06" />
+                <stop offset="100%" stopColor="#090C14" stopOpacity="0" />
+              </radialGradient>
             </defs>
 
-            {/* BASE / DUELA OSCURA ESTILO HOMECORT */}
-            <rect x="0" y="0" width="500" height="380" fill="#0d111a" />
+            {/* BASE / DUELA OSCURA FLOUROSCENTE CON ILUMINACIÓN RADIAL */}
+            <rect x="0" y="0" width="500" height="380" fill="#0B0E17" />
+            <rect x="0" y="0" width="500" height="380" fill="url(#stitch-court-radial)" />
+
+            {/* Líneas sutiles de duela de madera táctica */}
+            <g opacity="0.4" stroke="#1F293D" strokeWidth="1">
+              <line x1="0" y1="65" x2="500" y2="65" />
+              <line x1="0" y1="130" x2="500" y2="130" />
+              <line x1="0" y1="195" x2="500" y2="195" />
+              <line x1="0" y1="260" x2="500" y2="260" />
+              <line x1="0" y1="325" x2="500" y2="325" />
+            </g>
 
             {/* ======================================================= */}
             {/* CAPA 1: POLÍGONOS DE CALOR QUE CUBREN LA DUELA COMPLETA */}
@@ -288,20 +315,23 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[3];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <polygon
                     points="20,20 48,20 48,115 20,115"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.5"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3" : "1.8"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="34" y="60" textAnchor="middle" fill={c.text} fontSize="13" fontWeight="900" fontFamily="monospace">
+                  {/* Píldora flotante estilo Google Stitch */}
+                  <rect x="23" y="44" width="22" height="34" rx="4" fill="#090C14" fillOpacity="0.85" stroke="#F59E0B" strokeWidth="1" />
+                  <text x="34" y="58" textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="900" fontFamily="monospace">
                     {z.pct}%
                   </text>
-                  <text x="34" y="74" textAnchor="middle" fill="#d1d5db" fontSize="8.5" fontWeight="700" fontFamily="sans-serif">
-                    ({z.made}-{z.attempts})
+                  <text x="34" y="71" textAnchor="middle" fill="#FDE68A" fontSize="8" fontWeight="700" fontFamily="monospace">
+                    {z.made}-{z.attempts}
                   </text>
                 </g>
               );
@@ -311,20 +341,22 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[7];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <polygon
                     points="452,20 480,20 480,115 452,115"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.5"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3" : "1.8"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="466" y="60" textAnchor="middle" fill={c.text} fontSize="13" fontWeight="900" fontFamily="monospace">
+                  <rect x="455" y="44" width="22" height="34" rx="4" fill="#090C14" fillOpacity="0.85" stroke="#06B6D4" strokeWidth="1" />
+                  <text x="466" y="58" textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="900" fontFamily="monospace">
                     {z.pct}%
                   </text>
-                  <text x="466" y="74" textAnchor="middle" fill="#d1d5db" fontSize="8.5" fontWeight="700" fontFamily="sans-serif">
-                    ({z.made}-{z.attempts})
+                  <text x="466" y="71" textAnchor="middle" fill="#A5F3FC" fontSize="8" fontWeight="700" fontFamily="monospace">
+                    {z.made}-{z.attempts}
                   </text>
                 </g>
               );
@@ -334,22 +366,25 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[4];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
-                  {/* Polígono que cubre desde la esquina izquierda hasta el cono de 45° */}
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <path
                     d="M 20 115 L 48 115 A 215 215 0 0 0 160 236 L 120 365 L 20 365 Z"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.5"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3.5" : "1.8"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="75" y="235" textAnchor="middle" fill={c.text} fontSize="14" fontWeight="900" fontFamily="monospace">
-                    {z.pct}%
-                  </text>
-                  <text x="75" y="250" textAnchor="middle" fill="#e5e7eb" fontSize="9.5" fontWeight="700" fontFamily="sans-serif">
-                    3P Ala Izq ({z.made}-{z.attempts})
-                  </text>
+                  <g transform="translate(40, 220)">
+                    <rect x="0" y="0" width="76" height="36" rx="8" fill="#090C14" fillOpacity="0.88" stroke="#F59E0B" strokeWidth="1.5" />
+                    <text x="38" y="16" textAnchor="middle" fill="#FFFFFF" fontSize="12" fontWeight="900" fontFamily="monospace">
+                      {z.pct}%
+                    </text>
+                    <text x="38" y="28" textAnchor="middle" fill="#FDE68A" fontSize="8.5" fontWeight="700" fontFamily="sans-serif">
+                      3P Ala Izq ({z.made}-{z.attempts})
+                    </text>
+                  </g>
                 </g>
               );
             })()}
@@ -358,22 +393,25 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[5];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
-                  {/* Polígono de la cúspide del triple */}
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <path
                     d="M 160 236 A 215 215 0 0 0 340 236 L 380 365 L 120 365 Z"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.5"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3.5" : "1.8"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="250" y="300" textAnchor="middle" fill={c.text} fontSize="16" fontWeight="900" fontFamily="monospace">
-                    {z.pct}%
-                  </text>
-                  <text x="250" y="318" textAnchor="middle" fill="#ffffff" fontSize="10.5" fontWeight="700" fontFamily="sans-serif">
-                    3P Top Key ({z.made}-{z.attempts})
-                  </text>
+                  <g transform="translate(200, 280)">
+                    <rect x="0" y="0" width="100" height="38" rx="8" fill="#090C14" fillOpacity="0.9" stroke="#FF6B00" strokeWidth="1.8" />
+                    <text x="50" y="17" textAnchor="middle" fill="#FFFFFF" fontSize="14" fontWeight="900" fontFamily="monospace">
+                      {z.pct}%
+                    </text>
+                    <text x="50" y="30" textAnchor="middle" fill="#FFEDD5" fontSize="9" fontWeight="800" fontFamily="sans-serif">
+                      3P Top Key ({z.made}-{z.attempts})
+                    </text>
+                  </g>
                 </g>
               );
             })()}
@@ -382,21 +420,25 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[6];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <path
                     d="M 452 115 L 480 115 L 480 365 L 380 365 L 340 236 A 215 215 0 0 0 452 115 Z"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.5"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3.5" : "1.8"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="425" y="235" textAnchor="middle" fill={c.text} fontSize="14" fontWeight="900" fontFamily="monospace">
-                    {z.pct}%
-                  </text>
-                  <text x="425" y="250" textAnchor="middle" fill="#e5e7eb" fontSize="9.5" fontWeight="700" fontFamily="sans-serif">
-                    3P Ala Der ({z.made}-{z.attempts})
-                  </text>
+                  <g transform="translate(384, 220)">
+                    <rect x="0" y="0" width="76" height="36" rx="8" fill="#090C14" fillOpacity="0.88" stroke="#F59E0B" strokeWidth="1.5" />
+                    <text x="38" y="16" textAnchor="middle" fill="#FFFFFF" fontSize="12" fontWeight="900" fontFamily="monospace">
+                      {z.pct}%
+                    </text>
+                    <text x="38" y="28" textAnchor="middle" fill="#FDE68A" fontSize="8.5" fontWeight="700" fontFamily="sans-serif">
+                      3P Ala Der ({z.made}-{z.attempts})
+                    </text>
+                  </g>
                 </g>
               );
             })()}
@@ -405,22 +447,25 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[1];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
-                  {/* Área entre la pintura y el arco de triple, lado izquierdo */}
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <path
                     d="M 48 20 L 170 20 L 170 190 L 170 210 A 80 80 0 0 0 250 240 L 250 265 A 215 215 0 0 1 48 100 Z"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.5"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3.5" : "1.8"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="110" y="110" textAnchor="middle" fill={c.text} fontSize="14" fontWeight="900" fontFamily="monospace">
-                    {z.pct}%
-                  </text>
-                  <text x="110" y="125" textAnchor="middle" fill="#f3f4f6" fontSize="9.5" fontWeight="700" fontFamily="sans-serif">
-                    Media Izq ({z.made}-{z.attempts})
-                  </text>
+                  <g transform="translate(68, 92)">
+                    <rect x="0" y="0" width="84" height="36" rx="8" fill="#090C14" fillOpacity="0.9" stroke="#FF6B00" strokeWidth="1.5" />
+                    <text x="42" y="16" textAnchor="middle" fill="#FFFFFF" fontSize="12" fontWeight="900" fontFamily="monospace">
+                      {z.pct}%
+                    </text>
+                    <text x="42" y="28" textAnchor="middle" fill="#FFEDD5" fontSize="8" fontWeight="700" fontFamily="sans-serif">
+                      Media Izq ({z.made}-{z.attempts})
+                    </text>
+                  </g>
                 </g>
               );
             })()}
@@ -429,22 +474,25 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[2];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
-                  {/* Área entre la pintura y el arco de triple, lado derecho */}
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <path
                     d="M 452 20 L 330 20 L 330 190 L 330 210 A 80 80 0 0 1 250 240 L 250 265 A 215 215 0 0 0 452 100 Z"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.5"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3.5" : "1.8"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="390" y="110" textAnchor="middle" fill={c.text} fontSize="14" fontWeight="900" fontFamily="monospace">
-                    {z.pct}%
-                  </text>
-                  <text x="390" y="125" textAnchor="middle" fill="#f3f4f6" fontSize="9.5" fontWeight="700" fontFamily="sans-serif">
-                    Media Der ({z.made}-{z.attempts})
-                  </text>
+                  <g transform="translate(348, 92)">
+                    <rect x="0" y="0" width="84" height="36" rx="8" fill="#090C14" fillOpacity="0.9" stroke="#FF6B00" strokeWidth="1.5" />
+                    <text x="42" y="16" textAnchor="middle" fill="#FFFFFF" fontSize="12" fontWeight="900" fontFamily="monospace">
+                      {z.pct}%
+                    </text>
+                    <text x="42" y="28" textAnchor="middle" fill="#FFEDD5" fontSize="8" fontWeight="700" fontFamily="sans-serif">
+                      Media Der ({z.made}-{z.attempts})
+                    </text>
+                  </g>
                 </g>
               );
             })()}
@@ -453,57 +501,61 @@ export default function BasketballCourtHeatmap({
             {(() => {
               const z = zones[0];
               const c = getZoneColor(z.pct, z.attempts);
+              const isSelected = selectedZone?.id === z.id;
               return (
-                <g className="cursor-pointer transition-opacity hover:opacity-90" onClick={() => setSelectedZone(z)}>
-                  {/* Llave / Pintura completa con círculo superior */}
+                <g className="cursor-pointer transition-all hover:opacity-95" onClick={() => setSelectedZone(z)}>
                   <path
                     d="M 170 20 L 330 20 L 330 210 A 80 80 0 0 1 170 210 Z"
                     fill={c.bg}
-                    stroke={c.border}
-                    strokeWidth="1.8"
-                    fillOpacity={c.fillOpacity}
+                    stroke={isSelected ? "#FF6B00" : c.border}
+                    strokeWidth={isSelected ? "3.8" : "2.2"}
+                    fillOpacity={isSelected ? 0.95 : c.fillOpacity}
                   />
-                  <text x="250" y="125" textAnchor="middle" fill={c.text} fontSize="17" fontWeight="900" fontFamily="monospace">
-                    {z.pct}%
-                  </text>
-                  <text x="250" y="142" textAnchor="middle" fill="#ffffff" fontSize="10.5" fontWeight="800" fontFamily="sans-serif">
-                    Línea Libre ({z.made}-{z.attempts})
-                  </text>
-                  <text x="250" y="156" textAnchor="middle" fill="#d1d5db" fontSize="8.5" fontWeight="600" fontFamily="sans-serif">
-                    En la Pintura
-                  </text>
+                  <g transform="translate(196, 114)">
+                    <rect x="0" y="0" width="108" height="42" rx="8" fill="#090C14" fillOpacity="0.92" stroke="#FF6B00" strokeWidth="1.8" />
+                    <text x="54" y="18" textAnchor="middle" fill="#FFFFFF" fontSize="14" fontWeight="900" fontFamily="monospace">
+                      {z.pct}%
+                    </text>
+                    <text x="54" y="32" textAnchor="middle" fill="#FEF08A" fontSize="8.5" fontWeight="800" fontFamily="sans-serif">
+                      Línea Libre / Pintura ({z.made}-{z.attempts})
+                    </text>
+                  </g>
                 </g>
               );
             })()}
 
             {/* ======================================================= */}
-            {/* CAPA 2: LÍNEAS DE CANCHA OFICIALES (BLANCO SUTIL / GRIS) */}
+            {/* CAPA 2: LÍNEAS DE CANCHA FIBA CON RESPLANDOR NEÓN CIAN */}
             {/* ======================================================= */}
-            <g stroke="#ffffff" strokeWidth="2" strokeOpacity="0.85" fill="none" pointerEvents="none">
+            <g stroke="#06B6D4" strokeWidth="2.5" filter="url(#stitch-neon-glow)" fill="none" pointerEvents="none">
               {/* Línea de Fondo */}
-              <line x1="20" y1="20" x2="480" y2="20" strokeWidth="2.5" />
+              <line x1="20" y1="20" x2="480" y2="20" strokeWidth="3" />
               {/* Líneas Laterales */}
-              <line x1="20" y1="20" x2="20" y2="365" strokeWidth="2.5" />
-              <line x1="480" y1="20" x2="480" y2="365" strokeWidth="2.5" />
+              <line x1="20" y1="20" x2="20" y2="365" strokeWidth="3" />
+              <line x1="480" y1="20" x2="480" y2="365" strokeWidth="3" />
               {/* Media Cancha */}
-              <line x1="20" y1="365" x2="480" y2="365" strokeDasharray="6 6" />
+              <line x1="20" y1="365" x2="480" y2="365" strokeDasharray="6 4" strokeWidth="3" />
 
               {/* Pintura / Llave */}
-              <rect x="170" y="20" width="160" height="190" strokeWidth="2" />
+              <rect x="170" y="20" width="160" height="190" strokeWidth="2.5" />
               {/* Círculo de Tiro Libre */}
-              <path d="M 170 210 A 80 80 0 0 0 330 210" strokeWidth="2" />
-              <path d="M 170 210 A 80 80 0 0 1 330 210" strokeDasharray="5 5" strokeWidth="1.5" />
+              <path d="M 170 210 A 80 80 0 0 0 330 210" strokeWidth="2.5" />
+              <path d="M 170 210 A 80 80 0 0 1 330 210" strokeDasharray="6 6" strokeWidth="2" />
 
               {/* Arco de 3 Puntos */}
-              <line x1="48" y1="20" x2="48" y2="100" strokeWidth="2.2" />
-              <line x1="452" y1="20" x2="452" y2="100" strokeWidth="2.2" />
-              <path d="M 48 100 A 215 215 0 0 0 452 100" strokeWidth="2.2" />
+              <line x1="48" y1="20" x2="48" y2="100" strokeWidth="2.5" />
+              <line x1="452" y1="20" x2="452" y2="100" strokeWidth="2.5" />
+              <path d="M 48 100 A 215 215 0 0 0 452 100" strokeWidth="2.5" />
 
-              {/* Tablero y Canasta */}
-              <line x1="220" y1="35" x2="280" y2="35" stroke="#ffffff" strokeWidth="3.5" />
-              <circle cx="250" cy="50" r="14" stroke="#f66018" strokeWidth="3" fill="#f66018" fillOpacity="0.3" />
+              {/* Tablero y Canasta Flourescente */}
+              <g filter="url(#stitch-hoop-glow)">
+                <line x1="220" y1="35" x2="280" y2="35" stroke="#FFFFFF" strokeWidth="4.5" strokeLinecap="round" />
+                <line x1="250" y1="35" x2="250" y2="45" stroke="#FF6B00" strokeWidth="3" />
+                <circle cx="250" cy="55" r="14" stroke="#FF6B00" strokeWidth="3.5" fill="#FF6B00" fillOpacity="0.3" />
+                <circle cx="250" cy="55" r="6" stroke="#FFFFFF" strokeDasharray="2 2" strokeWidth="1.5" fill="none" />
+              </g>
               {/* Semicírculo de no carga */}
-              <path d="M 225 35 A 25 25 0 0 0 275 35" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.7" />
+              <path d="M 225 35 A 25 25 0 0 0 275 35" stroke="#06B6D4" strokeWidth="1.8" strokeOpacity="0.8" />
             </g>
           </svg>
         </div>

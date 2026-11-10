@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
     const supabase = getAdminSupabase();
 
-    // 1. COMANDO ACCIONABLE: AGREGAR ALUMNO POR NOMBRE (Ej: "Agrega a Bruno Díaz" o "Registra a Mateo de 13 años")
+    // 1. COMANDO ACCIONABLE: AGREGAR ALUMNO POR NOMBRE (Ej: "Agrega a Mateo de 13 años")
     if (
       isCoach &&
       (lowerUserMsg.startsWith("agrega a ") ||

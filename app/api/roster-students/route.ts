@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     // 1. Obtener perfiles de la academia excluyendo coaches y superadmins
     const { data: profiles, error: pError } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, account_category, user_type, current_debt_amount, financial_status, is_provisional, scholarship_percentage, default_class_cost, selected_days, training_days, training_schedule, schedules_by_day, number, category, parent_phone, emergency_phone")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (pError) {
