@@ -1359,123 +1359,7 @@ export default function CourtAttendanceCommand() {
         </div>
       </section>
 
-      {/* 2.5 MEDIA CANCHA TÁCTICA & PRUEBAS DEPORTIVAS BÁSICAS (55 TIROS, 100M, CUERDA, LÍNEAS) */}
-      {students.length > 0 && (
-        <section className="bg-zinc-900/70 border border-zinc-800/90 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center shrink-0">
-                <Target className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
-                    Media Cancha — % de Ejecución de Tiro & Pruebas Deportivas
-                  </h3>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
-                    Duela Oficial
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Visualización de las 4 pruebas básicas: Tiros Reglamentarios (55), Sprint 100m, Cuerda y Líneas.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsHeatmapExpanded(!isHeatmapExpanded)}
-                className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>{isHeatmapExpanded ? "Ocultar Cancha" : "Mostrar Cancha"}</span>
-              </button>
-            </div>
-          </div>
-
-          {isHeatmapExpanded && (
-            <div className="space-y-4">
-              {/* Selector de Atleta para la Cancha */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 shrink-0 font-mono">
-                  Atleta en Análisis:
-                </span>
-                {students.map((st) => {
-                  const activeId = selectedAthleteForHeatmapId || students[0]?.id;
-                  const isSelected = activeId === st.id;
-                  return (
-                    <button
-                      key={st.id}
-                      type="button"
-                      onClick={() => setSelectedAthleteForHeatmapId(st.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                        isSelected
-                          ? "bg-[#f66018] text-white shadow-md font-black"
-                          : "bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700"
-                      }`}
-                    >
-                      <span className="text-[10px] opacity-75">{st.number || "#"}</span>
-                      <span>{st.full_name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Componente Media Cancha Heatmap con datos del atleta */}
-              {(() => {
-                const currentId = selectedAthleteForHeatmapId || students[0]?.id;
-                const activeAthlete = students.find((s) => s.id === currentId) || students[0];
-                const testData = sportsTestsMap[currentId] || {
-                  freeThrowsMade: 7,
-                  midRangeMade: 12,
-                  threePointMade: 15,
-                  jumpRopeCount: 50,
-                  circuitLinesSeconds: 11.2,
-                  sprint100mSeconds: 14.5,
-                  overallOvr: 78,
-                };
-
-                const halfMid = Math.round((testData.midRangeMade || 12) / 2);
-                const threePerSpot = Math.round((testData.threePointMade || 15) / 5);
-
-                const heatmapData: ShotHeatmapData = {
-                  freeThrowsMade: testData.freeThrowsMade || 7,
-                  midRangeLeftMade: halfMid,
-                  midRangeRightMade: halfMid,
-                  threeCornerLeftMade: threePerSpot,
-                  threeWingLeftMade: threePerSpot,
-                  threeTopKeyMade: threePerSpot,
-                  threeWingRightMade: threePerSpot,
-                  threeCornerRightMade: Math.max(0, (testData.threePointMade || 15) - (threePerSpot * 4)),
-                  jumpRopeCount: testData.jumpRopeCount || 50,
-                  circuitLinesSeconds: testData.circuitLinesSeconds || 11.2,
-                  sprint100mSeconds: testData.sprint100mSeconds || 14.5,
-                  athleteName: activeAthlete?.full_name || "Atleta Wild Wolves",
-                  evaluationDate: selectedDate,
-                  overallOvr: testData.overallOvr || 78,
-                };
-
-                return (
-                  <div className="space-y-3">
-                    <BasketballCourtHeatmap data={heatmapData} showPhysicals={true} />
-                    
-                    <div className="flex justify-end pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedAthleteForSportsTest(activeAthlete)}
-                        className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-950/50 transition cursor-pointer"
-                      >
-                        <Target className="w-4 h-4 text-purple-200" />
-                        <span>Actualizar Pruebas Deportivas de {activeAthlete?.full_name?.split(" ")[0]}</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* 3. TOOLBAR: SEARCH & RESPONSIVE FILTER TABS */}
       <section className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -1770,62 +1654,62 @@ export default function CourtAttendanceCommand() {
                   </button>
                 </div>
 
-                {/* Botón de Cobro Rápido / Abono Parcial (1-Tap Auto-Sync) */}
-                <div className="mt-2.5 flex items-center gap-2">
-                  {st.scholarship_percentage === 100 ? (
-                    <div className="flex-1 flex items-center justify-center h-10 px-3 rounded-xl bg-sky-950/60 border border-sky-500/40 text-sky-300 font-black text-xs">
-                      🎓 Beca 100% ($0 Beca)
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleInstantQuickPay(st)}
-                      className="flex-1 flex items-center justify-between h-10 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-white font-black text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer"
-                      title="1-Tap: Cobrar total adeudado y guardar al instante en Supabase"
-                    >
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <DollarSign className="w-4 h-4 text-white shrink-0" />
-                        <span>Pagar Total ${st.current_debt_amount > 0 ? st.current_debt_amount : (st.default_class_cost || 50)}</span>
+                  {/* Botón de Cobro Rápido / Abono Parcial (1-Tap Auto-Sync) */}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    {st.scholarship_percentage === 100 ? (
+                      <div className="flex-1 min-w-[120px] flex items-center justify-center h-9 px-2 rounded-xl bg-sky-950/60 border border-sky-500/40 text-sky-300 font-black text-xs">
+                        🎓 Beca 100% ($0 Beca)
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-black/30 text-[10px] font-black shrink-0">
-                        {st.current_debt_amount > 0 ? "Liquidar" : "Cuota"}
-                      </span>
-                    </button>
-                  )}
-                  {/* Botón táctil para Abono Parcial (elegir cuánto abona ej. 50, 60, 80) */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedAthleteForQuickPay(st);
-                      setQuickPayAmount(st.current_debt_amount > 0 ? Math.min(50, st.current_debt_amount) : 50);
-                    }}
-                    className="h-10 px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black flex items-center gap-1 transition cursor-pointer shrink-0"
-                    title="Abono Parcial (Cobrar lo que puedan dar: $50, $80...)"
-                  >
-                    <span>💵 Abono</span>
-                  </button>
-
-                  {/* Botón Perdonar / Condonar Adeudo (Coach Ricardo) */}
-                  {st.current_debt_amount > 0 && (
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleInstantQuickPay(st)}
+                        className="flex-1 min-w-[140px] flex items-center justify-between h-9 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-white font-black text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer"
+                        title="1-Tap: Cobrar total adeudado y guardar al instante en Supabase"
+                      >
+                        <div className="flex items-center gap-1 whitespace-nowrap">
+                          <DollarSign className="w-3.5 h-3.5 text-white shrink-0" />
+                          <span>Pagar ${st.current_debt_amount > 0 ? st.current_debt_amount : (st.default_class_cost || 50)}</span>
+                        </div>
+                        <span className="px-1.5 py-0.5 rounded-full bg-black/30 text-[9px] font-black shrink-0">
+                          {st.current_debt_amount > 0 ? "Liquidar" : "Cuota"}
+                        </span>
+                      </button>
+                    )}
+                    {/* Botón táctil para Abono Parcial */}
                     <button
                       type="button"
-                      onClick={() => handleForgiveDebt(st)}
-                      className="h-10 px-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/40 text-[10px] font-black flex items-center gap-1 transition cursor-pointer shrink-0"
-                      title="Perdonar Adeudo ($0 MXN - Cortesía del Coach Ricardo)"
+                      onClick={() => {
+                        setSelectedAthleteForQuickPay(st);
+                        setQuickPayAmount(st.current_debt_amount > 0 ? Math.min(50, st.current_debt_amount) : 50);
+                      }}
+                      className="h-9 px-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-black flex items-center gap-1 transition cursor-pointer shrink-0"
+                      title="Abono Parcial"
                     >
-                      <span>🤝 Perdonar</span>
+                      <span>💵 Abono</span>
                     </button>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStudentForFinance(st)}
-                    className="w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
-                    title="Ajuste Financiero Detallado"
-                  >
-                    <CreditCard className="w-4 h-4" />
-                  </button>
-                </div>
+                    {/* Botón Perdonar / Condonar Adeudo */}
+                    {st.current_debt_amount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleForgiveDebt(st)}
+                        className="h-9 px-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/40 text-[10px] font-black flex items-center gap-1 transition cursor-pointer shrink-0"
+                        title="Perdonar Adeudo ($0 MXN)"
+                      >
+                        <span>🤝 Perdonar</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStudentForFinance(st)}
+                      className="w-9 h-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                      title="Ajuste Financiero Detallado"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
                 {/* Botón de Pruebas Deportivas (Tiro & Velocidad) y Evaluación Test Day */}
                 <div className="mt-2 grid grid-cols-2 gap-2">

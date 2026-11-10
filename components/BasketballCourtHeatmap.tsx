@@ -97,25 +97,25 @@ export default function BasketballCourtHeatmap({
   const totalShotsAttempts = total2PtAttempts + total3PtAttempts;
   const overallPct = totalShotsAttempts > 0 ? Math.round((totalShotsMade / totalShotsAttempts) * 100) : 0;
 
-  // Paleta FLOUROSCENTE DE DUELA CARMEN SERDÁN (Neon Glow & Tactical Vibrance):
-  // - Caliente (≥70%): Neón Naranja/Fuego carmesí intenso (#FF3B30 / #EA580C) con borde naranja neón (#FF6B00)
-  // - Favorable (50-69%): Neón Ámbar eléctrico (#F59E0B) con borde dorado neón (#FFB703)
-  // - Regular (35-49%): Neón Cian eléctrico (#06B6D4) con borde celeste neón (#22D3EE)
-  // - Fría (<35%): Azul Índigo profundo táctico (#1E1B4B) con borde neón violeta/azul (#38BDF8)
+  // Paleta FLORESCENTE EXACTA (Google Stitch - Screen 4580521468983715076):
+  // - Caliente (≥70%): Neón Carmesí/Borgoña Flama (#7F1D1D / #831843) con borde naranja neón (#FF6B00) y resplandor
+  // - Favorable (50-69%): Neón Ámbar Dorado Eléctrico (#D97706 / #B45309) con borde amarillo neón (#F59E0B)
+  // - Regular (35-49%): Azul Cian Eléctrico Táctico (#0E7490 / #0284C7) con borde cian neón (#06B6D4)
+  // - Fría (<35%): Azul Marino Táctico Profundo (#0F172A / #1E293B) con borde índigo/cian (#38BDF8)
   const getZoneColor = (pct: number, attempts: number) => {
-    if (attempts === 0) return { bg: "#0f172a", border: "#334155", text: "#94a3b8", fillOpacity: 0.60, label: "Sin tiros" };
+    if (attempts === 0) return { bg: "#0F172A", border: "#334155", text: "#94A3B8", fillOpacity: 0.65, label: "Sin tiros" };
     if (pct >= 70) {
-      // Zona Súper Caliente (Fluorescent Orange / Red)
-      return { bg: "#EA580C", border: "#FF6B00", text: "#FFFFFF", fillOpacity: 0.88, label: "Élite Neón (≥70%)" };
+      // Zona Súper Caliente (Exact Crimson/Flame Burgundy from Stitch screenshot)
+      return { bg: "#5C1318", border: "#FF6B00", text: "#FFFFFF", fillOpacity: 0.88, label: "Élite Neón (≥70%)" };
     } else if (pct >= 50) {
-      // Zona Media-Alta (Fluorescent Amber / Golden)
-      return { bg: "#F59E0B", border: "#FBBF24", text: "#FFFFFF", fillOpacity: 0.82, label: "Favorable (50-69%)" };
+      // Zona Media-Alta (Exact Warm Golden Amber from Stitch screenshot)
+      return { bg: "#B45309", border: "#F59E0B", text: "#FFFFFF", fillOpacity: 0.88, label: "Favorable (50-69%)" };
     } else if (pct >= 35) {
-      // Zona Táctica Regular (Fluorescent Electric Cyan)
-      return { bg: "#0891B2", border: "#06B6D4", text: "#FFFFFF", fillOpacity: 0.78, label: "Regular (35-49%)" };
+      // Zona Táctica Regular (Exact Electric Cyan from Stitch screenshot)
+      return { bg: "#075985", border: "#06B6D4", text: "#FFFFFF", fillOpacity: 0.82, label: "Regular (35-49%)" };
     } else {
-      // Zona Fría (Deep Neon Indigo)
-      return { bg: "#1E1B4B", border: "#6366F1", text: "#A5B4FC", fillOpacity: 0.80, label: "Fría (<35%)" };
+      // Zona Fría (Deep Dark Navy)
+      return { bg: "#0F172A", border: "#38BDF8", text: "#BAE6FD", fillOpacity: 0.85, label: "Fría (<35%)" };
     }
   };
 

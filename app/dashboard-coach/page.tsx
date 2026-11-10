@@ -60,7 +60,9 @@ import {
   History,
   KeyRound,
   CheckCircle2,
-  LogOut
+  LogOut,
+  UploadCloud,
+  FileJson
 } from 'lucide-react';
 
 function CoachDashboardContent() {
@@ -638,16 +640,59 @@ function CoachDashboardContent() {
                     </div>
                   </div>
 
-                  {selectedStudent && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAthleteForModal(selectedStudent)}
-                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-950/50 transition cursor-pointer shrink-0"
-                    >
-                      <PlusCircle className="w-4 h-4 text-purple-200" />
-                      <span>+ Calificar Pruebas de {selectedStudent.fullName.split(' ')[0]}</span>
-                    </button>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Botón para Subir Pruebas Deportivas (JSON o Archivo de Pruebas) */}
+                    <label className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-zinc-700 cursor-pointer transition shadow-md">
+                      <UploadCloud className="w-4 h-4 text-cyan-400" />
+                      <span>Subir Pruebas (JSON / Archivo)</span>
+                      <input
+                        type="file"
+                        accept=".json,.csv,.txt"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            const text = await file.text();
+                            let parsed: any;
+                            try {
+                              parsed = JSON.parse(text);
+                            } catch {
+                              alert("Formato no reconocido como JSON válido. Asegúrate de seleccionar el archivo exportado de pruebas.");
+                              return;
+                            }
+                            const res = await fetch("/api/sync-offline-tests", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify(parsed)
+                            });
+                            if (res.ok) {
+                              alert("¡Pruebas deportivas subidas y sincronizadas con éxito a Supabase!");
+                              HoopStore.syncWithSupabase().then((list) => {
+                                if (list && list.length > 0) setStudents(list);
+                              });
+                            } else {
+                              const errData = await res.json();
+                              alert("Error al sincronizar: " + (errData.error || "Fallo en servidor"));
+                            }
+                          } catch (err: any) {
+                            alert("Error al leer archivo: " + err.message);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    {selectedStudent && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAthleteForModal(selectedStudent)}
+                        className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-purple-950/50 transition cursor-pointer shrink-0"
+                      >
+                        <PlusCircle className="w-4 h-4 text-purple-200" />
+                        <span>+ Calificar Pruebas de {selectedStudent.fullName.split(' ')[0]}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Selector de Atleta Rápido */}
