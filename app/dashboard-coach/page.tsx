@@ -27,6 +27,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { AttendanceTracker } from '@/components/AttendanceTracker';
 import CourtAttendanceCommand from '@/components/CourtAttendanceCommand';
 import BasketballCourtHeatmap from '@/components/BasketballCourtHeatmap';
+import TacticalCourtStitch from '@/components/TacticalCourtStitch';
 import SportsTestExpressModal from '@/components/SportsTestExpressModal';
 import TestDayEvaluator from '@/components/TestDayEvaluator';
 import DualCoachCommand from '@/components/DualCoachCommand';
@@ -722,27 +723,15 @@ function CoachDashboardContent() {
                   </div>
                 </div>
 
-                {/* Media Cancha Interactiva con Pruebas Físicas */}
+                {/* Cancha Táctica Stitch Interactiva (Medidas Oficiales FIBA, Iluminación Radial y Desglose Biomecánico) */}
                 {selectedStudent && (
-                  <div className="space-y-4">
-                    <BasketballCourtHeatmap
-                      data={{
-                        freeThrowsMade: selectedStudent.metricsCurrent?.freeThrow ? Math.round((selectedStudent.metricsCurrent.freeThrow / 100) * 10) : 7,
-                        midRangeLeftMade: 6,
-                        midRangeRightMade: 6,
-                        threeCornerLeftMade: 3,
-                        threeWingLeftMade: 3,
-                        threeTopKeyMade: 4,
-                        threeWingRightMade: 3,
-                        threeCornerRightMade: 2,
-                        jumpRopeCount: selectedStudent.training?.ropeJumpsToday || 50,
-                        circuitLinesSeconds: 11.2,
-                        sprint100mSeconds: (selectedStudent as any).rawStats?.sprint100mSeconds || 14.5,
-                        athleteName: selectedStudent.fullName,
-                        evaluationDate: new Date().toLocaleDateString('es-MX'),
-                        overallOvr: selectedStudent.metricsCurrent?.threePoint || 80
-                      }}
-                      showPhysicals={true}
+                  <div className="space-y-6">
+                    <TacticalCourtStitch
+                      athleteName={selectedStudent.fullName}
+                      jerseyNumber={selectedStudent.jerseyNumber || 11}
+                      category={(selectedStudent as any).category || (selectedStudent.position ? `${selectedStudent.position} · U-17 Formativo` : "U-17 Formativo")}
+                      overallOvr={selectedStudent.metricsCurrent?.threePoint || 88}
+                      initialZone="paint"
                     />
 
                     {/* Fichas de las 3 Pruebas Básicas Clave */}
