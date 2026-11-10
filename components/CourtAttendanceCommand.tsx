@@ -42,6 +42,7 @@ import ManageStudentFinanceModal, {
   FinancialStatus, 
   UserType 
 } from "@/components/ManageStudentFinanceModal";
+import TacticalGlassAttendanceModal from "@/components/TacticalGlassAttendanceModal";
 
 export interface StudentRosterItem {
   id: string;
@@ -96,6 +97,7 @@ export default function CourtAttendanceCommand() {
   const [activeCourtPhase, setActiveCourtPhase] = useState<"fase1_asistencia" | "fase2_cobro">("fase1_asistencia");
   const [isClassClosureModalOpen, setIsClassClosureModalOpen] = useState<boolean>(false);
   const [closureDefaultDebtAmount, setClosureDefaultDebtAmount] = useState<number>(50);
+  const [isGlassModalOpen, setIsGlassModalOpen] = useState<boolean>(false);
 
   // Notificación de guardado instantáneo 1-tap
   const [instantSaveToast, setInstantSaveToast] = useState<string | null>(null);
@@ -1151,8 +1153,18 @@ export default function CourtAttendanceCommand() {
           </button>
         </div>
 
-        {/* Botón de Cierre Rápido de Clase */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        {/* Botón de Cierre Rápido de Clase y Acceso a Ventana Glassmorphism */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsGlassModalOpen(true)}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-[#00F0FF] to-[#0284C7] hover:brightness-110 active:scale-95 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 border border-[#00F0FF]/40 transition cursor-pointer"
+            title="Abrir Panel Táctico Flotante con Estética Glassmorphism"
+          >
+            <Sparkles className="w-4 h-4 text-black" />
+            <span>⚡ Ventana Glassmorphism</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsClassClosureModalOpen(true)}
@@ -1887,6 +1899,20 @@ export default function CourtAttendanceCommand() {
           </div>
         </div>
       )}
+
+      {/* VENTANA MODAL GLASSMORPHISM TÁCTICA PARA PASE DE LISTA Y COBRO */}
+      <TacticalGlassAttendanceModal
+        isOpen={isGlassModalOpen}
+        onClose={() => setIsGlassModalOpen(false)}
+        students={students}
+        selectedDate={selectedDate}
+        shift={shift}
+        onUpdateStudents={(updated) => setStudents(updated)}
+        onShowToast={(msg) => {
+          setInstantSaveToast(msg);
+          setTimeout(() => setInstantSaveToast(null), 3000);
+        }}
+      />
 
       {/* 5. MODAL TÁCTIL: COBRO RÁPIDO EN CANCHA AL FINALIZAR CLASE */}
       {selectedAthleteForSportsTest && (
