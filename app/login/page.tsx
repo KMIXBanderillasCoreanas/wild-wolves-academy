@@ -62,7 +62,22 @@ function LoginContent() {
   }, [searchParams]);
 
   // Limpiar mensajes al cambiar pestaña
+  const handleLogoutPrevious = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("ww_user_role");
+      localStorage.removeItem("ww_user_email");
+      localStorage.removeItem("ww_active_role");
+      localStorage.removeItem("ww_account_category");
+      localStorage.removeItem("ww_student_name");
+      document.cookie = "user_role=; path=/; max-age=0";
+      document.cookie = "user_email=; path=/; max-age=0";
+      document.cookie = "ww_active_role=; path=/; max-age=0";
+      document.cookie = "account_category=; path=/; max-age=0";
+    }
+  };
+
   const switchPortal = (portal: RolePortal) => {
+    handleLogoutPrevious();
     setActivePortal(portal);
     setErrorMsg("");
     setSuccessMsg("");
@@ -256,9 +271,11 @@ function LoginContent() {
             return;
           }
 
-          // Prioridad estricta al rol 'guardian' o categoría 'guardian_family' registrado en la BD o pestaña activa
-          if (dbProfile?.role === "guardian" || dbProfile?.role === "parent" || dbProfile?.account_category === "guardian_family" || activePortal === "guardian" || userEmail.toLowerCase().includes("tutor")) {
+          // Prioridad estricta al rol 'guardian' o categoría 'guardian_family' registrado en la BD
+          if (dbProfile?.role === "guardian" || dbProfile?.role === "parent" || dbProfile?.account_category === "guardian_family" || userEmail.toLowerCase().includes("tutor")) {
             userRole = "guardian";
+          } else if (dbProfile?.role === "student" || dbProfile?.account_category === "student") {
+            userRole = "student";
           } else if (dbProfile?.role) {
             userRole = dbProfile.role;
           } else if (isMasterDirector) {
@@ -271,6 +288,9 @@ function LoginContent() {
               status: "active"
             });
             userRole = "superadmin";
+          } else {
+            // Si no tiene perfil, usar la pestaña seleccionada
+            userRole = activePortal === "guardian" ? "guardian" : "student";
           }
         } catch (profileErr) {
           console.warn("Aviso perfil:", profileErr);
@@ -285,6 +305,11 @@ function LoginContent() {
             localStorage.setItem("ww_active_role", "guardian");
             document.cookie = `ww_active_role=guardian; path=/; max-age=31536000; SameSite=Lax`;
             document.cookie = `account_category=guardian_family; path=/; max-age=31536000; SameSite=Lax`;
+          } else {
+            localStorage.removeItem("ww_account_category");
+            localStorage.removeItem("ww_active_role");
+            document.cookie = `ww_active_role=; path=/; max-age=0; SameSite=Lax`;
+            document.cookie = `account_category=; path=/; max-age=0; SameSite=Lax`;
           }
           document.cookie = `user_role=${userRole}; path=/; max-age=31536000; SameSite=Lax`;
           document.cookie = `user_email=${encodeURIComponent(userEmail)}; path=/; max-age=31536000; SameSite=Lax`;
@@ -314,7 +339,6 @@ function LoginContent() {
           userRole === "parent" || 
           dbProfile?.role === "guardian" ||
           dbProfile?.account_category === "guardian_family" ||
-          activePortal === "guardian" || 
           userEmail.toLowerCase().includes("tutor");
 
         setTimeout(() => {

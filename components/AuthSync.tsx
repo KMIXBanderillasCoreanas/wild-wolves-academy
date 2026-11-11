@@ -45,10 +45,10 @@ export default function AuthSync() {
           cleanEmail.includes("catalinalopez");
 
         let detectedRole = isMasterAdmin ? "superadmin" : (isTutorAccount ? "guardian" : "student");
+        let profile: any = null;
 
         try {
           // Consultar perfil de forma segura vía API para evitar recursión de políticas RLS
-          let profile: any = null;
           try {
             const profRes = await fetch(`/api/get-user-profile?id=${user.id}`);
             if (profRes.ok) {
@@ -73,6 +73,8 @@ export default function AuthSync() {
               role: "superadmin",
               status: "active"
             });
+          } else if (profile?.role === "student" || profile?.account_category === "student") {
+            detectedRole = "student";
           } else if (profile?.role === "guardian" || profile?.role === "parent" || profile?.account_category === "guardian_family" || isTutorAccount) {
             detectedRole = "guardian";
           } else if (profile?.role) {
@@ -82,10 +84,9 @@ export default function AuthSync() {
           console.warn("Aviso en sincronización de perfil:", err);
         }
 
-        // Si ya está guardado como tutor en localStorage o el correo es de tutor, no degradar a student
-        const localStoredRole = typeof window !== "undefined" ? localStorage.getItem("ww_user_role") : null;
-        if ((localStoredRole === "guardian" || localStoredRole === "parent" || isTutorAccount) && detectedRole === "student") {
-          detectedRole = "guardian";
+        // Si el perfil en base de datos es explícitamente student, respetar student
+        if (profile?.role === "student" && !isTutorAccount) {
+          detectedRole = "student";
         }
 
         // Sincronizar almacenamiento local y cookies con aislamiento estricto ww_active_role
@@ -97,15 +98,26 @@ export default function AuthSync() {
             localStorage.setItem("ww_active_role", "guardian");
             document.cookie = `ww_active_role=guardian; path=/; max-age=31536000; SameSite=Lax`;
             document.cookie = `account_category=guardian_family; path=/; max-age=31536000; SameSite=Lax`;
+          } else {
+            localStorage.removeItem("ww_account_category");
+            localStorage.removeItem("ww_active_role");
+            document.cookie = `ww_active_role=; path=/; max-age=0; SameSite=Lax`;
+            document.cookie = `account_category=; path=/; max-age=0; SameSite=Lax`;
           }
           document.cookie = `user_role=${detectedRole}; path=/; max-age=31536000; SameSite=Lax`;
           document.cookie = `user_email=${encodeURIComponent(email)}; path=/; max-age=31536000; SameSite=Lax`;
           window.dispatchEvent(new Event("auth_changed"));
         }
 
-        // Si es tutor y está parado en /dashboard-student, forzar salto inmediato a /dashboard-guardian
+        // Si es tutor y está en /dashboard-student, desviar a /dashboard-guardian
         if (detectedRole === "guardian" && typeof window !== "undefined" && window.location.pathname.startsWith("/dashboard-student")) {
           window.location.replace("/dashboard-guardian");
+          return;
+        }
+
+        // Si es estudiante y está en /dashboard-guardian, desviar a /dashboard-student
+        if (detectedRole === "student" && typeof window !== "undefined" && window.location.pathname.startsWith("/dashboard-guardian")) {
+          window.location.replace("/dashboard-student");
           return;
         }
 

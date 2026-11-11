@@ -71,7 +71,8 @@ export default function GuardianDashboardPage() {
       const userCat = typeof window !== "undefined" ? localStorage.getItem("ww_account_category") : null;
       const metaRole = user?.user_metadata?.assigned_role || user?.user_metadata?.role;
       const isPureStudent = 
-        userRole === "student" && 
+        (userRole === "student" || userCat === "student") && 
+        userRole !== "guardian" &&
         userCat !== "guardian_family" && 
         metaRole !== "guardian" && 
         !effectiveEmail.toLowerCase().includes("tutor") && 
