@@ -186,6 +186,69 @@ export default function BasketballCourtHeatmap({
     },
   ];
 
+  // =========================================================================
+  // GENERACIÓN DE PUNTOS DE TIRO (VERDE = ANOTADA, ROJO = FALLADA)
+  // Mapeo punto por punto para pruebas deportivas con interacción táctil
+  // =========================================================================
+  const generateCourtShotPoints = (
+    centerX: number,
+    centerY: number,
+    madeCount: number,
+    attemptedCount: number,
+    spreadX: number,
+    spreadY: number,
+    zoneId: string,
+    zoneName: string
+  ) => {
+    const list: Array<{
+      id: string;
+      x: number;
+      y: number;
+      made: boolean;
+      zoneId: string;
+      zoneName: string;
+    }> = [];
+
+    for (let i = 0; i < attemptedCount; i++) {
+      const isMade = i < madeCount;
+      const angle = (i * 137.5 * Math.PI) / 180;
+      const r = Math.sqrt((i + 1) / attemptedCount);
+      const offsetX = Math.cos(angle) * spreadX * r;
+      const offsetY = Math.sin(angle) * spreadY * r;
+
+      list.push({
+        id: `${zoneId}_p_${i + 1}`,
+        x: Math.round(centerX + offsetX),
+        y: Math.round(centerY + offsetY),
+        made: isMade,
+        zoneId,
+        zoneName,
+      });
+    }
+    return list;
+  };
+
+  const heatmapShotPoints = [
+    // Pintura / Libres (Center 250, 140)
+    ...generateCourtShotPoints(250, 140, ftMade, ftAttempts, 40, 35, "paint", "Tiros Libres / Pintura"),
+    // Media Izq (Center 110, 110)
+    ...generateCourtShotPoints(110, 110, midLeftMade, midLeftAttempts, 30, 25, "mid_left", "Media Distancia Izquierda"),
+    // Media Der (Center 390, 110)
+    ...generateCourtShotPoints(390, 110, midRightMade, midRightAttempts, 30, 25, "mid_right", "Media Distancia Derecha"),
+    // 3P Esq Izq (Center 34, 60)
+    ...generateCourtShotPoints(34, 60, threeCornerLeftMade, threeAttempts, 8, 25, "corner_left", "Triple Esquina Izquierda"),
+    // 3P Esq Der (Center 466, 60)
+    ...generateCourtShotPoints(466, 60, threeCornerRightMade, threeAttempts, 8, 25, "corner_right", "Triple Esquina Derecha"),
+    // 3P Ala Izq (Center 105, 230)
+    ...generateCourtShotPoints(105, 230, threeWingLeftMade, threeAttempts, 25, 25, "wing_left", "Triple Ala Izquierda"),
+    // 3P Top Key (Center 250, 290)
+    ...generateCourtShotPoints(250, 290, threeTopKeyMade, threeAttempts, 40, 20, "top_key", "Triple Top of the Key"),
+    // 3P Ala Der (Center 395, 230)
+    ...generateCourtShotPoints(395, 230, threeWingRightMade, threeAttempts, 25, 25, "wing_right", "Triple Ala Derecha"),
+  ];
+
+  const [hoveredPoint, setHoveredPoint] = useState<any | null>(null);
+
   return (
     <div className="bg-[#0b0e14] border border-zinc-800/90 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 font-sans">
       
@@ -240,23 +303,34 @@ export default function BasketballCourtHeatmap({
       {/* 2. MEDIA CANCHA INTERACTIVA ESTILO APP PROFESIONAL (NBA / HOMECORT SHOT CHART) */}
       <div className="relative w-full max-w-[660px] mx-auto bg-[#07090e] rounded-3xl p-3 sm:p-5 border border-zinc-800/90 shadow-2xl overflow-hidden">
         
-        {/* LEYENDA TÉRMICA BIOMECÁNICA FLOUROSCENTE: NEÓN CIAN, ÁMBAR Y NARANJA LOBO */}
-        <div className="flex flex-wrap items-center justify-between text-[10px] font-mono text-zinc-300 mb-3 px-3 py-2 bg-[#090C14]/90 rounded-2xl border border-cyan-900/40">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#1E1B4B] border border-[#6366F1] shadow-[0_0_6px_rgba(99,102,241,0.5)]"></span>
-            <span className="text-indigo-300 font-bold">Fría (&lt;35%)</span>
+        {/* LEYENDA TÉRMICA & CONTROL VERDE / ROJO HOMECOURT */}
+        <div className="flex flex-wrap items-center justify-between text-[10px] font-mono text-zinc-300 mb-3 px-3 py-2 bg-[#090C14]/90 rounded-2xl border border-cyan-900/40 gap-2">
+          {/* LEYENDA DIRECTA PUNTOS VERDES Y ROJOS */}
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] inline-block animate-pulse"></span>
+              Anotado (Verde)
+            </span>
+            <span className="text-zinc-600">|</span>
+            <span className="flex items-center gap-1.5 text-rose-400 font-bold">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] inline-block"></span>
+              Fallado (Rojo)
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#0891B2] border border-[#06B6D4] shadow-[0_0_8px_rgba(6,182,212,0.6)]"></span>
-            <span className="text-cyan-300 font-bold">Regular (35-49%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#F59E0B] border border-[#FBBF24] shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
-            <span className="text-amber-300 font-bold">Favorable (50-69%)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-[#EA580C] border border-[#FF6B00] shadow-[0_0_10px_rgba(255,107,0,0.8)]"></span>
-            <span className="text-orange-400 font-bold">Caliente (≥70%)</span>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded bg-[#0891B2] border border-[#06B6D4]"></span>
+              <span className="text-cyan-300">Regular</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded bg-[#F59E0B] border border-[#FBBF24]"></span>
+              <span className="text-amber-300">Favorable</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded bg-[#EA580C] border border-[#FF6B00]"></span>
+              <span className="text-orange-400">Caliente</span>
+            </div>
           </div>
         </div>
 
@@ -557,8 +631,86 @@ export default function BasketballCourtHeatmap({
               {/* Semicírculo de no carga */}
               <path d="M 225 35 A 25 25 0 0 0 275 35" stroke="#06B6D4" strokeWidth="1.8" strokeOpacity="0.8" />
             </g>
+
+            {/* ======================================================= */}
+            {/* CAPA 3: PUNTOS DE TIRO VERDES (ACIERTO) Y ROJOS (FALLO) */}
+            {/* ======================================================= */}
+            <g id="heatmap-individual-shot-dots" className="cursor-pointer">
+              {heatmapShotPoints.map((pt) => {
+                const isHover = hoveredPoint?.id === pt.id;
+                return (
+                  <g
+                    key={pt.id}
+                    className="transition-transform duration-150 hover:scale-150"
+                    onMouseEnter={() => setHoveredPoint(pt)}
+                    onMouseLeave={() => setHoveredPoint(null)}
+                  >
+                    {pt.made ? (
+                      // TIRO ANOTADO: Círculo verde brillante con destello
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r={isHover ? 6.5 : 4.5}
+                        fill="#10B981"
+                        stroke="#FFFFFF"
+                        strokeWidth={isHover ? "2" : "1.2"}
+                        className="drop-shadow-[0_0_6px_#10B981]"
+                      />
+                    ) : (
+                      // TIRO FALLADO: Punto rojo con contorno blanco y marca X
+                      <g>
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isHover ? 6.0 : 4.0}
+                          fill="#EF4444"
+                          stroke="#FFFFFF"
+                          strokeWidth={isHover ? "1.8" : "1"}
+                          className="drop-shadow-[0_0_5px_#EF4444]"
+                        />
+                        <line
+                          x1={pt.x - 2}
+                          y1={pt.y - 2}
+                          x2={pt.x + 2}
+                          y2={pt.y + 2}
+                          stroke="#FFFFFF"
+                          strokeWidth="1"
+                        />
+                        <line
+                          x1={pt.x + 2}
+                          y1={pt.y - 2}
+                          x2={pt.x - 2}
+                          y2={pt.y + 2}
+                          stroke="#FFFFFF"
+                          strokeWidth="1"
+                        />
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
           </svg>
         </div>
+
+        {/* OVERLAY DEL PUNTO DE TIRO HOVER */}
+        {hoveredPoint && (
+          <div className="mt-2.5 p-2 rounded-xl bg-zinc-950/90 border border-zinc-700 flex items-center justify-between text-xs text-zinc-200">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  hoveredPoint.made ? "bg-emerald-400 shadow-[0_0_8px_#10B981]" : "bg-rose-500 shadow-[0_0_8px_#EF4444]"
+                }`}
+              />
+              <span className="font-mono text-[11px] font-bold">
+                {hoveredPoint.zoneName}:{" "}
+                <strong className={hoveredPoint.made ? "text-emerald-400" : "text-rose-400"}>
+                  {hoveredPoint.made ? "CANASTA ANOTADA (PUNTO VÁLIDO)" : "TIRO FALLADO"}
+                </strong>
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* DETALLE FLOTANTE DE LA ZONA SELECCIONADA */}
         {selectedZone && (

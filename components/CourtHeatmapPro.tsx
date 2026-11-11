@@ -18,6 +18,8 @@ export interface CourtStatsProps {
   wingRightAttempted?: number;
   cornerRightMade?: number;
   cornerRightAttempted?: number;
+  // Modo de visualización de puntos de tiro individuales
+  showShotPoints?: boolean;
 }
 
 interface ZoneConfig {
@@ -89,9 +91,12 @@ export default function CourtHeatmapPro({
   wingRightMade = 3,
   wingRightAttempted = 5,
   cornerRightMade = 2,
-  cornerRightAttempted = 5
+  cornerRightAttempted = 5,
+  showShotPoints = true
 }: CourtStatsProps) {
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'both' | 'zones' | 'points'>('both');
+  const [selectedPoint, setSelectedPoint] = useState<any | null>(null);
 
   // Exact Trigonometric Coordinates on 500x450 Half-Court
   // Hoop Center: (250, 52.5), 3PT Radius R = 215
@@ -192,36 +197,149 @@ export default function CourtHeatmapPro({
     (a, b) => b.made / Math.max(1, b.attempted) - a.made / Math.max(1, a.attempted)
   )[0];
 
+  // =========================================================================
+  // GENERACIÓN DE PUNTOS DE TIRO REALES (VERDE = ANOTADO, ROJO = FALLADO)
+  // Cada tiro tiene coordenadas exactas (x, y) calculadas sobre la duela
+  // =========================================================================
+  const generateShotCoordinates = (
+    centerX: number,
+    centerY: number,
+    madeCount: number,
+    attemptedCount: number,
+    spreadX: number,
+    spreadY: number,
+    zoneId: string,
+    zoneName: string
+  ) => {
+    const list: Array<{
+      id: string;
+      x: number;
+      y: number;
+      made: boolean;
+      zoneId: string;
+      zoneName: string;
+      label: string;
+    }> = [];
+    const missedCount = Math.max(0, attemptedCount - madeCount);
+
+    // Semilla determinista para estabilidad visual
+    for (let i = 0; i < attemptedCount; i++) {
+      const isMade = i < madeCount;
+      const angle = (i * 137.5 * Math.PI) / 180; // Proporción áurea
+      const r = Math.sqrt((i + 1) / attemptedCount);
+      const offsetX = Math.cos(angle) * spreadX * r;
+      const offsetY = Math.sin(angle) * spreadY * r;
+
+      list.push({
+        id: `${zoneId}_shot_${i + 1}`,
+        x: Math.round(centerX + offsetX),
+        y: Math.round(centerY + offsetY),
+        made: isMade,
+        zoneId,
+        zoneName,
+        label: isMade ? `Anotación #${i + 1} (${zoneName})` : `Tiro Fallado #${i + 1 - madeCount} (${zoneName})`
+      });
+    }
+    return list;
+  };
+
+  const allShotPoints = [
+    // 1. Línea Libre / Pintura (Center X=250, Y=145)
+    ...generateShotCoordinates(250, 140, freeThrowsMade, freeThrowsAttempted, 45, 40, 'paint_ft', 'Línea Libre / Pintura'),
+    // 2. Media Distancia Izquierda (Center X=115, Y=120)
+    ...generateShotCoordinates(115, 120, midLeftMade, midLeftAttempted, 35, 35, 'mid_left', 'Media Distancia Izquierda'),
+    // 3. Media Distancia Derecha (Center X=385, Y=120)
+    ...generateShotCoordinates(385, 120, midRightMade, midRightAttempted, 35, 35, 'mid_right', 'Media Distancia Derecha'),
+    // 4. Triple Esquina Izquierda (Center X=27, Y=75)
+    ...generateShotCoordinates(27, 75, cornerLeftMade, cornerLeftAttempted, 10, 30, 'corner_left', 'Triple Esq Izq'),
+    // 5. Triple Esquina Derecha (Center X=473, Y=75)
+    ...generateShotCoordinates(473, 75, cornerRightMade, cornerRightAttempted, 10, 30, 'corner_right', 'Triple Esq Der'),
+    // 6. Triple Ala Izquierda (Center X=78, Y=315)
+    ...generateShotCoordinates(78, 315, wingLeftMade, wingLeftAttempted, 30, 35, 'wing_left', 'Triple Ala Izquierda'),
+    // 7. Triple Top Key (Center X=250, Y=358)
+    ...generateShotCoordinates(250, 358, topKeyMade, topKeyAttempted, 50, 25, 'top_key', 'Triple Top Key'),
+    // 8. Triple Ala Derecha (Center X=422, Y=315)
+    ...generateShotCoordinates(422, 315, wingRightMade, wingRightAttempted, 30, 35, 'wing_right', 'Triple Ala Derecha'),
+  ];
+
+  const totalPointsMade = allShotPoints.filter((p) => p.made).length;
+  const totalPointsMissed = allShotPoints.filter((p) => !p.made).length;
+
   return (
     <div className="w-full rounded-3xl border border-zinc-800 bg-[#07090e] p-4 sm:p-6 text-zinc-100 shadow-2xl font-sans">
-      {/* TOP LEGEND BAR */}
+      {/* TOP LEGEND BAR CON SELECTOR DE VISTA DE TIRO */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-800/90 bg-[#0c101a] px-4 py-3">
         <div className="flex flex-wrap items-center gap-4 text-xs font-extrabold tracking-wide">
-          <span className="flex items-center gap-2 text-slate-400">
-            <span className="h-3 w-3 rounded-full border border-slate-500 bg-[#1b263b]" />
-            Fría (&lt;35%)
-          </span>
-          <span className="flex items-center gap-2 text-sky-400">
-            <span className="h-3 w-3 rounded-full border border-sky-400 bg-[#1e3a5f]" />
-            Regular (35-49%)
-          </span>
-          <span className="flex items-center gap-2 text-amber-400">
-            <span className="h-3 w-3 rounded-full border border-amber-400 bg-[#c46200]" />
-            Favorable (50-69%)
-          </span>
-          <span className="flex items-center gap-2 text-orange-400">
-            <span className="h-3 w-3 rounded-full border border-orange-400 bg-[#c83e1b] shadow-[0_0_8px_#f66018]" />
-            Caliente (≥70%)
-          </span>
+          {/* LEYENDA CLARA: VERDE = ANOTACIÓN, ROJO = FALLADO */}
+          <div className="flex items-center gap-3 bg-black/40 px-3 py-1.5 rounded-xl border border-zinc-800">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-mono font-black">
+              <span className="h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] inline-block animate-pulse" />
+              ANOTADA ({totalPointsMade})
+            </span>
+            <span className="text-zinc-600">|</span>
+            <span className="flex items-center gap-1.5 text-rose-400 font-mono font-black">
+              <span className="h-3 w-3 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] inline-block" />
+              FALLADA ({totalPointsMissed})
+            </span>
+          </div>
+
+          <div className="hidden xl:flex items-center gap-3 text-zinc-400 text-[11px]">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#1b263b]" />
+              &lt;35%
+            </span>
+            <span className="flex items-center gap-1.5 text-sky-400">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#1e3a5f]" />
+              35-49%
+            </span>
+            <span className="flex items-center gap-1.5 text-amber-400">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#c46200]" />
+              50-69%
+            </span>
+            <span className="flex items-center gap-1.5 text-orange-400">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#c83e1b]" />
+              ≥70%
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-mono">
-          <span className="rounded-lg border border-zinc-800 bg-[#151926] px-2.5 py-1 text-zinc-300">
-            Total: <strong className="text-white">{totalMade}/{totalAttempted}</strong> ({overallPct}%)
-          </span>
-          <span className="hidden sm:inline-block rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-400 font-bold">
-            ★ Mejor Zona: {bestZone.shortLabel}
-          </span>
+        {/* SELECTOR DE MODO: PUNTOS DIRECTOS / ZONAS / AMBOS */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center p-1 bg-[#151926] rounded-xl border border-zinc-800 text-[11px] font-mono">
+            <button
+              type="button"
+              onClick={() => setViewMode('both')}
+              className={`px-2.5 py-1 rounded-lg transition font-bold ${
+                viewMode === 'both' ? 'bg-[#ff6b00] text-white shadow' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Completo
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('points')}
+              className={`px-2.5 py-1 rounded-lg transition font-bold ${
+                viewMode === 'points' ? 'bg-emerald-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Puntos Verde/Rojo
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('zones')}
+              className={`px-2.5 py-1 rounded-lg transition font-bold ${
+                viewMode === 'zones' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Zonas
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="rounded-lg border border-zinc-800 bg-[#151926] px-2.5 py-1 text-zinc-300">
+              Total: <strong className="text-white">{totalMade}/{totalAttempted}</strong> ({overallPct}%)
+            </span>
+          </div>
         </div>
       </div>
 
@@ -251,28 +369,107 @@ export default function CourtHeatmapPro({
           </defs>
 
           {/* 1. COLORED HEATMAP ZONES LAYER */}
-          {zones.map((zone) => {
-            const pct = Math.round((zone.made / Math.max(1, zone.attempted)) * 100);
-            const style = getHeatStyle(pct);
-            const isHovered = activeZoneId === zone.id;
+          {(viewMode === 'both' || viewMode === 'zones') &&
+            zones.map((zone) => {
+              const pct = Math.round((zone.made / Math.max(1, zone.attempted)) * 100);
+              const style = getHeatStyle(pct);
+              const isHovered = activeZoneId === zone.id;
 
-            return (
-              <g
-                key={zone.id}
-                onMouseEnter={() => setActiveZoneId(zone.id)}
-                onMouseLeave={() => setActiveZoneId(null)}
-                className="cursor-pointer transition-all duration-200"
-              >
-                <path
-                  d={zone.pathD}
-                  fill={isHovered ? style.hoverFill : style.fill}
-                  stroke="#090d16"
-                  strokeWidth="2"
-                  className="transition-colors duration-200"
-                />
-              </g>
-            );
-          })}
+              return (
+                <g
+                  key={zone.id}
+                  onMouseEnter={() => setActiveZoneId(zone.id)}
+                  onMouseLeave={() => setActiveZoneId(null)}
+                  className="cursor-pointer transition-all duration-200"
+                >
+                  <path
+                    d={zone.pathD}
+                    fill={isHovered ? style.hoverFill : style.fill}
+                    fillOpacity={viewMode === 'both' ? 0.65 : 0.88}
+                    stroke="#090d16"
+                    strokeWidth="2"
+                    className="transition-colors duration-200"
+                  />
+                </g>
+              );
+            })}
+
+          {/* 1.5 SHOT POINTS LAYER: VERDE (ANOTADO) Y ROJO (FALLADO) */}
+          {(viewMode === 'both' || viewMode === 'points') && (
+            <g id="individual-shot-points" className="cursor-pointer">
+              {allShotPoints.map((pt) => {
+                const isHovered = selectedPoint?.id === pt.id;
+                return (
+                  <g
+                    key={pt.id}
+                    className="transition-transform duration-150 hover:scale-125"
+                    onClick={() => setSelectedPoint(pt)}
+                    onMouseEnter={() => setSelectedPoint(pt)}
+                    onMouseLeave={() => setSelectedPoint(null)}
+                  >
+                    {pt.made ? (
+                      // TIRO ANOTADO (VERDE CIAN / ESMERALDA CON HALO)
+                      <g>
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isHovered ? 8 : 5.5}
+                          fill="#10b981"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="drop-shadow-[0_0_6px_#10b981]"
+                        />
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isHovered ? 12 : 8.5}
+                          fill="none"
+                          stroke="#34d399"
+                          strokeWidth="1"
+                          strokeOpacity={0.6}
+                          className="animate-ping"
+                          style={{ animationDuration: '3s' }}
+                        />
+                      </g>
+                    ) : (
+                      // TIRO FALLADO (ROJO NEÓN CON CRUZ O CÍRCULO CON CONTORNO)
+                      <g>
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isHovered ? 7.5 : 5.0}
+                          fill="#f43f5e"
+                          fillOpacity={0.85}
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="drop-shadow-[0_0_6px_#ef4444]"
+                        />
+                        {/* Pequeña X interior de tiro errado */}
+                        <line
+                          x1={pt.x - 2.5}
+                          y1={pt.y - 2.5}
+                          x2={pt.x + 2.5}
+                          y2={pt.y + 2.5}
+                          stroke="#ffffff"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={pt.x + 2.5}
+                          y1={pt.y - 2.5}
+                          x2={pt.x - 2.5}
+                          y2={pt.y + 2.5}
+                          stroke="#ffffff"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                        />
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* 2. OFFICIAL FIBA / NBA WHITE COURT MARKINGS OVERLAY (100% ALIGNED) */}
           <g
@@ -417,6 +614,36 @@ export default function CourtHeatmapPro({
             );
           })}
         </svg>
+
+        {/* OVERLAY DE DETALLE TÁCTICO AL SELECCIONAR O POSARSE SOBRE UN TIRO */}
+        {selectedPoint && (
+          <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:max-w-sm bg-[#0b0e17]/95 border border-zinc-700 p-3.5 rounded-2xl shadow-2xl backdrop-blur-md z-30 animate-in fade-in flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span
+                className={`w-3.5 h-3.5 rounded-full shrink-0 shadow-md ${
+                  selectedPoint.made ? 'bg-emerald-400 shadow-[0_0_10px_#10b981]' : 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'
+                }`}
+              />
+              <div>
+                <span className="font-mono text-[10px] text-zinc-400 uppercase block font-bold">
+                  {selectedPoint.zoneName}
+                </span>
+                <span className="font-black text-white text-sm">
+                  {selectedPoint.made ? 'CANASTA CONVERTIDA (MAKE)' : 'TIRO FALLADO (MISS)'}
+                </span>
+              </div>
+            </div>
+            <span
+              className={`px-2.5 py-1 rounded-lg font-mono text-[10px] font-black uppercase border ${
+                selectedPoint.made
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+              }`}
+            >
+              {selectedPoint.made ? '+PUNTOS' : 'FALLO'}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

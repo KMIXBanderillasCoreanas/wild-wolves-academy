@@ -924,7 +924,7 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                 </div>
               </div>
 
-              {/* 6. Tiro corto adaptado */}
+              {/* 6. Tiro corto adaptado con marcaje Verde/Rojo */}
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-primary">Tiro Mecánico Cercano</span>
@@ -948,8 +948,40 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                     </button>
                   </div>
                 </div>
+
+                {/* VISUALIZADOR DE PUNTOS VERDES (ANOTADO) Y ROJOS (FALLADO) */}
+                <div className="my-2 p-2 bg-surface-container-lowest rounded-lg border border-surface-container flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase">5 Tiros:</span>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((idx) => {
+                      const isScored = idx <= shortShotsMade;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            if (isScored && idx === shortShotsMade) {
+                              setShortShotsMade(idx - 1);
+                            } else {
+                              setShortShotsMade(idx);
+                            }
+                          }}
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-black transition cursor-pointer border ${
+                            isScored
+                              ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_#10b981]"
+                              : "bg-rose-500/20 border-rose-500 text-rose-400"
+                          }`}
+                          title={isScored ? `Tiro #${idx}: Anotada (Verde)` : `Tiro #${idx}: Fallada (Rojo)`}
+                        >
+                          {isScored ? "✓" : "✕"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <p className="text-[10px] text-on-surface-variant mb-2">
-                  Mecánica de codo y muñeca en 5 intentos de corta distancia.
+                  Mecánica de codo y muñeca en 5 intentos. Toca cada punto para alternar: <strong className="text-emerald-400">Verde (Acierto)</strong> o <strong className="text-rose-400">Rojo (Fallo)</strong>.
                 </p>
                 <input
                   type="range"
@@ -961,9 +993,9 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                   className="w-full accent-primary cursor-pointer"
                 />
                 <div className="flex justify-between text-[9px] font-mono text-outline mt-1">
-                  <span>0/5</span>
+                  <span className="text-rose-400 font-bold">0/5 Falladas</span>
                   <span>3/5</span>
-                  <span>5/5 Perfecto</span>
+                  <span className="text-emerald-400 font-bold">5/5 Perfecto</span>
                 </div>
               </div>
 
@@ -1097,16 +1129,67 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                 </div>
               </div>
 
-              {/* 5. Tiro libre y suspensión */}
+              {/* 5. Tiro libre y suspensión con puntos Verde/Rojo */}
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-primary">Tiro Libre & Suspensión</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {midShotsL2} / 10 aciertos
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setMidShotsL2((v) => Math.max(0, v - 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {midShotsL2} / 10
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMidShotsL2((v) => Math.min(10, v + 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
+
+                {/* SELECTOR MATRIZ DE 10 TIROS: VERDE ANOTADO / ROJO FALLADO */}
+                <div className="my-2 p-2 bg-surface-container-lowest rounded-lg border border-surface-container flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 font-bold">
+                    <span>10 LANZAMIENTOS:</span>
+                    <span className="text-emerald-400">{midShotsL2} Acertados</span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((idx) => {
+                      const isScored = idx <= midShotsL2;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            if (isScored && idx === midShotsL2) {
+                              setMidShotsL2(idx - 1);
+                            } else {
+                              setMidShotsL2(idx);
+                            }
+                          }}
+                          className={`h-7 rounded-md flex items-center justify-center text-[10px] font-mono font-black transition cursor-pointer border ${
+                            isScored
+                              ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_#10b981]"
+                              : "bg-rose-500/20 border-rose-500 text-rose-400"
+                          }`}
+                          title={isScored ? `Tiro #${idx}: Anotada (Verde)` : `Tiro #${idx}: Fallada (Rojo)`}
+                        >
+                          {isScored ? "✓" : "✕"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <p className="text-[10px] text-on-surface-variant mb-2">
-                  Series de 5 a 10 tiros con salto en suspensión media distancia.
+                  Toca cualquier tiro para marcarlo <strong className="text-emerald-400">Verde</strong> (anotado) o <strong className="text-rose-400">Rojo</strong> (fallado).
                 </p>
                 <input
                   type="range"
@@ -1118,9 +1201,9 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                   className="w-full accent-primary cursor-pointer"
                 />
                 <div className="flex justify-between text-[9px] font-mono text-outline mt-1">
-                  <span>0/10</span>
+                  <span className="text-rose-400 font-bold">0/10 Falladas</span>
                   <span>5/10 (50%)</span>
-                  <span>10/10 Pro</span>
+                  <span className="text-emerald-400 font-bold">10/10 Pro</span>
                 </div>
               </div>
 
@@ -1280,16 +1363,67 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                 </div>
               </div>
 
-              {/* 6. Triples & Media cancha */}
+              {/* 6. Triples & Media cancha con puntos Verde/Rojo */}
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-tertiary">Triples Perimetrales</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {threePointMadeL3} / 10 triples
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setThreePointMadeL3((v) => Math.max(0, v - 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {threePointMadeL3} / 10
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setThreePointMadeL3((v) => Math.min(10, v + 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
+
+                {/* SELECTOR MATRIZ DE 10 TRIPLES: VERDE ANOTADO / ROJO FALLADO */}
+                <div className="my-2 p-2 bg-surface-container-lowest rounded-lg border border-surface-container flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 font-bold">
+                    <span>10 TRIPLES OFICIALES:</span>
+                    <span className="text-emerald-400 font-black">{threePointMadeL3} Encestados</span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((idx) => {
+                      const isScored = idx <= threePointMadeL3;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            if (isScored && idx === threePointMadeL3) {
+                              setThreePointMadeL3(idx - 1);
+                            } else {
+                              setThreePointMadeL3(idx);
+                            }
+                          }}
+                          className={`h-7 rounded-md flex items-center justify-center text-[10px] font-mono font-black transition cursor-pointer border ${
+                            isScored
+                              ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_#10b981]"
+                              : "bg-rose-500/20 border-rose-500 text-rose-400"
+                          }`}
+                          title={isScored ? `Triple #${idx}: Anotado (Verde)` : `Triple #${idx}: Fallado (Rojo)`}
+                        >
+                          {isScored ? "✓" : "✕"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <p className="text-[10px] text-on-surface-variant mb-2">
-                  Aciertos en 10 tiros tras desmarque perimetral.
+                  Toca para marcar: <strong className="text-emerald-400">Verde</strong> (3 Puntos Válidos) o <strong className="text-rose-400">Rojo</strong> (Fallo).
                 </p>
                 <input
                   type="range"
@@ -1301,9 +1435,9 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                   className="w-full accent-tertiary cursor-pointer"
                 />
                 <div className="flex justify-between text-[9px] font-mono text-outline mt-1">
-                  <span>0/10</span>
+                  <span className="text-rose-400 font-bold">0/10 Falladas</span>
                   <span>5/10</span>
-                  <span>10/10 Élite</span>
+                  <span className="text-emerald-400 font-bold">10/10 Élite</span>
                 </div>
               </div>
 
