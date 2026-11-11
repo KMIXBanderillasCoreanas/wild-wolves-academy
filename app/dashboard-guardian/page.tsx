@@ -769,26 +769,6 @@ function GuardianDashboardContent() {
                 <strong>Consejo para la familia:</strong> Toca o haz clic en cualquiera de estos 3 botones grandes para cambiar de sección y ver los avances de tu atleta.
               </span>
             </div>
-            {availableStudents.length > 1 && (
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[11px] font-mono text-zinc-400">Ver Atleta:</span>
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => {
-                    const chosenId = e.target.value;
-                    setSelectedStudentId(chosenId);
-                    loadGuardianData(chosenId);
-                  }}
-                  className="bg-[#121624] border border-purple-500/50 rounded-xl px-2.5 py-1 text-xs text-white font-bold outline-none cursor-pointer"
-                >
-                  {availableStudents.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.full_name} ({st.training_schedule || "Matutino"})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
 
           <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl sticky top-[69px] z-30 backdrop-blur-md">

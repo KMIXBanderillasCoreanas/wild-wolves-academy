@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server';
 import { LOBO_BOT_SYSTEM_PROMPT } from '@/lib/ai/system-prompts';
+import { evaluarSeguridadPeticion } from '@/lib/lobo-centinela-guard';
 
 export async function POST(req: Request) {
   try {
-    const { messages, userRole = 'student' } = await req.json();
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+    const body = await req.json();
+
+    // Blindaje de Seguridad Lobo Centinela contra Prompt Injection y Exploits
+    const sec = await evaluarSeguridadPeticion({
+      ipAddress: ip,
+      actionTarget: "ai_chat",
+      payloadContent: body
+    });
+    if (!sec.seguro) {
+      return NextResponse.json({ error: sec.razon, code: sec.codigoBloqueo }, { status: 403 });
+    }
+
+    const { messages, userRole = 'student' } = body;
 
     const rawKey = process.env.GROQ_API_KEY || '';
     const apiKey = rawKey.replace(/^["']|["']$/g, '').trim();

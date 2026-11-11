@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { evaluarSeguridadPeticion } from "@/lib/lobo-centinela-guard";
 
 function getAdminSupabase() {
   const serviceKey =
@@ -11,7 +12,19 @@ function getAdminSupabase() {
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
     const body = await req.json();
+
+    // Blindaje Lobo Centinela
+    const sec = await evaluarSeguridadPeticion({
+      ipAddress: ip,
+      actionTarget: "update_onboarding_profile",
+      payloadContent: body
+    });
+    if (!sec.seguro) {
+      return NextResponse.json({ error: sec.razon, code: sec.codigoBloqueo }, { status: 403 });
+    }
+
     const { userId, payload } = body;
 
     if (!userId || !payload) {

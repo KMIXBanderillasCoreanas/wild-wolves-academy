@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
 import { saveWhatsAppMessage } from "@/lib/crm/whatsappStorage";
+import { evaluarSeguridadPeticion } from "@/lib/lobo-centinela-guard";
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
     const body = await req.json();
+
+    // Blindaje Lobo Centinela contra XSS o inyección en mensajes salientes
+    const sec = await evaluarSeguridadPeticion({
+      ipAddress: ip,
+      actionTarget: "whatsapp_send_message",
+      payloadContent: body
+    });
+    if (!sec.seguro) {
+      return NextResponse.json({ error: sec.razon, code: sec.codigoBloqueo }, { status: 403 });
+    }
+
     const { recipientPhone, recipientName, messageText, athleteName, studentId } = body;
 
     if (!recipientPhone || !messageText) {

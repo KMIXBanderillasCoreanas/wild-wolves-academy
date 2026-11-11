@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { evaluarSeguridadPeticion } from '@/lib/lobo-centinela-guard';
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dgzuttxfmrfcgsceczql.supabase.co";
@@ -12,7 +13,19 @@ function getAdminSupabase() {
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
     const body = await request.json();
+
+    // Blindaje de Seguridad Lobo Centinela
+    const sec = await evaluarSeguridadPeticion({
+      ipAddress: ip,
+      actionTarget: "sync_offline_tests",
+      payloadContent: body
+    });
+    if (!sec.seguro) {
+      return NextResponse.json({ error: sec.razon, code: sec.codigoBloqueo }, { status: 403 });
+    }
+
     const list = Array.isArray(body) ? body : (body.records || []);
 
     if (!Array.isArray(list) || list.length === 0) {

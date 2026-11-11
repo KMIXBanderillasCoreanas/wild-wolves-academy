@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
+import { evaluarSeguridadPeticion } from "@/lib/lobo-centinela-guard";
 
 // Supabase con privilegios de service role para bypass de RLS administrativo
 function getAdminSupabase() {
@@ -130,6 +131,19 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+    const body = await req.json();
+
+    // Blindaje Lobo Centinela
+    const sec = await evaluarSeguridadPeticion({
+      ipAddress: ip,
+      actionTarget: "admin_attendance_finance_manage",
+      payloadContent: body
+    });
+    if (!sec.seguro) {
+      return NextResponse.json({ error: sec.razon, code: sec.codigoBloqueo }, { status: 403 });
+    }
+
     const isSuper = await verifySuperAdmin(req);
     if (!isSuper) {
       return NextResponse.json(
@@ -138,7 +152,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
     const { action } = body;
     const supabase = getAdminSupabase();
 
