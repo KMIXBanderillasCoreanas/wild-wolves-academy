@@ -1,78 +1,129 @@
 // lib/offline/sync.ts
 import { supabase } from "@/lib/supabaseClient";
 import { getPendingQueue, removeQueueItem } from "./db";
-import { getPendingOfflineTests, markOfflineTestSynced, clearAllOfflineQueue } from "./indexedDbQueue";
+import { getPendingOfflineTests, clearAllOfflineQueue } from "./indexedDbQueue";
+
+export interface SyncResult {
+  success: number;
+  failed: number;
+  errors: string[];
+}
 
 export async function syncOfflineDataWithCloud(
   onProgress?: (total: number, remaining: number) => void
-): Promise<{ success: number; failed: number }> {
+): Promise<SyncResult> {
   if (typeof window === "undefined" || !navigator.onLine) {
-    return { success: 0, failed: 0 };
+    return { success: 0, failed: 0, errors: ["Dispositivo sin conexión a internet"] };
   }
 
-  // 1. Sincronizar cola general de eventos (prospectos, asistencia general, pagos)
-  const queue = await getPendingQueue();
-  let success = 0;
-  let failed = 0;
-  const total = queue.length;
+  let successCount = 0;
+  let failedCount = 0;
+  const errorLogs: string[] = [];
 
-  for (let i = 0; i < queue.length; i++) {
-    const item = queue[i];
-    try {
-      let resError = null;
+  // 1. Sincronizar cola general (prospectos, asistencia, pagos y test rápido)
+  try {
+    const queue = await getPendingQueue();
+    const totalQueue = queue.length;
 
-      if (item.type === "PROSPECT_STUDENT") {
-        const { error } = await supabase.from("prospect_athletes").upsert(item.payload, { onConflict: "athlete_full_name" });
-        resError = error;
-      } else if (item.type === "ATTENDANCE") {
-        const { error } = await supabase.from("daily_attendance").upsert(item.payload, { onConflict: "student_id,date,shift" });
-        resError = error;
-      } else if (item.type === "PAYMENT") {
-        const { error } = await supabase.from("payment_transactions_history").insert(item.payload);
-        resError = error;
-      } else if (item.type === "SPORTS_TEST") {
-        const { error } = await supabase.from("basketball_skills_logs").insert(item.payload);
-        resError = error;
+    for (let i = 0; i < totalQueue; i++) {
+      const item = queue[i];
+      let itemSuccess = false;
+      let errorMsg = "";
+
+      try {
+        if (item.type === "PROSPECT_STUDENT") {
+          const { error } = await supabase
+            .from("prospect_athletes")
+            .upsert(item.payload, { onConflict: "athlete_full_name" });
+          if (error) errorMsg = error.message;
+          else itemSuccess = true;
+        } else if (item.type === "ATTENDANCE") {
+          const { error } = await supabase
+            .from("daily_attendance")
+            .upsert(item.payload, { onConflict: "student_id,date,shift" });
+          if (error) errorMsg = error.message;
+          else itemSuccess = true;
+        } else if (item.type === "PAYMENT") {
+          const { error } = await supabase
+            .from("payment_transactions_history")
+            .insert(item.payload);
+          if (error) errorMsg = error.message;
+          else itemSuccess = true;
+        } else if (item.type === "SPORTS_TEST") {
+          const { error } = await supabase
+            .from("basketball_skills_logs")
+            .insert(item.payload);
+          if (error) errorMsg = error.message;
+          else itemSuccess = true;
+        }
+      } catch (err: any) {
+        errorMsg = err?.message || "Excepción de red";
       }
 
-      if (!resError) {
+      // Si Supabase aceptó el registro o el error es de conflicto ya existente, se elimina de la cola
+      if (itemSuccess || (errorMsg && errorMsg.includes("duplicate key"))) {
         await removeQueueItem(item.id);
-        success++;
+        successCount++;
       } else {
-        console.error("Fallo al sincronizar elemento general:", item, resError);
-        failed++;
+        failedCount++;
+        errorLogs.push(`Elemento ${item.type} [${item.id}]: ${errorMsg}`);
       }
-    } catch (err) {
-      console.error("Error en conexión de cola general:", err);
-      failed++;
-    }
 
-    if (onProgress) onProgress(total, total - (i + 1));
+      if (onProgress) {
+        onProgress(totalQueue, totalQueue - (i + 1));
+      }
+    }
+  } catch (queueErr: any) {
+    console.warn("Aviso procesando sync_queue:", queueErr);
+    errorLogs.push(`sync_queue: ${queueErr?.message}`);
   }
 
-  // 2. Sincronización Atómica de Test Days (35 Tiros, Cuerda, Físico) vía Endpoint Seguro
+  // 2. Sincronización atómica por lote de pruebas completas (35 tiros, cuerda y físico)
   try {
     const pendingTests = await getPendingOfflineTests();
     if (pendingTests.length > 0) {
-      const response = await fetch("/api/sync-offline-tests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pendingTests)
-      });
+      try {
+        const response = await fetch("/api/sync-offline-tests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(pendingTests),
+        });
 
-      if (response.ok) {
-        // Limpiar atómicamente la cola local tras status 200 de Supabase
-        await clearAllOfflineQueue();
-        success += pendingTests.length;
-        window.dispatchEvent(new Event("offline_tests_synced"));
-      } else {
-        console.warn("Respuesta no exitosa al sincronizar tests offline:", await response.text());
-        failed += pendingTests.length;
+        if (response.ok) {
+          // Status 200/201: purgar físicamente la cola local
+          await clearAllOfflineQueue();
+          successCount += pendingTests.length;
+        } else {
+          const errText = await response.text();
+          failedCount += pendingTests.length;
+          errorLogs.push(`Endpoint /api/sync-offline-tests devolvió status ${response.status}: ${errText}`);
+        }
+      } catch (postErr: any) {
+        failedCount += pendingTests.length;
+        errorLogs.push(`Error al conectar con /api/sync-offline-tests: ${postErr?.message}`);
       }
     }
-  } catch (syncTestsErr) {
-    console.error("Error en sincronización atómica de tests:", syncTestsErr);
+  } catch (testsErr: any) {
+    console.warn("Aviso leyendo pruebas pendientes:", testsErr);
   }
 
-  return { success, failed };
+  // 3. Emitir evento global para actualizar de inmediato banners o pills en Búnker y Coach
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("offline_sync_completed", {
+        detail: {
+          successCount,
+          failedCount,
+          timestamp: new Date().toISOString(),
+        },
+      })
+    );
+    window.dispatchEvent(new Event("offline_queue_updated"));
+  }
+
+  return {
+    success: successCount,
+    failed: failedCount,
+    errors: errorLogs,
+  };
 }

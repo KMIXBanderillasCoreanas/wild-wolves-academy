@@ -11,7 +11,11 @@ import {
   Dumbbell,
   Award,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  Play,
+  RotateCcw,
+  Plus,
+  Minus
 } from "lucide-react";
 
 export type AthleticLevel = "iniciacion_adaptacion" | "formativo_desarrollo" | "competitivo_elite";
@@ -75,6 +79,30 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // ==========================================
+  // ESTADO DE INICIO DE PROTOCOLO DE TEST DAY
+  // ==========================================
+  const [testProtocolActive, setTestProtocolActive] = useState<boolean>(false);
+  const [timerSeconds, setTimerSeconds] = useState<number>(0);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (testProtocolActive) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [testProtocolActive]);
+
+  const formatTimer = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
 
   // Carga de atletas
   const loadStudents = useCallback(async () => {
@@ -435,24 +463,72 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
           </p>
         </div>
 
-        {/* OVR BADGE */}
-        <div className="flex items-center gap-3.5 self-start sm:self-auto bg-surface-container px-4 py-3 rounded-2xl border border-surface-container-high shadow-lg shrink-0">
-          <div className="flex flex-col text-right">
-            <span className="text-[10px] font-mono text-on-surface-variant uppercase font-bold">Overall Rating</span>
-            <span className={`text-xs font-black uppercase ${
-              activeLevel === "iniciacion_adaptacion" ? "text-tertiary" : activeLevel === "formativo_desarrollo" ? "text-secondary" : "text-primary"
-            }`}>
-              {activeLevel === "iniciacion_adaptacion" ? "Nivel 1 Adaptación" : activeLevel === "formativo_desarrollo" ? "Nivel 2 Formativo" : "Nivel 3 Élite"}
-            </span>
+        {/* OVR BADGE Y BOTÓN INICIAR PROTOCOLO */}
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+          {/* BOTÓN INICIAR PROTOCOLO DE TEST DAY */}
+          <div className="flex items-center gap-2 bg-surface-container px-3.5 py-2.5 rounded-2xl border border-surface-container-high shadow-md">
+            <button
+              type="button"
+              onClick={() => {
+                if (!testProtocolActive) {
+                  setTestProtocolActive(true);
+                } else {
+                  setTestProtocolActive(false);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold uppercase flex items-center gap-1.5 transition ${
+                testProtocolActive
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                  : "bg-tertiary-container hover:bg-tertiary text-on-tertiary shadow"
+              }`}
+            >
+              {testProtocolActive ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  <span>En Curso ({formatTimer(timerSeconds)})</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5" />
+                  <span>Iniciar Protocolo</span>
+                </>
+              )}
+            </button>
+
+            {testProtocolActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTestProtocolActive(false);
+                  setTimerSeconds(0);
+                }}
+                className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-white"
+                title="Reiniciar cronómetro"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl text-on-primary shadow-xl border ${
-            activeLevel === "iniciacion_adaptacion" 
-              ? "bg-gradient-to-br from-tertiary to-surface-variant border-tertiary/40" 
-              : activeLevel === "formativo_desarrollo"
-              ? "bg-gradient-to-br from-secondary to-surface-variant border-secondary/40"
-              : "bg-gradient-to-br from-primary-container to-surface-variant border-primary-container/40"
-          }`}>
-            {calculatedOvr}
+
+          {/* OVR BADGE */}
+          <div className="flex items-center gap-3.5 bg-surface-container px-4 py-3 rounded-2xl border border-surface-container-high shadow-lg shrink-0">
+            <div className="flex flex-col text-right">
+              <span className="text-[10px] font-mono text-on-surface-variant uppercase font-bold">Overall Rating</span>
+              <span className={`text-xs font-black uppercase ${
+                activeLevel === "iniciacion_adaptacion" ? "text-tertiary" : activeLevel === "formativo_desarrollo" ? "text-secondary" : "text-primary"
+              }`}>
+                {activeLevel === "iniciacion_adaptacion" ? "Nivel 1 Adaptación" : activeLevel === "formativo_desarrollo" ? "Nivel 2 Formativo" : "Nivel 3 Élite"}
+              </span>
+            </div>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl text-on-primary shadow-xl border ${
+              activeLevel === "iniciacion_adaptacion" 
+                ? "bg-gradient-to-br from-tertiary to-surface-variant border-tertiary/40" 
+                : activeLevel === "formativo_desarrollo"
+                ? "bg-gradient-to-br from-secondary to-surface-variant border-secondary/40"
+                : "bg-gradient-to-br from-primary-container to-surface-variant border-primary-container/40"
+            }`}>
+              {calculatedOvr}
+            </div>
           </div>
         </div>
       </div>
@@ -637,9 +713,25 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-tertiary">Vueltas Continuas Cancha</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {lapsCount} vueltas
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setLapsCount((v) => Math.max(2, v - 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {lapsCount} v
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLapsCount((v) => Math.min(20, v + 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[10px] text-on-surface-variant mb-2">
                   En lugar de trote de 1h: conteo gradual de 2 a 20 vueltas.
@@ -664,9 +756,25 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-secondary">Sentadillas al Aire</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {squatsCount} reps
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSquatsCount((v) => Math.max(5, v - 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {squatsCount} reps
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSquatsCount((v) => Math.min(35, v + 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[10px] text-on-surface-variant mb-2">
                   Control de rodillas y espalda neutral sin carga externa.
@@ -691,9 +799,25 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-primary">Lagartijas / Flexiones</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {pushupsCount} reps
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPushupsCount((v) => Math.max(2, v - 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {pushupsCount} reps
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPushupsCount((v) => Math.min(30, v + 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[10px] text-on-surface-variant mb-2">
                   En suelo con rodillas o inclinadas sobre barra/banca.
@@ -718,9 +842,25 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-tertiary">Plancha Isométrica</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {plankSecL1} seg
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPlankSecL1((v) => Math.max(15, v - 5))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {plankSecL1}s
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPlankSecL1((v) => Math.min(60, v + 5))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[10px] text-on-surface-variant mb-2">
                   Rango adaptado: 15 a 60 segundos sostenidos.
@@ -745,9 +885,25 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-secondary">Salto de Cuerda Suave</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {jumpRopeL1} saltos
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setJumpRopeL1((v) => Math.max(10, v - 5))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {jumpRopeL1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setJumpRopeL1((v) => Math.min(60, v + 5))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[10px] text-on-surface-variant mb-2">
                   Series de 20 a 50 saltos continuos a pies juntos.
@@ -772,9 +928,25 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
               <div className="bg-surface-container p-3.5 rounded-xl border border-surface-container-high flex flex-col justify-between">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-primary">Tiro Mecánico Cercano</span>
-                  <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
-                    {shortShotsMade} / 5 aciertos
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShortShotsMade((v) => Math.max(0, v - 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-base font-black text-white bg-surface-container-high px-2 py-0.5 rounded font-mono">
+                      {shortShotsMade}/5
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShortShotsMade((v) => Math.min(5, v + 1))}
+                      className="w-6 h-6 rounded bg-surface-container-high hover:bg-surface-bright flex items-center justify-center text-xs text-white cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[10px] text-on-surface-variant mb-2">
                   Mecánica de codo y muñeca en 5 intentos de corta distancia.
@@ -794,6 +966,7 @@ export default function TestDayEvaluator({ preselectedStudentId }: { preselected
                   <span>5/5 Perfecto</span>
                 </div>
               </div>
+
 
             </div>
           </div>
