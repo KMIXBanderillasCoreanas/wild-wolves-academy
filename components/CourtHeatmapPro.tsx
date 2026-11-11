@@ -225,11 +225,17 @@ export default function CourtHeatmapPro({
         </div>
       </div>
 
-      {/* PRECISION SVG BASKETBALL HALF-COURT */}
-      <div className="relative mx-auto max-w-[780px] overflow-hidden rounded-2xl border border-zinc-800 bg-[#090d16] p-2 sm:p-4 shadow-inner">
+      {/* PRECISION SVG BASKETBALL HALF-COURT CON BARRIDO LÁSER CIAN NEÓN */}
+      <div className="relative mx-auto max-w-[780px] overflow-hidden rounded-2xl border border-zinc-800 bg-[#090d16] p-2 sm:p-4 shadow-inner group">
+        {/* Efecto de Barrido Láser Neón Cian al Cargar o Interaccionar */}
+        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-2xl opacity-75">
+          <div className="absolute -inset-y-full left-0 right-0 w-full h-[60%] bg-gradient-to-b from-transparent via-cyan-400/25 to-transparent blur-sm animate-[laserSweep_2.8s_ease-in-out_infinite]" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-[laserLine_2.8s_ease-in-out_infinite]" />
+        </div>
+
         <svg
           viewBox="0 0 500 450"
-          className="w-full h-auto select-none drop-shadow-xl"
+          className="w-full h-auto select-none drop-shadow-xl relative z-10"
           role="img"
           aria-label="Mapa de Calor Oficial de Tiro Wild Wolves"
         >
@@ -237,6 +243,11 @@ export default function CourtHeatmapPro({
             <filter id="courtGlow" x="-10%" y="-10%" width="120%" height="120%">
               <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000000" floodOpacity="0.65" />
             </filter>
+            <linearGradient id="cyanLaserBeam" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#22d3ee" stopOpacity="0" />
+              <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+            </linearGradient>
           </defs>
 
           {/* 1. COLORED HEATMAP ZONES LAYER */}

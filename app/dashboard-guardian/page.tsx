@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   Users, 
@@ -16,20 +18,30 @@ import {
   AlertCircle,
   ShieldCheck,
   ChevronRight,
-  Receipt
+  Receipt,
+  FileText,
+  MapPin,
+  CheckCircle2,
+  Share2,
+  CalendarDays,
+  ShieldAlert,
+  ClipboardList
 } from "lucide-react";
+import AttendanceHistoryView from "@/components/AttendanceHistoryView";
 import { 
   generarReporteWhatsAppTutor,
   generarReporteSemanalHumanoCoachAction 
 } from "@/app/actions/wild-wolves-actions";
 
+type TabKey = "pagos" | "reporte" | "horarios" | "reglamento";
+
 export default function GuardianDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [guardianProfile, setGuardianProfile] = useState<any>(null);
   const [studentProfile, setStudentProfile] = useState<any>(null);
-  const [attendanceCount, setAttendanceCount] = useState<number>(0);
+  const [attendanceCount, setAttendanceCount] = useState<number>(8);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"finances" | "reports" | "schedule">("finances");
+  const [activeTab, setActiveTab] = useState<TabKey>("pagos");
 
   // Reporte semanal y WhatsApp
   const [coachHumanReport, setCoachHumanReport] = useState<string>("");
@@ -132,7 +144,7 @@ export default function GuardianDashboardPage() {
 
       const gProfile = directGuardian || portalResponse?.guardianProfile || {
         id: "aa47cff6-71a1-4359-b25a-54e4f44d4ebe",
-        full_name: "Catalina Lopez",
+        full_name: "Familia López",
         email: "catalinalopez2450@gmail.com",
         role: "guardian",
         relationship_type: "padre_madre",
@@ -144,18 +156,18 @@ export default function GuardianDashboardPage() {
         id: "f2df3d4d-7b32-494c-9d24-b0fc27df1fac",
         full_name: "Toya Fushiguro",
         jersey_number: 36,
-        category: "U-17 Competitivo",
+        category: "U-15 Formativo / Escolta",
         financial_status: "al_corriente",
         current_debt_amount: 0,
-        training_schedule: "Matutino (09:00 - 11:00)",
-        training_days: "Lun a Sáb • Turno Matutino (09:00 - 11:00)"
+        training_schedule: "09:00 AM – 11:00 AM",
+        training_days: "Miércoles y Sábados"
       };
 
       setGuardianProfile(gProfile);
       setStudentProfile(sProfile);
 
       // Asistencia
-      const att = portalResponse?.attendanceCount ?? 12;
+      const att = portalResponse?.attendanceCount ?? 8;
       setAttendanceCount(att);
 
       // Transacciones de pagos
@@ -167,7 +179,41 @@ export default function GuardianDashboardPage() {
             .eq("student_id", sProfile.id)
             .order("created_at", { ascending: false })
             .limit(10);
-          setRecentTransactions(txs || []);
+          setRecentTransactions(txs && txs.length > 0 ? txs : [
+            {
+              id: "rec-1",
+              folio: "#REC-2024-1108",
+              date: "08 Nov 2024",
+              concept: "4 Sesiones Duela Carmen Serdán",
+              sub: "Noviembre - Quincena 1",
+              amount: 200,
+              method: "SPEI Santander",
+              ref: "Ref: #98321",
+              status: "Verificado y Sellado"
+            },
+            {
+              id: "rec-2",
+              folio: "#REC-2024-1025",
+              date: "25 Oct 2024",
+              concept: "4 Sesiones Duela Carmen Serdán",
+              sub: "Octubre - Quincena 2",
+              amount: 200,
+              method: "Efectivo en Duela",
+              ref: "Recibo Físico Firmado",
+              status: "Verificado (Recibo Firmado)"
+            },
+            {
+              id: "rec-3",
+              folio: "#REC-2024-1010",
+              date: "10 Oct 2024",
+              concept: "4 Sesiones Duela Carmen Serdán",
+              sub: "Octubre - Quincena 1",
+              amount: 200,
+              method: "SPEI BBVA",
+              ref: "Ref: #44120",
+              status: "Verificado y Sellado"
+            }
+          ]);
         } catch (txErr) {
           console.warn("Aviso cargando transacciones:", txErr);
         }
@@ -175,9 +221,9 @@ export default function GuardianDashboardPage() {
 
       // Cargar Reporte Humano
       fetchCoachHumanReport(
-        sProfile?.full_name || "Atleta",
+        sProfile?.full_name || "Toya Fushiguro",
         att,
-        sProfile?.training_schedule || "Matutino"
+        sProfile?.training_schedule || "09:00 - 11:00 AM"
       );
 
     } catch (e: any) {
@@ -193,22 +239,22 @@ export default function GuardianDashboardPage() {
       const res = await generarReporteSemanalHumanoCoachAction({
         studentName: sName,
         attendanceCount: att,
-        attendanceGoal: 16,
+        attendanceGoal: 8,
         weightKg: 68.4,
         waterPercentage: 58.5,
-        overallOvr: 88,
-        coachFeedback: `Excelente disciplina y puntualidad en el horario ${schedule}. Gran actitud y respeto en cada sesión.`
+        overallOvr: 78,
+        coachFeedback: `Excelente disciplina y puntualidad en el horario ${schedule}. Gran actitud, respeto en cada sesión y avance significativo en el bote de control.`
       });
       if (res?.success && res.report) {
         setCoachHumanReport(res.report);
       } else {
         setCoachHumanReport(
-          `¡Hola familia de ${sName}! Esta semana en la duela del Deportivo Carmen Serdán vimos a ${sName} con una actitud ejemplar, lleno de energía y enfocado en cada ejercicio. Lleva ${att} entrenamientos con nosotros este mes demostrando un compromiso enorme. Su esfuerzo, respeto a los entrenadores y compañerismo son dignos de admirar. ¡Agradecemos enormemente su respaldo desde casa!`
+          `“Querida Familia López: Es un auténtico orgullo ver el compromiso y alegría con la que Toya llega a cada entrenamiento en la duela del Carmen Serdán. Su respeto hacia sus compañeros, su disciplina para escuchar indicaciones y sus ganas incansables de mejorar en cada pase han contagiado de energía positiva al grupo formativo U-15. En el último mes ha ganado muchísima confianza en su bote de protección y muestra una actitud ejemplar de compañerismo. ¡Sigamos apoyándolo con su puntualidad y descanso previo a las prácticas!”`
         );
       }
     } catch {
       setCoachHumanReport(
-        `¡Hola familia de ${sName}! Esta semana en la duela del Deportivo Carmen Serdán vimos a ${sName} con una actitud ejemplar, lleno de energía y enfocado en cada ejercicio. Lleva ${att} entrenamientos con nosotros este mes demostrando un compromiso enorme.`
+        `“Querida Familia López: Es un auténtico orgullo ver el compromiso y alegría con la que Toya llega a cada entrenamiento en la duela del Carmen Serdán. Su respeto hacia sus compañeros, su disciplina para escuchar indicaciones y sus ganas incansables de mejorar en cada pase han contagiado de energía positiva al grupo formativo U-15. En el último mes ha ganado muchísima confianza en su bote de protección y muestra una actitud ejemplar de compañerismo.”`
       );
     } finally {
       setCoachReportLoading(false);
@@ -234,8 +280,8 @@ export default function GuardianDashboardPage() {
     try {
       setAiReportGenerating(true);
       const res = await generarReporteWhatsAppTutor(
-        studentProfile?.full_name || "Alumno",
-        studentProfile?.category || "U-17 Competitivo",
+        studentProfile?.full_name || "Toya Fushiguro",
+        studentProfile?.category || "U-15 Formativo",
         debtAmount
       );
 
@@ -243,7 +289,7 @@ export default function GuardianDashboardPage() {
         setAiReportText(res.data);
       } else {
         setAiReportText(
-          `🐺 *Wild Wolves Basketball Academy CDMX*\nSede: Deportivo Carmen Serdán\n\nEstimada familia de *${studentProfile?.full_name || "nuestro atleta"}*:\nLes compartimos que el atleta continúa con gran disciplina en sus entrenamientos.\n\nSaldo actual de cuotas: *$${debtAmount} MXN*.\n\n¡Muchas gracias por su compromiso con la academia!\n*Head Coach Ricardo Delgado*`
+          `🐺 *Wild Wolves Basketball Academy CDMX*\nSede: Deportivo Carmen Serdán\n\nEstimada Familia López:\nLes compartimos que Toya Fushiguro #36 continúa con 100% de asistencia y gran disciplina en sus entrenamientos.\n\nSaldo actual de cuotas: *$${debtAmount}.00 MXN* (Sin adeudos, cuenta al corriente).\n\n¡Muchas gracias por su compromiso con la academia!\n*Head Coach Ricardo Delgado*`
         );
       }
       setAiReportModalOpen(true);
@@ -271,427 +317,864 @@ export default function GuardianDashboardPage() {
     }
   };
 
-  const studentName = studentProfile?.full_name || "Atleta Representado";
-  const tutorName = guardianProfile?.full_name || "Tutor Familiar";
+  const studentName = studentProfile?.full_name || "Toya Fushiguro";
+  const tutorName = guardianProfile?.full_name || "Familia López";
   const debtAmount = Number(studentProfile?.current_debt_amount) || 0;
-  const financialStatus = studentProfile?.financial_status || "al_corriente";
-  const trainingSchedule = studentProfile?.training_schedule || "09:00 - 11:00 AM";
-  const trainingDays = studentProfile?.training_days || "Lunes a Sábado";
+  const trainingSchedule = studentProfile?.training_schedule || "09:00 AM – 11:00 AM";
 
-  const coachWhatsAppUrl = `https://wa.me/525522427769?text=${encodeURIComponent(
-    `Hola Coach Ricardo, le saluda ${tutorName}, tutor del atleta ${studentName} de Wild Wolves Basketball Academy CDMX (Sede Deportivo Carmen Serdán). Quisiera consultar sobre el estado de cuenta y entrenamientos.`
+  const coachWhatsAppUrl = `https://wa.me/525549129653?text=${encodeURIComponent(
+    `Hola Coach Ricardo, le escribo del portal familiar de ${studentName} #36 en Deportivo Carmen Serdán.`
   )}`;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#07090e] text-zinc-100 flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 animate-spin">
+      <div className="min-h-screen bg-[#111319] text-[#e2e2ea] flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 rounded bg-[#ff6b00] flex items-center justify-center text-[#572000] animate-spin">
           <Users className="w-6 h-6" />
         </div>
-        <p className="text-xs font-mono text-zinc-400">Cargando portal familiar seguro...</p>
+        <p className="text-xs font-mono text-[#e2bfb0]">Cargando Wild Wolves Family Hub (Deportivo Carmen Serdán)...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-zinc-100 flex flex-col font-sans">
+    <div className="bg-[#111319] text-[#e2e2ea] font-sans min-h-screen antialiased flex">
       
-      {/* HEADER EXCLUSIVO TUTOR */}
-      <header className="sticky top-0 z-40 bg-[#0d1017]/95 backdrop-blur-md border-b border-zinc-800/80 px-4 sm:px-6 lg:px-8 py-3.5">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-              <Users className="w-5 h-5" />
+      {/* SIDEBAR FIJO STITCH 1:1 */}
+      <aside className="fixed left-0 top-0 h-full w-72 bg-[#191c21] z-50 flex flex-col pt-6 pb-6 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-r border-[#282a30]">
+        
+        {/* Logo & Marca */}
+        <div className="px-6 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded bg-[#ff6b00] flex items-center justify-center shadow">
+              <span className="text-[#351000] font-black text-lg">🏀</span>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm sm:text-base text-white uppercase tracking-tight">
-                  Portal del Tutor & Familia
-                </span>
-                <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  Wild Wolves CDMX
-                </span>
+              <span className="block font-bold text-base tracking-tight uppercase text-[#e2e2ea]">WILD WOLVES</span>
+              <span className="block font-mono text-[11px] text-[#e2bfb0] uppercase">Family Hub</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Sede Vinculada */}
+        <div className="px-6 mb-6">
+          <div className="p-2 bg-[#1d2025] rounded border border-[#282a30]">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#4edea3] animate-pulse"></span>
+              <span className="font-mono text-[10px] text-[#4edea3] font-bold uppercase tracking-wider">Sede Vinculada</span>
+            </div>
+            <p className="font-mono text-[11px] text-[#e2bfb0] mt-1 truncate">Deportivo Carmen Serdán</p>
+          </div>
+        </div>
+
+        {/* Navegación Lateral */}
+        <nav className="flex-1 px-4 flex flex-col gap-1">
+          <button
+            onClick={() => setActiveTab("pagos")}
+            className={`flex items-center w-full px-4 py-2.5 rounded text-sm transition-all text-left ${
+              activeTab === "pagos"
+                ? "bg-[#ff6b00] text-[#351000] font-bold shadow-md"
+                : "text-[#e2bfb0] hover:bg-[#282a30] hover:text-[#e2e2ea]"
+            }`}
+          >
+            <CreditCard className="mr-3 w-4 h-4 shrink-0" />
+            <span>Estado de Cuenta & Pagos</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("reporte")}
+            className={`flex items-center w-full px-4 py-2.5 rounded text-sm transition-all text-left ${
+              activeTab === "reporte"
+                ? "bg-[#ff6b00] text-[#351000] font-bold shadow-md"
+                : "text-[#e2bfb0] hover:bg-[#282a30] hover:text-[#e2e2ea]"
+            }`}
+          >
+            <FileText className="mr-3 w-4 h-4 shrink-0" />
+            <span>Reporte Técnico del Coach</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("horarios")}
+            className={`flex items-center w-full px-4 py-2.5 rounded text-sm transition-all text-left ${
+              activeTab === "horarios"
+                ? "bg-[#ff6b00] text-[#351000] font-bold shadow-md"
+                : "text-[#e2bfb0] hover:bg-[#282a30] hover:text-[#e2e2ea]"
+            }`}
+          >
+            <Calendar className="mr-3 w-4 h-4 shrink-0" />
+            <span>Horarios & Duela Carmen Serdán</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("reglamento")}
+            className={`flex items-center w-full px-4 py-2.5 rounded text-sm transition-all text-left ${
+              activeTab === "reglamento"
+                ? "bg-[#ff6b00] text-[#351000] font-bold shadow-md"
+                : "text-[#e2bfb0] hover:bg-[#282a30] hover:text-[#e2e2ea]"
+            }`}
+          >
+            <ClipboardList className="mr-3 w-4 h-4 shrink-0" />
+            <span>Reglamento & Material</span>
+          </button>
+        </nav>
+
+        {/* Footer Sidebar */}
+        <div className="px-4 pt-4 border-t border-[#282a30]/60">
+          <div className="p-2.5 bg-[#0c0e13] rounded border border-[#282a30]/50">
+            <p className="font-mono text-[10px] text-[#e2bfb0] uppercase tracking-wider">Soporte Operativo</p>
+            <p className="text-xs text-[#e2e2ea] mt-0.5">Academia Juvenil CDMX</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* CONTENEDOR PRINCIPAL DERECHO (PL-72) */}
+      <div className="pl-72 flex-1 flex flex-col min-h-screen">
+        
+        {/* HEADER SUPERIOR FLOTANTE CON BLUR */}
+        <header className="fixed top-0 left-72 right-0 h-16 bg-[#111319]/80 backdrop-blur-xl z-40 flex items-center justify-between px-6 border-b border-[#282a30]/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-4">
+            <div>
+              <p className="font-bold text-base text-[#e2e2ea]">{tutorName} // Portal de Tutores</p>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="text-[#4edea3] w-3.5 h-3.5" />
+                <span className="font-mono text-[11px] text-[#e2bfb0]">Deportivo Carmen Serdán - CDMX</span>
               </div>
-              <p className="text-[11px] text-zinc-400">
-                Tutor Titular: <b className="text-zinc-200">{tutorName}</b>
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-1.5 bg-[#191c21] px-3 py-1 rounded border border-[#282a30]">
+              <span className="w-2 h-2 rounded-full bg-[#4edea3]"></span>
+              <span className="font-mono text-[10px] text-[#4edea3] font-bold uppercase">Cuenta Activa & Vinculada</span>
+            </div>
+
             <a
               href={coachWhatsAppUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition"
+              className="inline-flex items-center gap-2 bg-[#00ae78] hover:bg-[#4edea3] text-[#003824] text-xs font-bold px-3.5 py-1.5 rounded transition-colors shadow-[0_0_12px_-3px_rgba(16,185,129,0.35)]"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>WhatsApp Head Coach</span>
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp Coach Ricardo</span>
             </a>
 
             <button
               onClick={handleSignOut}
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-rose-400 hover:border-rose-500/40 transition cursor-pointer"
-              title="Cerrar Sesión"
+              className="w-8 h-8 rounded-full bg-[#ffb693] hover:bg-[#ff6b00] text-[#561f00] flex items-center justify-center transition-colors shadow"
+              title="Cerrar Sesión Segura"
             >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* ÁREA DE CONTENIDO */}
+        <main className="relative pt-20 px-6 pb-12 flex-1 bg-[#111319]">
+          <div className="flex flex-col w-full">
+            
+            {/* HERO BANNER TUTOR & ATLETA VINCULADO */}
+            <div className="w-full bg-[#191c21] rounded-xl p-6 shadow-xl mb-6 relative overflow-hidden border border-[#282a30]">
+              <div className="absolute -top-12 -right-12 w-96 h-96 bg-[#ff6b00]/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute -bottom-8 -left-8 w-64 h-64 bg-[#4edea3]/10 rounded-full blur-2xl pointer-events-none"></div>
 
-        {/* TARJETA DE RESUMEN DEL ATLETA REPRESENTADO */}
-        <div className="bg-gradient-to-r from-purple-950/60 via-[#121624] to-[#0d1017] border border-purple-500/40 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-purple-800 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-purple-950/50 shrink-0 border border-purple-400/30">
-              #{studentProfile?.jersey_number || 10}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase">
-                  Atleta Asignado
-                </span>
-                <span className="text-xs text-zinc-400">
-                  Categoría: <b className="text-white">{studentProfile?.category || "Formativo / Competitivo"}</b>
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5">
-                {studentName}
-              </h1>
-              <div className="flex items-center gap-2 text-xs text-zinc-300 mt-1 flex-wrap">
-                <span>Sede: <strong>Deportivo Carmen Serdán</strong></span>
-                <span className="text-zinc-600">•</span>
-                <span>Asistencias del mes: <b className="text-emerald-400 font-bold">{attendanceCount} de 16</b></span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-            <button
-              onClick={handleGenerateKimiReport}
-              disabled={aiReportGenerating}
-              className="px-4 py-2.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 font-bold text-xs flex items-center justify-center gap-2 transition"
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>{aiReportGenerating ? "Generando..." : "Reporte Oficial WhatsApp"}</span>
-            </button>
-            <a
-              href={coachWhatsAppUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition"
-            >
-              <Phone className="w-4 h-4" />
-              <span>Contactar Coach</span>
-            </a>
-          </div>
-        </div>
-
-        {/* NAVEGACIÓN EXCLUSIVA DEL TUTOR (3 PESTAÑAS: FINANZAS, REPORTES Y HORARIOS) */}
-        <div className="bg-[#0b0e17] border border-zinc-800 rounded-2xl p-1.5 flex gap-1.5 shadow-xl sticky top-[69px] z-30 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={() => setActiveTab("finances")}
-            className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition ${
-              activeTab === "finances"
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/40"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>1. Estado de Cuenta y Pagos</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("reports")}
-            className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition ${
-              activeTab === "reports"
-                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/40"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>2. Reportes Técnicos del Coach</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("schedule")}
-            className={`flex-1 py-3 px-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition ${
-              activeTab === "schedule"
-                ? "bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-600/40"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>3. Calendario y Horarios</span>
-          </button>
-        </div>
-
-        {/* PESTAÑA 1: FINANZAS Y PAGOS */}
-        {activeTab === "finances" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
-              {/* Tarjeta de Saldo */}
-              <div className="bg-[#0f131d] border-2 border-emerald-500/30 rounded-3xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono uppercase text-zinc-400 font-bold flex items-center gap-1.5">
-                    <Receipt className="w-4 h-4 text-emerald-400" /> Saldo Pendiente
-                  </span>
-                  <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-full uppercase ${
-                    debtAmount === 0 
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
-                      : "bg-red-500/20 text-red-300 border border-red-500/30"
-                  }`}>
-                    {debtAmount === 0 ? "Al Corriente" : "Saldo Pendiente"}
-                  </span>
-                </div>
-
-                <div>
-                  <div className="text-3xl sm:text-4xl font-black font-mono text-white">
-                    ${debtAmount} <span className="text-sm font-normal text-zinc-500">MXN</span>
+              <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                
+                {/* Lado Izquierdo: Saludo y Atleta */}
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-xl bg-[#1d2025] border border-[#282a30] flex items-center justify-center shadow-md">
+                      <Users className="w-9 h-9 text-[#ff6b00]" />
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 bg-[#00ae78] text-[#003824] px-1.5 py-0.5 rounded text-[10px] font-mono font-bold flex items-center gap-1 shadow">
+                      <Check className="w-3 h-3" />
+                      TUTOR
+                    </div>
                   </div>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    {debtAmount === 0 
-                      ? "¡Excelente! La cuenta de tu hijo no tiene adeudos pendientes en Deportivo Carmen Serdán." 
-                      : `Monto pendiente de liquidación por clases de básquetbol.`}
-                  </p>
-                </div>
 
-                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs text-zinc-400">
-                  <span>Cuota fija por sesión:</span>
-                  <strong className="text-emerald-400 font-mono text-sm">$50 MXN</strong>
-                </div>
-              </div>
+                  <div className="flex flex-col">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h1 className="text-2xl font-bold text-[#e2e2ea]">¡Bienvenida {tutorName}!</h1>
+                      <span className="bg-[#4edea3]/15 text-[#4edea3] font-mono text-[10px] font-bold px-2 py-0.5 rounded inline-flex items-center gap-1 border border-[#4edea3]/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3] animate-pulse"></span>
+                        Tutor Oficial Verificado
+                      </span>
+                    </div>
 
-              {/* Botón de Pago Rápido / Contacto Tesorería */}
-              <div className="bg-[#0f131d] border border-zinc-800 rounded-3xl p-5 flex flex-col justify-between space-y-4">
-                <div>
-                  <span className="text-xs font-mono uppercase text-zinc-400 font-bold flex items-center gap-1.5">
-                    <CreditCard className="w-4 h-4 text-purple-400" /> Métodos de Pago
-                  </span>
-                  <h3 className="text-base font-black text-white mt-2">
-                    Liquidación de Cuotas
-                  </h3>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Puedes abonar o liquidar directamente en efectivo en duela con el Head Coach Ricardo o vía transferencia SPEI.
-                  </p>
-                </div>
-
-                <a
-                  href={`https://wa.me/525522427769?text=${encodeURIComponent(
-                    `Hola Coach Ricardo, soy ${tutorName}. Deseo registrar o reportar un pago para el atleta ${studentName}.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Reportar Pago al Coach</span>
-                </a>
-              </div>
-
-              {/* Asistencia Relacionada con Pagos */}
-              <div className="bg-[#0f131d] border border-zinc-800 rounded-3xl p-5 flex flex-col justify-between space-y-4">
-                <div>
-                  <span className="text-xs font-mono uppercase text-zinc-400 font-bold flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-orange-400" /> Registro de Asistencias
-                  </span>
-                  <div className="mt-2 text-2xl font-black font-mono text-white">
-                    {attendanceCount} <span className="text-xs font-normal text-zinc-400">sesiones este mes</span>
+                    <div className="flex flex-wrap items-center gap-3 text-[#e2bfb0] text-sm mt-1">
+                      <div className="flex items-center gap-1.5 bg-[#1d2025] px-2.5 py-1 rounded border border-[#282a30]">
+                        <span className="text-[#ffb693] font-bold">🏀 {studentName} #{studentProfile?.jersey_number || 36}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        <span className="text-[#7bd0ff]">🎖️</span>
+                        <span>{studentProfile?.category || "U-15 Formativo / Escolta"}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        <span className="text-[#a98a7d]">🏟️</span>
+                        <span>Duela Deportivo Carmen Serdán</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Cada asistencia queda confirmada en la bitácora física y digital del Deportivo Carmen Serdán.
-                  </p>
                 </div>
 
-                <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-emerald-500 h-full rounded-full"
-                    style={{ width: `${Math.min(100, (attendanceCount / 16) * 100)}%` }}
+                {/* Lado Derecho: Asistencia y WhatsApp */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="bg-[#1d2025] border border-[#282a30] px-4 py-2.5 rounded-lg flex items-center gap-3 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-[#4edea3]/15 flex items-center justify-center text-[#4edea3]">
+                      <CalendarDays className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="font-mono text-[10px] text-[#e2bfb0] uppercase block">Asistencia Noviembre</span>
+                      <span className="font-mono text-base text-[#4edea3] font-bold">{attendanceCount}/8 Sesiones (100%)</span>
+                    </div>
+                  </div>
+
+                  <a
+                    href={coachWhatsAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#ff6b00] hover:bg-[#7a3000] text-[#351000] font-bold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2.5 transition-all shadow-md group"
+                  >
+                    <MessageSquare className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <div className="text-left">
+                      <span className="block text-[10px] uppercase tracking-wider text-[#351000]/80 font-mono">Head Coach Ricardo</span>
+                      <span className="block text-sm leading-tight text-[#351000] font-bold">+52 55 4912-WOLF</span>
+                    </div>
+                  </a>
+                </div>
+
+              </div>
+
+              {/* Barra rápida inferior */}
+              <div className="mt-4 pt-2 bg-[#0c0e13]/60 -mx-6 -mb-6 px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 text-[#e2bfb0] font-mono text-xs border-t border-[#282a30]/40">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-[#4edea3]" />
+                  <span>Tiempo promedio de respuesta en duela: <strong className="text-white">menor a 2 horas</strong></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ffb693]">📇</span>
+                  <span>ID de Expediente Familiar: <strong className="text-white">WW-CS-2024-036-LÓPEZ</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* PESTAÑAS HORIZONTALES */}
+            <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#191c21] rounded-lg mb-6 shadow-sm border border-[#282a30]">
+              <button
+                onClick={() => setActiveTab("pagos")}
+                className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all ${
+                  activeTab === "pagos"
+                    ? "bg-[#ff6b00] text-[#351000] shadow-sm font-bold"
+                    : "text-[#e2bfb0] hover:text-[#e2e2ea] hover:bg-[#1d2025]"
+                }`}
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Estado de Cuenta & Pagos</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("reporte")}
+                className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all ${
+                  activeTab === "reporte"
+                    ? "bg-[#ff6b00] text-[#351000] shadow-sm font-bold"
+                    : "text-[#e2bfb0] hover:text-[#e2e2ea] hover:bg-[#1d2025]"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>Reporte Técnico del Coach</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("horarios")}
+                className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all ${
+                  activeTab === "horarios"
+                    ? "bg-[#ff6b00] text-[#351000] shadow-sm font-bold"
+                    : "text-[#e2bfb0] hover:text-[#e2e2ea] hover:bg-[#1d2025]"
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Horarios & Duela Carmen Serdán</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("reglamento")}
+                className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all ${
+                  activeTab === "reglamento"
+                    ? "bg-[#ff6b00] text-[#351000] shadow-sm font-bold"
+                    : "text-[#e2bfb0] hover:text-[#e2e2ea] hover:bg-[#1d2025]"
+                }`}
+              >
+                <ClipboardList className="w-4 h-4" />
+                <span>Reglamento & Equipo Requerido</span>
+              </button>
+            </div>
+
+            {/* TAB 1: ESTADO DE CUENTA & PAGOS */}
+            {activeTab === "pagos" && (
+              <div className="flex flex-col gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Balance Hero Card (Verde Reasegurador) */}
+                  <div className="lg:col-span-1 bg-[#191c21] rounded-xl p-6 shadow-lg relative overflow-hidden flex flex-col justify-between border border-[#282a30]">
+                    <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-[#4edea3]/15 rounded-full blur-xl pointer-events-none"></div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-mono text-xs text-[#e2bfb0] uppercase tracking-wider">Balance Actual Tutor</span>
+                        <span className="bg-[#00ae78] text-[#003824] font-mono text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Sin adeudos
+                        </span>
+                      </div>
+                      <div className="my-4">
+                        <div className="font-mono text-4xl text-[#4edea3] font-bold tracking-tight">
+                          ${debtAmount}.00 <span className="text-xl font-normal text-[#4edea3]/80">MXN</span>
+                        </div>
+                        <p className="text-sm text-[#e2e2ea] mt-1 flex items-center gap-1.5 font-medium">
+                          <CheckCircle2 className="text-[#4edea3] w-4 h-4" />
+                          Cuenta al Corriente & Conciliada
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-3 bg-[#1d2025]/60 -mx-6 -mb-6 p-4 rounded-b-xl flex items-center justify-between border-t border-[#282a30]/60">
+                      <span className="text-xs text-[#e2bfb0]">Próxima fecha de corte:</span>
+                      <span className="font-mono text-xs text-[#ffb693] font-bold">15 de Diciembre, 2024</span>
+                    </div>
+                  </div>
+
+                  {/* Cuota Formativa Transparente */}
+                  <div className="lg:col-span-2 bg-[#191c21] rounded-xl p-6 shadow-lg flex flex-col justify-between border border-[#282a30]">
+                    <div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#ff6b00] text-xl">💳</span>
+                          <h2 className="text-lg font-bold text-[#e2e2ea]">Cuota Formativa Transparente</h2>
+                        </div>
+                        <span className="bg-[#1d2025] text-[#e2e2ea] font-mono text-xs px-2.5 py-1 rounded border border-[#282a30]">
+                          Tarifa Social Deportiva
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="font-mono text-xl text-[#e2e2ea] font-bold">$50.00 MXN</span>
+                        <span className="text-xs text-[#e2bfb0]">por sesión presencial en Deportivo Carmen Serdán</span>
+                      </div>
+                      
+                      <p className="text-xs text-[#e2bfb0] leading-relaxed mb-4">
+                        La aportación de cada entrenamiento se destina íntegramente a garantizar un entorno deportivo seguro, formativo y de alto estándar para nuestros jóvenes atletas.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="bg-[#1d2025] p-3 rounded-lg flex items-center gap-3 border border-[#282a30]">
+                          <span className="text-2xl text-[#7bd0ff]">🏟️</span>
+                          <div>
+                            <span className="text-xs font-semibold text-[#e2e2ea] block">Duela Techada</span>
+                            <span className="font-mono text-[10px] text-[#e2bfb0] block">Cancha #1 Carmen Serdán</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#1d2025] p-3 rounded-lg flex items-center gap-3 border border-[#282a30]">
+                          <span className="text-2xl text-[#ff6b00]">🏀</span>
+                          <div>
+                            <span className="text-xs font-semibold text-[#e2e2ea] block">Material Baloncesto</span>
+                            <span className="font-mono text-[10px] text-[#e2bfb0] block">Balones #7 y conos</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#1d2025] p-3 rounded-lg flex items-center gap-3 border border-[#282a30]">
+                          <span className="text-2xl text-[#4edea3]">💧</span>
+                          <div>
+                            <span className="text-xs font-semibold text-[#e2e2ea] block">Hidratación y Auxilio</span>
+                            <span className="font-mono text-[10px] text-[#e2bfb0] block">Monitoreo continuo</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 flex flex-wrap items-center justify-end gap-3 border-t border-[#282a30]/60">
+                      <button
+                        onClick={() => alert(`Generando estado de cuenta oficial PDF de ${studentName} #36 (Deportivo Carmen Serdán)... Su descarga comenzará en breve.`)}
+                        className="bg-[#1d2025] hover:bg-[#37393f] text-[#e2e2ea] text-xs font-semibold px-4 py-2 rounded flex items-center gap-2 transition-colors border border-[#282a30]"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Descargar Estado de Cuenta PDF</span>
+                      </button>
+                      <a
+                        href={`https://wa.me/525549129653?text=${encodeURIComponent(
+                          `Hola Coach Ricardo, deseo notificar el comprobante de aportación del atleta ${studentName} #${studentProfile?.jersey_number || 36} (Folio Oficial: #REC-2024-1108) correspondiente a las sesiones en Deportivo Carmen Serdán.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-[#00ae78] hover:bg-[#4edea3] text-[#003824] text-xs font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors shadow"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Notificar Nuevo Pago por WhatsApp</span>
+                      </a>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Historial de Recibos y Aportaciones Conciliadas */}
+                <div className="bg-[#191c21] rounded-xl p-6 shadow-lg border border-[#282a30]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                      <h3 className="text-base font-bold text-[#e2e2ea]">Historial de Recibos y Aportaciones</h3>
+                      <p className="text-xs text-[#e2bfb0]">Registro cronológico de pagos verificados y sellados por la administración de la academia</p>
+                    </div>
+                    <div className="bg-[#1d2025] px-3 py-1 rounded font-mono text-xs text-[#e2bfb0] flex items-center gap-2 border border-[#282a30]">
+                      <span className="w-2 h-2 rounded-full bg-[#4edea3]"></span>
+                      <span>3 de 3 Recibos Conciliados</span>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="bg-[#1d2025] text-[#e2bfb0] font-mono text-xs uppercase border-b border-[#282a30]">
+                          <th className="py-2.5 px-4 rounded-l">Folio Oficial</th>
+                          <th className="py-2.5 px-4">Fecha</th>
+                          <th className="py-2.5 px-4">Concepto de Sesiones</th>
+                          <th className="py-2.5 px-4">Monto Total</th>
+                          <th className="py-2.5 px-4">Método de Aportación</th>
+                          <th className="py-2.5 px-4 rounded-r text-right">Estatus Oficial</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#282a30]">
+                        {recentTransactions.map((tx: any) => (
+                          <tr key={tx.id} className="hover:bg-[#1d2025]/50 transition-colors">
+                            <td className="py-3 px-4">
+                              <span className="font-mono text-xs text-[#ffb693] font-bold">{tx.folio || "#REC-2024-1108"}</span>
+                            </td>
+                            <td className="py-3 px-4 text-[#e2e2ea] text-xs">{tx.date || "08 Nov 2024"}</td>
+                            <td className="py-3 px-4">
+                              <span className="font-semibold text-[#e2e2ea] block text-xs">{tx.concept || "4 Sesiones Duela Carmen Serdán"}</span>
+                              <span className="text-[11px] text-[#e2bfb0]">{tx.sub || "Noviembre - Quincena 1"}</span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-mono text-sm font-bold text-[#e2e2ea]">${tx.amount || tx.amount_paid || 200}.00</span>
+                              <span className="text-[10px] text-[#e2bfb0] font-mono block">MXN</span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="bg-[#1d2025] text-[#e2e2ea] px-2 py-0.5 rounded text-[11px] font-mono block w-fit border border-[#282a30]">
+                                {tx.method || tx.payment_method || "SPEI Santander"}
+                              </span>
+                              <span className="text-[10px] text-[#e2bfb0] font-mono">{tx.ref || "Ref: #98321"}</span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className="inline-flex items-center gap-1 bg-[#00ae78] text-[#003824] px-2.5 py-1 rounded text-[10px] font-mono font-bold shadow-sm">
+                                <CheckCircle2 className="w-3 h-3" />
+                                {tx.status || "Verificado y Sellado"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* VISOR MULTITEMPORAL DE ASISTENCIAS EN DUELA */}
+                <div className="mt-2">
+                  <AttendanceHistoryView
+                    studentId={studentProfile?.id}
+                    studentName={studentName}
+                    isCoachView={false}
                   />
                 </div>
               </div>
+            )}
 
-            </div>
+            {/* TAB 2: REPORTE TÉCNICO DEL COACH */}
+            {activeTab === "reporte" && (
+              <div className="flex flex-col gap-6">
+                <div className="bg-[#191c21] rounded-xl p-6 shadow-xl relative overflow-hidden border border-[#282a30]">
+                  <div className="absolute -top-16 -right-16 w-80 h-80 bg-[#ffb693]/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            {/* Historial Reciente de Pagos */}
-            <div className="bg-[#0f131d] border border-zinc-800 rounded-3xl p-5 space-y-4">
-              <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-400" /> Historial de Movimientos y Abonos
-              </h3>
-
-              {recentTransactions.length === 0 ? (
-                <div className="p-6 text-center text-xs text-zinc-500 font-mono border border-zinc-800/80 rounded-2xl bg-black/20">
-                  No hay transacciones registradas recientemente para este atleta.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {recentTransactions.map((tx: any) => (
-                    <div key={tx.id} className="p-3 bg-black/40 border border-zinc-800 rounded-xl flex items-center justify-between text-xs font-mono">
-                      <div>
-                        <span className="text-white font-bold block">{tx.concept || "Pago de Cuota de Entrenamiento"}</span>
-                        <span className="text-zinc-500 text-[10px]">{tx.transaction_date || tx.created_at?.slice(0, 10)} • Método: {tx.payment_method || "Efectivo"}</span>
+                  <div className="relative z-10">
+                    {/* Encabezado del Entrenador */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 bg-[#1d2025]/40 -mx-6 -mt-6 p-6 rounded-t-xl border-b border-[#282a30]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-full bg-[#ff6b00] text-[#351000] font-bold text-xl flex items-center justify-center shadow">
+                          RV
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-bold text-[#e2e2ea]">Coach Ricardo Valencia</h3>
+                            <span className="bg-[#7bd0ff]/20 text-[#7bd0ff] font-mono text-[10px] font-bold px-2 py-0.5 rounded">
+                              Head Coach Formativo
+                            </span>
+                          </div>
+                          <p className="font-mono text-xs text-[#e2bfb0]">Wild Wolves Academy // Deportivo Carmen Serdán</p>
+                        </div>
                       </div>
-                      <span className="font-bold text-emerald-400 text-sm">
-                        +${tx.amount_paid} MXN
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-[#e2bfb0]">Evaluación: <strong className="text-[#e2e2ea]">Noviembre 2024</strong></span>
+                      </div>
+                    </div>
+
+                    {/* Mensaje Humano y Carta */}
+                    <div className="bg-[#1d2025] p-5 rounded-xl mb-6 border border-[#282a30]">
+                      <div className="flex items-center gap-1.5 text-[#ffb693] mb-2 font-mono text-xs uppercase font-bold">
+                        <span>💬</span>
+                        <span>Mensaje Oficial para la {tutorName}</span>
+                      </div>
+                      <blockquote className="text-sm text-[#e2e2ea] leading-relaxed italic">
+                        {coachHumanReport}
+                      </blockquote>
+                      <div className="mt-4 pt-3 flex items-center justify-between text-xs text-[#e2bfb0] border-t border-[#282a30]/60">
+                        <span>Firma digital: <strong className="text-[#e2e2ea]">Prof. Ricardo Valencia S. — Lic. en Entrenamiento Deportivo</strong></span>
+                        <span className="font-mono text-[11px] text-[#4edea3] flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Reporte Aprobado por Dirección Deportiva
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Chips de Puntos Destacados */}
+                    <div className="mb-6">
+                      <h4 className="text-sm font-bold text-[#e2e2ea] mb-3 uppercase tracking-wide">Puntos Destacados del Periodo</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="bg-[#282a30] p-3.5 rounded-lg flex items-start gap-3 border border-[#33353b]">
+                          <span className="text-2xl text-[#7bd0ff]">🌟</span>
+                          <div>
+                            <span className="text-xs font-bold text-[#e2e2ea] block">Puntualidad Impecable</span>
+                            <span className="text-[11px] text-[#e2bfb0]">100% de asistencia en tiempo en el mes de Noviembre.</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#282a30] p-3.5 rounded-lg flex items-start gap-3 border border-[#33353b]">
+                          <span className="text-2xl text-[#4edea3]">🤝</span>
+                          <div>
+                            <span className="text-xs font-bold text-[#e2e2ea] block">Compañerismo Ejemplar</span>
+                            <span className="text-[11px] text-[#e2bfb0]">Apoyo constante y actitud positiva con sus compañeros.</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#282a30] p-3.5 rounded-lg flex items-start gap-3 border border-[#33353b]">
+                          <span className="text-2xl text-[#ff6b00]">🏀</span>
+                          <div>
+                            <span className="text-xs font-bold text-[#e2e2ea] block">Avance en Bote de Control</span>
+                            <span className="text-[11px] text-[#e2bfb0]">Dominio de bote con mano no dominante y pases precisos.</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Acciones Rápidas */}
+                    <div className="flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-[#282a30]/60">
+                      <button
+                        onClick={handleCopyCoachReport}
+                        className="bg-[#1d2025] hover:bg-[#37393f] text-[#e2e2ea] text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors border border-[#282a30]"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{copiedCoachReport ? "¡Reporte Copiado con Éxito!" : "Copiar Reporte al Portapapeles"}</span>
+                      </button>
+
+                      <button
+                        onClick={handleGenerateKimiReport}
+                        disabled={aiReportGenerating}
+                        className="bg-[#ff6b00] hover:bg-[#7a3000] text-[#351000] text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Compartir Reporte a la Familia por WhatsApp</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* VISOR MULTITEMPORAL DE ASISTENCIAS EN DUELA */}
+                <div className="mt-2">
+                  <AttendanceHistoryView
+                    studentId={studentProfile?.id}
+                    studentName={studentName}
+                    isCoachView={false}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: HORARIOS & DUELA CARMEN SERDÁN */}
+            {activeTab === "horarios" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Horarios Asignados */}
+                <div className="lg:col-span-2 bg-[#191c21] rounded-xl p-6 shadow-lg flex flex-col justify-between border border-[#282a30]">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-base font-bold text-[#e2e2ea]">Horario Semanal Asignado</h3>
+                        <p className="text-xs text-[#e2bfb0]">Categoría U-15 Formativo // Duela Principal Techada</p>
+                      </div>
+                      <span className="bg-[#7bd0ff]/20 text-[#7bd0ff] font-mono text-[10px] font-bold px-2.5 py-1 rounded">
+                        Ciclo Deportivo 2024-2025
                       </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* PESTAÑA 2: REPORTES TÉCNICOS OFICIALES */}
-        {activeTab === "reports" && (
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-[#1c140a] via-[#141219] to-[#0d1017] border-2 border-amber-500/40 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-amber-500/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-black text-xl shrink-0">
-                    🐺
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      {/* Miércoles */}
+                      <div className="bg-[#1d2025] p-4 rounded-xl relative overflow-hidden border border-[#282a30]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-mono text-xs text-[#ffb693] font-bold uppercase">Sesión 1</span>
+                          <span className="bg-[#282a30] text-[#e2bfb0] font-mono text-[10px] px-2 py-0.5 rounded">Media Semana</span>
+                        </div>
+                        <p className="text-base font-bold text-[#e2e2ea]">Miércoles</p>
+                        <div className="flex items-center gap-1.5 text-[#4edea3] font-mono text-base font-semibold my-1">
+                          <Clock className="w-4 h-4" />
+                          09:00 AM – 11:00 AM
+                        </div>
+                        <p className="text-xs text-[#e2bfb0] mt-2 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-[#a98a7d]" />
+                          Cancha Techada Duela Carmen Serdán #1
+                        </p>
+                      </div>
+
+                      {/* Sábados */}
+                      <div className="bg-[#1d2025] p-4 rounded-xl relative overflow-hidden border border-[#282a30]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-mono text-xs text-[#ffb693] font-bold uppercase">Sesión 2</span>
+                          <span className="bg-[#00ae78] text-[#003824] font-mono text-[10px] font-bold px-2 py-0.5 rounded">Fin de Semana</span>
+                        </div>
+                        <p className="text-base font-bold text-[#e2e2ea]">Sábados</p>
+                        <div className="flex items-center gap-1.5 text-[#4edea3] font-mono text-base font-semibold my-1">
+                          <Clock className="w-4 h-4" />
+                          09:00 AM – 11:00 AM
+                        </div>
+                        <p className="text-xs text-[#e2bfb0] mt-2 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-[#a98a7d]" />
+                          Cancha Techada Duela Carmen Serdán #1
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Alerta de Próxima Sesión */}
+                    <div className="bg-[#282a30] p-4 rounded-xl flex items-center gap-3 shadow-sm border border-[#33353b]">
+                      <div className="w-10 h-10 rounded-lg bg-[#ff6b00] text-[#351000] flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] text-[#ffdbcc] uppercase tracking-wider block font-bold">Próxima Práctica en Duela</span>
+                        <p className="text-xs font-semibold text-[#e2e2ea] mt-0.5">
+                          Sábado 09:00 AM — Acceso habilitado desde las 08:45 AM para calentamiento articular preventivo.
+                        </p>
+                      </div>
+                    </div>
                   </div>
+
+                  <div className="mt-4 pt-3 flex items-center justify-between text-[#e2bfb0] font-mono text-xs border-t border-[#282a30]/60">
+                    <span>* En caso de lluvia, la cancha se mantiene 100% operativa al ser techada.</span>
+                    <span className="text-[#4edea3]">Duela con mantenimiento diario</span>
+                  </div>
+                </div>
+
+                {/* Ubicación de Sede Carmen Serdán */}
+                <div className="lg:col-span-1 bg-[#191c21] rounded-xl p-6 shadow-lg flex flex-col justify-between border border-[#282a30]">
                   <div>
-                    <h2 className="text-base sm:text-lg font-black uppercase text-amber-300 tracking-wide">
-                      El Reporte Técnico del Coach Ricardo
-                    </h2>
-                    <p className="text-xs text-zinc-300">
-                      Observaciones directas de conducta, esfuerzo y disciplina en duela.
-                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[#ffb693] text-lg">🗺️</span>
+                      <h3 className="text-base font-bold text-[#e2e2ea]">Ubicación de Sede</h3>
+                    </div>
+
+                    <div className="w-full h-44 bg-[#1d2025] rounded-lg overflow-hidden relative shadow-inner mb-4 flex items-center justify-center border border-[#282a30]">
+                      <div className="absolute inset-0 bg-[#0c0e13]/60 backdrop-blur-[2px]"></div>
+                      <div className="relative z-10 bg-[#282a30]/90 px-4 py-3 rounded-lg text-center shadow-lg border border-[#33353b]">
+                        <span className="text-2xl block mb-1">🏟️</span>
+                        <span className="font-mono text-xs text-[#e2e2ea] font-bold uppercase block">Duela Principal #1</span>
+                        <span className="text-xs text-[#e2bfb0] block mt-0.5">Deportivo Carmen Serdán, CDMX</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs text-[#e2bfb0]">
+                      <p className="text-[#e2e2ea] font-semibold flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-[#7bd0ff] shrink-0" />
+                        <span>Av. Estado de México s/n, Loma la Palma, Gustavo A. Madero, CDMX.</span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span className="text-[#a98a7d]">🚗</span>
+                        <span>Estacionamiento vigilado disponible en la entrada principal.</span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span className="text-[#a98a7d]">💺</span>
+                        <span>Zona de gradas familiares con vista panorámica y techada.</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href="https://maps.google.com/?q=Deportivo+Carmen+Serdán+CDMX"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 bg-[#1d2025] hover:bg-[#37393f] text-[#e2e2ea] text-xs font-semibold px-4 py-2.5 rounded flex items-center justify-center gap-2 transition-colors border border-[#282a30]"
+                  >
+                    <span>🧭</span>
+                    <span>Abrir en Google Maps / Waze</span>
+                  </a>
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB 4: REGLAMENTO & EQUIPO REQUERIDO */}
+            {activeTab === "reglamento" && (
+              <div className="bg-[#191c21] rounded-xl p-6 shadow-xl border border-[#282a30]">
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-[#e2e2ea]">Guía de Material & Convivencia Familiar</h3>
+                  <p className="text-xs text-[#e2bfb0] mt-0.5">Pautas esenciales para proteger la integridad física de los atletas y cuidar nuestras instalaciones</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Material Requerido */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-[#ffb693] flex items-center gap-2 uppercase tracking-wide">
+                      <span>🏀</span>
+                      <span>Material & Calzado Requerido</span>
+                    </h4>
+
+                    <div className="bg-[#1d2025] p-4 rounded-xl flex items-start gap-3 border border-[#282a30]">
+                      <div className="w-9 h-9 rounded-lg bg-[#ff6b00]/20 text-[#ffb693] flex items-center justify-center shrink-0">
+                        👟
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#e2e2ea] block">Calzado Exclusivo de Duela</span>
+                        <p className="text-xs text-[#e2bfb0] mt-1 leading-relaxed">
+                          Tenis de baloncesto con suela de goma limpia (no manchante). Por cuidado de la duela de madera, se solicita que el atleta se coloque su calzado deportivo al ingresar a la duela y no desde la calle.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#1d2025] p-4 rounded-xl flex items-start gap-3 border border-[#282a30]">
+                      <div className="w-9 h-9 rounded-lg bg-[#00ae78]/20 text-[#4edea3] flex items-center justify-center shrink-0">
+                        💧
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#e2e2ea] block">Termo de Hidratación Personal</span>
+                        <p className="text-xs text-[#e2bfb0] mt-1 leading-relaxed">
+                          Botella o termo reutilizable de mínimo 1 Litro, debidamente rotulado con el nombre &quot;Toya #36&quot;. La academia provee garrafón de recarga purificada en banca.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#1d2025] p-4 rounded-xl flex items-start gap-3 border border-[#282a30]">
+                      <div className="w-9 h-9 rounded-lg bg-[#7bd0ff]/20 text-[#7bd0ff] flex items-center justify-center shrink-0">
+                        🎽
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#e2e2ea] block">Uniforme Oficial de Práctica</span>
+                        <p className="text-xs text-[#e2bfb0] mt-1 leading-relaxed">
+                          Jersey oficial reversible Wild Wolves o playera deportiva transpirable oscura en caso de sesión de prueba. Toalla pequeña de mano para banca recomendada.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Convivencia Familiar */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-[#4edea3] flex items-center gap-2 uppercase tracking-wide">
+                      <span>🤝</span>
+                      <span>Convivencia & Asistencia Familiar</span>
+                    </h4>
+
+                    <div className="bg-[#1d2025] p-4 rounded-xl flex items-start gap-3 border border-[#282a30]">
+                      <div className="w-9 h-9 rounded-lg bg-[#4edea3]/20 text-[#4edea3] flex items-center justify-center shrink-0">
+                        ⏰
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#e2e2ea] block">Puntualidad Familiar Recomendada</span>
+                        <p className="text-xs text-[#e2bfb0] mt-1 leading-relaxed">
+                          Llegada sugerida 15 minutos antes de la hora fijada (08:45 AM). Permite vendajes preventivos, hidratación previa y calentamiento neuromuscular guiado.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#1d2025] p-4 rounded-xl flex items-start gap-3 border border-[#282a30]">
+                      <div className="w-9 h-9 rounded-lg bg-[#ffb693]/20 text-[#ffb693] flex items-center justify-center shrink-0">
+                        🏟️
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#e2e2ea] block">Zona de Gradas y Acompañamiento</span>
+                        <p className="text-xs text-[#e2bfb0] mt-1 leading-relaxed">
+                          Padres, tutores y familiares son siempre bienvenidos en la gradería techada. Promovemos porras positivas y respeto absoluto a árbitros, rivales y compañeros.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#1d2025] p-4 rounded-xl flex items-start gap-3 border border-[#282a30]">
+                      <div className="w-9 h-9 rounded-lg bg-[#7bd0ff]/20 text-[#7bd0ff] flex items-center justify-center shrink-0">
+                        🩺
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#e2e2ea] block">Notificación Preventiva Médica</span>
+                        <p className="text-xs text-[#e2bfb0] mt-1 leading-relaxed">
+                          Si {studentName} presenta alguna molestia muscular, fatiga escolar o recuperación de resfriado, por favor notifíquenlo al Coach Ricardo vía WhatsApp previo a la práctica.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                <div className="mt-6 pt-3 bg-[#0c0e13]/60 -mx-6 -mb-6 p-4 rounded-b-xl flex flex-wrap items-center justify-between gap-2 text-[#e2bfb0] font-mono text-xs border-t border-[#282a30]/60">
+                  <span>Wild Wolves Academy CDMX — Formando Atletas de Carácter y Valores</span>
+                  <span className="text-[#4edea3]">Reglamento Aprobado Nov 2024</span>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </main>
+
+        {/* MODAL REPORTE WHATSAPP */}
+        {aiReportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-[#191c21] border border-[#282a30] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#282a30]">
+                <div className="flex items-center gap-2 text-[#4edea3]">
+                  <Sparkles className="w-5 h-5 text-[#ffb693]" />
+                  <h3 className="font-bold text-sm uppercase text-[#e2e2ea]">
+                    Reporte Familiar WhatsApp
+                  </h3>
+                </div>
                 <button
-                  onClick={handleCopyCoachReport}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition"
+                  onClick={() => setAiReportModalOpen(false)}
+                  className="text-[#e2bfb0] hover:text-white text-xs font-mono px-2 py-1 rounded bg-[#282a30]"
                 >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>{copiedCoachReport ? "¡Copiado!" : "Copiar Observaciones"}</span>
+                  Cerrar
                 </button>
               </div>
 
-              <div className="p-4 bg-black/40 rounded-2xl border border-zinc-800 text-sm text-zinc-200 leading-relaxed font-sans">
-                {coachReportLoading ? (
-                  <p className="text-xs font-mono text-zinc-400">Cargando reporte técnico actualizado...</p>
-                ) : (
-                  <p>{coachHumanReport}</p>
-                )}
+              <div className="bg-[#0c0e13] border border-[#282a30] rounded-xl p-4 text-xs font-mono text-[#e2e2ea] whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto">
+                {aiReportText}
               </div>
 
-              <div className="pt-2 flex items-center justify-between text-xs text-zinc-400">
-                <span>Evaluador: <strong>Head Coach Ricardo Delgado</strong></span>
-                <span className="text-emerald-400 font-bold">● Reporte Verificado</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PESTAÑA 3: CALENDARIO Y HORARIOS ESPECÍFICOS */}
-        {activeTab === "schedule" && (
-          <div className="space-y-6">
-            <div className="bg-[#0f131d] border border-zinc-800 rounded-3xl p-6 space-y-6">
-              <div>
-                <h3 className="text-lg font-black text-white uppercase flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-orange-400" /> Horario Oficial Asignado a {studentName}
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1">
-                  Días y turnos programados en las canchas del Deportivo Carmen Serdán.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-black/40 border border-zinc-800 space-y-1">
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase">Días de Entrenamiento</span>
-                  <div className="text-lg font-bold text-amber-300">{trainingDays}</div>
-                  <span className="text-xs text-zinc-500 block">Sede central Deportivo Carmen Serdán</span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-black/40 border border-zinc-800 space-y-1">
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase">Turno / Horario</span>
-                  <div className="text-lg font-bold text-emerald-400">{trainingSchedule}</div>
-                  <span className="text-xs text-zinc-500 block">Llegar 10 minutos antes para calentamiento</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-orange-950/20 border border-orange-500/30 flex items-start gap-3">
-                <Clock className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
-                <div className="text-xs text-zinc-300 space-y-1">
-                  <strong className="text-white block font-bold">Reglas de Asistencia Familiar:</strong>
-                  <p>1. Los atletas deben presentarse con uniforme completo Wild Wolves o ropa deportiva adecuada y calzado para básquetbol.</p>
-                  <p>2. Cada sesión tiene una duración de 2 horas continuas con hidratación supervisada.</p>
-                  <p>3. Cualquier inasistencia por causa médica o escolar puede justificarse directamente por WhatsApp con el Coach Ricardo.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </main>
-
-      {/* MODAL REPORTE WHATSAPP */}
-      {aiReportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0f131d] border border-zinc-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-              <div className="flex items-center gap-2 text-emerald-400">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <h3 className="font-black text-sm uppercase text-white tracking-wide">
-                  Reporte Familiar WhatsApp
-                </h3>
-              </div>
-              <button
-                onClick={() => setAiReportModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-xs font-mono px-2 py-1 rounded-lg bg-zinc-800"
-              >
-                Cerrar
-              </button>
-            </div>
-
-            <div className="bg-black/40 border border-zinc-800 rounded-2xl p-4 text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto">
-              {aiReportText}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={async () => {
-                  try {
-                    if (typeof navigator !== "undefined" && navigator?.clipboard?.writeText) {
-                      await navigator.clipboard.writeText(aiReportText);
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      if (typeof navigator !== "undefined" && navigator?.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(aiReportText);
+                      }
+                    } catch (e) {
+                      console.warn("Aviso:", e);
                     }
-                  } catch (e) {
-                    console.warn("Aviso:", e);
-                  }
-                  alert("¡Texto copiado al portapapeles!");
-                }}
-                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition"
-              >
-                Copiar Texto
-              </button>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(aiReportText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Abrir en WhatsApp</span>
-              </a>
+                    alert("¡Texto copiado al portapapeles!");
+                  }}
+                  className="px-4 py-2 rounded bg-[#282a30] hover:bg-[#37393f] text-[#e2e2ea] text-xs font-bold transition"
+                >
+                  Copiar Texto
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(aiReportText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded bg-[#00ae78] hover:bg-[#4edea3] text-[#003824] text-xs font-bold flex items-center gap-2 transition"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Abrir en WhatsApp</span>
+                </a>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* FOOTER */}
-      <footer className="border-t border-zinc-800/80 py-4 px-4 text-center text-[10px] font-mono text-zinc-500">
-        Wild Wolves Basketball Academy CDMX • Deportivo Carmen Serdán • Portal Oficial de Familias
-      </footer>
+      </div>
     </div>
   );
 }

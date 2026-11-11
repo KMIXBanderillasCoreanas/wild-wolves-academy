@@ -1,6 +1,7 @@
 // lib/offline/sync.ts
 import { supabase } from "@/lib/supabaseClient";
 import { getPendingQueue, removeQueueItem } from "./db";
+import { getPendingOfflineTests, markOfflineTestSynced, clearAllOfflineQueue } from "./indexedDbQueue";
 
 export async function syncOfflineDataWithCloud(
   onProgress?: (total: number, remaining: number) => void
@@ -9,9 +10,8 @@ export async function syncOfflineDataWithCloud(
     return { success: 0, failed: 0 };
   }
 
+  // 1. Sincronizar cola general de eventos (prospectos, asistencia general, pagos)
   const queue = await getPendingQueue();
-  if (queue.length === 0) return { success: 0, failed: 0 };
-
   let success = 0;
   let failed = 0;
   const total = queue.length;
@@ -39,15 +39,39 @@ export async function syncOfflineDataWithCloud(
         await removeQueueItem(item.id);
         success++;
       } else {
-        console.error("Fallo al sincronizar elemento:", item, resError);
+        console.error("Fallo al sincronizar elemento general:", item, resError);
         failed++;
       }
     } catch (err) {
-      console.error("Error en conexión:", err);
+      console.error("Error en conexión de cola general:", err);
       failed++;
     }
 
     if (onProgress) onProgress(total, total - (i + 1));
+  }
+
+  // 2. Sincronización Atómica de Test Days (35 Tiros, Cuerda, Físico) vía Endpoint Seguro
+  try {
+    const pendingTests = await getPendingOfflineTests();
+    if (pendingTests.length > 0) {
+      const response = await fetch("/api/sync-offline-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pendingTests)
+      });
+
+      if (response.ok) {
+        // Limpiar atómicamente la cola local tras status 200 de Supabase
+        await clearAllOfflineQueue();
+        success += pendingTests.length;
+        window.dispatchEvent(new Event("offline_tests_synced"));
+      } else {
+        console.warn("Respuesta no exitosa al sincronizar tests offline:", await response.text());
+        failed += pendingTests.length;
+      }
+    }
+  } catch (syncTestsErr) {
+    console.error("Error en sincronización atómica de tests:", syncTestsErr);
   }
 
   return { success, failed };
