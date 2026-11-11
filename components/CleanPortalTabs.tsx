@@ -1,27 +1,29 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { 
   Zap, 
-  Activity, 
   Target, 
   TrendingUp, 
-  Flame, 
-  Calendar, 
   Award, 
-  ChevronRight,
-  ShieldCheck,
-  Sparkles,
-  BarChart3,
-  Dumbbell,
-  Timer
+  CheckCircle2, 
+  RotateCw, 
+  Crosshair,
+  Activity,
+  Plane,
+  Users,
+  Lock,
+  Verified,
+  Fingerprint,
+  Download
 } from 'lucide-react';
 import TacticalCourtStitch from '@/components/TacticalCourtStitch';
 import BiomechanicsShotBackboardSystem from '@/components/BiomechanicsShotBackboardSystem';
 
 export interface CleanTabMetrics {
   verticalJumpCm: number;
-  sprint20mSeconds: number; // o sprint normalizado
+  sprint20mSeconds: number;
   shootingEfficiencyPct: number;
   overallOvr: number;
   freeThrowsPct: number;
@@ -71,345 +73,231 @@ interface CleanPortalTabsProps {
 }
 
 export default function CleanPortalTabs({
-  athleteName,
-  category = 'U-17 Competitivo',
-  jerseyNumber = '11',
+  athleteName = 'Mateo Silva',
+  category = 'U-17 Competitivo (Élite)',
+  jerseyNumber = '10',
   metrics,
   mode = 'student'
 }: CleanPortalTabsProps) {
-  const [activeTab, setActiveTab] = useState<'resumen' | 'curva' | 'mapa_tiro' | 'historial'>('resumen');
-
-  const tabs = [
-    { id: 'resumen', label: 'Resumen Actual', icon: Zap, badge: 'Top 3' },
-    { id: 'curva', label: 'Curva de Progresión', icon: TrendingUp, badge: 'Evolución' },
-    { id: 'mapa_tiro', label: 'Mapa de Tiro en Duela', icon: Target, badge: 'Interactivo' },
-    { id: 'historial', label: 'Historial Oficial', icon: Calendar, badge: 'Mes a Mes' }
-  ] as const;
+  // Pestañas alineadas con el HUD de Stitch
+  const [activeSection, setActiveSection] = useState<'all' | 'desglose_tiros' | 'biometria' | 'insignias'>('all');
 
   return (
-    <div className="w-full space-y-6">
-      {/* NAVEGACIÓN POR PESTAÑAS HORIZONTALES LIMPIAS */}
-      <div className="bg-[#0b0e17]/90 backdrop-blur-xl border border-zinc-800/90 rounded-2xl p-1.5 shadow-2xl flex flex-wrap sm:flex-nowrap gap-1.5 sticky top-[72px] z-30">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 ring-1 ring-orange-400/60 scale-[1.01]'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-              }`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'scale-110 text-white' : 'text-zinc-500'}`} />
-              <span className="truncate">{tab.label}</span>
-              <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold hidden md:inline shrink-0 ${
-                isActive ? 'bg-black/40 text-orange-200 border border-orange-400/40' : 'bg-zinc-800/80 text-zinc-400'
-              }`}>
-                {tab.badge}
+    <div className="w-full flex flex-col gap-8 pb-12 font-sans select-none text-[#e2e2ea]">
+      
+      {/* 1. TOP HUD / CYBER WOLF CARD LAYER (STITCH MATCH EXACTO) */}
+      <section className="relative z-10 w-full flex flex-col lg:flex-row gap-6 items-stretch">
+        
+        {/* ATHLETE IDENTITY CARD (CYBER WOLF DIGITAL PASSPORT) */}
+        <div className="flex-1 bg-[#191c21] rounded-2xl p-6 sm:p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-[#282a30]">
+          {/* Accent top indicator bar */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#ff6b00] via-[#7bd0ff] to-[#4edea3]"></div>
+          <div className="absolute -right-12 -bottom-12 w-48 h-48 rounded-full bg-[#ff6b00]/10 blur-3xl pointer-events-none"></div>
+
+          {/* Upper Row: Roster tag & Biological Rank */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-1 bg-[#1d2025] text-[#ffb693] font-mono text-xs uppercase tracking-wider rounded border border-[#5a4136]/50">
+                MOD // ATHLETE_HUD_v4.2
               </span>
-            </button>
-          );
-        })}
-      </div>
+              <span className="px-2.5 py-1 bg-[#1d2025] text-[#7bd0ff] font-mono text-[11px] uppercase tracking-widest rounded flex items-center gap-1.5 border border-[#004c69]">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#7bd0ff] animate-ping"></span>
+                TIER 3: INTERMEDIO AVANZADO
+              </span>
+            </div>
+            <div className="font-mono text-xs text-[#e2bfb0] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#4edea3]" />
+              <span>SISTEMA BIOMÉTRICO AUDITADO</span>
+            </div>
+          </div>
 
-      {/* CONTENIDO DE LAS PESTAÑAS */}
-
-      {/* ========================================================================= */}
-      {/* TAB 1: RESUMEN ACTUAL (3 MÉTRICAS ESTELARES DE ALTO IMPACTO)              */}
-      {/* ========================================================================= */}
-      {activeTab === 'resumen' && (
-        <div className="space-y-6">
-          {/* Tarjetas Principales de Alto Impacto */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {/* Métrica 1: Salto Vertical */}
-            <div className="bg-gradient-to-b from-[#131620] to-[#0b0e17] border border-zinc-800 hover:border-orange-500/50 rounded-3xl p-6 shadow-xl relative overflow-hidden group transition">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-2xl rounded-full group-hover:bg-orange-500/20 transition" />
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-orange-400 font-bold px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
-                  Potencia de Despegue
-                </span>
-                <Dumbbell className="w-5 h-5 text-orange-400" />
+          {/* Main ID Info Block */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center my-6">
+            
+            {/* Holographic Avatar Container */}
+            <div className="md:col-span-4 relative flex items-center justify-center">
+              <div className="relative w-36 h-44 rounded-xl overflow-hidden bg-[#33353b] shadow-2xl flex items-center justify-center border border-[#5a4136]/40">
+                <Image
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDO0LHr3QeISP6lrtwGfxPmqB_xkuRyPP61OFvk0mIr5kDzgubQw3kBwHv4wgv4pMER03mVO0T8rXTVlFSc-ynqN1V-rG187IdHwPs3pv9GnXcHV-1szFlDkUe-k2imE2leJB8rTfJKMJMJ0G_RbjuVNXntMTnEi_Ibye60OXWn3KvIDZL8e0p7sW1OFOFP7qPWwPU04LfA4uJ4b3zMfntxKVuWnAptEeaHB--zsCk"
+                  alt={`Atleta ${athleteName}`}
+                  fill
+                  sizes="180px"
+                  className="object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-500"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0c0e13] via-transparent to-transparent opacity-85"></div>
+                <div className="absolute bottom-2 left-2.5 right-2.5 flex justify-between items-center text-white">
+                  <span className="font-mono text-[11px] tracking-widest uppercase text-[#7bd0ff]">
+                    #WOLF-8902
+                  </span>
+                  <Fingerprint className="w-4 h-4 text-[#ffb693]" />
+                </div>
               </div>
-              <h3 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Salto Vertical</h3>
-              <div className="flex items-baseline gap-2 my-2">
-                <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                  {metrics.verticalJumpCm}
-                </span>
-                <span className="text-zinc-400 font-mono text-sm font-bold">cm</span>
-              </div>
-              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-400">Línea Base: {metrics.baseline.verticalJumpCm} cm</span>
-                <span className="text-emerald-400 font-bold">
-                  +{Math.max(0, metrics.verticalJumpCm - metrics.baseline.verticalJumpCm)} cm
-                </span>
-              </div>
+              {/* Decorative corner targeting crosshairs */}
+              <div className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-[#7bd0ff]"></div>
+              <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-[#ff6b00]"></div>
             </div>
 
-            {/* Métrica 2: Sprint 20m */}
-            <div className="bg-gradient-to-b from-[#131620] to-[#0b0e17] border border-zinc-800 hover:border-blue-500/50 rounded-3xl p-6 shadow-xl relative overflow-hidden group transition">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-2xl rounded-full group-hover:bg-blue-500/20 transition" />
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-blue-400 font-bold px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
-                  Velocidad & Explosividad
-                </span>
-                <Timer className="w-5 h-5 text-blue-400" />
-              </div>
-              <h3 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Sprint 20m</h3>
-              <div className="flex items-baseline gap-2 my-2">
-                <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                  {metrics.sprint20mSeconds}
-                </span>
-                <span className="text-zinc-400 font-mono text-sm font-bold">seg</span>
-              </div>
-              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-400">Línea Base: {metrics.baseline.sprint20mSeconds}s</span>
-                <span className="text-cyan-400 font-bold">
-                  {(metrics.baseline.sprint20mSeconds - metrics.sprint20mSeconds).toFixed(1)}s más rápido
+            {/* Bio & Category Details */}
+            <div className="md:col-span-8 flex flex-col justify-center gap-1.5">
+              <div className="flex items-baseline gap-4 flex-wrap">
+                <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white leading-none">
+                  {athleteName}
+                </h1>
+                <span className="text-3xl sm:text-4xl font-mono text-[#ff6b00] font-black leading-none">
+                  #{jerseyNumber}
                 </span>
               </div>
-            </div>
+              <div className="flex items-center gap-2 flex-wrap text-zinc-400 font-mono text-xs">
+                <span className="text-[#ffb693] font-bold">{category}</span>
+                <span>//</span>
+                <span>BASE &amp; ESCOLTA DUAL</span>
+                <span>//</span>
+                <span className="text-[#7bd0ff]">CLUB WILD WOLVES CDMX</span>
+              </div>
 
-            {/* Métrica 3: Eficiencia de Tiro */}
-            <div className="bg-gradient-to-b from-[#131620] to-[#0b0e17] border border-zinc-800 hover:border-emerald-500/50 rounded-3xl p-6 shadow-xl relative overflow-hidden group transition">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-2xl rounded-full group-hover:bg-emerald-500/20 transition" />
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                  Puntería Global
-                </span>
-                <Target className="w-5 h-5 text-emerald-400" />
-              </div>
-              <h3 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Eficiencia de Tiro</h3>
-              <div className="flex items-baseline gap-2 my-2">
-                <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                  {metrics.shootingEfficiencyPct}%
-                </span>
-                <span className="text-emerald-400 font-mono text-xs font-bold uppercase">Élite Duela</span>
-              </div>
-              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-400">Base: {metrics.baseline.shootingEfficiencyPct}%</span>
-                <span className="text-emerald-400 font-bold">
-                  +{Math.max(0, metrics.shootingEfficiencyPct - metrics.baseline.shootingEfficiencyPct)}%
+              {/* Callout Status Pill */}
+              <div className="mt-3 p-3 bg-[#1d2025] rounded-xl flex items-center justify-between gap-3 border border-[#282a30]">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#ff6b00] animate-pulse" />
+                  <span className="font-mono text-xs uppercase text-zinc-200 tracking-wide">
+                    CONVOCADO TITULAR // PRÓX. PARTIDO EN CARMEN SERDÁN
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] bg-[#ff6b00] text-black font-black px-2.5 py-0.5 rounded uppercase">
+                  CONFIRMADO
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Banner de Valoración General (OVR) y Estatus Deportivo */}
-          <div className="bg-[#0b0e17] border border-zinc-800 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-orange-500/30">
-                {metrics.overallOvr}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-white font-black text-lg">{athleteName}</h4>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-800 text-orange-400 border border-zinc-700">
-                    #{jerseyNumber}
-                  </span>
-                </div>
-                <p className="text-zinc-400 text-xs mt-0.5">
-                  Categoría {category} • Deportivo Carmen Serdán
-                </p>
-              </div>
+          {/* Telemetry Bottom Specs Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-3 bg-[#0c0e13]/80 rounded-xl p-3 border border-[#282a30]/60">
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">ALTURA</span>
+              <span className="font-mono text-base font-bold text-white">1.84 <span className="text-xs text-zinc-500 font-normal">m</span></span>
             </div>
-
-            <div className="grid grid-cols-3 gap-4 w-full md:w-auto text-center border-t md:border-t-0 md:border-l border-zinc-800 pt-4 md:pt-0 md:pl-6">
-              <div>
-                <span className="text-[10px] font-mono text-zinc-400 block uppercase">Tiro Libre</span>
-                <span className="text-base font-black text-emerald-400">{metrics.freeThrowsPct}%</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-mono text-zinc-400 block uppercase">Media Distancia</span>
-                <span className="text-base font-black text-amber-400">{metrics.midRangePct}%</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-mono text-zinc-400 block uppercase">Triples (3PT)</span>
-                <span className="text-base font-black text-orange-400">{metrics.threePointPct}%</span>
-              </div>
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">ENVERGADURA</span>
+              <span className="font-mono text-base font-bold text-[#7bd0ff]">1.92 <span className="text-xs text-zinc-500 font-normal">m</span></span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">PESO CORP</span>
+              <span className="font-mono text-base font-bold text-white">74.2 <span className="text-xs text-zinc-500 font-normal">kg</span></span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">GRASA CORP</span>
+              <span className="font-mono text-base font-bold text-[#4edea3]">9.4 <span className="text-xs text-zinc-500 font-normal">%</span></span>
+            </div>
+            <div className="flex flex-col col-span-2 sm:col-span-1">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">REACCIÓN</span>
+              <span className="font-mono text-base font-bold text-[#ffb693]">0.22 <span className="text-xs text-zinc-500 font-normal">s</span></span>
             </div>
           </div>
         </div>
-      )}
 
-      {/* ========================================================================= */}
-      {/* TAB 2: CURVA DE PROGRESIÓN (LÍNEA BASE VS. MES EN CURSO)                  */}
-      {/* ========================================================================= */}
-      {activeTab === 'curva' && (
-        <div className="bg-[#0b0e17] border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-zinc-800">
-            <div>
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-orange-500" />
-                Curva de Evolución Mensual
-              </h3>
-              <p className="text-zinc-400 text-xs mt-0.5">
-                Comparativa directa entre la línea base inicial de ingreso y el mes actual.
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-mono">
-              <span className="flex items-center gap-1.5 text-zinc-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-zinc-600" /> Línea Base
+        {/* OVERALL RATING HUD HERO CARD (88 OVR NEON) */}
+        <div className="w-full lg:w-80 bg-[#191c21] rounded-2xl p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-[#282a30]">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest font-bold">CALIBRE TOTAL</span>
+            <span className="px-2 py-0.5 rounded bg-[#4edea3]/20 text-[#4edea3] font-mono text-[10px] font-bold uppercase border border-[#4edea3]/40">
+              +3 MES EN CURSO
+            </span>
+          </div>
+
+          {/* Giant Neon OVR Badge */}
+          <div className="flex flex-col items-center justify-center my-6 relative">
+            <div className="absolute w-40 h-40 rounded-full bg-[#ff6b00]/25 blur-2xl"></div>
+            <div className="relative z-10 flex flex-col items-center">
+              <span className="font-mono text-8xl leading-none font-black text-[#ff6b00] drop-shadow-[0_0_30px_rgba(255,107,0,0.55)]">
+                {metrics.overallOvr || 88}
               </span>
-              <span className="flex items-center gap-1.5 text-orange-400 font-bold">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Mes Actual
+              <span className="font-mono text-xs text-white uppercase tracking-widest mt-2 font-black">
+                VALORACIÓN GENERAL OVR
               </span>
             </div>
           </div>
 
-          {/* Gráfico de Barras / Progresión Visual */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-            {/* Comparativa Salto Vertical */}
-            <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-mono text-zinc-400 uppercase">Evolución Salto Vertical</span>
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-zinc-400">Día de Ingreso</span>
-                      <span className="text-zinc-400 font-mono">{metrics.baseline.verticalJumpCm} cm</span>
-                    </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
-                      <div 
-                        className="bg-zinc-600 h-2.5 rounded-full" 
-                        style={{ width: `${Math.min(100, (metrics.baseline.verticalJumpCm / 80) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-white font-bold">Mes en Curso</span>
-                      <span className="text-orange-400 font-mono font-bold">{metrics.verticalJumpCm} cm</span>
-                    </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-orange-500 to-amber-500 h-2.5 rounded-full" 
-                        style={{ width: `${Math.min(100, (metrics.verticalJumpCm / 80) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-zinc-800/80 text-[11px] font-mono text-emerald-400 flex items-center justify-between">
-                <span>Ganancia Neta:</span>
-                <span className="font-bold">+{Math.max(0, metrics.verticalJumpCm - metrics.baseline.verticalJumpCm)} cm</span>
-              </div>
+          {/* Quick Sub-Indices */}
+          <div className="flex flex-col gap-2 bg-[#0c0e13]/90 p-3 rounded-xl border border-[#282a30]">
+            <div className="flex justify-between items-center text-xs font-mono text-zinc-400">
+              <span>DISPARO TOTAL</span>
+              <span className="text-[#4edea3] font-bold">91 / 100</span>
+            </div>
+            <div className="w-full h-1.5 bg-[#282a30] rounded-full overflow-hidden">
+              <div className="bg-[#4edea3] h-full w-[91%] rounded-full shadow-[0_0_8px_#4edea3]"></div>
             </div>
 
-            {/* Comparativa Sprint 20m */}
-            <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-mono text-zinc-400 uppercase">Evolución Sprint 20m</span>
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-zinc-400">Día de Ingreso</span>
-                      <span className="text-zinc-400 font-mono">{metrics.baseline.sprint20mSeconds}s</span>
-                    </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
-                      <div 
-                        className="bg-zinc-600 h-2.5 rounded-full" 
-                        style={{ width: '65%' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-white font-bold">Mes en Curso</span>
-                      <span className="text-blue-400 font-mono font-bold">{metrics.sprint20mSeconds}s</span>
-                    </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2.5 rounded-full" 
-                        style={{ width: '85%' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-zinc-800/80 text-[11px] font-mono text-emerald-400 flex items-center justify-between">
-                <span>Reducción de Tiempo:</span>
-                <span className="font-bold">{(metrics.baseline.sprint20mSeconds - metrics.sprint20mSeconds).toFixed(1)}s</span>
-              </div>
+            <div className="flex justify-between items-center text-xs font-mono text-zinc-400 mt-1">
+              <span>AGILIDAD Y VERTICAL</span>
+              <span className="text-[#7bd0ff] font-bold">86 / 100</span>
             </div>
-
-            {/* Comparativa Tiro Global */}
-            <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-mono text-zinc-400 uppercase">Evolución Tiro Global</span>
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-zinc-400">Día de Ingreso</span>
-                      <span className="text-zinc-400 font-mono">{metrics.baseline.shootingEfficiencyPct}%</span>
-                    </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
-                      <div 
-                        className="bg-zinc-600 h-2.5 rounded-full" 
-                        style={{ width: `${metrics.baseline.shootingEfficiencyPct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-white font-bold">Mes en Curso</span>
-                      <span className="text-emerald-400 font-mono font-bold">{metrics.shootingEfficiencyPct}%</span>
-                    </div>
-                    <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2.5 rounded-full" 
-                        style={{ width: `${metrics.shootingEfficiencyPct}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-zinc-800/80 text-[11px] font-mono text-emerald-400 flex items-center justify-between">
-                <span>Incremento de Puntería:</span>
-                <span className="font-bold">+{Math.max(0, metrics.shootingEfficiencyPct - metrics.baseline.shootingEfficiencyPct)}%</span>
-              </div>
+            <div className="w-full h-1.5 bg-[#282a30] rounded-full overflow-hidden">
+              <div className="bg-[#7bd0ff] h-full w-[86%] rounded-full shadow-[0_0_8px_#7bd0ff]"></div>
             </div>
           </div>
 
-          {/* Histórico Mes a Mes en Barras */}
-          <div className="pt-4">
-            <h4 className="text-xs font-mono uppercase tracking-wider text-zinc-400 mb-3">
-              Evolución OVR por Meses Registrados
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {metrics.monthlyProgression.map((item, idx) => (
-                <div key={idx} className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 text-center">
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase block mb-1">{item.month}</span>
-                  <span className="text-2xl font-black text-orange-400">{item.ovr}</span>
-                  <span className="text-[10px] text-zinc-400 block mt-1 font-mono">
-                    {item.verticalJumpCm}cm • {item.shootingPct}%
-                  </span>
-                </div>
-              ))}
+          <div className="mt-4 pt-2 flex items-center justify-between text-zinc-400 font-mono text-[10px] border-t border-[#282a30]">
+            <span>SEDE: DEP. CARMEN SERDÁN</span>
+            <span className="text-[#ffb693] font-bold">LOCK_ALFA #{jerseyNumber}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. SECTION 1: DESGLOSE TÉCNICO DE 35 TIROS & GUÍA BIOMECÁNICA AL 100% */}
+      <section className="w-full bg-[#191c21] rounded-2xl p-6 sm:p-8 flex flex-col gap-6 shadow-2xl relative border border-[#282a30]">
+        
+        {/* Section Title & Telemetry Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-[#ff6b00] rounded-sm"></span>
+              <span className="font-mono text-xs uppercase tracking-widest text-[#ffb693]">
+                SEC_01 // VECTOR DUELA FIBA
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+              DESGLOSE TÉCNICO DE 35 TIROS
+            </h2>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl">
+              Mapeo cinemático de alta precisión capturado por sensores ópticos en duela interior Carmen Serdán. Calibración en 4 zonas tácticas exclusivas con el tablero biomecánico al 100%.
+            </p>
+          </div>
+
+          {/* Telemetry Pill Summaries */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="bg-[#1d2025] px-4 py-2 rounded-xl flex flex-col border border-[#282a30]">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">TOTAL CALIBRADO</span>
+              <span className="font-mono text-base font-bold text-[#4edea3]">
+                30/35 <span className="text-xs text-zinc-400 font-normal">(85.7% FG)</span>
+              </span>
+            </div>
+            <div className="bg-[#1d2025] px-4 py-2 rounded-xl flex flex-col border border-[#282a30]">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">PARÁBOLA PROMEDIO</span>
+              <span className="font-mono text-base font-bold text-[#7bd0ff]">
+                48.2° <span className="text-xs text-zinc-400 font-normal">OPTIMAL</span>
+              </span>
+            </div>
+            <div className="bg-[#1d2025] px-4 py-2 rounded-xl flex flex-col border border-[#282a30]">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">RELEASE TIME</span>
+              <span className="font-mono text-base font-bold text-[#ffb693]">
+                0.68s <span className="text-xs text-zinc-400 font-normal">ÉLITE</span>
+              </span>
             </div>
           </div>
         </div>
-      )}
 
-      {/* ========================================================================= */}
-      {/* TAB 3: MAPA DE TIRO & DESGLOSE EN DUELA (INTERACTIVO POR ZONAS)           */}
-      {/* ========================================================================= */}
-      {activeTab === 'mapa_tiro' && (
-        <div className="space-y-6">
-          {/* 1. GUÍA BIOMECÁNICA: TABLERO MILIMÉTRICO CON PUNTOS DE IMPACTO VERDE Y AZUL */}
+        {/* GUÍA BIOMECÁNICA AL 100% (TABLERO MILIMÉTRICO Y PUNTOS DE IMPACTO) */}
+        <div className="w-full">
           <BiomechanicsShotBackboardSystem
             athleteName={athleteName}
             jerseyNumber={jerseyNumber}
             overallOvr={metrics.overallOvr}
           />
+        </div>
 
-          {/* 2. CANCHA TÁCTICA INTERACTIVA: MAPA DE TIRO, PORCENTAJES Y ZONAS POLIGONALES */}
+        {/* CANCHA TÁCTICA INTERACTIVA DE BALONCESTO */}
+        <div className="w-full">
           <TacticalCourtStitch
             athleteName={athleteName}
             jerseyNumber={jerseyNumber}
@@ -418,64 +306,352 @@ export default function CleanPortalTabs({
             initialZone="paint"
           />
         </div>
-      )}
+      </section>
 
-      {/* ========================================================================= */}
-      {/* TAB 4: HISTORIAL OFICIAL (TABLA RESUMIDA MES A MES)                       */}
-      {/* ========================================================================= */}
-      {activeTab === 'historial' && (
-        <div className="bg-[#0b0e17] border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800 mb-6">
+      {/* 3. SECTION 2: BIOMETRÍA FÍSICA & ATLÉTICA (HISTORIC PROGRESSION BASELINE VS CURRENT) */}
+      <section className="w-full bg-[#191c21] rounded-2xl p-6 sm:p-8 flex flex-col gap-6 shadow-2xl relative border border-[#282a30]">
+        
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-[#7bd0ff] rounded-sm"></span>
+              <span className="font-mono text-xs uppercase tracking-widest text-[#7bd0ff]">
+                SEC_02 // KINEMATIC READOUT
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+              BIOMETRÍA FÍSICA &amp; ATLÉTICA // HISTORIAL PROGRESIVO
+            </h2>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl">
+              Comparativa directa de evolución motriz: Día 1 de reclutamiento (Línea Base) contra estado actual auditado en laboratorio deportivo Carmen Serdán.
+            </p>
+          </div>
+
+          <div className="px-4 py-2 bg-[#1d2025] rounded-xl flex items-center gap-3 border border-[#282a30]">
+            <TrendingUp className="w-5 h-5 text-[#7bd0ff]" />
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] text-zinc-400 uppercase">BENCHMARK LOCAL</span>
+              <span className="font-mono text-sm font-bold text-white">PERCENTIL 94% CDMX</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Progression Cards Grid (Salto de Cuerda, Sprint, Salto Vertical) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          
+          {/* MÉTRICA 1: SALTO DE CUERDA (1,000 SALTOS) */}
+          <div className="bg-[#1d2025] rounded-2xl p-6 flex flex-col justify-between gap-4 border border-[#282a30] hover:border-[#4edea3]/50 transition">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs text-[#4edea3] uppercase font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#4edea3]" />
+                RESISTENCIA ANAERÓBICA
+              </span>
+              <span className="px-2 py-0.5 bg-[#4edea3]/20 text-[#4edea3] font-mono text-[10px] uppercase font-bold rounded border border-[#4edea3]/30">
+                +122% INCREMENTO
+              </span>
+            </div>
+
             <div>
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-orange-500" />
-                Historial Oficial Mes a Mes
-              </h3>
-              <p className="text-zinc-400 text-xs mt-0.5">
-                Registro inmutable de evaluaciones de Test Day aplicadas en duela.
-              </p>
+              <span className="font-mono text-xs text-zinc-400 uppercase">SALTO DE CUERDA CONTINUO</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="font-mono text-4xl sm:text-5xl text-white font-black">1,000</span>
+                <span className="font-mono text-xs text-[#4edea3] font-bold">SALTOS SIN CORTE</span>
+              </div>
+              <span className="text-xs text-zinc-400 mt-1 block">Cadencia constante sostenida: 142 RPM</span>
+            </div>
+
+            {/* Historic Progression Dual Bar */}
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-[#282a30]">
+              <div className="flex justify-between items-center font-mono text-[11px]">
+                <span className="text-zinc-400">DÍA 1 (LÍNEA BASE): 450</span>
+                <span className="text-[#4edea3] font-bold">ACTUAL: 1,000 REPS</span>
+              </div>
+              <div className="w-full h-3 bg-[#282a30] rounded-full overflow-hidden flex">
+                <div className="bg-zinc-600 h-full w-[45%]" title="Día 1: 450"></div>
+                <div className="bg-[#4edea3] h-full w-[55%]" title="Incremento actual"></div>
+              </div>
+              <div className="flex justify-between font-mono text-[10px] text-zinc-500">
+                <span>0</span>
+                <span>META INTERMEDIA SUPERADA</span>
+                <span>1,000</span>
+              </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
-                  <th className="py-3 px-3">Fecha</th>
-                  <th className="py-3 px-3">Calificación OVR</th>
-                  <th className="py-3 px-3">Salto Vertical</th>
-                  <th className="py-3 px-3">Sprint 20m</th>
-                  <th className="py-3 px-3">Tiro Global</th>
-                  <th className="py-3 px-3">Evaluador</th>
-                  <th className="py-3 px-3">Estatus</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60 font-mono">
-                {metrics.officialHistory.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-zinc-900/40 transition">
-                    <td className="py-3.5 px-3 text-white font-bold">{row.date}</td>
-                    <td className="py-3.5 px-3">
-                      <span className="px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-black">
-                        {row.ovr} OVR
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3 text-zinc-300">{row.verticalJump}</td>
-                    <td className="py-3.5 px-3 text-zinc-300">{row.sprint}</td>
-                    <td className="py-3.5 px-3 text-emerald-400 font-bold">{row.shooting}</td>
-                    <td className="py-3.5 px-3 text-zinc-400 font-sans">{row.evaluator}</td>
-                    <td className="py-3.5 px-3">
-                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                        <ShieldCheck className="w-3 h-3" />
-                        {row.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* MÉTRICA 2: SPRINT 20M FOTOCELDAS LÁSER (11.03s) */}
+          <div className="bg-[#1d2025] rounded-2xl p-6 flex flex-col justify-between gap-4 border border-[#282a30] hover:border-[#ff6b00]/50 transition">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs text-[#ffb693] uppercase font-bold flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-[#ff6b00]" />
+                ACELERACIÓN EXPLOSIVA
+              </span>
+              <span className="px-2 py-0.5 bg-[#ff6b00]/20 text-[#ffb693] font-mono text-[10px] uppercase font-bold rounded border border-[#ff6b00]/30">
+                -2.37s REDUCCIÓN
+              </span>
+            </div>
+
+            <div>
+              <span className="font-mono text-xs text-zinc-400 uppercase">SPRINT 20M LÁSER CDMX</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="font-mono text-4xl sm:text-5xl text-white font-black">
+                  {metrics.sprint20mSeconds ? `${metrics.sprint20mSeconds}s` : "11.03s"}
+                </span>
+                <span className="font-mono text-xs text-[#ffb693] font-bold">AGILIDAD COMPLETA</span>
+              </div>
+              <span className="text-xs text-zinc-400 mt-1 block">Sprint recto puro: 3.18s (Línea base: 3.80s)</span>
+            </div>
+
+            {/* Historic Progression Dual Bar */}
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-[#282a30]">
+              <div className="flex justify-between items-center font-mono text-[11px]">
+                <span className="text-zinc-400">DÍA 1: 13.40s TOTAL</span>
+                <span className="text-[#ff6b00] font-bold">ACTUAL: 11.03s</span>
+              </div>
+              <div className="w-full h-3 bg-[#282a30] rounded-full overflow-hidden flex">
+                <div className="bg-[#ff6b00] h-full w-[82%]" title="Eficiencia actual"></div>
+                <div className="bg-zinc-600 h-full w-[18%]" title="Margen recortado"></div>
+              </div>
+              <div className="flex justify-between font-mono text-[10px] text-zinc-500">
+                <span>TIEMPO OPTIMIZADO</span>
+                <span>FOTOCELDA LÁSER</span>
+              </div>
+            </div>
+          </div>
+
+          {/* MÉTRICA 3: SALTO VERTICAL BIOMECÁNICO (65 cm / 40 cm) */}
+          <div className="bg-[#1d2025] rounded-2xl p-6 flex flex-col justify-between gap-4 border border-[#282a30] hover:border-[#7bd0ff]/50 transition">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs text-[#7bd0ff] uppercase font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#7bd0ff]" />
+                POTENCIA VERTICAL
+              </span>
+              <span className="px-2 py-0.5 bg-[#7bd0ff]/20 text-[#7bd0ff] font-mono text-[10px] uppercase font-bold rounded border border-[#7bd0ff]/30">
+                +15 CM GANANCIA NETA
+              </span>
+            </div>
+
+            <div>
+              <span className="font-mono text-xs text-zinc-400 uppercase">SALTO MÁXIMO CON CARRERA</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="font-mono text-4xl sm:text-5xl text-white font-black">
+                  {metrics.verticalJumpCm || 65} cm
+                </span>
+                <span className="font-mono text-xs text-[#7bd0ff] font-bold">(40 cm ESTÁTICO)</span>
+              </div>
+              <span className="text-xs text-zinc-400 mt-1 block">Línea Base: 28 cm estático / 50 cm carrera</span>
+            </div>
+
+            {/* Historic Progression Dual Bar */}
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-[#282a30]">
+              <div className="flex justify-between items-center font-mono text-[11px]">
+                <span className="text-zinc-400">DÍA 1: 50 cm</span>
+                <span className="text-[#7bd0ff] font-bold">ACTUAL: {metrics.verticalJumpCm || 65} cm</span>
+              </div>
+              <div className="w-full h-3 bg-[#282a30] rounded-full overflow-hidden flex">
+                <div className="bg-zinc-600 h-full w-[76%]"></div>
+                <div className="bg-[#7bd0ff] h-full w-[24%]"></div>
+              </div>
+              <div className="flex justify-between font-mono text-[10px] text-zinc-500">
+                <span>PLATAFORMA BOSCO</span>
+                <span>CONTACT TIME 0.19s</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 4. SECTION 3: VITRINA DE INSIGNIAS WOLF & SALA DE TROFEOS */}
+      <section className="w-full bg-[#191c21] rounded-2xl p-6 sm:p-8 flex flex-col gap-6 shadow-2xl relative border border-[#282a30]">
+        
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-[#ffb693] rounded-sm"></span>
+              <span className="font-mono text-xs uppercase tracking-widest text-[#ffb693]">
+                SEC_03 // REPUTACIÓN ALFA
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+              VITRINA DE INSIGNIAS WOLF &amp; SALA DE TROFEOS
+            </h2>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl">
+              Insignias biomecánicas y de ejecución táctica auditadas en duela. Desbloqueadas mediante calibraciones verificadas por la dirección técnica de Wild Wolves.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-zinc-400 font-mono text-xs">
+            <span className="w-2 h-2 rounded-full bg-[#4edea3]" />
+            <span>4 INSIGNIAS DESBLOQUEADAS // 0 PENDIENTES</span>
           </div>
         </div>
-      )}
+
+        {/* Badge Showcase Grid (Oro, Plata, Bronce, Racha Activa) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* BADGE 1: FRANCOTIRADOR ALFA (ORO) */}
+          <div className="bg-[#1d2025] rounded-2xl p-6 flex flex-col justify-between gap-4 border border-[#ff6b00]/40 shadow-lg relative overflow-hidden group hover:border-[#ff6b00] transition">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#ff6b00]/10 rounded-full blur-xl pointer-events-none"></div>
+            <div className="flex items-start justify-between">
+              <span className="px-2 py-0.5 rounded bg-[#ff6b00]/20 text-[#ff6b00] font-mono text-[10px] uppercase font-bold border border-[#ff6b00]/40">
+                MEDALLA DE ORO
+              </span>
+              <span className="font-mono text-[10px] text-zinc-500">NOV 2026</span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center my-3 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#33353b] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform relative border border-[#ff6b00]/30">
+                <Crosshair className="w-8 h-8 text-[#ff6b00]" />
+              </div>
+              <h3 className="text-base font-black uppercase text-white mt-3">
+                FRANCOTIRADOR ALFA
+              </h3>
+              <span className="font-mono text-xs text-[#ff6b00] font-bold mt-0.5">
+                10/10 PINTURA &amp; TIRO LIBRE
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-[#282a30]">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                10 tiros libres consecutivos embocados bajo presión simulada con ruido de duela a 85dB.
+              </p>
+              <div className="flex justify-between items-center font-mono text-[10px] text-zinc-500 mt-1">
+                <span>VALIDACIÓN: COACH CARMEN SERDÁN</span>
+                <span className="text-[#4edea3] font-bold">CONFIRMADO</span>
+              </div>
+            </div>
+          </div>
+
+          {/* BADGE 2: CROSSOVER MORTAL (PLATA) */}
+          <div className="bg-[#1d2025] rounded-2xl p-6 flex flex-col justify-between gap-4 border border-[#7bd0ff]/40 shadow-lg relative overflow-hidden group hover:border-[#7bd0ff] transition">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#7bd0ff]/10 rounded-full blur-xl pointer-events-none"></div>
+            <div className="flex items-start justify-between">
+              <span className="px-2 py-0.5 rounded bg-[#7bd0ff]/20 text-[#7bd0ff] font-mono text-[10px] uppercase font-bold border border-[#7bd0ff]/40">
+                MEDALLA DE PLATA
+              </span>
+              <span className="font-mono text-[10px] text-zinc-500">OCT 2026</span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center my-3 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#33353b] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform relative border border-[#7bd0ff]/30">
+                <Zap className="w-8 h-8 text-[#7bd0ff]" />
+              </div>
+              <h3 className="text-base font-black uppercase text-white mt-3">
+                CROSSOVER MORTAL
+              </h3>
+              <span className="font-mono text-xs text-[#7bd0ff] font-bold mt-0.5">
+                CAMBIO DIRECCIÓN 22 KM/H
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-[#282a30]">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Reacción motriz registrada en 0.22s en zig-zag cerrado con pérdida cero de balance articular.
+              </p>
+              <div className="flex justify-between items-center font-mono text-[10px] text-zinc-500 mt-1">
+                <span>SENSOR: FOTOCELDA LÁSER</span>
+                <span className="text-[#4edea3] font-bold">CONFIRMADO</span>
+              </div>
+            </div>
+          </div>
+
+          {/* BADGE 3: GRAVEDAD CERO (BRONCE) */}
+          <div className="bg-[#1d2025] rounded-2xl p-6 flex flex-col justify-between gap-4 border border-[#ffb693]/40 shadow-lg relative overflow-hidden group hover:border-[#ffb693] transition">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#ffb693]/10 rounded-full blur-xl pointer-events-none"></div>
+            <div className="flex items-start justify-between">
+              <span className="px-2 py-0.5 rounded bg-[#ffb693]/20 text-[#ffb693] font-mono text-[10px] uppercase font-bold border border-[#ffb693]/40">
+                MEDALLA DE BRONCE
+              </span>
+              <span className="font-mono text-[10px] text-zinc-500">NOV 2026</span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center my-3 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#33353b] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform relative border border-[#ffb693]/30">
+                <Plane className="w-8 h-8 text-[#ffb693]" />
+              </div>
+              <h3 className="text-base font-black uppercase text-white mt-3">
+                GRAVEDAD CERO
+              </h3>
+              <span className="font-mono text-xs text-[#ffb693] font-bold mt-0.5">
+                VERTICAL &gt; 60 CM
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-[#282a30]">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Salto vertical con carrera de 65 cm auditado sobre la duela del Deportivo Carmen Serdán.
+              </p>
+              <div className="flex justify-between items-center font-mono text-[10px] text-zinc-500 mt-1">
+                <span>TEST: PLATAFORMA BOSCO</span>
+                <span className="text-[#4edea3] font-bold">CONFIRMADO</span>
+              </div>
+            </div>
+          </div>
+
+          {/* BADGE 4: LOBO DE HIERRO (RACHA ACTIVA) */}
+          <div className="bg-[#1d2025] rounded-2xl p-6 flex flex-col justify-between gap-4 border border-[#4edea3]/40 shadow-lg relative overflow-hidden group hover:border-[#4edea3] transition">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#4edea3]/10 rounded-full blur-xl pointer-events-none"></div>
+            <div className="flex items-start justify-between">
+              <span className="px-2 py-0.5 rounded bg-[#4edea3]/20 text-[#4edea3] font-mono text-[10px] uppercase font-bold border border-[#4edea3]/40">
+                RACHA ACTIVA
+              </span>
+              <span className="font-mono text-[10px] text-zinc-500">EN CURSO</span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center my-3 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[#33353b] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform relative border border-[#4edea3]/30">
+                <Users className="w-8 h-8 text-[#4edea3]" />
+              </div>
+              <h3 className="text-base font-black uppercase text-white mt-3">
+                LOBO DE HIERRO
+              </h3>
+              <span className="font-mono text-xs text-[#4edea3] font-bold mt-0.5">
+                16 ASISTENCIAS SIN PERDER BALÓN
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5 pt-3 border-t border-[#282a30]">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Racha consecutiva de pases para anotación durante el último microciclo competitivo de la liga.
+              </p>
+              <div className="flex justify-between items-center font-mono text-[10px] text-zinc-500 mt-1">
+                <span>RATIO AST/TO: 4.8</span>
+                <span className="text-[#4edea3] font-bold">ACTIVO</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom Tactical Quote / Protocol Signature */}
+        <div className="bg-[#1d2025] p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-[#282a30]">
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-[#ff6b00]" />
+            <div className="flex flex-col">
+              <span className="font-mono text-xs sm:text-sm text-white font-bold">
+                EXPEDIENTE ATLETA #{jerseyNumber} // DEPORTIVO CARMEN SERDÁN
+              </span>
+              <span className="text-xs text-zinc-400">
+                Toda la telemetría biomecánica está sincronizada en tiempo real con el servidor de desarrollo deportivo.
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              if (typeof window !== "undefined") window.print();
+            }}
+            className="px-5 py-2.5 bg-[#ff6b00] hover:bg-[#ff8533] text-black rounded-xl font-mono text-xs uppercase font-black transition-all shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            <span>EXPORTAR INFORME PDF</span>
+          </button>
+        </div>
+
+      </section>
+
     </div>
   );
 }
