@@ -242,14 +242,52 @@ function CoachDashboardContent() {
       }
     };
 
+    const handleSportsTestsUpdated = (e: any) => {
+      if (!isMounted) return;
+      const updatedStudentId = e?.detail?.studentId;
+      const updatedEval = e?.detail?.evaluation;
+
+      // Actualizar estado local inmediatamente para reactividad instantánea
+      setStudents((prev) =>
+        prev.map((s) => {
+          if (s.id === updatedStudentId && updatedEval) {
+            const currentEvals = s.evaluations || [];
+            return {
+              ...s,
+              evaluations: [
+                {
+                  id: `eval-live-${Date.now()}`,
+                  studentId: s.id,
+                  evaluatorId: 'coach-live',
+                  date: updatedEval.evaluation_date || new Date().toISOString(),
+                  overallOvr: updatedEval.overall_ovr,
+                  jumpRopeCount: updatedEval.jump_rope_count,
+                  rawStats: updatedEval.rawStats || {
+                    shootingPercentage: updatedEval.shooting_percentage,
+                    sprint100mSeconds: updatedEval.sprint_seconds,
+                    jumpRopeCount: updatedEval.jump_rope_count,
+                    verticalJumpCm: 50,
+                  },
+                } as any,
+                ...currentEvals,
+              ],
+            };
+          }
+          return s;
+        })
+      );
+    };
+
     if (typeof window !== 'undefined') {
       window.addEventListener('payment_recorded', handlePaymentRecorded);
+      window.addEventListener('sports_tests_updated', handleSportsTestsUpdated);
     }
 
     return () => {
       isMounted = false;
       if (typeof window !== 'undefined') {
         window.removeEventListener('payment_recorded', handlePaymentRecorded);
+        window.removeEventListener('sports_tests_updated', handleSportsTestsUpdated);
       }
     };
   }, []);
@@ -755,22 +793,19 @@ function CoachDashboardContent() {
                     {(() => {
                       const latestEv = selectedStudent.evaluations?.[0];
                       const raw = (latestEv as any)?.rawStats || {};
-                      const nLow = (selectedStudent.fullName || '').toLowerCase();
-                      const isJesus = nLow.includes('jesús') || nLow.includes('jesus');
-                      const isIsaac = nLow.includes('isaac');
 
-                      // Datos oficiales por atleta
-                      const officialShootingPct = isJesus ? 24 : isIsaac ? 16 : (raw.shootingPercentage || selectedStudent.metricsCurrent?.freeThrow || 60);
-                      const officialSprintSec = isJesus ? 11.03 : isIsaac ? 12.92 : (raw.sprint100mSeconds || 13.0);
-                      const officialRopeCount = isJesus ? 1000 : isIsaac ? 200 : ((latestEv as any)?.jumpRopeCount || selectedStudent.training?.ropeJumpsToday || 150);
-                      const officialVerticalCm = isJesus ? 40 : isIsaac ? 18 : (raw.verticalJumpCm || 35);
-                      const officialOvr = isJesus ? 52 : isIsaac ? 50 : ((latestEv as any)?.overallOvr || 75);
+                      // Priorizar evaluaciones dinámicas en tiempo real (eliminando bloqueos estáticos)
+                      const officialShootingPct = raw.shootingPercentage ?? (latestEv as any)?.shootingPercentage ?? selectedStudent.metricsCurrent?.freeThrow ?? 60;
+                      const officialSprintSec = raw.sprint100mSeconds ?? (latestEv as any)?.sprint100mSeconds ?? 12.5;
+                      const officialRopeCount = (latestEv as any)?.jumpRopeCount ?? raw.jumpRopeCount ?? selectedStudent.training?.ropeJumpsToday ?? 150;
+                      const officialVerticalCm = raw.verticalJumpCm ?? (latestEv as any)?.verticalJumpCm ?? 40;
+                      const officialOvr = (latestEv as any)?.overallOvr ?? raw.overallOvr ?? 75;
 
                       return (
                         <>
                           <TacticalCourtStitch
                             athleteName={selectedStudent.fullName}
-                            jerseyNumber={selectedStudent.jerseyNumber || (isJesus ? 7 : isIsaac ? 10 : 11)}
+                            jerseyNumber={selectedStudent.jerseyNumber || 10}
                             category={(selectedStudent as any).category || (selectedStudent.position ? `${selectedStudent.position} · Formativo` : "U-17 Formativo")}
                             overallOvr={officialOvr}
                             shootingPercentage={officialShootingPct}
@@ -788,7 +823,7 @@ function CoachDashboardContent() {
                                 {officialShootingPct}% Acertado
                               </p>
                               <p className="text-[11px] text-zinc-400">
-                                {isJesus ? "12 de 50 Tiros Totales (4 Libres + 5 Media + 3 Triples)" : isIsaac ? "8 de 50 Tiros Totales (3 Libres + 3 Media + 2 Triples)" : "Evaluación de tiro en 5 zonas clave de duela"}
+                                Protocolo oficial de 55 lanzamientos (10 TL + 20 Media + 25 Triples)
                               </p>
                             </div>
 
@@ -814,7 +849,7 @@ function CoachDashboardContent() {
                                 {officialRopeCount.toLocaleString('es-MX')} saltos
                               </p>
                               <p className="text-[11px] text-zinc-400">
-                                {isJesus ? "Meta alcanzada: 1,000 reps récord de resistencia" : isIsaac ? "200 reps continuas sin interrupción" : "Resistencia pliométrica de tobillos y tren inferior"}
+                                Resistencia neuromuscular y pliométrica evaluada en duela
                               </p>
                             </div>
                           </div>

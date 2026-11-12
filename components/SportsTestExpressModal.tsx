@@ -177,20 +177,53 @@ export default function SportsTestExpressModal({
         } catch {}
       }
 
-      // Respaldo en localStorage
+      // Respaldo en localStorage y emisión de evento reactivo global
       try {
         const stored = JSON.parse(localStorage.getItem("ww_student_evaluations") || "{}");
-        stored[athlete.id] = {
+        const evaluationPayload = {
           student_id: athlete.id,
           evaluation_date: todayDate,
+          overall_ovr: overallOvr,
+          free_throws_made: Number(freeThrowsMade),
           free_throws_pct: Math.round((Number(freeThrowsMade) / 10) * 100),
+          mid_range_left_made: Number(midRangeLeftMade),
+          mid_range_right_made: Number(midRangeRightMade),
           mid_range_total: totalMidRange,
+          mid_range_pct: Math.round((totalMidRange / 20) * 100),
           three_point_made: Number(threePointMade),
+          three_point_pct: Math.round((Number(threePointMade) / 25) * 100),
+          total_shots_made: totalShotsMade,
+          shooting_percentage: shootingPct,
           jump_rope_count: Number(jumpRopeCount),
           circuit_lines_seconds: Number(circuitLinesSec),
           sprint_seconds: Number(sprint100mSec),
+          sprint_100m_seconds: Number(sprint100mSec),
+          rawStats: {
+            shootingPercentage: shootingPct,
+            sprint100mSeconds: Number(sprint100mSec),
+            jumpRopeCount: Number(jumpRopeCount),
+            verticalJumpCm: 50,
+            freeThrowsMade: Number(freeThrowsMade),
+            midRangeMade: totalMidRange,
+            threePointMade: Number(threePointMade),
+          }
         };
+        stored[athlete.id] = evaluationPayload;
         localStorage.setItem("ww_student_evaluations", JSON.stringify(stored));
+
+        // Disparo reactivo en tiempo real para todos los componentes de la duela
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("sports_tests_updated", {
+              detail: {
+                studentId: athlete.id,
+                studentName: athlete.full_name,
+                evaluation: evaluationPayload,
+                timestamp: Date.now()
+              }
+            })
+          );
+        }
       } catch {}
 
       setSavedSuccess(true);

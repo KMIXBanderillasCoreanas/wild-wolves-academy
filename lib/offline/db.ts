@@ -2,13 +2,27 @@
 const DB_NAME = "WildWolves_Bunker_DB";
 const DB_VERSION = 1;
 
+export type OfflineQueueActionType = 
+  | "ATTENDANCE" 
+  | "PAYMENT" 
+  | "PAYMENT_TRANSACTION"
+  | "SPORTS_TEST" 
+  | "PROSPECT_STUDENT"
+  | "BASELINE"
+  | "PHYSICAL_LOG"
+  | "BASKETBALL_LOG"
+  | "DETAILED_TEST"
+  | "PROFILE_FINANCIAL_UPDATE";
+
 export interface OfflineAction {
   id: string;
-  type: "ATTENDANCE" | "PAYMENT" | "SPORTS_TEST" | "PROSPECT_STUDENT";
+  type: OfflineQueueActionType;
   table: string;
   payload: any;
   createdAt: string;
   status: "pending" | "synced" | "error";
+  retryCount?: number;
+  lastError?: string;
 }
 
 export function openLocalDB(): Promise<IDBDatabase> {

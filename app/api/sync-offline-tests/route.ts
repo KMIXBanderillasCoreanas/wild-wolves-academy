@@ -186,13 +186,20 @@ export async function POST(request: Request) {
 
       // 5. Tabla student_earned_badges (Medallas e Insignias)
       if (Array.isArray(r.earned_badges) && r.earned_badges.length > 0) {
-        const badgeRows = r.earned_badges.map((b: { badge_name: string; badge_tier: string }) => ({
+        const badgeRows = r.earned_badges.map((b: { badge_name: string; badge_tier?: string; badge_key?: string; badge_title?: string }) => ({
           student_id: studentId,
-          badge_name: b.badge_name,
+          badge_name: b.badge_name || b.badge_title || "Medalla Deportiva",
+          badge_key: b.badge_key || (b.badge_name ? b.badge_name.toLowerCase().replace(/\s+/g, '_') : 'medalla_alfa'),
+          badge_title: b.badge_title || b.badge_name || "Medalla Deportiva",
           badge_tier: b.badge_tier ? b.badge_tier.toLowerCase() : 'plata',
-          date_earned: evaluationDate
+          date_earned: evaluationDate,
+          unlocked_at: new Date().toISOString()
         }));
-        await supabaseAdmin.from('student_earned_badges').insert(badgeRows);
+        try {
+          await supabaseAdmin.from('student_earned_badges').insert(badgeRows);
+        } catch (badgeErr) {
+          console.warn(`Aviso student_earned_badges para ${athleteName}:`, badgeErr);
+        }
       }
 
       summary.processed += 1;

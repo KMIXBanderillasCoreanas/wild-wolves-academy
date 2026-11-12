@@ -1,5 +1,19 @@
 import { supabase } from "@/lib/supabaseClient";
-import { openLocalDB, saveLocalAthletes, getLocalAthletes, queueOfflineAction as idbQueueAction, getPendingQueue as idbGetQueue, removeQueueItem as idbRemoveItem } from "./offline/db";
+import { 
+  openLocalDB, 
+  saveLocalAthletes, 
+  getLocalAthletes, 
+  queueOfflineAction as idbQueueAction, 
+  getPendingQueue as idbGetQueue, 
+  removeQueueItem as idbRemoveItem 
+} from "./offline/db";
+import {
+  DailyAttendanceRow,
+  PaymentTransactionHistoryRow,
+  StudentInitialBaselineRow,
+  DetailedTestRecordRow,
+  ProspectAthleteRow
+} from "@/lib/types/database";
 
 export type OfflineActionType = 
   | "ATTENDANCE" 
@@ -67,7 +81,6 @@ export const getCachedRoster = (): any[] => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Filtrar y remover cualquier registro residual de Bruno
         return parsed.filter((item: any) => {
           const name = (item.full_name || item.name || item.athlete_name || "").toLowerCase();
           return !name.includes("bruno");
@@ -91,7 +104,6 @@ export const getOfflineQueue = (): PendingAction[] => {
     if (!raw) return [];
     const parsed: PendingAction[] = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    // Purgar rigurosamente cualquier acción o prueba asociada a Bruno Díaz
     return parsed.filter((item: PendingAction) => {
       const p = item.payload || {};
       const name = (p.full_name || p.athlete_name || p.name || p.athlete_full_name || "").toLowerCase();
@@ -184,41 +196,74 @@ export const syncOfflineQueueToSupabase = async (
   let failedCount = 0;
   const remainingQueue: PendingAction[] = [];
   let hasPaymentSynced = false;
+  let hasAttendanceSynced = false;
 
   for (const item of queue) {
     try {
       if (item.type === "ATTENDANCE") {
-        const { shift, notes, ...attData } = item.payload;
+        const payload = item.payload || {};
+        const cleanAttendance: DailyAttendanceRow = {
+          student_id: payload.student_id,
+          date: payload.date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+          shift: payload.shift === "matutino_9_11" ? "matutino_9_11" : "vespertino_5_7",
+          status: payload.status || "presente",
+          notes: payload.notes || null,
+        };
+
         const { error } = await supabase.from("daily_attendance").upsert(
-          attData,
-          { onConflict: "student_id,date" }
+          cleanAttendance,
+          { onConflict: "student_id,date,shift" }
         );
-        if (error) throw error;
+        if (error) {
+          const { error: fallbackErr } = await supabase.from("daily_attendance").upsert(
+            cleanAttendance,
+            { onConflict: "student_id,date" }
+          );
+          if (fallbackErr) throw error;
+        }
         syncedCount++;
+        hasAttendanceSynced = true;
       } else if (item.type === "PAYMENT" || item.type === "PAYMENT_TRANSACTION") {
-        // Inserción blindada en payment_transactions_history
-        const { notes, amount, ...cleanTx } = item.payload;
-        const insertTx = {
-          student_id: cleanTx.student_id,
-          amount_paid: cleanTx.amount_paid !== undefined ? cleanTx.amount_paid : (amount || 0),
-          remaining_debt: cleanTx.remaining_debt || 0,
-          payment_method: cleanTx.payment_method || "efectivo",
-          concept: cleanTx.concept || "Entrenamiento / Cuota",
-          transaction_date: cleanTx.transaction_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+        const payload = item.payload || {};
+        const amountPaid = Number(payload.amount_paid !== undefined ? payload.amount_paid : (payload.amount || 0));
+        const insertTx: PaymentTransactionHistoryRow = {
+          student_id: payload.student_id,
+          amount_paid: amountPaid,
+          remaining_debt: Number(payload.remaining_debt || 0),
+          payment_method: (payload.payment_method || "efectivo").toLowerCase(),
+          transaction_type: payload.transaction_type || (amountPaid > 0 ? "abono" : "pago_completo"),
+          concept: payload.concept || "Entrenamiento / Cuota",
+          transaction_date: payload.transaction_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+          notes: payload.notes || null,
+          venue: payload.venue || "Deportivo Carmen Serdán",
         };
         const { error } = await supabase.from("payment_transactions_history").insert(insertTx);
         if (error) throw error;
         syncedCount++;
         hasPaymentSynced = true;
       } else if (item.type === "PROFILE_FINANCIAL_UPDATE") {
-        const { id, ...updateData } = item.payload;
+        const { id, ...updateData } = item.payload || {};
+        if (updateData.financial_status === "adeudo_pendiente") {
+          updateData.financial_status = "adeudo";
+        }
         const { error } = await supabase.from("profiles").update(updateData).eq("id", id);
         if (error) throw error;
         syncedCount++;
         hasPaymentSynced = true;
       } else if (item.type === "BASELINE") {
+        const payload = item.payload || {};
+        const cleanBaseline: StudentInitialBaselineRow = {
+          student_id: payload.student_id,
+          coach_id: payload.coach_id || null,
+          entry_date: payload.entry_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+          initial_laps_completed: Number(payload.initial_laps_completed || 0),
+          initial_jump_rope_max: Number(payload.initial_jump_rope_max || 0),
+          initial_pushups_form: payload.initial_pushups_form || "estandar",
+          initial_squats_count: Number(payload.initial_squats_count || 0),
+          initial_posture_notes: payload.initial_posture_notes || null,
+        };
         const { error } = await supabase.from("student_initial_baseline").upsert(
-          item.payload,
+          cleanBaseline,
           { onConflict: "student_id" }
         );
         if (error) throw error;
@@ -227,30 +272,50 @@ export const syncOfflineQueueToSupabase = async (
         const { error } = await supabase.from("physical_training_logs").insert(item.payload);
         if (error) throw error;
         syncedCount++;
-      } else if (item.type === "BASKETBALL_LOG") {
+      } else if (item.type === "BASKETBALL_LOG" || item.type === "SPORTS_TEST") {
         const { error } = await supabase.from("basketball_skills_logs").insert(item.payload);
         if (error) throw error;
         syncedCount++;
       } else if (item.type === "DETAILED_TEST") {
+        const payload = item.payload || {};
+        const ovr = Number(payload.overall_ovr || 75);
+        const assessedLevel = ovr >= 70 ? "competitivo_elite" : ovr >= 55 ? "formativo_desarrollo" : "iniciacion_adaptacion";
+        const cleanTest: DetailedTestRecordRow = {
+          student_id: payload.student_id,
+          coach_id: payload.coach_id || null,
+          evaluation_date: payload.evaluation_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+          athletic_level_assessed: assessedLevel,
+          court_laps_count: Number(payload.court_laps_count || 20),
+          squats_count: Number(payload.squats_count || 50),
+          pushups_count: Number(payload.pushups_count || 35),
+          plank_seconds: Number(payload.plank_seconds || 60),
+          jump_rope_count: Number(payload.jump_rope_count || 0),
+          short_range_shots_made: Number(payload.short_range_shots_made || payload.free_throws_made || 0),
+          mid_range_shots_made: Number(payload.mid_range_shots_made || 0),
+          three_point_shots_made: Number(payload.three_point_shots_made || 0),
+          half_court_shots_made: Number(payload.half_court_shots_made || 0),
+          overall_ovr: ovr,
+          coach_feedback: payload.coach_feedback || "Sincronizado vía Motor Offline V2.",
+        };
         const { error } = await supabase.from("detailed_test_records").upsert(
-          item.payload,
+          cleanTest,
           { onConflict: "student_id,evaluation_date" }
         );
         if (error) throw error;
         syncedCount++;
       } else if (item.type === "PROSPECT_STUDENT") {
-        // Compatibilidad total de columnas para prospect_athletes
-        const cleanPayload = {
-          id: item.payload.id,
-          full_name: item.payload.full_name || item.payload.athlete_full_name || "Prospecto",
-          category: item.payload.category || "U-15 FORMATIVO",
-          training_days: item.payload.training_days || ["lunes", "miercoles", "viernes"],
-          training_schedule: item.payload.training_schedule || "Vespertino: 17:00 - 19:00",
-          guardian_name: item.payload.guardian_name || item.payload.tutor_name || "Tutor",
-          parent_name: item.payload.parent_name || item.payload.tutor_name || "Tutor",
-          financial_status: item.payload.financial_status === "adeudo" ? "adeudo" : "al_corriente",
-          debt_amount: Number(item.payload.debt_amount || item.payload.current_debt_amount || 0),
-          notes: item.payload.notes || "Pre-ficha registrada en cancha."
+        const payload = item.payload || {};
+        const cleanPayload: ProspectAthleteRow = {
+          id: payload.id,
+          full_name: payload.full_name || payload.athlete_full_name || "Prospecto",
+          category: payload.category || "U-15 FORMATIVO",
+          training_days: payload.training_days || ["lunes", "miercoles", "viernes"],
+          training_schedule: payload.training_schedule || "Vespertino: 17:00 - 19:00",
+          guardian_name: payload.guardian_name || payload.tutor_name || "Tutor",
+          parent_name: payload.parent_name || payload.tutor_name || "Tutor",
+          financial_status: payload.financial_status === "adeudo" ? "adeudo" : "al_corriente",
+          debt_amount: Number(payload.debt_amount || payload.current_debt_amount || 0),
+          notes: payload.notes || "Pre-ficha registrada en cancha."
         };
         const { error } = await supabase.from("prospect_athletes").upsert(
           cleanPayload,
@@ -259,16 +324,21 @@ export const syncOfflineQueueToSupabase = async (
         if (error) throw error;
         syncedCount++;
       } else {
-        // Fallback genérico por tabla indicada
         const targetTable = item.table || "daily_attendance";
         const { error } = await supabase.from(targetTable).upsert(item.payload);
         if (error) throw error;
         syncedCount++;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Fallo sincronizando elemento offline:", item, err);
-      remainingQueue.push(item);
-      failedCount++;
+      // Si el error indica duplicidad ya confirmada en nube, no retenemos el elemento
+      const errMsg = err?.message || "";
+      if (errMsg.includes("duplicate key") || errMsg.includes("already exists")) {
+        syncedCount++;
+      } else {
+        remainingQueue.push(item);
+        failedCount++;
+      }
     }
 
     if (onProgress) {
@@ -301,7 +371,9 @@ export const syncOfflineQueueToSupabase = async (
     if (hasPaymentSynced) {
       window.dispatchEvent(new Event("payment_recorded"));
     }
-    window.dispatchEvent(new Event("attendance_updated"));
+    if (hasAttendanceSynced) {
+      window.dispatchEvent(new Event("attendance_updated"));
+    }
   }
 
   return { synced: syncedCount, failed: failedCount };
@@ -328,13 +400,14 @@ export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced:
 
   const remaining: any[] = [];
   let syncedCount = 0;
+  let hasPaymentSynced = false;
+  let hasAttendanceSynced = false;
 
   for (const item of queue) {
     try {
       if (item.type === "ATTENDANCE") {
         const payload = item.payload || {};
-        // Limpiar para daily_attendance según esquema oficial
-        const cleanAttendance = {
+        const cleanAttendance: DailyAttendanceRow = {
           student_id: payload.student_id,
           date: payload.date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
           shift: payload.shift === "matutino_9_11" ? "matutino_9_11" : "vespertino_5_7",
@@ -345,25 +418,29 @@ export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced:
           .from("daily_attendance")
           .upsert(cleanAttendance, { onConflict: "student_id,date,shift" });
         if (error) {
-          // Intentar sin constraint estricto si la tabla tiene schema relajado
-          const { error: fallbackError } = await sb.from("daily_attendance").insert(cleanAttendance);
+          const { error: fallbackError } = await sb.from("daily_attendance").upsert(cleanAttendance, { onConflict: "student_id,date" });
           if (fallbackError) throw error;
         }
         syncedCount++;
+        hasAttendanceSynced = true;
       } else if (item.type === "PAYMENT" || item.type === "PAYMENT_TRANSACTION") {
         const payload = item.payload || {};
-        const { notes, amount, ...cleanTx } = payload;
-        const insertTx = {
-          student_id: cleanTx.student_id,
-          amount_paid: cleanTx.amount_paid !== undefined ? cleanTx.amount_paid : (amount || 0),
-          remaining_debt: cleanTx.remaining_debt || 0,
-          payment_method: cleanTx.payment_method || "efectivo",
-          concept: cleanTx.concept || "Entrenamiento / Cuota",
-          transaction_date: cleanTx.transaction_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+        const amountPaid = Number(payload.amount_paid !== undefined ? payload.amount_paid : (payload.amount || 0));
+        const insertTx: PaymentTransactionHistoryRow = {
+          student_id: payload.student_id,
+          amount_paid: amountPaid,
+          remaining_debt: Number(payload.remaining_debt || 0),
+          payment_method: (payload.payment_method || "efectivo").toLowerCase(),
+          transaction_type: payload.transaction_type || (amountPaid > 0 ? "abono" : "pago_completo"),
+          concept: payload.concept || "Entrenamiento / Cuota",
+          transaction_date: payload.transaction_date || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date()),
+          notes: payload.notes || null,
+          venue: payload.venue || "Deportivo Carmen Serdán",
         };
         const { error } = await sb.from("payment_transactions_history").insert(insertTx);
         if (error) throw error;
         syncedCount++;
+        hasPaymentSynced = true;
       } else if (item.type === "PROFILE_FINANCIAL_UPDATE") {
         const { id, ...updateData } = item.payload || {};
         if (updateData.financial_status === "adeudo_pendiente") {
@@ -372,9 +449,10 @@ export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced:
         const { error } = await sb.from("profiles").update(updateData).eq("id", id);
         if (error) throw error;
         syncedCount++;
+        hasPaymentSynced = true;
       } else if (item.type === "PROSPECT_STUDENT") {
         const payload = item.payload || {};
-        const cleanPayload = {
+        const cleanPayload: ProspectAthleteRow = {
           id: payload.id,
           full_name: payload.full_name || payload.athlete_full_name || "Prospecto",
           category: payload.category || "U-15 FORMATIVO",
@@ -395,16 +473,18 @@ export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced:
         if (error) throw error;
         syncedCount++;
       }
-    } catch (err) {
-      console.warn("Elemento no crítico marcado como procesado para destrabar cola:", item, err);
-      // Si el elemento falla por duplicidad o id inválido (por ejemplo un test o asistencia ya existente),
-      // no bloqueamos la cola infinitamente.
-      syncedCount++;
+    } catch (err: any) {
+      console.warn("Elemento no crítico evaluado durante sincronización:", item, err);
+      const errMsg = err?.message || "";
+      if (errMsg.includes("duplicate key") || errMsg.includes("already exists")) {
+        syncedCount++;
+      } else {
+        remaining.push(item);
+      }
     }
   }
 
   if (typeof window !== "undefined") {
-    // Si todos fueron procesados o forzados, limpiar completamente las llaves de almacenamiento
     if (remaining.length === 0) {
       localStorage.removeItem(WW_QUEUE_KEY);
       localStorage.removeItem(QUEUE_KEY);
@@ -420,8 +500,12 @@ export async function flushOfflineQueue(clientSupabase?: any): Promise<{ synced:
     );
     if (syncedCount > 0) {
       window.dispatchEvent(new CustomEvent("offline_queue_synced", { detail: { count: syncedCount } }));
-      window.dispatchEvent(new Event("payment_recorded"));
-      window.dispatchEvent(new Event("attendance_updated"));
+      if (hasPaymentSynced) {
+        window.dispatchEvent(new Event("payment_recorded"));
+      }
+      if (hasAttendanceSynced) {
+        window.dispatchEvent(new Event("attendance_updated"));
+      }
     }
   }
 
