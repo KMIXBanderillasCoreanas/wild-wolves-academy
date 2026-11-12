@@ -44,13 +44,17 @@ export interface TacticalShotMapProps {
   initialZone?: string;
 }
 
-// Generador dinámico de datos de zona según el atleta seleccionado
-export function getZoneDataForAthlete(athleteName: string = '', overallPct: number = 60): Record<string, TacticalZoneData> {
+// Generador dinámico de datos de zona según el atleta seleccionado y su efectividad real
+export function getZoneDataForAthlete(athleteName: string = '', overallPct?: number): Record<string, TacticalZoneData> {
   const nLow = athleteName.toLowerCase();
   const isJesus = nLow.includes('jesús') || nLow.includes('jesus');
   const isIsaac = nLow.includes('isaac');
 
-  if (isJesus) {
+  // Si se pasa una efectividad calculada en tiempo real o el atleta no tiene valores históricos congelados,
+  // calcular las 6 zonas dinámicamente según la efectividad real auditada (permite 100%, 80%, etc.)
+  const hasDynamicPct = overallPct !== undefined && overallPct !== null;
+
+  if (isJesus && !hasDynamicPct) {
     // Jesús (OVR 52, 24% efectividad global, 12 de 50 totales)
     return {
       'paint': {
@@ -224,7 +228,7 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     };
   }
 
-  if (isIsaac) {
+  if (isIsaac && !hasDynamicPct) {
     // Isaac (OVR 50, 16% efectividad global, 8 de 50 totales)
     return {
       'paint': {
@@ -406,11 +410,11 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
       cluster: 'Zona de Definición Interior & Tiros Libres',
       tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'CONSISTENTE',
       tierColor: basePct >= 70 ? 'bg-red-950/80 text-red-400 border-red-700/60' : 'bg-amber-950/80 text-amber-400 border-amber-700/60',
-      percentage: `${Math.min(100, Math.round(basePct * 1.25))}%`,
-      ratio: `${Math.round((basePct * 1.25) / 10)} / 10`,
-      points: '16 PTS',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(10, Math.round((basePct / 100) * 10))} / 10`,
+      points: `${Math.round((basePct / 100) * 20)} PTS`,
       shotType: 'Tiro Libre Directo / Flotadora',
-      percentile: 'COMPETITIVO (Percentil 75)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 95)' : 'COMPETITIVO (Percentil 75)',
       releaseTime: '0.74 seg',
       notes: 'Buen ritmo y balance en la pintura en el Deportivo Carmen Serdán.',
       footPosition: { x: 250, y: 220, angle: 0, label: 'Línea Libre 4.60m' },
@@ -425,13 +429,13 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     'mid-left': {
       title: 'Media Distancia Codo Izquierdo',
       cluster: 'Zona Media / Salida Pick & Roll',
-      tier: 'EFICAZ',
-      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
-      percentage: `${Math.round(basePct * 0.9)}%`,
-      ratio: `${Math.round((basePct * 0.9) / 10)} / 10`,
-      points: '12 PTS',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'EFICAZ',
+      tierColor: basePct >= 70 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' : 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(10, Math.round((basePct / 100) * 10))} / 10`,
+      points: `${Math.round((basePct / 100) * 20)} PTS`,
       shotType: 'Pull-up Jumper',
-      percentile: 'COMPETITIVO (Percentil 70)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 94)' : 'COMPETITIVO (Percentil 70)',
       releaseTime: '0.76 seg',
       notes: 'Mecánica de codo a 90 grados estable.',
       footPosition: { x: 120, y: 150, angle: 35, label: 'Codo Izquierdo 45°' },
@@ -446,13 +450,13 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     'mid-right': {
       title: 'Media Distancia Codo Derecho',
       cluster: 'Zona Media / Aislamiento Directo',
-      tier: 'EFICAZ',
-      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
-      percentage: `${Math.round(basePct * 0.9)}%`,
-      ratio: `${Math.round((basePct * 0.9) / 10)} / 10`,
-      points: '12 PTS',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'EFICAZ',
+      tierColor: basePct >= 70 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' : 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(10, Math.round((basePct / 100) * 10))} / 10`,
+      points: `${Math.round((basePct / 100) * 20)} PTS`,
       shotType: 'Fadeaway corto / Step-back',
-      percentile: 'COMPETITIVO (Percentil 72)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 95)' : 'COMPETITIVO (Percentil 72)',
       releaseTime: '0.75 seg',
       notes: 'Buena elevación superando defensores.',
       footPosition: { x: 380, y: 150, angle: -35, label: 'Codo Derecho 45°' },
@@ -467,13 +471,13 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     'top-key': {
       title: 'Triple 3P Top Key',
       cluster: 'Perímetro Frontal',
-      tier: 'CONSISTENTE',
-      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
-      percentage: `${Math.round(basePct * 0.8)}%`,
-      ratio: `${Math.max(1, Math.round((basePct * 0.8) / 20))} / 5`,
-      points: '9 PTS',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'CONSISTENTE',
+      tierColor: basePct >= 70 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' : 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(5, Math.round((basePct / 100) * 5))} / 5`,
+      points: `${Math.round((basePct / 100) * 15)} PTS`,
       shotType: 'Catch & Shoot',
-      percentile: 'REGULAR (Percentil 65)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 96)' : 'REGULAR (Percentil 65)',
       releaseTime: '0.78 seg',
       notes: 'Arco alto con más de 48 grados de entrada al aro.',
       footPosition: { x: 250, y: 410, angle: 0, label: 'Cúspide Central Triple 6.75m' },
@@ -488,13 +492,13 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     'wing-left': {
       title: 'Triple 3P Ala Izquierda',
       cluster: 'Perímetro 45° Flanco Izquierdo',
-      tier: 'EN PROGRESO',
-      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
-      percentage: `${Math.round(basePct * 0.75)}%`,
-      ratio: `${Math.max(1, Math.round((basePct * 0.75) / 20))} / 5`,
-      points: '6 PTS',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'EN PROGRESO',
+      tierColor: basePct >= 70 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' : 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(5, Math.round((basePct / 100) * 5))} / 5`,
+      points: `${Math.round((basePct / 100) * 15)} PTS`,
       shotType: 'Recepción abierta',
-      percentile: 'REGULAR (Percentil 60)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 95)' : 'REGULAR (Percentil 60)',
       releaseTime: '0.80 seg',
       notes: 'Mantener hombros orientados hacia la canasta.',
       footPosition: { x: 85, y: 340, angle: 30, label: 'Ala Perimetral 45° Izq' },
@@ -509,13 +513,13 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     'wing-right': {
       title: 'Triple 3P Ala Derecha',
       cluster: 'Perímetro 45° Flanco Derecho',
-      tier: 'EN PROGRESO',
-      tierColor: 'bg-amber-950/80 text-amber-400 border-amber-700/60',
-      percentage: `${Math.round(basePct * 0.75)}%`,
-      ratio: `${Math.max(1, Math.round((basePct * 0.75) / 20))} / 5`,
-      points: '6 PTS',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'EN PROGRESO',
+      tierColor: basePct >= 70 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' : 'bg-amber-950/80 text-amber-400 border-amber-700/60',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(5, Math.round((basePct / 100) * 5))} / 5`,
+      points: `${Math.round((basePct / 100) * 15)} PTS`,
       shotType: 'Pick & Pop Perimetral',
-      percentile: 'REGULAR (Percentil 62)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 95)' : 'REGULAR (Percentil 62)',
       releaseTime: '0.79 seg',
       notes: 'Buena lectura de desmarque perimetral.',
       footPosition: { x: 415, y: 340, angle: -30, label: 'Ala Perimetral 45° Der' },
@@ -530,13 +534,13 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     'corner-left': {
       title: 'Triple 3P Esquina Izquierda',
       cluster: 'Esquina Corta / Baseline',
-      tier: 'CALIBRACIÓN',
-      tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60',
-      percentage: `${Math.round(basePct * 0.6)}%`,
-      ratio: `${Math.max(1, Math.round((basePct * 0.6) / 20))} / 5`,
-      points: '6 PTS',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'CALIBRACIÓN',
+      tierColor: basePct >= 70 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' : 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(5, Math.round((basePct / 100) * 5))} / 5`,
+      points: `${Math.round((basePct / 100) * 15)} PTS`,
       shotType: 'Corner Spot-up',
-      percentile: 'REGULAR (Percentil 55)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 93)' : 'REGULAR (Percentil 55)',
       releaseTime: '0.82 seg',
       notes: 'Cuidado con pisar la línea lateral en la esquina.',
       footPosition: { x: 25, y: 90, angle: 90, label: 'Esquina Corta 0° Izq' },
@@ -551,13 +555,13 @@ export function getZoneDataForAthlete(athleteName: string = '', overallPct: numb
     'corner-right': {
       title: 'Triple 3P Esquina Derecha',
       cluster: 'Esquina Corta / Baseline Débil',
-      tier: 'EN AJUSTE',
-      tierColor: 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60',
-      percentage: `${Math.round(basePct * 0.5)}%`,
-      ratio: `${Math.max(1, Math.round((basePct * 0.5) / 20))} / 5`,
-      points: '3 PTS',
+      tier: basePct >= 70 ? 'MÁXIMA EFICACIA' : 'EN AJUSTE',
+      tierColor: basePct >= 70 ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' : 'bg-cyan-950/80 text-cyan-400 border-cyan-700/60',
+      percentage: `${Math.min(100, Math.round(basePct))}%`,
+      ratio: `${Math.min(5, Math.round((basePct / 100) * 5))} / 5`,
+      points: `${Math.round((basePct / 100) * 15)} PTS`,
       shotType: 'Corner Jumper',
-      percentile: 'REGULAR (Percentil 50)',
+      percentile: basePct >= 80 ? 'ÉLITE (Percentil 92)' : 'REGULAR (Percentil 50)',
       releaseTime: '0.85 seg',
       notes: 'Fortalecer trayectoria recta hacia el aro.',
       footPosition: { x: 475, y: 90, angle: -90, label: 'Esquina Corta 0° Der' },

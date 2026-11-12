@@ -1396,6 +1396,40 @@ function CoachDashboardContent() {
           onClose={() => setSelectedAthleteForModal(null)}
           onSaved={() => {
             setSelectedAthleteForModal(null);
+            try {
+              const stored = JSON.parse(localStorage.getItem("ww_student_evaluations") || "{}");
+              const savedEval = stored[selectedAthleteForModal.id];
+              if (savedEval) {
+                setStudents((prev) =>
+                  prev.map((s) => {
+                    if (s.id === selectedAthleteForModal.id) {
+                      return {
+                        ...s,
+                        evaluations: [
+                          {
+                            id: `eval-immediate-${Date.now()}`,
+                            studentId: s.id,
+                            evaluatorId: "coach-direct",
+                            date: savedEval.evaluation_date || new Date().toISOString(),
+                            overallOvr: savedEval.overall_ovr,
+                            jumpRopeCount: savedEval.jump_rope_count,
+                            shootingPercentage: savedEval.shooting_percentage,
+                            rawStats: savedEval.rawStats || {
+                              shootingPercentage: savedEval.shooting_percentage,
+                              sprint100mSeconds: savedEval.sprint_seconds,
+                              jumpRopeCount: savedEval.jump_rope_count,
+                              verticalJumpCm: 50,
+                            },
+                          } as any,
+                          ...(s.evaluations || []),
+                        ],
+                      };
+                    }
+                    return s;
+                  })
+                );
+              }
+            } catch {}
             HoopStore.syncWithSupabase().then((list) => {
               if (list) setStudents(list);
             });

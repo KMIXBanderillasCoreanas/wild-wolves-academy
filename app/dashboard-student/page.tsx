@@ -1061,11 +1061,40 @@ function StudentDashboardContent() {
       if (e.detail) setEarnedBadges(e.detail);
     };
 
+    const handleSportsTestsUpdated = (e: any) => {
+      if (e.detail?.evaluation) {
+        const ev = e.detail.evaluation;
+        setEvaluation((prev: any) => ({
+          ...prev,
+          overall_ovr: ev.overall_ovr ?? prev.overall_ovr,
+          free_throws_made: ev.free_throws_made ?? prev.free_throws_made,
+          mid_range_made: ev.mid_range_total ?? ev.mid_range_made ?? prev.mid_range_made,
+          three_point_made: ev.three_point_made ?? prev.three_point_made,
+          jump_rope_count: ev.jump_rope_count ?? prev.jump_rope_count,
+          evaluation_date: ev.evaluation_date ?? prev.evaluation_date,
+          coach_feedback: ev.coach_feedback ?? prev.coach_feedback,
+          isReal: true,
+        }));
+
+        setCurrentPerformance((prev: any) => ({
+          ...prev,
+          free_throws_made: ev.free_throws_made ?? prev.free_throws_made,
+          mid_range_made: ev.mid_range_total ?? ev.mid_range_made ?? prev.mid_range_made,
+          three_point_made: ev.three_point_made ?? prev.three_point_made,
+          jump_rope_count: ev.jump_rope_count ?? prev.jump_rope_count,
+          sprint_100m_seconds: ev.sprint_seconds ?? ev.sprint_100m_seconds ?? prev.sprint_100m_seconds,
+          lines_round_trip_seconds: ev.circuit_lines_seconds ?? prev.lines_round_trip_seconds,
+          isReal: true,
+        }));
+      }
+    };
+
     window.addEventListener("student_baseline_updated", handleBaselineUpdate);
     window.addEventListener("physical_training_logged", handlePhysicalUpdate);
     window.addEventListener("basketball_skills_logged", handleBasketUpdate);
     window.addEventListener("student_badges_updated", handleBadgesUpdate);
     window.addEventListener("test_day_updated", handleTestDayUpdate);
+    window.addEventListener("sports_tests_updated", handleSportsTestsUpdated);
     window.addEventListener("profile_avatar_updated", handleAvatarUpdate);
 
     return () => {
@@ -1074,6 +1103,7 @@ function StudentDashboardContent() {
       window.removeEventListener("basketball_skills_logged", handleBasketUpdate);
       window.removeEventListener("student_badges_updated", handleBadgesUpdate);
       window.removeEventListener("test_day_updated", handleTestDayUpdate);
+      window.removeEventListener("sports_tests_updated", handleSportsTestsUpdated);
       window.removeEventListener("profile_avatar_updated", handleAvatarUpdate);
     };
   }, []);
