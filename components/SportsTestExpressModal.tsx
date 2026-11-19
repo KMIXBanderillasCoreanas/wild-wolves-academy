@@ -168,13 +168,40 @@ export default function SportsTestExpressModal({
         throw new Error(errJson.error || `Error del servidor HTTP ${res.status}`);
       }
 
-      // Auto-limpieza de la cola offline al confirmar status 200 en Supabase
+      // Auto-limpieza granular de la cola offline al confirmar status 200 en Supabase
       if (typeof window !== "undefined") {
         try {
-          localStorage.removeItem("ww_offline_queue");
-          localStorage.removeItem("ww_offline_sports_tests");
-          localStorage.removeItem("wild_wolves_offline_queue");
-        } catch {}
+          const queueKeys = ["ww_offline_sports_tests", "ww_offline_queue", "wild_wolves_offline_queue"];
+          for (const key of queueKeys) {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const remaining = parsed.filter((item: any) => {
+                  const itemStudentId = item?.student_id || item?.studentId || item?.athlete_id || item?.athleteId || item?.id;
+                  const itemAthleteName = (item?.athlete_name || item?.athlete_full_name || item?.name || "").trim().toLowerCase();
+                  const targetName = (athlete.full_name || "").trim().toLowerCase();
+
+                  // Filtrar el registro si coincide por ID de atleta o nombre completo
+                  const matchesId = itemStudentId && itemStudentId === athlete.id;
+                  const matchesName = targetName && itemAthleteName === targetName;
+                  return !matchesId && !matchesName;
+                });
+
+                if (remaining.length > 0) {
+                  localStorage.setItem(key, JSON.stringify(remaining));
+                } else {
+                  localStorage.removeItem(key);
+                }
+              }
+            } catch {
+              // Si no era un JSON válido, evitar corromper y continuar
+            }
+          }
+        } catch (err) {
+          console.warn("Aviso limpiando colas offline de forma selectiva:", err);
+        }
       }
 
       // Respaldo en localStorage y emisión de evento reactivo global

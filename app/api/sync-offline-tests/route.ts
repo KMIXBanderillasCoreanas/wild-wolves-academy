@@ -133,6 +133,13 @@ export async function POST(request: Request) {
       }
 
       // 3. Tabla basketball_skills_logs (Shot Science / Zonas de tiro reales)
+      const spotCornerLeft = Number(r.spot_corner_left ?? 3);
+      const spotWingLeft = Number(r.spot_wing_left ?? 3);
+      const spotTopKey = Number(r.spot_top_key ?? 4);
+      const spotWingRight = Number(r.spot_wing_right ?? 3);
+      const spotCornerRight = Number(r.spot_corner_right ?? 2);
+      const spotsTotalMade = Number(r.spots_total_made ?? (spotCornerLeft + spotWingLeft + spotTopKey + spotWingRight + spotCornerRight));
+
       const { error: skillsErr } = await supabaseAdmin.from('basketball_skills_logs').insert({
         student_id: studentId,
         test_date: evaluationDate,
@@ -147,11 +154,12 @@ export async function POST(request: Request) {
         sprint_100m_seconds: sprintSec,
         lines_round_trip_seconds: linesSec,
         vertical_jump_cm: vertCm,
-        three_corner_left: Number(r.spot_corner_left || 3),
-        three_wing_left: Number(r.spot_wing_left || 3),
-        three_top: Number(r.spot_top_key || 4),
-        three_wing_right: Number(r.spot_wing_right || 3),
-        three_corner_right: Number(r.spot_corner_right || 2),
+        spot_corner_left: spotCornerLeft,
+        spot_wing_left: spotWingLeft,
+        spot_top_key: spotTopKey,
+        spot_wing_right: spotWingRight,
+        spot_corner_right: spotCornerRight,
+        spots_total_made: spotsTotalMade,
         coach_notes: r.coach_feedback || 'Registro sincronizado desde duela.'
       });
 

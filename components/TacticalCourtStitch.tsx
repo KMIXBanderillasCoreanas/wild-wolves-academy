@@ -595,16 +595,14 @@ export default function TacticalCourtStitch({
 
   return (
     <div className="w-full bg-[#07090E] text-slate-200 rounded-3xl border border-[#1F2433] p-4 sm:p-6 shadow-2xl relative overflow-hidden font-sans">
-      {/* Background Radial & Tactical Grid Pattern */}
+      {/* Background Radial & Tactical Ambient Lighting (Limpio y sin efecto de rayas Moiré) */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-40" 
+        className="absolute inset-0 pointer-events-none opacity-30" 
         style={{
           backgroundImage: `
-            radial-gradient(circle at 50% 15%, rgba(6, 182, 212, 0.12) 0%, transparent 65%),
-            linear-gradient(rgba(31, 36, 51, 0.35) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(31, 36, 51, 0.35) 1px, transparent 1px)
+            radial-gradient(circle at 50% 15%, rgba(6, 182, 212, 0.16) 0%, transparent 70%),
+            radial-gradient(circle at 50% 85%, rgba(255, 107, 0, 0.08) 0%, transparent 60%)
           `,
-          backgroundSize: '100% 100%, 32px 32px, 32px 32px'
         }}
       />
 
@@ -781,17 +779,6 @@ export default function TacticalCourtStitch({
               {/* Fondo base de duela oscura */}
               <rect width="500" height="520" fill="#0B0E17" />
               <rect width="500" height="520" fill="url(#stitch-hoop-radial)" />
-
-              {/* Líneas tenues de duela de madera */}
-              <g opacity="0.6" stroke="#131826" strokeWidth="1">
-                <line x1="0" y1="65" x2="500" y2="65" />
-                <line x1="0" y1="130" x2="500" y2="130" />
-                <line x1="0" y1="195" x2="500" y2="195" />
-                <line x1="0" y1="260" x2="500" y2="260" />
-                <line x1="0" y1="325" x2="500" y2="325" />
-                <line x1="0" y1="390" x2="500" y2="390" />
-                <line x1="0" y1="455" x2="500" y2="455" />
-              </g>
 
               {/* ZONAS POLIGONALES CON COLORES FLORESCENTES EXACTOS */}
               {/* Esquina Izquierda */}

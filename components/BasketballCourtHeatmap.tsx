@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Target, Zap, Flame, Activity, Info, Trophy } from "lucide-react";
+import { Target, Zap, Flame, Activity, Info, Trophy, AlertCircle, ShieldAlert } from "lucide-react";
 
 export interface ShotHeatmapData {
   // Tiros Libres (10 lanzamientos)
@@ -51,10 +51,10 @@ export default function BasketballCourtHeatmap({
 }) {
   const [selectedZone, setSelectedZone] = useState<ZoneInfo | null>(null);
 
-  // Normalizar datos con defaults oficiales.
-  // Si todos los lanzamientos son 0 (ej. primera vista o perfil sin registrar),
-  // mostramos la plantilla oficial calibrada de duela (10/10 FT, 10/10 ML, 10/10 MR, 3/5, 3/5, 4/5, 3/5, 2/5)
-  // para que la cancha proyecte las zonas calientes y frías reales en vez de un bloque monótono de ceros.
+  // Normalizar datos directos sin datos sintéticos ni enmascaramiento artificial.
+  // Si no hay tiros registrados (rawSum === 0), se mantendrán los valores reales (0)
+  // y se activará la visualización explícita de estado pendiente para proteger
+  // la integridad de las evaluaciones para entrenadores y tutores.
   const rawSum = 
     (data.freeThrowsMade ?? 0) +
     (data.midRangeLeftMade ?? 0) +
@@ -65,23 +65,23 @@ export default function BasketballCourtHeatmap({
     (data.threeWingRightMade ?? 0) +
     (data.threeCornerRightMade ?? 0);
 
-  const isBlankInitialData = rawSum === 0;
+  const hasRecordedShots = rawSum > 0;
 
   const ftAttempts = data.freeThrowsAttempts ?? 10;
-  const ftMade = isBlankInitialData ? 10 : Math.min(ftAttempts, Math.max(0, data.freeThrowsMade ?? 0));
+  const ftMade = Math.min(ftAttempts, Math.max(0, data.freeThrowsMade ?? 0));
 
   const midLeftAttempts = data.midRangeLeftAttempts ?? 10;
-  const midLeftMade = isBlankInitialData ? 8 : Math.min(midLeftAttempts, Math.max(0, data.midRangeLeftMade ?? 0));
+  const midLeftMade = Math.min(midLeftAttempts, Math.max(0, data.midRangeLeftMade ?? 0));
 
   const midRightAttempts = data.midRangeRightAttempts ?? 10;
-  const midRightMade = isBlankInitialData ? 4 : Math.min(midRightAttempts, Math.max(0, data.midRangeRightMade ?? 0));
+  const midRightMade = Math.min(midRightAttempts, Math.max(0, data.midRangeRightMade ?? 0));
 
   const threeAttempts = data.threeAttemptsPerSpot ?? 5;
-  const threeCornerLeftMade = isBlankInitialData ? 4 : Math.min(threeAttempts, Math.max(0, data.threeCornerLeftMade ?? 0));
-  const threeWingLeftMade = isBlankInitialData ? 3 : Math.min(threeAttempts, Math.max(0, data.threeWingLeftMade ?? 0));
-  const threeTopKeyMade = isBlankInitialData ? 2 : Math.min(threeAttempts, Math.max(0, data.threeTopKeyMade ?? 0));
-  const threeWingRightMade = isBlankInitialData ? 3 : Math.min(threeAttempts, Math.max(0, data.threeWingRightMade ?? 0));
-  const threeCornerRightMade = isBlankInitialData ? 1 : Math.min(threeAttempts, Math.max(0, data.threeCornerRightMade ?? 0));
+  const threeCornerLeftMade = Math.min(threeAttempts, Math.max(0, data.threeCornerLeftMade ?? 0));
+  const threeWingLeftMade = Math.min(threeAttempts, Math.max(0, data.threeWingLeftMade ?? 0));
+  const threeTopKeyMade = Math.min(threeAttempts, Math.max(0, data.threeTopKeyMade ?? 0));
+  const threeWingRightMade = Math.min(threeAttempts, Math.max(0, data.threeWingRightMade ?? 0));
+  const threeCornerRightMade = Math.min(threeAttempts, Math.max(0, data.threeCornerRightMade ?? 0));
 
   // Totales
   const total2PtMade = ftMade + midLeftMade + midRightMade;
@@ -368,18 +368,9 @@ export default function BasketballCourtHeatmap({
               </radialGradient>
             </defs>
 
-            {/* BASE / DUELA OSCURA FLOUROSCENTE CON ILUMINACIÓN RADIAL */}
+            {/* BASE / DUELA OSCURA FLOUROSCENTE CON ILUMINACIÓN RADIAL LIMPIA */}
             <rect x="0" y="0" width="500" height="380" fill="#0B0E17" />
             <rect x="0" y="0" width="500" height="380" fill="url(#stitch-court-radial)" />
-
-            {/* Líneas sutiles de duela de madera táctica */}
-            <g opacity="0.4" stroke="#1F293D" strokeWidth="1">
-              <line x1="0" y1="65" x2="500" y2="65" />
-              <line x1="0" y1="130" x2="500" y2="130" />
-              <line x1="0" y1="195" x2="500" y2="195" />
-              <line x1="0" y1="260" x2="500" y2="260" />
-              <line x1="0" y1="325" x2="500" y2="325" />
-            </g>
 
             {/* ======================================================= */}
             {/* CAPA 1: POLÍGONOS DE CALOR QUE CUBREN LA DUELA COMPLETA */}
@@ -635,62 +626,86 @@ export default function BasketballCourtHeatmap({
             {/* ======================================================= */}
             {/* CAPA 3: PUNTOS DE TIRO VERDES (ACIERTO) Y ROJOS (FALLO) */}
             {/* ======================================================= */}
-            <g id="heatmap-individual-shot-dots" className="cursor-pointer">
-              {heatmapShotPoints.map((pt) => {
-                const isHover = hoveredPoint?.id === pt.id;
-                return (
-                  <g
-                    key={pt.id}
-                    className="transition-transform duration-150 hover:scale-150"
-                    onMouseEnter={() => setHoveredPoint(pt)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  >
-                    {pt.made ? (
-                      // TIRO ANOTADO: Círculo verde brillante con destello
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r={isHover ? 6.5 : 4.5}
-                        fill="#10B981"
-                        stroke="#FFFFFF"
-                        strokeWidth={isHover ? "2" : "1.2"}
-                        className="drop-shadow-[0_0_6px_#10B981]"
-                      />
-                    ) : (
-                      // TIRO FALLADO: Punto rojo con contorno blanco y marca X
-                      <g>
+            {hasRecordedShots && (
+              <g id="heatmap-individual-shot-dots" className="cursor-pointer">
+                {heatmapShotPoints.map((pt) => {
+                  const isHover = hoveredPoint?.id === pt.id;
+                  return (
+                    <g
+                      key={pt.id}
+                      className="transition-transform duration-150 hover:scale-150"
+                      onMouseEnter={() => setHoveredPoint(pt)}
+                      onMouseLeave={() => setHoveredPoint(null)}
+                    >
+                      {pt.made ? (
+                        // TIRO ANOTADO: Círculo verde brillante con destello
                         <circle
                           cx={pt.x}
                           cy={pt.y}
-                          r={isHover ? 6.0 : 4.0}
-                          fill="#EF4444"
+                          r={isHover ? 6.5 : 4.5}
+                          fill="#10B981"
                           stroke="#FFFFFF"
-                          strokeWidth={isHover ? "1.8" : "1"}
-                          className="drop-shadow-[0_0_5px_#EF4444]"
+                          strokeWidth={isHover ? "2" : "1.2"}
+                          className="drop-shadow-[0_0_6px_#10B981]"
                         />
-                        <line
-                          x1={pt.x - 2}
-                          y1={pt.y - 2}
-                          x2={pt.x + 2}
-                          y2={pt.y + 2}
-                          stroke="#FFFFFF"
-                          strokeWidth="1"
-                        />
-                        <line
-                          x1={pt.x + 2}
-                          y1={pt.y - 2}
-                          x2={pt.x - 2}
-                          y2={pt.y + 2}
-                          stroke="#FFFFFF"
-                          strokeWidth="1"
-                        />
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-            </g>
+                      ) : (
+                        // TIRO FALLADO: Punto rojo con contorno blanco y marca X
+                        <g>
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={isHover ? 6.0 : 4.0}
+                            fill="#EF4444"
+                            stroke="#FFFFFF"
+                            strokeWidth={isHover ? "1.8" : "1"}
+                            className="drop-shadow-[0_0_5px_#EF4444]"
+                          />
+                          <line
+                            x1={pt.x - 2}
+                            y1={pt.y - 2}
+                            x2={pt.x + 2}
+                            y2={pt.y + 2}
+                            stroke="#FFFFFF"
+                            strokeWidth="1"
+                          />
+                          <line
+                            x1={pt.x + 2}
+                            y1={pt.y - 2}
+                            x2={pt.x - 2}
+                            y2={pt.y + 2}
+                            stroke="#FFFFFF"
+                            strokeWidth="1"
+                          />
+                        </g>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            )}
           </svg>
+
+          {/* OVERLAY ELEGANTE DE ESTADO VACÍO (SIN TIROS REGISTRADOS) */}
+          {!hasRecordedShots && (
+            <div className="absolute inset-0 bg-[#07090e]/85 backdrop-blur-[3px] flex flex-col items-center justify-center p-6 text-center z-20">
+              <div className="w-14 h-14 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 mb-3 shadow-[0_0_20px_rgba(246,96,24,0.25)]">
+                <Target className="w-7 h-7" />
+              </div>
+              <span className="text-[11px] font-mono uppercase tracking-wider text-orange-400 font-bold px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 mb-1.5">
+                Evaluación en Espera
+              </span>
+              <h4 className="text-base sm:text-lg font-black text-white tracking-tight uppercase max-w-md">
+                Sin evaluaciones oficiales en duela registradas
+              </h4>
+              <p className="text-xs text-zinc-400 max-w-sm mt-1 leading-relaxed">
+                Calibración inicial de tiro pendiente en Deportivo Carmen Serdán.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-[10px] font-mono text-zinc-500 bg-zinc-900/90 px-3 py-1.5 rounded-xl border border-zinc-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                <span>Protocolo de tiro oficial: 10 FT + 20 Mid + 25 3PT (55 Tiros)</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* OVERLAY DEL PUNTO DE TIRO HOVER */}

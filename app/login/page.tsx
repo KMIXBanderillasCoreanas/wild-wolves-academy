@@ -357,7 +357,19 @@ function LoginContent() {
       }
     } catch (err: any) {
       console.warn("Error de autenticación:", err);
-      setErrorMsg(err.message || "Credenciales incorrectas. Verifica tu correo y contraseña.");
+      const rawErrMsg = err?.message || "";
+      const isInvalidCredentials = 
+        rawErrMsg.toLowerCase().includes("invalid login credentials") ||
+        rawErrMsg.toLowerCase().includes("invalid grant") ||
+        rawErrMsg.toLowerCase().includes("user not found");
+
+      if (isInvalidCredentials && !isRegister) {
+        setErrorMsg(
+          "Correo o contraseña no coincidentes. Si es tu primera vez o tu cuenta fue dada de alta en duela, selecciona la pestaña 'Crear Cuenta' para registrar tu contraseña oficial."
+        );
+      } else {
+        setErrorMsg(rawErrMsg || "Credenciales incorrectas. Verifica tu correo y contraseña.");
+      }
     } finally {
       setLoading(false);
     }
