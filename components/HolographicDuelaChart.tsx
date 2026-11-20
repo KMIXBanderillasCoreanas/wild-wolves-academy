@@ -68,16 +68,14 @@ export default function HolographicDuelaChart({
 
   return (
     <div className="relative w-full max-w-5xl mx-auto p-6 sm:p-8 bg-gradient-to-b from-[#060911] via-[#09101d] to-[#0e172a] border border-cyan-500/30 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(6,182,212,0.18)] font-sans select-none">
-      {/* 1. EFECTO DE LUZ Y PARTÍCULAS HOLOGRÁFICAS DE FONDO */}
+      {/* 1. EFECTO DE LUZ Y PARTÍCULAS HOLOGRÁFICAS DE FONDO (SUAVE Y SIN BANDAS MOIRÉ) */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-25"
+        className="absolute inset-0 pointer-events-none opacity-20"
         style={{
           backgroundImage: `
-            radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.25) 1px, transparent 1px),
-            linear-gradient(to right, rgba(6, 182, 212, 0.08) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(6, 182, 212, 0.08) 1px, transparent 1px)
-          `,
-          backgroundSize: '24px 24px, 48px 48px, 48px 48px'
+            radial-gradient(circle at 50% 20%, rgba(6, 182, 212, 0.22) 0%, transparent 65%),
+            radial-gradient(circle at 50% 80%, rgba(249, 115, 22, 0.15) 0%, transparent 60%)
+          `
         }}
       />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[550px] h-72 bg-gradient-to-r from-cyan-500/20 via-orange-500/15 to-red-500/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -202,14 +200,6 @@ export default function HolographicDuelaChart({
                     >
                       {/* Efecto de escáner de energía vertical dentro de la columna */}
                       <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent opacity-60 animate-pulse" />
-                      
-                      {/* Líneas horizontales de telemetría HUD sobre la barra */}
-                      <div 
-                        className="absolute inset-0 opacity-25"
-                        style={{
-                          backgroundImage: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.8) 0px, rgba(255,255,255,0.8) 1px, transparent 1px, transparent 6px)'
-                        }}
-                      />
                     </div>
 
                     {/* CÚSPIDE 3D (TAPA SUPERIOR DE LA BARRA): Proyección isométrica */}
